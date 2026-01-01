@@ -1,0 +1,228 @@
+/* Global resets */
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  width: 100%;
+  background-color: #1e1e1e;
+  overflow: hidden;
+  /* Prevent body scroll, handle inside components */
+}
+
+#root {
+  height: 100%;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.app-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.app-header {
+  padding: 0 20px;
+  background-color: #2b2b2b;
+  border-bottom: 1px solid #383838;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height: 50px;
+  flex-shrink: 0;
+  /* Header doesn't shrink */
+}
+
+.app-header h1 {
+  font-size: 1.2rem;
+  margin: 0;
+  color: #d1d4dc;
+}
+
+.app-header p {
+  font-size: 0.8rem;
+  color: #787b86;
+  margin: 0;
+}
+
+/* Controls integrated into header area */
+.controls {
+  display: flex;
+  gap: 15px;
+  align-items: center;
+  margin-left: 40px;
+  padding: 10px;
+  border-radius: 4px;
+  flex-wrap: wrap;
+}
+
+.controls select {
+  background: #131722;
+  color: #d1d4dc;
+  border: 1px solid #383838;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.date-range-picker {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  color: #cecece;
+  font-size: 0.9rem;
+}
+
+.date-range-picker input {
+  background: #131722;
+  border: 1px solid #363a45;
+  color: #cecece;
+  padding: 4px;
+  border-radius: 4px;
+}
+
+.run-backtest-btn {
+  background-color: #2962ff;
+  color: white;
+  border: none;
+  padding: 6px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.run-backtest-btn:hover {
+  background-color: #1e53e5;
+}
+
+.replay-controls {
+  display: flex;
+  gap: 5px;
+  margin-left: 20px;
+  background: #131722;
+  padding: 4px;
+  border-radius: 4px;
+  border: 1px solid #363a45;
+}
+
+.replay-controls button {
+  background: transparent;
+  border: none;
+  color: #cecece;
+  cursor: pointer;
+  padding: 4px 8px;
+  font-size: 16px;
+}
+
+.replay-controls button:hover {
+  color: white;
+  background: #2a2e39;
+  border-radius: 2px;
+}
+
+.replay-controls select {
+  background: #2a2e39;
+  color: #cecece;
+  border: none;
+  border-radius: 2px;
+  margin-left: 5px;
+}
+
+.replay-btn {
+  background-color: #7c4dff;
+  color: white;
+  border: none;
+  padding: 6px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.replay-btn:hover {
+  background-color: #651fff;
+}
+
+.replay-btn:disabled {
+  background-color: #555;
+  cursor: not-allowed;
+}
+
+/* Main Layout: Split Chart and Results */
+.chart-wrapper {
+  flex-grow: 1;
+  /* Takes mainly all available space */
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  /* Critical for nested flex scrolling */
+  position: relative;
+}
+
+/* Override chart container within wrapper */
+.chart-wrapper>div {
+  height: 100% !important;
+  /* Force chart to take full wrapper height */
+}
+
+.backtest-results {
+  height: 25vh;
+  /* Initial height, can be resizable in future */
+  background-color: #1e1e1e;
+  border-top: 2px solid #383838;
+  padding: 10px;
+  overflow-y: auto;
+  color: #d1d4dc;
+  flex-shrink: 0;
+}
+
+.backtest-results h3 {
+  margin-top: 0;
+  font-size: 1rem;
+  color: #b2b5be;
+}
+
+.results-content {
+  font-family: monospace;
+  font-size: 0.9em;
+  white-space: pre-wrap;
+}
+
+.summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  margin-bottom: 15px;
+}
+
+.summary p {
+  margin: 0;
+}
+
+.trade-log {
+  margin-top: 10px;
+  border-top: 1px solid #383838;
+  padding-top: 10px;
+}
+
+.trade-log h4 {
+  margin: 0 0 10px 0;
+  color: #b2b5be;
+}
+
+.trade-log ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  max-height: 150px;
+  overflow-y: auto;
+}
+
+.trade-log li {
+  padding: 4px 0;
+  border-bottom: 1px solid #2a2e39;
+  font-size: 0.85em;
+}

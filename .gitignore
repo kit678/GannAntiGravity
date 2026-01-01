@@ -1,0 +1,39 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.env
+
+# NodeJS
+node_modules/
+npm-debug.log
+yarn-error.log
+dist/
+build/
+.next/
+
+# VS Code
+.vscode/
+*.code-workspace
+
+# Project Specific - Secrets & Scripts with potential secrets
+dhan_auth.py
+dhan-test-script.py
+*.log
+
+# Large Data & Cache
+scrip_master_cache.csv
+gann-visualizer/backend/scrip_master_cache.csv
+extracted_images/
+output.txt
+
+# Documents
+*.pdf
+
+# OS
+.DS_Store
+Thumbs.db
