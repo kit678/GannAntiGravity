@@ -79,22 +79,8 @@ class DhanClient:
         self.client_id = "1109381189"
         self.scrip_master = DhanScripMaster()
         
-        self.access_token = ""
-        try:
-            token_file_path = "C:/Dev/GannTesting/dhan-test-script.py"
-            if os.path.exists(token_file_path):
-                with open(token_file_path, "r") as f:
-                    content = f.read()
-                    match = re.search(r'ACCESS_TOKEN\s*=\s*"(.*?)"', content)
-                    if match:
-                        self.access_token = match.group(1)
-                    else:
-                        print("Warning: Could not regex match ACCESS_TOKEN in script.")
-        except Exception as e:
-            print(f"Error reading token: {e}")
-
-        if not self.access_token:
-             self.access_token = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJpc3MiOiJkaGFuIiwicGFydG5lcklkIjoiIiwiZXhwIjoxNzY2OTE4MTY0LCJpYXQiOjE3NjY4MzE3NjQsInRva2VuQ29uc3VtZXJUeXBlIjoiU0VMRiIsIndlYmhvb2tVcmwiOiIiLCJkaGFuQ2xpZW50SWQiOiIxMTA5MzgxMTg5In0.-52_Nv541oHX70OLF5Z0BUjg3gcXPStGSThL2CFggIqvU_X_sAg_Cqj-uRtZDHeX03aG-a2EIWMW1IN5qI1jIQ"
+        # Dhan API Access Token - Update this when token expires
+        self.access_token = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJpc3MiOiJkaGFuIiwicGFydG5lcklkIjoiIiwiZXhwIjoxNzY3ODYxNTY2LCJpYXQiOjE3Njc3NzUxNjYsInRva2VuQ29uc3VtZXJUeXBlIjoiU0VMRiIsIndlYmhvb2tVcmwiOiIiLCJkaGFuQ2xpZW50SWQiOiIxMTA5MzgxMTg5In0.4kSyS5EBE00ul3ZEpOjXLrM6oo8VcTLjM-_u8cqE84U4wjh6R9x36UzVFVE3e11C1MVKrWlGLFs0Jj4Ujn2AKw"
 
         self.headers = {
             "access-token": self.access_token,

@@ -136,6 +136,10 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
     // Key: time bucket (rounded to nearest 5 min), Value: array of { price, type, offsetLevel }
     const recentMarkersRef = useRef({});
 
+    // Track which trades have been plotted to prevent duplicate markers
+    // Key: unique trade identifier (time_type_price), Value: true
+    const plottedTradesRef = useRef({});
+
     // Plot a single trade shape - now accepts optional candles for time snapping
     const plotTradeShape = (chart, trade, candles = null) => {
         // Validate trade data before calling TradingView API
@@ -144,25 +148,40 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
             return false;
         }
 
+        // DUPLICATE PREVENTION: Create unique key for this trade
+        // Using time + type + price to identify unique trades
+        const tradeKey = `${trade.time}_${trade.type}_${trade.price}`;
+        if (plottedTradesRef.current[tradeKey]) {
+            console.log(`[plotTradeShape] Skipping duplicate trade: ${tradeKey}`);
+            return false;
+        }
+        plottedTradesRef.current[tradeKey] = true;
+
         const color = trade.type === 'buy' ? '#00E676' : '#FF5252';
 
-        // SIMPLIFIED TEXT: Just show date and time for easier alignment verification
-        const tradeDate = new Date(trade.time * 1000);
-        const dateStr = tradeDate.toLocaleDateString('en-GB', {
-            day: '2-digit',
-            month: 'short'
-        });
-        const timeStr = tradeDate.toLocaleTimeString('en-GB', {
-            hour: '2-digit',
-            minute: '2-digit',
-            hour12: false
-        });
-        const text = `${dateStr} ${timeStr}`; // e.g., "22 Dec 09:15"
-
+        // Use arrows with proper sizing
         const shape = trade.type === 'buy' ? 'arrow_up' : 'arrow_down';
 
         // Use exact trade time from backend (no snapping)
         const shapeTime = toSeconds(trade.time);
+
+        // Find the matching candle for this trade to get high/low
+        let candleHigh = trade.price;
+        let candleLow = trade.price;
+
+        if (candles && candles.length > 0) {
+            // Find candle that contains this trade time
+            const matchingCandle = candles.find(c => {
+                const candleTime = toSeconds(c.time);
+                // Trade belongs to candle if it's within the candle's time window
+                return Math.abs(candleTime - shapeTime) < 60; // Within 1 minute
+            });
+
+            if (matchingCandle) {
+                candleHigh = matchingCandle.high;
+                candleLow = matchingCandle.low;
+            }
+        }
 
         // FIX FOR STACKED MARKERS: Track markers in time buckets and apply progressive offsets
         // Round time to nearest 5-minute bucket to group nearby trades
@@ -177,37 +196,61 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
         // Count how many markers of the same type are already in this bucket
         const existingCount = recentMarkersRef.current[bucketKey].length;
 
-        // Base offset from price (0.3% to clear candlestick body)
-        const baseOffset = trade.price * 0.003;
+        // Position markers just outside the candle extremes
+        // Small base offset (0.15% of price) to separate from candle
+        const baseOffset = trade.price * 0.0015;
 
-        // Additional offset per stacked marker (0.15% per level)
-        const stackOffset = trade.price * 0.0015 * existingCount;
+        // Additional offset per stacked marker (0.1% per level)
+        const stackOffset = trade.price * 0.001 * existingCount;
 
-        // Calculate final price with progressive offset
-        // Buy arrows stack downward, Sell arrows stack upward
+        // Calculate final price based on candle high/low
+        // Buy arrows: positioned below the candle's LOW, pointing up
+        // Sell arrows: positioned above the candle's HIGH, pointing down
         const shapePrice = trade.type === 'buy'
-            ? trade.price - baseOffset - stackOffset  // Buy arrows below, stacking further down
-            : trade.price + baseOffset + stackOffset; // Sell arrows above, stacking further up
+            ? candleLow - baseOffset - stackOffset  // Below lowest point
+            : candleHigh + baseOffset + stackOffset; // Above highest point
 
         // Record this marker in the bucket
         recentMarkersRef.current[bucketKey].push({ price: shapePrice, time: shapeTime });
 
-        console.log(`[plotTradeShape] ${trade.type.toUpperCase()} at ${dateStr} ${timeStr}, time=${shapeTime}, price=${trade.price} -> ${shapePrice.toFixed(2)} (stack level ${existingCount})`);
+        // Format trade info for console logging only
+        const tradeDate = new Date(trade.time * 1000);
+        const dateStr = tradeDate.toLocaleDateString('en-GB', {
+            day: '2-digit',
+            month: 'short'
+        });
+        const timeStr = tradeDate.toLocaleTimeString('en-GB', {
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false
+        });
+
+        console.log(`[plotTradeShape] ${trade.type.toUpperCase()} at ${dateStr} ${timeStr}, time=${shapeTime}, price=${trade.price}, candle H/L=${candleHigh}/${candleLow} -> marker@${shapePrice.toFixed(2)} (stack level ${existingCount})`);
 
         try {
-            chart.createShape({ time: shapeTime, price: shapePrice }, {
+            const createdShape = chart.createShape({ time: shapeTime, price: shapePrice }, {
                 shape: shape,
-                text: text,
+                text: '',  // No text label - tooltip will show on hover
                 overrides: {
                     color: color,
                     backgroundColor: color,
-                    fontsize: 8,  // Reduced from 10 for less clutter
+                    size: 1,  // Numeric size: 1 is smallest
+                    fontsize: 0,
                     bold: false
                 }
             });
+
+            console.log(`[plotTradeShape] Shape created successfully:`, createdShape);
             return true;
         } catch (err) {
             console.error("[plotTradeShape] Error creating shape:", err);
+            console.error("[plotTradeShape] Error details:", {
+                message: err.message,
+                stack: err.stack,
+                trade: trade,
+                shapeTime: shapeTime,
+                shapePrice: shapePrice
+            });
             return false;
         }
     };
@@ -394,12 +437,50 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
         },
 
         // REPLAY MODE: Start candle-by-candle playback
-        startBacktestReplay: (candles, trades, resolution = '1') => {
+        startBacktestReplay: (candles, trades, resolution = '1', replayStartTimestamp = null, onProgressCallback = null) => {
             console.log("Starting Replay Mode", candles.length, "candles,", trades.length, "trades, resolution:", resolution);
+            if (replayStartTimestamp) {
+                console.log("Replay will start from timestamp:", replayStartTimestamp, "date:", new Date(replayStartTimestamp * 1000).toISOString());
+            }
 
             if (!datafeedRef.current || !widgetRef.current) {
                 console.error("Chart not ready");
                 return;
+            }
+
+            // TradingView-style replay logic:
+            // 1. Show ALL candles for context (don't filter)
+            // 2. Set the replay "current step" to the start date index
+            // 3. Filter trades to only appear from the replay point forward
+
+            let replayStartIndex = 0; // Default: start from beginning
+            let filteredTrades = trades;
+
+            if (replayStartTimestamp) {
+                // Find the index where replay should start
+                const foundIndex = candles.findIndex(c => {
+                    const candleTime = toSeconds(c.time);
+                    return candleTime >= replayStartTimestamp;
+                });
+
+                if (foundIndex !== -1) {
+                    // Show context: Start showing from ~50 candles before the replay point
+                    // This gives users chart context before the replay starts
+                    // Start exactly from the previous candle (yesterday's close)
+                    replayStartIndex = Math.max(0, foundIndex - 1);
+
+                    console.log(`[Replay] Replay point at candle index ${foundIndex}`);
+                    console.log(`[Replay] Showing context from index ${replayStartIndex} (${foundIndex - replayStartIndex} candles before replay point)`);
+                    console.log(`[Replay] Initial visible range: ${new Date(candles[replayStartIndex].time * 1000).toLocaleString()} to ${new Date(candles[foundIndex].time * 1000).toLocaleString()}`);
+
+                    // Filter trades to only include those AT OR AFTER the replay start time
+                    filteredTrades = trades.filter(t => t.time >= replayStartTimestamp);
+                    console.log(`[Replay] Filtered trades: ${filteredTrades.length}/${trades.length} trades from replay point forward`);
+                } else {
+                    console.warn("[Replay] Could not find candle matching replay start timestamp, starting from beginning");
+                }
+            } else {
+                console.log("[Replay] No start date specified, replaying from beginning");
             }
 
             // Ensure candle times are in milliseconds
@@ -408,23 +489,103 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
                 time: toMilliseconds(c.time)
             }));
 
-            // CRITICAL: Store candles for trade time matching
+            // CRITICAL: Store ALL candles for chart rendering
             currentCandlesRef.current = normalizedCandles;
 
-            // Store trades
-            tradesRef.current = trades;
+            // Store filtered trades (only from replay point forward)
+            tradesRef.current = filteredTrades;
 
             // Configure datafeed for replay with trade callback and resolution
-            datafeedRef.current.setBacktestDataForReplay(normalizedCandles, trades, (trade) => {
-                // This callback fires when a trade time is reached during replay
-                const chart = widgetRef.current.activeChart();
-                plotTradeShape(chart, trade, normalizedCandles);
-                if (onTradeLogged) onTradeLogged(trade);
-            }, resolution);
+            datafeedRef.current.setBacktestDataForReplay(
+                normalizedCandles,
+                filteredTrades,
+                (trade) => {
+                    // This callback fires when a trade time is reached during replay
+                    const chart = widgetRef.current.activeChart();
+                    console.log("[Replay] Trade callback triggered for:", trade.type, "at", new Date(trade.time * 1000).toLocaleString());
+                    plotTradeShape(chart, trade, normalizedCandles);
+                    if (onTradeLogged) onTradeLogged(trade);
+                },
+                resolution,
+                replayStartIndex, // Pass the starting index to datafeed
+                onProgressCallback // Pass progress callback to datafeed
+            );
 
             widgetRef.current.onChartReady(() => {
                 const chart = widgetRef.current.activeChart();
                 chart.removeAllShapes();
+                recentMarkersRef.current = {}; // Clear marker tracking
+                plottedTradesRef.current = {};  // Reset trade tracking for new replay
+
+                console.log("[Replay] Chart ready - cleared existing shapes");
+            });
+
+            setIsPlaybackMode(true);
+            setIsPlaying(false);
+        },
+
+        // PROGRESSIVE REPLAY MODE: Evaluate strategy dynamically as candles appear
+        startProgressiveReplay: (candles, strategy, resolution, replayStartTimestamp, datafeedUrl, onProgressCallback, onTradeCallback) => {
+            console.log("[Progressive Replay] Starting with", candles.length, "candles, strategy:", strategy);
+
+            if (!datafeedRef.current || !widgetRef.current) {
+                console.error("Chart not ready");
+                return;
+            }
+
+            let replayStartIndex = 0;
+
+            if (replayStartTimestamp) {
+                const foundIndex = candles.findIndex(c => {
+                    const candleTime = toSeconds(c.time);
+                    return candleTime >= replayStartTimestamp;
+                });
+
+                if (foundIndex !== -1) {
+                    // Start exactly from the previous candle (yesterday's close)
+                    replayStartIndex = Math.max(0, foundIndex - 1);
+                    console.log(`[Progressive Replay] Replay point at index ${foundIndex}, starting from ${replayStartIndex} (with context)`);
+                }
+            }
+
+            const normalizedCandles = candles.map(c => ({
+                ...c,
+                time: toMilliseconds(c.time)
+            }));
+
+            currentCandlesRef.current = normalizedCandles;
+
+            datafeedRef.current.setProgressiveReplayData(
+                normalizedCandles,
+                strategy,
+                datafeedUrl,
+                replayStartIndex,
+                onProgressCallback,
+                (trade) => {
+                    // Safety check: ensure widget is ready before plotting
+                    if (!widgetRef.current) {
+                        console.warn("[Progressive Replay] Widget not ready, skipping trade plot");
+                        if (onTradeCallback) onTradeCallback(trade);
+                        return;
+                    }
+                    try {
+                        const chart = widgetRef.current.activeChart();
+                        console.log("[Progressive Replay] Trade signal:", trade.type, "at", new Date(trade.time * 1000).toLocaleString());
+                        plotTradeShape(chart, trade, normalizedCandles);
+                    } catch (err) {
+                        console.warn("[Progressive Replay] Error plotting trade:", err.message);
+                    }
+                    if (onTradeCallback) onTradeCallback(trade);
+                },
+                resolution
+            );
+
+            widgetRef.current.onChartReady(() => {
+                const chart = widgetRef.current.activeChart();
+                chart.removeAllShapes();
+                recentMarkersRef.current = {};
+                plottedTradesRef.current = {};  // Reset trade tracking for new replay
+                console.log("[Progressive Replay] Chart ready - cleared existing shapes");
             });
 
             setIsPlaybackMode(true);
@@ -436,6 +597,8 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
         setSpeed: handleSpeedChange,
 
         isReplayMode: () => isPlaybackMode,
+
+        isPlaying: () => isPlaying,
 
         exitReplay: () => {
             if (datafeedRef.current) {

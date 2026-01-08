@@ -17,25 +17,27 @@ body {
   flex-direction: column;
 }
 
+
 .app-container {
   display: flex;
   flex-direction: column;
-  height: 100%;
+  height: 100vh;
   width: 100%;
   padding: 0;
   box-sizing: border-box;
+  overflow: hidden;
 }
 
 .app-header {
-  padding: 0 20px;
+  padding: 10px 20px;
   background-color: #2b2b2b;
-  border-bottom: 1px solid #383838;
+  border-bottom: 2px solid #383838;
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  height: 50px;
+  flex-direction: column;
+  gap: 10px;
   flex-shrink: 0;
-  /* Header doesn't shrink */
+  z-index: 100;
+  /* Fixed header - always visible */
 }
 
 .app-header h1 {
@@ -99,37 +101,138 @@ body {
   background-color: #1e53e5;
 }
 
-.replay-controls {
+/* Replay Bar - TradingView-style overlay at chart bottom */
+.replay-bar-overlay {
+  position: fixed;
+  bottom: calc(25vh + 20px);
+  /* Above the backtest results panel */
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  background: linear-gradient(135deg, #1e222d 0%, #2a2e39 100%);
+  border: 1px solid #434651;
+  border-radius: 8px;
+  padding: 12px 20px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
   display: flex;
-  gap: 5px;
-  margin-left: 20px;
-  background: #131722;
-  padding: 4px;
-  border-radius: 4px;
-  border: 1px solid #363a45;
+  align-items: center;
+  gap: 15px;
+  min-width: 600px;
 }
 
-.replay-controls button {
-  background: transparent;
+.replay-bar-overlay .replay-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  color: #d1d4dc;
+  font-size: 11px;
+  min-width: 150px;
+}
+
+.replay-bar-overlay .replay-info .replay-label {
+  color: #787b86;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.replay-bar-overlay .replay-info .replay-value {
+  color: #00E676;
+  font-weight: 500;
+  font-size: 12px;
+}
+
+.replay-bar-overlay .replay-controls-group {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 0 15px;
+  border-left: 1px solid #434651;
+  border-right: 1px solid #434651;
+}
+
+.replay-bar-overlay button {
+  background: #2962ff;
   border: none;
-  color: #cecece;
-  cursor: pointer;
-  padding: 4px 8px;
-  font-size: 16px;
-}
-
-.replay-controls button:hover {
   color: white;
+  cursor: pointer;
+  padding: 8px 14px;
+  font-size: 14px;
+  border-radius: 4px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.replay-bar-overlay button:hover {
+  background: #1e53e5;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(41, 98, 255, 0.4);
+}
+
+.replay-bar-overlay button.step-btn {
+  background: #434651;
+  padding: 6px 10px;
+}
+
+.replay-bar-overlay button.step-btn:hover {
+  background: #4a4e5a;
+}
+
+.replay-bar-overlay button.exit-btn {
+  background: transparent;
+  border: 1px solid #FF5252;
+  color: #FF5252;
+  padding: 6px 12px;
+}
+
+.replay-bar-overlay button.exit-btn:hover {
+  background: #FF5252;
+  color: white;
+}
+
+.replay-bar-overlay select {
+  background: #131722;
+  color: #cecece;
+  border: 1px solid #434651;
+  border-radius: 4px;
+  padding: 6px 10px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.replay-bar-overlay select:hover {
+  border-color: #2962ff;
+}
+
+.replay-bar-overlay .replay-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 120px;
+}
+
+.replay-bar-overlay .progress-bar {
+  width: 100%;
+  height: 4px;
   background: #2a2e39;
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.replay-bar-overlay .progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #00E676 0%, #2962ff 100%);
+  transition: width 0.3s ease;
   border-radius: 2px;
 }
 
-.replay-controls select {
-  background: #2a2e39;
-  color: #cecece;
-  border: none;
-  border-radius: 2px;
-  margin-left: 5px;
+.replay-bar-overlay .progress-text {
+  font-size: 10px;
+  color: #787b86;
+  text-align: center;
 }
 
 .replay-btn {
@@ -151,26 +254,60 @@ body {
   cursor: not-allowed;
 }
 
-/* Main Layout: Split Chart and Results */
-.chart-wrapper {
+/* Main Layout: Resizable chart and results panels */
+.main-content {
   flex-grow: 1;
-  /* Takes mainly all available space */
   display: flex;
   flex-direction: column;
   min-height: 0;
-  /* Critical for nested flex scrolling */
+  overflow: hidden;
   position: relative;
+}
+
+.chart-wrapper {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 300px;
+  position: relative;
+  background-color: #131722;
 }
 
 /* Override chart container within wrapper */
 .chart-wrapper>div {
   height: 100% !important;
-  /* Force chart to take full wrapper height */
+}
+
+/* Resize handle between chart and results */
+.resize-handle {
+  height: 4px;
+  background: #383838;
+  cursor: ns-resize;
+  position: relative;
+  z-index: 10;
+  transition: background 0.2s;
+}
+
+.resize-handle:hover {
+  background: #2962ff;
+}
+
+.resize-handle::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 40px;
+  height: 3px;
+  background: #787b86;
+  border-radius: 2px;
 }
 
 .backtest-results {
-  height: 25vh;
-  /* Initial height, can be resizable in future */
+  height: 200px;
+  min-height: 100px;
+  max-height: 50vh;
   background-color: #1e1e1e;
   border-top: 2px solid #383838;
   padding: 10px;

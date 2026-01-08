@@ -1,10 +1,13 @@
 from fastapi import FastAPI, HTTPException, Query, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+from typing import Optional
 import uvicorn
 import pandas as pd
 from dhan_client import DhanClient
-from gann_logic import GannStrategyEngine
+from gann_logic import GannStrategyEngine  # Keep for backward compatibility
+from strategies import get_strategy, STRATEGY_REGISTRY  # New strategy system
+from backtest_engine import BacktestEngine  # New backtesting engine
 import time
 from datetime import datetime, timedelta
 import pytz
@@ -52,6 +55,18 @@ class BacktestRequest(BaseModel):
     days: int = 5
     resolution: str = "1" # Default to 1-minute
 
+class FetchCandlesRequest(BaseModel):
+    symbol: str
+    from_date: str
+    to_date: str  
+    resolution: str = "1"
+
+class EvaluateStrategyRequest(BaseModel):
+    strategy: str
+    candles: list
+    current_index: int
+    last_action: str | None = None  # 'buy', 'sell', or None
+
 @app.get("/")
 def read_root():
     return {"status": "Gann Backend Online"}
@@ -61,7 +76,9 @@ def read_root():
 @app.get("/config")
 def udf_config():
     return {
-        "supported_resolutions": ["1", "5", "15", "60", "D", "W"],
+        "supported_resolutions": ["1", "5", "15", "60",
+
+ "D", "W"],
         "supports_group_request": False,
         "supports_marks": True,
         "supports_search": True,
@@ -334,9 +351,111 @@ def udf_time():
     return int(time.time())
 
 # -----------------------------------------------------------
+# NEW: Independent Replay Endpoints
+# -----------------------------------------------------------
+
+@app.post("/fetch_candles")
+async def fetch_candles(req: FetchCandlesRequest):
+    """Fetch candlestick data without strategy evaluation - for independent replay"""
+    try:
+        print(f"[Replay] Fetching candles: {req.symbol} from {req.from_date} to {req.to_date}, resolution: {req.resolution}")
+        
+        client = DhanClient()
+        df = client.fetch_data(req.symbol, req.from_date, req.to_date, interval=req.resolution)
+        
+        if df is None or df.empty:
+            raise HTTPException(status_code=500, detail=f"No data found for {req.symbol}")
+        
+        # Convert to candlestick format
+        candles = df[['timestamp', 'open', 'high', 'low', 'close']].copy()
+        if 'volume' in df.columns:
+            candles['volume'] = df['volume']
+            
+        candles_list = candles.to_dict(orient='records')
+        
+        # Rename timestamp to time
+        for c in candles_list:
+            c['time'] = c.pop('timestamp')
+        
+        print(f"[Replay] Returning {len(candles_list)} candles")
+        
+        return {"candles": candles_list}
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Error fetching candles: {str(e)}")
+
+
+@app.post("/evaluate_strategy_step")
+async def evaluate_strategy_step(req: EvaluateStrategyRequest):
+    """
+    Evaluate strategy at current replay step - progressive evaluation.
+    
+    UNIFIED LOGIC: Uses the same strategies.py as /run_backtest for consistency.
+    We call generate_signals() directly (without BacktestEngine) to avoid force-close behavior.
+    """
+    try:
+        # Convert candles list back to DataFrame
+        df = pd.DataFrame(req.candles)
+        df.rename(columns={'time': 'timestamp'}, inplace=True)
+        
+        # Ensure required columns exist
+        required_cols = ['timestamp', 'open', 'high', 'low', 'close']
+        if not all(col in df.columns for col in required_cols):
+            return {"signal": None}
+        
+        # Ensure numeric types
+        for col in ['open', 'high', 'low', 'close']:
+            df[col] = pd.to_numeric(df[col])
+        
+        # UNIFIED STRATEGY LOGIC: Use the SAME strategies.py as /run_backtest
+        # We use generate_signals() directly, NOT BacktestEngine, to avoid force-close
+        try:
+            from strategies import get_strategy
+            from base_strategy import SignalType
+            
+            strategy = get_strategy(req.strategy, df)
+            signals_df = strategy.generate_signals()
+            
+        except Exception as strategy_error:
+            print(f"[Evaluation] Strategy error: {strategy_error}")
+            import traceback
+            traceback.print_exc()
+            return {"signal": None}
+        
+        # Find signal at current candle
+        current_trade = None
+        if req.current_index < len(signals_df):
+            current_row = signals_df.iloc[req.current_index]
+            signal_type = current_row.get('signal', SignalType.HOLD)
+            
+            if signal_type in [SignalType.BUY, SignalType.SELL]:
+                trade_type = 'buy' if signal_type == SignalType.BUY else 'sell'
+                
+                current_trade = {
+                    "time": int(current_row['timestamp']),
+                    "type": trade_type,
+                    "price": float(current_row['close']),
+                    "label": str(current_row.get('signal_label', f'{trade_type.upper()} Signal')),
+                    "pnl": None  # P&L not calculated during replay (calculated client-side)
+                }
+                print(f"[Evaluation] Found signal at index {req.current_index}: {trade_type} @ {current_trade['price']}")
+        
+        return {"signal": current_trade}
+        
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return {"signal": None}
+
+# -----------------------------------------------------------
 
 @app.post("/run_backtest")
 def run_backtest(req: BacktestRequest):
+    """
+    Run backtest using the new separated architecture.
+    Strategies generate signals, BacktestEngine handles execution.
+    """
     try:
         client = DhanClient()
         df = pd.DataFrame()
@@ -364,16 +483,38 @@ def run_backtest(req: BacktestRequest):
         if df is None or df.empty:
             raise HTTPException(status_code=500, detail=f"Failed to fetch data for {req.symbol}")
 
-        engine = GannStrategyEngine(df)
-        trades = []
-        
-        if req.strategy == "mechanical_3day":
-            trades = engine.run_mechanical_3day_swing()
-        elif req.strategy == "gann_square_9":
-            trades = engine.run_square_of_9_reversion()
-        elif req.strategy == "ichimoku_cloud":
-             # Placeholder for future strategy
-             trades = []
+        # NEW ARCHITECTURE: Use separated strategy and backtesting engine
+        try:
+            # Get strategy instance (pure signal generator)
+            strategy = get_strategy(req.strategy, df)
+            
+            # Create backtesting engine (handles position management and P&L)
+            backtest_engine = BacktestEngine(strategy)
+            
+            # Run backtest
+            result = backtest_engine.run(symbol=req.symbol)
+            
+            # Convert trades to old format for frontend compatibility
+            trades = [t.to_dict() for t in result.trades]
+            
+            print(f"NEW ENGINE: Backtest completed - {result.metrics['total_trades']} trades, P&L: {result.metrics['total_pnl']}")
+            
+        except Exception as strategy_error:
+            # Fallback to old system if new one fails (for robustness during transition)
+            print(f"WARNING: New strategy system failed, falling back to old system: {strategy_error}")
+            import traceback
+            traceback.print_exc()
+            
+            engine = GannStrategyEngine(df)
+            trades = []
+            
+            if req.strategy == "mechanical_3day":
+                trades = engine.run_mechanical_3day_swing()
+            elif req.strategy == "gann_square_9":
+                trades = engine.run_square_of_9_reversion()
+            elif req.strategy == "ichimoku_cloud":
+                 # Placeholder for future strategy
+                 trades = []
         
         # Prepare response
         # We return EVERYTHING so frontend can replay it
