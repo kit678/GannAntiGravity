@@ -1,0 +1,10 @@
+C:\Dev\GannTesting\gann-visualizer\backend\dhan_client.py:31: DtypeWarning: Columns (14,15) have mixed types. Specify dtype option on import or set low_memory=False.
+  self.df = pd.read_csv(cache_file)
+Initializing Dhan Client...
+Client initialized successfully.
+
+--- Test 1: Finding Security ID for NIFTY 24000 CE (2026-01-15) ---
+Loading Scrip Master from Cache...
+Scrip Master Loaded: 128597 symbols.
+No option found for: NIFTY 15 JAN 2026 24000 CE
+FAILURE: Could not find Security ID via Scrip Master.

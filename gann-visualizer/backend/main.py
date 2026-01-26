@@ -5,6 +5,7 @@ from typing import Optional
 import uvicorn
 import pandas as pd
 from dhan_client import DhanClient
+from yfinance_client import YFinanceClient
 from gann_logic import GannStrategyEngine  # Keep for backward compatibility
 from strategies import get_strategy, STRATEGY_REGISTRY  # New strategy system
 from backtest_engine import BacktestEngine  # New backtesting engine
@@ -13,7 +14,11 @@ from datetime import datetime, timedelta
 import pytz
 
 app = FastAPI()
-print("--- BACKEND RESTART v3 - REGEX CORS ---")
+print("--- BACKEND RESTART v4 - PNL TRACKING ---")
+
+# Position tracking for progressive replay PnL calculation
+# Key: strategy name, Value: { position_type, entry_price, entry_time, entry_label, option_price }
+_replay_positions = {}
 
 # Enable CORS for React Frontend
 # Manual CORS Middleware to guarantee headers
@@ -54,18 +59,33 @@ class BacktestRequest(BaseModel):
     to_date: str = None   # YYYY-MM-DD
     days: int = 5
     resolution: str = "1" # Default to 1-minute
+    data_source: str = "dhan"  # "dhan" or "yfinance"
 
 class FetchCandlesRequest(BaseModel):
     symbol: str
     from_date: str
     to_date: str  
     resolution: str = "1"
+    strategy: Optional[str] = None  # Optional: if provided, prefetch option data for option strategies
+    data_source: str = "dhan"  # "dhan" or "yfinance"
+    lookback_bars: int = 50  # Number of bars to fetch before from_date for pivot context
+
+
+def get_data_client(data_source: str = "dhan"):
+    """Factory function to get appropriate data client."""
+    if data_source == "yfinance":
+        return YFinanceClient()
+    return DhanClient()
 
 class EvaluateStrategyRequest(BaseModel):
     strategy: str
     candles: list
     current_index: int
     last_action: str | None = None  # 'buy', 'sell', or None
+    instrument_type: str = "options"  # 'options' or 'spot'
+    scale_ratio: float | None = None  # Chart's Price-to-Bar ratio for angle calculations
+    left_bars: int | None = None  # Configurable pivot detection
+    right_bars: int | None = None  # Configurable pivot detection
 
 @app.get("/")
 def read_root():
@@ -76,9 +96,7 @@ def read_root():
 @app.get("/config")
 def udf_config():
     return {
-        "supported_resolutions": ["1", "5", "15", "60",
-
- "D", "W"],
+        "supported_resolutions": ["1", "5", "15", "30", "60", "D", "W", "M"],
         "supports_group_request": False,
         "supports_marks": True,
         "supports_search": True,
@@ -89,14 +107,31 @@ def udf_config():
         "symbols_types": [
             {"name": "All types", "value": ""},
             {"name": "Index", "value": "index"},
+            {"name": "Stock", "value": "stock"},
             {"name": "Options", "value": "options"},
         ],
     }
 
 @app.get("/search")
-def udf_search(query: str, type: str, exchange: str, limit: int):
+def udf_search(query: str, type: str, exchange: str, limit: int, data_source: str = "dhan"):
     results = []
     
+    # Route to Yahoo Finance search if selected
+    if data_source == "yfinance":
+        yf_client = YFinanceClient()
+        yf_results = yf_client.search(query, limit=limit)
+        for r in yf_results:
+            results.append({
+                "symbol": f"{r['symbol']}:YF", # Add suffix for easier routing
+                "full_name": r["full_name"],
+                "description": r["description"],
+                "exchange": r["exchange"],
+                "ticker": f"{r['symbol']}:YF",
+                "type": r["type"]
+            })
+        return results
+    
+    # --- DHAN SEARCH ---
     # Always include our Hardcoded favorites first
     # NIFTY 50 Index
     if "NIFTY" in query.upper() or query == "":
@@ -127,6 +162,15 @@ def udf_search(query: str, type: str, exchange: str, limit: int):
         if not matches.empty:
             for _, row in matches.iterrows():
                 sym = row['SEARCH_SYMBOL']
+                instr_name = row['SEM_INSTRUMENT_NAME']
+                
+                # Filter by Type (if specified)
+                row_type = "stock" if instr_name == 'EQUITY' else "index"
+                if type and type != "" and type != "all":
+                    if type == "stock" and row_type != "stock": continue
+                    if type == "index" and row_type != "index": continue
+                    # For now we treat others as unmatched or catch-all
+                
                 if sym in ["NIFTY 50", "NIFTY OPTIONS"]: continue # Skip dupes
                 
                 results.append({
@@ -135,7 +179,7 @@ def udf_search(query: str, type: str, exchange: str, limit: int):
                     "description": row.get('SEM_CUSTOM_SYMBOL', sym),
                     "exchange": row['SEM_EXM_EXCH_ID'],
                     "ticker": sym, # value sent to history
-                    "type": "stock" if row['SEM_INSTRUMENT_NAME'] == 'EQUITY' else "index"
+                    "type": row_type
                 })
     except Exception as e:
         print(f"Search Error: {e}")
@@ -144,7 +188,20 @@ def udf_search(query: str, type: str, exchange: str, limit: int):
 
 @app.get("/symbols")
 def udf_symbols(symbol: str):
-    # Return info based on requested symbol
+    # Check for YFinance Suffix
+    is_yfinance = symbol.endswith(":YF")
+    clean_symbol = symbol.replace(":YF", "")
+    
+    if is_yfinance:
+        client = YFinanceClient()
+        info = client.get_info(clean_symbol)
+        if info:
+            # Ensure the returned symbol/ticker has the suffix so future calls maintain context
+            info['symbol'] = symbol 
+            info['ticker'] = symbol
+            return info
+            
+    # Return info based on requested symbol (Default Dhan)
     return {
         "name": symbol,
         "exchange-traded": "NSE",
@@ -166,26 +223,70 @@ def udf_symbols(symbol: str):
     }
 
 @app.get("/history")
-def udf_history(symbol: str, resolution: str, from_: int = Query(..., alias="from"), to: int = Query(...)):
-    client = DhanClient()
+def udf_history(symbol: str, resolution: str, from_: int = Query(..., alias="from"), to: int = Query(...), data_source: str = "dhan"):
+    print(f"\n{'='*60}")
+    print(f"[UDF_HISTORY] === NEW REQUEST ===")
+    print(f"[UDF_HISTORY] symbol={symbol}, resolution={resolution}")
+    print(f"[UDF_HISTORY] from_={from_}, to={to}, data_source={data_source}")
+    print(f"{'='*60}")
+    
+    # Detect Source via Suffix first (explicit :YF marker)
+    is_yfinance = symbol.endswith(":YF")
+    clean_symbol = symbol.replace(":YF", "")
+    
+    # Auto-detect Yahoo Finance symbols by pattern if not explicitly marked
+    # This handles cases where TradingView strips the :YF suffix
+    if not is_yfinance:
+        # Check for Yahoo Finance symbol patterns:
+        # - Indices start with ^ (^NSEI, ^GSPC, ^DJI, etc.)
+        # - Indian NSE stocks end with .NS
+        # - Indian BSE stocks end with .BO
+        # - Common US stocks (no suffix, but not Dhan format)
+        if (clean_symbol.startswith("^") or 
+            clean_symbol.endswith(".NS") or 
+            clean_symbol.endswith(".BO")):
+            is_yfinance = True
+            print(f"[udf_history] Auto-detected Yahoo Finance symbol: {clean_symbol}")
+    
+    if is_yfinance:
+        client = get_data_client("yfinance")
+        symbol = clean_symbol  # Use clean symbol for fetching
+        data_source = "yfinance"  # Update log var
+    else:
+        client = get_data_client(data_source)
+
     df = pd.DataFrame()
     
     # Convert timestamps to Date Strings
-    # CRITICAL: For V2 API, must include Time Component for Intraday queries!
-    # Otherwise it defaults to 00:00 to 00:00 (single point) or 1 day.
-    from_date_str = datetime.fromtimestamp(from_).strftime('%Y-%m-%d %H:%M:%S')
-    to_date_str = datetime.fromtimestamp(to).strftime('%Y-%m-%d %H:%M:%S')
+    try:
+        # Handle potential invalid timestamps (negative or too large)
+        from_dt_safe = datetime.fromtimestamp(max(0, from_))
+        to_dt_safe = datetime.fromtimestamp(max(0, to))
+    except (ValueError, OSError):
+        from_dt_safe = datetime.fromtimestamp(0)
+        to_dt_safe = datetime.fromtimestamp(0)
+
+    from_date_str = from_dt_safe.strftime('%Y-%m-%d %H:%M:%S')
+    to_date_str = to_dt_safe.strftime('%Y-%m-%d %H:%M:%S')
     
-    print(f"Chart Request: {symbol} in {from_date_str} to {to_date_str} Resolution: {resolution}")
-    print(f"DEBUG: Backend using Token: {client.access_token[:10]}...")
+    print(f"\n{'='*60}")
+    print(f"[UDF_HISTORY] INCOMING REQUEST")
+    print(f"  Symbol: {symbol}")
+    print(f"  Data Source: {data_source}")
+    print(f"  Resolution: {resolution}")
+    print(f"  From (Unix): {from_} -> {from_date_str}")
+    print(f"  To (Unix): {to} -> {to_date_str}")
+    print(f"{'='*60}")
+    if data_source == "dhan":
+        print(f"DEBUG: Backend using Token: {client.access_token[:10]}...")
     
     # Limit the date range to prevent fetching excessive data in a SINGLE request
     # However, to support dynamic scrolling (pagination), we must allow larger chunks
     # TradingView will handle the "initial" zoom, but we shouldn't artificially cut off history if requested
     MAX_BARS_PER_REQUEST = 2000 
     
-    to_dt = datetime.fromtimestamp(to)
-    from_dt = datetime.fromtimestamp(from_)
+    to_dt = to_dt_safe
+    from_dt = from_dt_safe
     
     # Calculate appropriate lookback based on resolution
     # We want to return enough data to fill the screen + buffer, but not entire history in one go if unnecessary
@@ -193,36 +294,139 @@ def udf_history(symbol: str, resolution: str, from_: int = Query(..., alias="fro
         # For daily: 2000 days = ~6-7 years (lots of history)
         max_lookback_days = 3000
     elif resolution == "60":
-        # For 60-min: 2000 bars = ~250 trading days
-        max_lookback_days = 300
+        # For 60-min: Increase to 1000 days (~4 years) to support deep history
+        max_lookback_days = 2000
     elif resolution == "15":
-        # For 15-min: 2000 bars = ~60 trading days
-        max_lookback_days = 80
+        # For 15-min: Increase to 500 days
+        max_lookback_days = 500
     elif resolution == "5":
-        # For 5-min: 2000 bars = ~25 trading days
-        max_lookback_days = 30
+        # For 5-min: Increase to 100 days
+        max_lookback_days = 100
     else:  # resolution == "1" (1-minute)
-        # For 1-min: 2000 bars = ~5 trading days
-        max_lookback_days = 7
+        # For 1-min: Keep 30 days as most APIs limit 1m data (except YFinance public limit is 7 days)
+        max_lookback_days = 45
     
     # Limit the from_date ONLY if the requested range is excessively large
     # This prevents backend timeouts, but allows pagination
     calculated_from_dt = to_dt - timedelta(days=max_lookback_days)
-    if from_dt < calculated_from_dt:
-        from_dt = calculated_from_dt
-        from_date_str = from_dt.strftime('%Y-%m-%d')
-        print(f"Range limited to {max_lookback_days} days for resolution {resolution}: {from_date_str} to {to_date_str}")
+    
+    # USER REQUEST: Remove artificial limitation to allow "organic" lazy loading
+    # if from_dt < calculated_from_dt:
+    #     from_dt = calculated_from_dt
+    #     from_date_str = from_dt.strftime('%Y-%m-%d')
+    #     print(f"Range limited to {max_lookback_days} days for resolution {resolution}: {from_date_str} to {to_date_str}")
     
     # Use Generic Fetcher which handles NIFTY/OPTIONS/Generic
     # Pass resolution to fetch_data for proper interval handling
+    print(f"[UDF_HISTORY] Calling client.fetch_data({symbol}, {from_date_str}, {to_date_str}, interval={resolution})")
     df = client.fetch_data(symbol, from_date_str, to_date_str, interval=resolution)
+    print(f"[UDF_HISTORY] fetch_data returned: type={type(df)}, empty={df.empty if hasattr(df, 'empty') else 'N/A'}")
+    if df is not None and not df.empty:
+        print(f"[UDF_HISTORY] Raw data shape: {df.shape}, columns: {df.columns.tolist()}")
+        print(f"[UDF_HISTORY] Raw timestamp range: {df['timestamp'].min()} - {df['timestamp'].max()}")
+        print(f"[UDF_HISTORY] Raw date range: {datetime.fromtimestamp(df['timestamp'].min())} - {datetime.fromtimestamp(df['timestamp'].max())}")
+    
+    # --- SMART FIX (Year Mismatch / Future Data) ---
+    # Case 1: YFinance auto-adjusted to 2026 (returned future data) but we requested 2025
+    if not df.empty and 'timestamp' in df.columns:
+        min_ts = df['timestamp'].min()
+        if min_ts > to: 
+             print(f"[SmartFix] Data start ({min_ts}) is > requested end ({to}). Checking for year offset...")
+             # Check if we are approx 1 year off (2025 request, 2026 data)
+             if from_dt.year == 2025 and datetime.fromtimestamp(int(min_ts)).year == 2026:
+                  print("[SmartFix] ACCEPTING 2026 data for 2025 request (TV 1-year Bug). Extending 'to' filter.")
+                  # Extend 'to' to include the new data
+                  to = max(to, int(df['timestamp'].max()) + 1)
+                  # Also update 'from_' to reflect we are showing this data
+                  from_ = min(from_, int(min_ts))
+
+    # Case 2: Fetch returned nothing for 2025 (no auto-adjust). Try 2026 explicit fetch.
+    elif (df is None or df.empty) and from_dt.year == 2025:
+        current_year = datetime.now().year
+        if current_year == 2026:
+            print(f"[SmartFix] Detected empty 2025 request. Attempting to shift dates to 2026...")
+            
+            # Shift +365 days
+            from_dt_26 = from_dt + timedelta(days=365)
+            to_dt_26 = to_dt + timedelta(days=365)
+            
+            from_str_26 = from_dt_26.strftime('%Y-%m-%d %H:%M:%S')
+            to_str_26 = to_dt_26.strftime('%Y-%m-%d %H:%M:%S')
+            
+            print(f"[SmartFix] New Range: {from_str_26} to {to_str_26}")
+            df_26 = client.fetch_data(symbol, from_str_26, to_str_26, interval=resolution)
+            
+            if not df_26.empty:
+                print(f"[SmartFix] SUCCESS! Found {len(df_26)} bars in 2026.")
+                df = df_26
+                # Update filter vars to match the new 2026 data
+                from_ = int(from_dt_26.timestamp())
+                to = int(to_dt_26.timestamp())
+                # Update text dates for logging
+                from_date_str = from_str_26
+                to_date_str = to_str_26
+
+    print(f"DEBUG: fetch_data result type: {type(df)}")
+    if hasattr(df, 'shape'):
+        print(f"DEBUG: fetch_data result shape: {df.shape}")
+        if not df.empty:
+            print(f"DEBUG: Data Head:\n{df.head(2)}")
     
     if df is None or df.empty:
-        print(f"Data fetch returned empty for {symbol}.")
-        # DON'T return no_data here - it breaks pagination!
-        # Return "ok" with empty bars so TradingView continues to request older data
+        print(f"Data fetch returned empty for {symbol}. Checking for fallback...")
+        
+        # RETRY: If empty, it might be a weekend/holiday request. Try extending lookback.
+        # especially for YFinance, if 'start' date is Saturday, it returns nothing.
+        # We extend back 5 days to ensure we catch the last trading session.
+        try:
+             # Use 4 days to be safe within 7-day 1m limit of YFinance
+             retry_lookback = 4 if resolution == "1" else 30 
+             retry_from_dt = to_dt - timedelta(days=retry_lookback)
+             
+             print(f"[Retry] CHECK: Original from={from_dt}, New from={retry_from_dt}", flush=True)
+             
+             # Only retry if our new start date is earlier than original
+             if retry_from_dt < from_dt:
+                 print(f"[Retry] Fetch returned empty. Attempting retry with -{retry_lookback}d lookback: {retry_from_dt}", flush=True)
+                 retry_from_str = retry_from_dt.strftime('%Y-%m-%d %H:%M:%S')
+                 df_retry = client.fetch_data(symbol, retry_from_str, to_date_str, interval=resolution)
+                 if not df_retry.empty:
+                      print(f"[Retry] SUCCESS: Fetched {len(df_retry)} bars with extended lookback.")
+                      df = df_retry
+                      # Update from_ to match the data we found (so filter doesn't kill it?) 
+                      # NO, keep 'from_' as original request so SmartFilter at the end detects "from > data_max"
+                      # and logic handles passing the data through.
+        except Exception as e:
+             print(f"[Retry] Error: {e}")
+
+        
+        # Fallback Logic: If Dhan/Primary fails, try Yahoo Finance for known indices
+        fallback_map = {
+            "NIFTY 50": "^NSEI",
+            "NIFTY BANK": "^NSEBANK",
+            "NIFTY": "^NSEI",
+            "BANKNIFTY": "^NSEBANK"
+        }
+        
+        if symbol in fallback_map and data_source != "yfinance":
+            fallback_symbol = fallback_map[symbol]
+            print(f"[Fallback] Attempting to fetch {fallback_symbol} from Yahoo Finance instead of {symbol}")
+            try:
+                yf_client_fallback = YFinanceClient()
+                df = yf_client_fallback.fetch_data(fallback_symbol, from_date_str, to_date_str, interval=resolution)
+                if not df.empty:
+                    print(f"[Fallback] SUCCESS: Fetched {len(df)} bars from Yahoo Finance.")
+                    # We continue with this 'df'
+            except Exception as e:
+                print(f"[Fallback] Failed: {e}")
+
+    if df is None or df.empty:
+        # CRITICAL FIX: Return "no_data" status to tell TradingView no data exists
+        # This prevents infinite pagination requests for historical data
+        print(f"[udf_history] No data available for {symbol}, returning no_data status")
         return {
-            "s": "ok",
+            "s": "no_data",
+            "debug_info": f"empty_after_retry (retry_lookback={locals().get('retry_lookback', 'N/A')})",
             "t": [],
             "o": [],
             "h": [],
@@ -237,8 +441,8 @@ def udf_history(symbol: str, resolution: str, from_: int = Query(..., alias="fro
          return {"s": "ok", "t": [], "o": [], "h": [], "l": [], "c": [], "v": []}
 
     # DEBUG: Log timestamp data types and ranges
-    print(f"DEBUG: from_={from_} ({datetime.fromtimestamp(from_).isoformat()})")
-    print(f"DEBUG: to={to} ({datetime.fromtimestamp(to).isoformat()})")
+    print(f"DEBUG: from_={from_} ({from_date_str})")
+    print(f"DEBUG: to={to} ({to_date_str})")
     print(f"DEBUG: df['timestamp'] dtype={df['timestamp'].dtype}")
     if len(df) > 0:
         print(f"DEBUG: df timestamp range: {df['timestamp'].min()} - {df['timestamp'].max()}")
@@ -247,6 +451,7 @@ def udf_history(symbol: str, resolution: str, from_: int = Query(..., alias="fro
     # CRITICAL: Filter data to only include bars within the requested time range
     # TradingView expects data in the from-to range for pagination to work
     original_len = len(df)
+    original_df = df.copy()  # Keep a copy before filtering
     
     # ADJUSTMENT: For Daily (1D/D) resolution, the timestamps might be aligned to Exchange Time (IST) 
     # which is 00:00 IST = 18:30 UTC (Previous Day). 
@@ -260,7 +465,36 @@ def udf_history(symbol: str, resolution: str, from_: int = Query(..., alias="fro
          print(f"Daily/Weekly Resolution detected: Applying -12h buffer to start filter (From: {from_} -> {filter_from})")
 
     df = df[(df['timestamp'] >= filter_from) & (df['timestamp'] <= to)]
-    print(f"Filtered data from {original_len} to {len(df)} bars (range: {from_} to {to})")
+    print(f"Filtered data from {original_len} to {len(df)} bars (filter_from={filter_from}, to={to})")
+    
+    if len(df) == 0 and original_len > 0:
+        print(f"  [DEBUG] Data was filtered out! Data range: {original_df['timestamp'].min()} - {original_df['timestamp'].max()}")
+        print(f"  [DEBUG] Filter range: {filter_from} - {to}")
+    
+    # SMART FIX: If strict filtering eliminated ALL data, but we had valid data,
+    # this often means the request's 'from_' timestamp falls outside market hours.
+    # Example: TradingView requests from 15:33 IST, but market closes at 15:30.
+    # In this case, return the most recent available data that's within 'to' range.
+    if df.empty and original_len > 0:
+        # Check if data exists that ends before 'from_' but is still relevant
+        data_max_ts = original_df['timestamp'].max()
+        data_min_ts = original_df['timestamp'].min()
+        
+        # Case 1: Request 'from_' is AFTER all our data (common with Yahoo Finance)
+        # This happens when TradingView calculates 'from' based on current time which
+        # may be outside market hours. Return data that's at least within the 'to' range.
+        if from_ > data_max_ts:
+            print(f"[SmartFilter] Request 'from' ({from_}) is after all available data (max: {data_max_ts})")
+            print(f"[SmartFilter] Returning all {original_len} bars since they fall before 'from' but are the best available data")
+            # Return data that's <= 'to' (all data before end of request is valid)
+            df = original_df[original_df['timestamp'] <= to]
+            if not df.empty:
+                print(f"[SmartFilter] Recovered {len(df)} bars by relaxing 'from' filter")
+        
+        # Case 2: Request 'to' is BEFORE all our data (shouldn't happen normally)
+        elif to < data_min_ts:
+            print(f"[SmartFilter] Request 'to' ({to}) is before all available data (min: {data_min_ts})")
+            # This is a genuine no-data scenario for this range
     
     if df.empty:
         print(f"No data in requested range after filtering.")
@@ -358,13 +592,52 @@ def udf_time():
 async def fetch_candles(req: FetchCandlesRequest):
     """Fetch candlestick data without strategy evaluation - for independent replay"""
     try:
-        print(f"[Replay] Fetching candles: {req.symbol} from {req.from_date} to {req.to_date}, resolution: {req.resolution}")
+        print(f"[Step-by-Step] Fetching candles: {req.symbol} [{req.data_source}] from {req.from_date} to {req.to_date}, resolution: {req.resolution}")
+        print(f"[Step-by-Step] Lookback bars requested: {req.lookback_bars}")
         
-        client = DhanClient()
-        df = client.fetch_data(req.symbol, req.from_date, req.to_date, interval=req.resolution)
+        client = get_data_client(req.data_source)
+        
+        # Calculate lookback date adjustment based on resolution and lookback_bars
+        # This provides pivot/strategy context without fetching unnecessary data
+        from_dt = datetime.strptime(req.from_date, '%Y-%m-%d')
+        
+        if req.lookback_bars > 0:
+            # Calculate how many days of data we need for lookback_bars based on resolution
+            # USER REQUEST: Remove strict "specific number" limitation.
+            # We strictly calculate minimum needed, then multiply by HUGE factor to ensure "everything" is loaded organically
+            # within reasonable fetch limits.
+            
+            if req.resolution in ['1D', 'D']:
+                lookback_days = req.lookback_bars  # 1 bar = 1 day
+            elif req.resolution == '60':
+                lookback_days = max(1, req.lookback_bars // 6)
+            elif req.resolution == '15':
+                lookback_days = max(1, req.lookback_bars // 25)
+            elif req.resolution == '5':
+                lookback_days = max(1, req.lookback_bars // 75)
+            else:  # resolution == '1' (1-minute)
+                lookback_days = max(1, req.lookback_bars // 375)
+            
+            # Apply massive buffer (4x) to simulate "load everything" while keeping req.lookback_bars as a base
+            # This ensures we get years of data for hourly, and months for minutes.
+            lookback_days = int(lookback_days * 4.0) + 30
+            
+            # CAP lookback to avoid API timeouts (e.g. 10 years max)
+            lookback_days = min(lookback_days, 3650)
+            
+            adjusted_from_dt = from_dt - timedelta(days=lookback_days)
+            adjusted_from_date = adjusted_from_dt.strftime('%Y-%m-%d')
+            print(f"[Step-by-Step] Adjusted from_date: {req.from_date} -> {adjusted_from_date} (expanded lookback: {lookback_days} days)")
+        else:
+            adjusted_from_date = req.from_date
+        
+        df = client.fetch_data(req.symbol, adjusted_from_date, req.to_date, interval=req.resolution)
         
         if df is None or df.empty:
-            raise HTTPException(status_code=500, detail=f"No data found for {req.symbol}")
+            raise HTTPException(
+                status_code=404, 
+                detail=f"No data found for {req.symbol} ({req.from_date} to {req.to_date}). Resolution '{req.resolution}' on '{req.data_source}' might be limited (e.g. YFinance 1m is last 7 days only)."
+            )
         
         # Convert to candlestick format
         candles = df[['timestamp', 'open', 'high', 'low', 'close']].copy()
@@ -377,9 +650,51 @@ async def fetch_candles(req: FetchCandlesRequest):
         for c in candles_list:
             c['time'] = c.pop('timestamp')
         
-        print(f"[Replay] Returning {len(candles_list)} candles")
+        # PRE-FETCH OPTION DATA if strategy uses options
+        # This runs in the background and caches data for use during replay
+        option_cache_ready = False
+        if req.strategy and req.strategy in ['five_ema']:  # Add other option strategies here
+            try:
+                from option_price_cache import get_option_cache, clear_option_cache
+                
+                # Clear old cache for fresh data
+                clear_option_cache()
+                
+                # Create new cache and prefetch
+                cache = get_option_cache(client)
+                
+                # Determine underlying and base price
+                underlying = 'NIFTY' if 'NIFTY' in req.symbol else 'BANKNIFTY'
+                base_price = df['close'].iloc[-1] if not df.empty else None
+                
+                print(f"[OptionCache] Pre-fetching option data for {underlying}, base price: {base_price}")
+                
+                success = cache.prefetch_option_data(
+                    underlying=underlying,
+                    from_date=req.from_date,
+                    to_date=req.to_date,
+                    base_price=base_price,
+                    strike_range=300,  # +/- 300 points (6 strikes each side for Nifty)
+                    interval=req.resolution or '5'
+                )
+                
+                if success:
+                    stats = cache.get_cache_stats()
+                    print(f"[OptionCache] Ready! {stats['contracts_cached']} contracts, {stats['price_points']} price points")
+                    option_cache_ready = True
+                else:
+                    print("[OptionCache] Pre-fetch failed, will use index prices")
+                    
+            except Exception as cache_error:
+                print(f"[OptionCache] Error during prefetch: {cache_error}")
+                import traceback
+                traceback.print_exc()
         
-        return {"candles": candles_list}
+        print(f"[Replay] Returning {len(candles_list)} candles, option_cache_ready: {option_cache_ready}")
+        
+        return {"candles": candles_list, "option_cache_ready": option_cache_ready}
+    except HTTPException:
+        raise 
     except Exception as e:
         import traceback
         traceback.print_exc()
@@ -391,10 +706,195 @@ async def evaluate_strategy_step(req: EvaluateStrategyRequest):
     """
     Evaluate strategy at current replay step - progressive evaluation.
     
-    UNIFIED LOGIC: Uses the same strategies.py as /run_backtest for consistency.
-    We call generate_signals() directly (without BacktestEngine) to avoid force-close behavior.
+    UNIFIED LOGIC: Routes to either strategy evaluation or study processing.
+    - Strategies: Generate buy/sell signals
+    - Studies: Generate drawing commands (angle fans, pivots, etc.)
     """
     try:
+        # Check if this is a study or strategy
+        from strategies import is_study
+        
+        if is_study(req.strategy):
+            # STUDY PROCESSING
+            return await _process_study_bar(req)
+        else:
+            # STRATEGY PROCESSING (existing logic)
+            return await _process_strategy_bar(req)
+        
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return {"type": "none", "signal": None}
+
+
+# Alias endpoint for backwards compatibility
+@app.post("/evaluate_step")
+async def evaluate_step(req: EvaluateStrategyRequest):
+    """Alias for /evaluate_strategy_step - backwards compatibility"""
+    return await evaluate_strategy_step(req)
+
+
+async def _process_study_bar(req: EvaluateStrategyRequest):
+    """
+    Process study tools with adaptive fan drawing.
+    
+    Logic:
+    1. Process all bars to build complete pivot history
+    2. Collect all pivot pairs (fans)
+    3. Find the most recent UNCOVERED fan
+    4. Draw only that fan's angles
+    """
+    try:
+        from study_tool.angular_coverage_study import AngularPriceCoverageStudy
+        
+        # Pass scale_ratio from frontend if provided, otherwise default
+        study_config = {}
+        if req.scale_ratio is not None and req.scale_ratio > 0:
+            study_config['scale_ratio'] = req.scale_ratio
+            print(f"[Study] Using scale_ratio from chart: {req.scale_ratio}")
+        
+        # Pass configurable pivot settings if provided
+        if req.left_bars is not None:
+            study_config['left_bars'] = req.left_bars
+        if req.right_bars is not None:
+            study_config['right_bars'] = req.right_bars
+        
+        study = AngularPriceCoverageStudy(config=study_config)
+        
+        # Convert candles to expected format
+        candles = []
+        for c in req.candles:
+            candles.append({
+                'time': int(c.get('time', 0)),
+                'open': float(c.get('open', 0)),
+                'high': float(c.get('high', 0)),
+                'low': float(c.get('low', 0)),
+                'close': float(c.get('close', 0)),
+                'volume': float(c.get('volume', 0))
+            })
+        
+        # Process ALL bars to build complete pivot history
+        all_pivots = []
+        all_fan_events = []  # List of fan dicts with lines
+        
+        for bar_idx in range(req.current_index + 1):
+            result = study.process_bar(
+                candles=candles,
+                bar_index=bar_idx,
+                state=None
+            )
+            
+            # Collect pivots for markers
+            if result.get('pivot_markers'):
+                all_pivots.extend(result['pivot_markers'])
+            
+            # Check if new drawings were created (indicates new fan)
+            if result.get('drawings'):
+                # New fan was created - store it
+                fan_event = {
+                    'bar_idx': bar_idx,
+                    'drawings': result['drawings']
+                }
+                all_fan_events.append(fan_event)
+        
+        # Now find the most recent UNCOVERED fan
+        drawings_to_show = []
+        current_bar = candles[req.current_index] if req.current_index < len(candles) else None
+        
+        if current_bar and all_fan_events:
+            current_close = float(current_bar['close'])
+            current_time = int(current_bar['time'])
+            
+            # Check fans from most recent to oldest
+            for fan_event in reversed(all_fan_events):
+                fan_drawings = fan_event.get('drawings', [])
+                is_covered = _check_fan_covered_by_drawings(fan_drawings, current_close, current_time)
+                
+                if not is_covered:
+                    # This fan is still active - draw it
+                    drawings_to_show = fan_drawings
+                    print(f"[Study] Drawing active fan from bar {fan_event['bar_idx']} at index {req.current_index}")
+                    break  # Only draw ONE fan (the most recent uncovered)
+        
+        print(f"[Study] Index {req.current_index}: {len(all_pivots)} pivots, {len(all_fan_events)} fans, {len(drawings_to_show)} drawings")
+        
+        return {
+            "type": "drawing_update",
+            "drawings": drawings_to_show,
+            "pivot_markers": all_pivots,
+            "remove_drawings": [],
+            "state": {}
+        }
+        
+    except Exception as e:
+        import traceback
+        print(f"[Study] Error processing bar: {e}")
+        traceback.print_exc()
+        return {"type": "none", "drawings": [], "pivot_markers": []}
+
+
+def _check_fan_covered_by_drawings(drawings: list, current_close: float, current_time: int) -> bool:
+    """
+    Check if a fan is "covered" by price based on its drawing lines.
+    
+    A fan is covered when the current price has crossed ALL angle lines.
+    For uptrend fans: price must be above all lines
+    For downtrend fans: price must be below all lines
+    """
+    if not drawings:
+        return True  # No drawings = considered covered
+    
+    # Determine trend direction from first and last point
+    first_drawing = drawings[0]  # Main line typically
+    if not first_drawing.get('points') or len(first_drawing['points']) < 2:
+        return True
+    
+    start_price = first_drawing['points'][0]['price']
+    end_price = first_drawing['points'][1]['price']
+    is_uptrend = end_price > start_price
+    
+    for drawing in drawings:
+        points = drawing.get('points', [])
+        if len(points) < 2:
+            continue
+        
+        start_time = points[0]['time']
+        end_time = points[1]['time']
+        line_start_price = points[0]['price']
+        line_end_price = points[1]['price']
+        
+        if current_time < start_time:
+            continue  # Line hasn't started yet
+        
+        if current_time > end_time:
+            line_price_at_current = line_end_price
+        else:
+            time_ratio = (current_time - start_time) / max(1, end_time - start_time)
+            line_price_at_current = line_start_price + time_ratio * (line_end_price - line_start_price)
+        
+        # Check if price has crossed this line
+        if is_uptrend:
+            if current_close < line_price_at_current:
+                return False  # Price is still below this line
+        else:
+            if current_close > line_price_at_current:
+                return False  # Price is still above this line
+    
+    return True  # All lines crossed
+
+
+
+
+async def _process_strategy_bar(req: EvaluateStrategyRequest):
+    """Process a single bar for trading strategies (returns signals)"""
+    global _replay_positions
+    
+    try:
+        # Clear position state when new replay starts (current_index < 10 suggests new replay)
+        if req.current_index < 10 and req.strategy in _replay_positions:
+            print(f"[Strategy] New replay detected - clearing position state for {req.strategy}")
+            del _replay_positions[req.strategy]
+        
         # Convert candles list back to DataFrame
         df = pd.DataFrame(req.candles)
         df.rename(columns={'time': 'timestamp'}, inplace=True)
@@ -402,14 +902,13 @@ async def evaluate_strategy_step(req: EvaluateStrategyRequest):
         # Ensure required columns exist
         required_cols = ['timestamp', 'open', 'high', 'low', 'close']
         if not all(col in df.columns for col in required_cols):
-            return {"signal": None}
+            return {"type": "none", "signal": None}
         
         # Ensure numeric types
         for col in ['open', 'high', 'low', 'close']:
             df[col] = pd.to_numeric(df[col])
         
         # UNIFIED STRATEGY LOGIC: Use the SAME strategies.py as /run_backtest
-        # We use generate_signals() directly, NOT BacktestEngine, to avoid force-close
         try:
             from strategies import get_strategy
             from base_strategy import SignalType
@@ -418,10 +917,10 @@ async def evaluate_strategy_step(req: EvaluateStrategyRequest):
             signals_df = strategy.generate_signals()
             
         except Exception as strategy_error:
-            print(f"[Evaluation] Strategy error: {strategy_error}")
+            print(f"[Strategy] Strategy error: {strategy_error}")
             import traceback
             traceback.print_exc()
-            return {"signal": None}
+            return {"type": "none", "signal": None}
         
         # Find signal at current candle
         current_trade = None
@@ -431,22 +930,171 @@ async def evaluate_strategy_step(req: EvaluateStrategyRequest):
             
             if signal_type in [SignalType.BUY, SignalType.SELL]:
                 trade_type = 'buy' if signal_type == SignalType.BUY else 'sell'
+                signal_label = str(current_row.get('signal_label', f'{trade_type.upper()} Signal'))
+                
+                # --- ON-DEMAND OPTION DATA FETCHING ---
+                # Fetch option prices only when instrument_type is 'options'
+                fetched_opt_price = None
+                contract_details = None
+                
+                if req.instrument_type == 'options':
+                    try:
+                        import re
+                        from option_contract_service import OptionContractService
+                        from dhan_client import DhanClient
+                        from datetime import datetime
+                        
+                        # Initialize service (relies on internal caching of DhanClient/Service)
+                        oc_service = OptionContractService(DhanClient())
+                        ref_date = datetime.fromtimestamp(int(current_row['timestamp']))
+                        
+                        # Case A: Entry Signal (Parse details from label)
+                        label_match = re.search(r'(\d+)\s+(CE|PE)\s+\(([^)]+)\)', signal_label)
+                        if label_match:
+                            strike = float(label_match.group(1))
+                            opt_type = label_match.group(2)
+                            expiry_str = label_match.group(3)
+                            
+                            contract = oc_service.resolve_contract(
+                                underlying='NIFTY',
+                                strike=strike,
+                                option_type=opt_type,
+                                expiry_str=expiry_str,
+                                reference_date=ref_date
+                            )
+                            
+                            if contract:
+                                res = oc_service.get_price_at_timestamp(contract, int(current_row['timestamp']))
+                                if res and res.price > 0:
+                                    fetched_opt_price = res.price
+                                    contract_details = {
+                                        'strike': strike,
+                                        'option_type': opt_type,
+                                        'expiry_str': expiry_str
+                                    }
+                        
+                        # Case B: Exit Signal (Retrieve details from active position)
+                        elif 'Exit' in signal_label and req.strategy in _replay_positions:
+                            pos = _replay_positions[req.strategy]
+                            if 'contract_details' in pos and pos['contract_details']:
+                                cd = pos['contract_details']
+                                contract = oc_service.resolve_contract(
+                                    underlying='NIFTY',
+                                    strike=cd['strike'],
+                                    option_type=cd['option_type'],
+                                    expiry_str=cd['expiry_str'],
+                                    reference_date=ref_date
+                                )
+                                if contract:
+                                    res = oc_service.get_price_at_timestamp(contract, int(current_row['timestamp']))
+                                    if res and res.price > 0:
+                                        fetched_opt_price = res.price
+                        
+                    except Exception as opt_err:
+                        print(f"[Strategy] Option Fetch Warning: {opt_err}")
+
+                # Apply fetched price
+                signal_price = float(current_row.get('signal_price', current_row['close']))
+                option_price_val = None
+                
+                if fetched_opt_price:
+                    signal_price = fetched_opt_price
+                    option_price_val = fetched_opt_price
+                    # append price to label for visibility
+                    signal_label += f" | Opt: {fetched_opt_price:.2f}"
+                    print(f"[Strategy] Fetched Price: {fetched_opt_price:.2f} for {signal_label}")
                 
                 current_trade = {
                     "time": int(current_row['timestamp']),
                     "type": trade_type,
-                    "price": float(current_row['close']),
-                    "label": str(current_row.get('signal_label', f'{trade_type.upper()} Signal')),
-                    "pnl": None  # P&L not calculated during replay (calculated client-side)
+                    "price": signal_price,
+                    "label": signal_label,
+                    "pnl": None,
+                    "option_price": option_price_val
                 }
-                print(f"[Evaluation] Found signal at index {req.current_index}: {trade_type} @ {current_trade['price']}")
+                
+                # POSITION TRACKING FOR PNL CALCULATION
+                is_entry = 'Buy' in signal_label and ('CE' in signal_label or 'PE' in signal_label)
+                is_exit = 'Exit' in signal_label
+                
+                if is_entry:
+                    # Open new position
+                    _replay_positions[req.strategy] = {
+                        'position_type': 'long' if 'CE' in signal_label else 'short',
+                        'entry_price': signal_price,
+                        'entry_time': int(current_row['timestamp']),
+                        'entry_label': signal_label,
+                        'contract_details': contract_details  # Store for exit lookup
+                    }
+                    print(f"[Strategy] ENTRY: {signal_label} @ ₹{signal_price:.2f}")
+                    
+                elif is_exit and req.strategy in _replay_positions:
+                    # Close position and calculate PnL
+                    position = _replay_positions[req.strategy]
+                    entry_price = position['entry_price']
+                    exit_price = signal_price
+                    
+                    # PnL = exit - entry (for options, profit when premium increases)
+                    pnl = exit_price - entry_price
+                    
+                    current_trade['pnl'] = pnl
+                    current_trade['label'] = f"{signal_label} (PnL: {pnl:+.2f})"
+                    
+                    print(f"[Strategy] EXIT: {signal_label} @ ₹{exit_price:.2f} | Entry: ₹{entry_price:.2f} | PnL: {pnl:+.2f}")
+                    
+                    # Clear position
+                    del _replay_positions[req.strategy]
+                else:
+                    print(f"[Strategy] Signal: {signal_label} @ ₹{signal_price:.2f}")
         
-        return {"signal": current_trade}
+        # FOR 5 EMA STRATEGY: Include EMA line as indicator drawing
+        indicator_drawings = []
+        if req.strategy == 'five_ema' and 'ema_5' in signals_df.columns:
+            # Build EMA line from all visible candles (up to current index)
+            visible_df = signals_df.iloc[:req.current_index + 1]
+            
+            if len(visible_df) >= 2:
+                # Create polyline points for EMA
+                ema_points = []
+                for idx in range(len(visible_df)):
+                    row = visible_df.iloc[idx]
+                    ema_val = row.get('ema_5')
+                    if ema_val is not None and not pd.isna(ema_val):
+                        ema_points.append({
+                            "time": int(row['timestamp']),
+                            "price": float(ema_val)
+                        })
+                
+                if len(ema_points) >= 2:
+                    indicator_drawings.append({
+                        "id": "ema_5_line",
+                        "type": "polyline",
+                        "points": ema_points,
+                        "options": {
+                            "shape": "polyline",
+                            "overrides": {
+                                "lineColor": "#FFD700",  # Gold color for EMA
+                                "lineWidth": 2,
+                                "lineStyle": 0  # Solid line
+                            }
+                        }
+                    })
+        
+        # ENRICH SIGNAL WITH ACTUAL OPTION PRICE FROM CACHE
+
+        
+        # Return both signal and indicator drawings
+        return {
+            "type": "signal", 
+            "signal": current_trade,
+            "indicator_drawings": indicator_drawings  # New field for indicators
+        }
         
     except Exception as e:
         import traceback
         traceback.print_exc()
-        return {"signal": None}
+        return {"type": "none", "signal": None}
+
 
 # -----------------------------------------------------------
 
@@ -457,27 +1105,40 @@ def run_backtest(req: BacktestRequest):
     Strategies generate signals, BacktestEngine handles execution.
     """
     try:
-        client = DhanClient()
+        # Get Client based on source
+        client = get_data_client(req.data_source)
         df = pd.DataFrame()
+        
+        print(f"Backtest Request: {req.symbol} [{req.data_source}] {req.from_date} to {req.to_date}")
         
         # Determine Data Source based on Symbol
         # Note: Frontend currently focuses on NIFTY OPTIONS (Index Fallback) or NIFTY 50
-        if req.symbol == "NIFTY OPTIONS" or req.symbol == "NIFTY 50":
-             if req.from_date and req.to_date:
-                 # Generic Fetch handles Index/Options fallback logic internally now
-                 # For Options, we ideally want to fetch specific stuff, but sticking to logic
-                 df = client.fetch_data("NIFTY 50", req.from_date, req.to_date, interval=req.resolution) 
-             else:
-                 df = client.fetch_options_data(days_back=req.days)
-        else:
-             # Generic Search logic
-             if req.from_date and req.to_date:
-                 df = client.fetch_data(req.symbol, req.from_date, req.to_date, interval=req.resolution)
-             else:
-                  # Fallback default
-                  end_d = datetime.now()
-                  start_d = end_d - timedelta(days=req.days)
-                  df = client.fetch_data(req.symbol, start_d.strftime("%Y-%m-%d"), end_d.strftime("%Y-%m-%d"))
+        if req.data_source == "dhan":
+            if req.symbol == "NIFTY OPTIONS" or req.symbol == "NIFTY 50":
+                 if req.from_date and req.to_date:
+                     # Generic Fetch handles Index/Options fallback logic internally now
+                     df = client.fetch_data("NIFTY 50", req.from_date, req.to_date, interval=req.resolution) 
+                 else:
+                     df = client.fetch_options_data(days_back=req.days)
+            else:
+                 # Generic Search logic/Dhan Scrip Master
+                 if req.from_date and req.to_date:
+                     df = client.fetch_data(req.symbol, req.from_date, req.to_date, interval=req.resolution)
+                 else:
+                      # Fallback default
+                      end_d = datetime.now()
+                      start_d = end_d - timedelta(days=req.days)
+                      df = client.fetch_data(req.symbol, start_d.strftime("%Y-%m-%d"), end_d.strftime("%Y-%m-%d"))
+        
+        elif req.data_source == "yfinance":
+            # Simple direct fetch for Yahoo
+            # req.symbol needs to be the Yahoo Ticker (e.g. "RELIANCE.NS")
+            if req.from_date and req.to_date:
+                df = client.fetch_data(req.symbol, req.from_date, req.to_date, interval=req.resolution)
+            else:
+                end_d = datetime.now()
+                start_d = end_d - timedelta(days=req.days)
+                df = client.fetch_data(req.symbol, start_d.strftime("%Y-%m-%d"), end_d.strftime("%Y-%m-%d"), interval=req.resolution)
 
         
         if df is None or df.empty:
@@ -485,8 +1146,17 @@ def run_backtest(req: BacktestRequest):
 
         # NEW ARCHITECTURE: Use separated strategy and backtesting engine
         try:
+            # Prepare strategy parameters
+            strategy_params = {}
+            
+            # For five_ema strategy, pass dhan_client for option data enrichment
+            if req.strategy == 'five_ema':
+                strategy_params['dhan_client'] = client
+                strategy_params['underlying'] = 'NIFTY' if 'NIFTY' in req.symbol else 'BANKNIFTY'
+                strategy_params['use_option_data'] = True
+            
             # Get strategy instance (pure signal generator)
-            strategy = get_strategy(req.strategy, df)
+            strategy = get_strategy(req.strategy, df, params=strategy_params)
             
             # Create backtesting engine (handles position management and P&L)
             backtest_engine = BacktestEngine(strategy)
@@ -500,21 +1170,15 @@ def run_backtest(req: BacktestRequest):
             print(f"NEW ENGINE: Backtest completed - {result.metrics['total_trades']} trades, P&L: {result.metrics['total_pnl']}")
             
         except Exception as strategy_error:
-            # Fallback to old system if new one fails (for robustness during transition)
-            print(f"WARNING: New strategy system failed, falling back to old system: {strategy_error}")
+            print(f"CRITICAL: Strategy Execution Failed: {strategy_error}")
             import traceback
             traceback.print_exc()
+            # STRICT MODE: Do not fallback. Fail the request.
+            raise HTTPException(status_code=500, detail=str(strategy_error))
             
-            engine = GannStrategyEngine(df)
-            trades = []
-            
-            if req.strategy == "mechanical_3day":
-                trades = engine.run_mechanical_3day_swing()
-            elif req.strategy == "gann_square_9":
-                trades = engine.run_square_of_9_reversion()
-            elif req.strategy == "ichimoku_cloud":
-                 # Placeholder for future strategy
-                 trades = []
+            # Legacy Fallback Removed
+            # engine = GannStrategyEngine(df)
+            # ...
         
         # Prepare response
         # We return EVERYTHING so frontend can replay it
@@ -573,4 +1237,4 @@ def run_backtest(req: BacktestRequest):
         raise HTTPException(status_code=500, detail=f"Backend Error: {str(e)}")
 
 if __name__ == "__main__":
-    uvicorn.run("main:app", host="0.0.0.0", port=8001, reload=True)
+    uvicorn.run("main:app", host="0.0.0.0", port=8005, reload=True)

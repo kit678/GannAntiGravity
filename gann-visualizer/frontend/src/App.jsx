@@ -4,23 +4,76 @@ import { TVChartContainer } from './TVChartContainer'
 
 function App() {
     const [strategy, setStrategy] = useState('mechanical_3day')
+
+    // Calculate default dates (Today and 3 days ago)
+    const today = new Date();
+    const threeDaysAgo = new Date();
+    threeDaysAgo.setDate(today.getDate() - 3);
+    const formatDate = (date) => date.toISOString().split('T')[0];
+    const defaultEndDate = formatDate(today);
+    const defaultStartDate = formatDate(threeDaysAgo);
+    const [instrumentType, setInstrumentType] = useState('options') // 'spot' or 'options'
+    const [dataSource, setDataSource] = useState('dhan') // 'dhan' or 'yfinance'
+
+    // Pivot settings for Angular Coverage study
+    const [pivotLeftBars, setPivotLeftBars] = useState(5)
+    const [pivotRightBars, setPivotRightBars] = useState(5)
+
+    // Use Ref for active symbol to avoid re-rendering chart on every internal symbol change
+    // This prevents the "flicker" loop when syncing chart state
+    const activeSymbolRef = useRef('^NSEI')
+    // This state controls the *initial* symbol passed to the chart when mounting or switching sources
+    const [chartMountSymbol, setChartMountSymbol] = useState('NIFTY 50')
+
     const [isReplayMode, setIsReplayMode] = useState(false)
     const [tradeLog, setTradeLog] = useState([])
     const [backtestSummary, setBacktestSummary] = useState(null)
     const [replayProgress, setReplayProgress] = useState(0)
     const [replayCurrentDate, setReplayCurrentDate] = useState('')
-    const [resultsHeight, setResultsHeight] = useState(200) // Resizable results panel height
+    const [resultsHeight, setResultsHeight] = useState(35) // Default to closed (just header)
     const [isResizing, setIsResizing] = useState(false)
+
+    // Replay Toolbar Position State
+    const [replayPos, setReplayPos] = useState({ x: window.innerWidth / 2 - 300, y: window.innerHeight - 200 });
+    const [isDraggingUI, setIsDraggingUI] = useState(false); // New state to disable chart interaction during drag
+    const isDraggingReplay = useRef(false);
+    const dragOffset = useRef({ x: 0, y: 0 });
+
 
     // Store backtest results for replay
     const backtestResultRef = useRef(null)
-    const replayStartDateRef = useRef(null)
 
-    const datafeedUrl = "http://localhost:8001"
+    // Lookback bars for pivot/strategy context (resolution-agnostic)
+    // Increased to 5000 to ensure sufficient history for Angular/Gann analysis during replay
+    const LOOKBACK_BARS = 5000
+
+    const datafeedUrl = "http://localhost:8005"
 
     const chartRef = useRef(null);
     const startDateRef = useRef(null);
     const endDateRef = useRef(null);
+
+    // Sync Active Symbol from Chart
+    const handleSymbolChange = (newSymbol) => {
+        // Strip suffixes if present for clean backtest usage? 
+        // TradingView might return "RELIANCE" or "^NSEI:YF" depending on feed.
+        // We store it as is for now, the backend handles cleaning.
+        activeSymbolRef.current = newSymbol;
+        console.log("Active Symbol Updated:", activeSymbolRef.current);
+    };
+
+    // Handle Data Source Switch
+    const handleDataSourceChange = (newSource) => {
+        setDataSource(newSource);
+        // Reset chart to default symbol for that source to ensure validity
+        if (newSource === 'yfinance') {
+            setChartMountSymbol('^NSEI');
+            activeSymbolRef.current = '^NSEI';
+        } else {
+            setChartMountSymbol('NIFTY 50');
+            activeSymbolRef.current = 'NIFTY 50';
+        }
+    };
 
     // Calculate P&L summary
     const calculateSummary = (trades) => {
@@ -57,6 +110,7 @@ function App() {
 
         const fromDate = startDateRef.current.value;
         const toDate = endDateRef.current.value;
+        setResultsHeight(250); // Auto-open results panel on run
 
         console.log(`Running Backtest: ${strategy} from ${fromDate} to ${toDate}`);
         setTradeLog([]);
@@ -65,23 +119,30 @@ function App() {
         try {
             // Get resolution from chart
             let currentResolution = '1';
+            let currentSymbol = activeSymbolRef.current; // Use the synced symbol logic
+
             if (chartRef.current) {
                 currentResolution = chartRef.current.getResolution();
                 console.log("Using Chart Resolution for Backtest:", currentResolution);
             }
+
+            console.log("Backtesting Symbol:", currentSymbol);
 
             const response = await fetch(`${datafeedUrl}/run_backtest`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     strategy: strategy,
-                    symbol: "NIFTY OPTIONS",
+                    symbol: currentSymbol, // Use active symbol
                     from_date: fromDate,
                     to_date: toDate,
                     days: 0,
-                    resolution: currentResolution // Send resolution to backend
+                    resolution: currentResolution, // Send resolution to backend
+                    data_source: dataSource
                 })
             });
+
+            // ... (rest of function)
 
             if (!response.ok) {
                 alert("Backtest Failed: " + response.statusText);
@@ -113,58 +174,75 @@ function App() {
         }
     };
 
-    // Start Replay Mode
-    // Start Replay Mode - Independent of Backtest  
+    // Start Step-by-Step Simulation Mode
     const handleStartReplay = async () => {
         const fromDate = startDateRef.current?.value;
         const toDate = endDateRef.current?.value;
 
         if (!fromDate || !toDate) {
-            alert("Please select a date range first (From/To dates).");
+            alert("Please select a simulation range (Start/End dates).");
             return;
         }
 
-        const replayStartDate = replayStartDateRef.current?.value;
-        let replayStartTimestamp = null;
-
-        if (replayStartDate) {
-            replayStartTimestamp = new Date(replayStartDate + ' 00:00:00').getTime() / 1000;
-            console.log('[Replay] Will start from:', replayStartDate, 'timestamp:', replayStartTimestamp);
-        }
+        // Use bar-based lookback - backend will fetch extra bars for context
+        const fetchFrom = fromDate;
+        const fetchTo = toDate;
+        const replayStartTimestamp = new Date(fromDate + ' 00:00:00').getTime() / 1000;
+        console.log('[Step-by-Step] Simulation start:', fromDate, 'timestamp:', replayStartTimestamp);
 
         setTradeLog([]);
         setBacktestSummary(null);
-        setIsReplayMode(true);
-        setReplayProgress(0);
-        setReplayCurrentDate('');
+        // Reset position to reasonable default if offscreen
+        setReplayPos({ x: window.innerWidth / 2 - 300, y: window.innerHeight - 250 });
 
         try {
             let currentResolution = '1';
+            const currentSymbol = activeSymbolRef.current; // Sync logic
+
             if (chartRef.current) {
                 currentResolution = chartRef.current.getResolution();
             }
 
-            console.log(`[Replay] Fetching candles: ${fromDate} to ${toDate}, resolution: ${currentResolution}, strategy: ${strategy}`);
+            console.log(`[Step-by-Step] Fetching candles: ${fetchFrom} to ${fetchTo}, resolution: ${currentResolution}, strategy: ${strategy}`);
 
             const response = await fetch(`${datafeedUrl}/fetch_candles`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    symbol: "NIFTY 50",
-                    from_date: fromDate,
-                    to_date: toDate,
-                    resolution: currentResolution
+                    symbol: currentSymbol,
+                    from_date: fetchFrom,
+                    to_date: fetchTo,
+                    resolution: currentResolution,
+                    strategy: strategy,
+                    data_source: dataSource,
+                    lookback_bars: LOOKBACK_BARS
                 })
             });
 
             if (!response.ok) {
-                alert("Failed to fetch candles: " + response.statusText);
+                // Try to parse error details
+                let errorMessage = response.statusText;
+                try {
+                    const errorData = await response.json();
+                    if (errorData && errorData.detail) {
+                        errorMessage = errorData.detail;
+                    }
+                } catch (e) {
+                    console.log("Could not parse error details");
+                }
+
+                alert("Failed to fetch candles: " + errorMessage);
                 setIsReplayMode(false);
                 return;
             }
 
             const data = await response.json();
-            console.log(`[Replay] Fetched ${data.candles.length} candles`);
+            console.log(`[Step-by-Step] Fetched ${data.candles.length} candles (includes ${LOOKBACK_BARS} lookback bars for context)`);
+
+            // Activate UI only after data is ready to prevent race conditions
+            setIsReplayMode(true);
+            setReplayProgress(0);
+            setReplayCurrentDate('');
 
             if (chartRef.current) {
                 chartRef.current.startProgressiveReplay(
@@ -173,6 +251,7 @@ function App() {
                     currentResolution,
                     replayStartTimestamp,
                     datafeedUrl,
+                    instrumentType,
                     (progress, currentTime) => {
                         setReplayProgress(progress);
                         if (currentTime) {
@@ -181,12 +260,13 @@ function App() {
                     },
                     (trade) => {
                         handleTradeLogged(trade);
-                    }
+                    },
+                    { leftBars: pivotLeftBars, rightBars: pivotRightBars }  // Pivot settings
                 );
             }
         } catch (error) {
-            console.error("[Replay] Error:", error);
-            alert("Error starting replay: " + error.message);
+            console.error("[Step-by-Step] Error:", error);
+            alert("Error starting step-by-step simulation: " + error.message);
             setIsReplayMode(false);
         }
     };
@@ -208,93 +288,142 @@ function App() {
     // Handle resize of results panel
     const handleResizeStart = (e) => {
         setIsResizing(true);
+        setIsDraggingUI(true); // Disable chart interaction
         e.preventDefault();
     };
 
     const handleResizeMove = (e) => {
-        if (!isResizing) return;
+        // Handle Panel Resize
+        if (isResizing) {
+            const windowHeight = window.innerHeight;
+            const mouseY = e.clientY;
+            const newHeight = windowHeight - mouseY;
+            const constrainedHeight = Math.max(35, Math.min(windowHeight * 0.8, newHeight));
+            setResultsHeight(constrainedHeight);
+        }
 
-        const windowHeight = window.innerHeight;
-        const headerHeight = document.querySelector('.app-header')?.offsetHeight || 0;
-        const mouseY = e.clientY;
-
-        // Calculate new results height (from bottom of window)
-        const newHeight = windowHeight - mouseY;
-
-        // Constrain between min and max
-        const constrainedHeight = Math.max(100, Math.min(windowHeight * 0.5, newHeight));
-        setResultsHeight(constrainedHeight);
+        // Handle Replay Toolbar Drag
+        if (isDraggingReplay.current) {
+            setReplayPos({
+                x: e.clientX - dragOffset.current.x,
+                y: e.clientY - dragOffset.current.y
+            });
+        }
     };
 
     const handleResizeEnd = () => {
         setIsResizing(false);
+        if (isDraggingReplay.current || isResizing) {
+            setIsDraggingUI(false); // Re-enable chart interaction
+        }
+        isDraggingReplay.current = false;
     };
 
-    // Add/remove mouse event listeners for resize
+    // Replay Drag Handlers
+    const handleReplayMouseDown = (e) => {
+        // Don't drag if clicking a button/input
+        if (['BUTTON', 'SELECT', 'INPUT'].includes(e.target.tagName)) return;
+
+        isDraggingReplay.current = true;
+        setIsDraggingUI(true); // Disable chart interaction
+        const rect = e.currentTarget.getBoundingClientRect();
+        dragOffset.current = {
+            x: e.clientX - rect.left,
+            y: e.clientY - rect.top
+        };
+    };
+
+    // Global mouse listeners
     useEffect(() => {
-        if (isResizing) {
-            document.addEventListener('mousemove', handleResizeMove);
-            document.addEventListener('mouseup', handleResizeEnd);
-            return () => {
-                document.removeEventListener('mousemove', handleResizeMove);
-                document.removeEventListener('mouseup', handleResizeEnd);
-            };
-        }
-    }, [isResizing]);
+        document.addEventListener('mousemove', handleResizeMove);
+        document.addEventListener('mouseup', handleResizeEnd);
+        return () => {
+            document.removeEventListener('mousemove', handleResizeMove);
+            document.removeEventListener('mouseup', handleResizeEnd);
+        };
+    }, [isResizing]); // Dependency doesn't matter much since we use refs for drag state
 
     return (
         <div className="app-container">
             <header className="app-header">
-                <h1>Gann Visual Backtester</h1>
-                <p>Validate Short-Term Options Strategies on Dhan Data</p>
-
                 <div className="controls">
                     <select value={strategy} onChange={(e) => setStrategy(e.target.value)}>
                         <option value="mechanical_3day">Mechanical 3-Day Swing</option>
+                        <option value="five_ema">5 EMA Breakout Strategy</option>
+                        <option value="angular_coverage">Angular Price Coverage Study</option>
                         <option value="ichimoku_cloud">Ichimoku Cloud Breakout</option>
                         <option value="gann_square_9">Gann Square of 9</option>
                     </select>
 
+                    <select value={instrumentType} onChange={(e) => setInstrumentType(e.target.value)} className="instrument-select">
+                        <option value="options">Options</option>
+                        <option value="spot">Spot</option>
+                    </select>
+
+                    <select value={dataSource} onChange={(e) => handleDataSourceChange(e.target.value)} className="data-source-select">
+                        <option value="dhan">Dhan API</option>
+                        <option value="yfinance">Yahoo Finance (Free)</option>
+                    </select>
+
                     <div className="date-range-picker">
-                        <label>From: <input type="date" defaultValue="2025-12-20" ref={startDateRef} /></label>
-                        <label>To: <input type="date" defaultValue="2025-12-26" ref={endDateRef} /></label>
+                        <label>Start: <input type="date" defaultValue={defaultStartDate} ref={startDateRef} /></label>
+                        <label>End: <input type="date" defaultValue={defaultEndDate} ref={endDateRef} /></label>
                     </div>
+
+                    {/* Pivot settings - only show for Angular Coverage study */}
+                    {strategy === 'angular_coverage' && (
+                        <div className="pivot-settings">
+                            <label title="Bars to the left of candidate candle for pivot detection">
+                                L: <input type="number" min="1" max="50" value={pivotLeftBars}
+                                    onChange={(e) => setPivotLeftBars(Math.max(1, parseInt(e.target.value) || 5))}
+                                    style={{ width: '40px' }} />
+                            </label>
+                            <label title="Bars to the right of candidate candle for pivot detection">
+                                R: <input type="number" min="1" max="50" value={pivotRightBars}
+                                    onChange={(e) => setPivotRightBars(Math.max(1, parseInt(e.target.value) || 5))}
+                                    style={{ width: '40px' }} />
+                            </label>
+                        </div>
+                    )}
 
                     <button className="run-backtest-btn" onClick={handleRunBacktest}>
-                        Run Backtest
+                        ⚡ Run Instant
                     </button>
 
-                    <div className="date-range-picker">
-                        <label>Replay From: <input type="date" ref={replayStartDateRef} placeholder="Optional" /></label>
-                    </div>
-
                     <button className="replay-btn" onClick={handleStartReplay}>
-                        ▶ Start Replay
+                        ▶ Run Step-by-Step
                     </button>
                 </div>
             </header>
 
             <div className="main-content">
-                <div className="chart-wrapper">
+                <div className="chart-wrapper" style={{ pointerEvents: isDraggingUI ? 'none' : 'auto' }}>
                     <TVChartContainer
                         ref={chartRef}
-                        symbol="NIFTY 50"
+                        symbol={chartMountSymbol}
                         datafeedUrl={datafeedUrl}
+                        dataSource={dataSource}
                         onTradeLogged={handleTradeLogged}
+                        onSymbolChange={handleSymbolChange}
+                        interval={chartRef.current?.getResolution() || '1'}
                     />
                 </div>
 
                 <div className="resize-handle" onMouseDown={handleResizeStart}></div>
 
                 <div className="backtest-results" style={{ height: `${resultsHeight}px` }}>
-                    <h3>Backtest Results</h3>
+                    <div className="results-header">
+                        <h3>Backtest Results</h3>
+                        <span style={{ fontSize: '10px', color: '#666' }}>
+                            {resultsHeight <= 40 ? '(Drag up to expand)' : ''}
+                        </span>
+                    </div>
                     <div className="results-content">
                         {backtestSummary ? (
                             <div className="summary">
                                 <p><strong>Strategy:</strong> {strategy}</p>
                                 <p><strong>Total Signals:</strong> {backtestSummary.totalTrades}</p>
                                 <p><strong>Completed Trades:</strong> {backtestSummary.completedTrades}</p>
-                                <p><strong>Wins:</strong> {backtestSummary.wins} | <strong>Losses:</strong> {backtestSummary.losses}</p>
                                 <p><strong>Win Rate:</strong> {backtestSummary.winRate}%</p>
                                 <p><strong>Total P&L:</strong> <span style={{ color: backtestSummary.totalPnL >= 0 ? '#00E676' : '#FF5252' }}>{backtestSummary.totalPnL}</span></p>
                             </div>
@@ -308,7 +437,15 @@ function App() {
                                 <ul>
                                     {tradeLog.map((t, i) => (
                                         <li key={i} style={{ color: t.type === 'buy' ? '#00E676' : '#FF5252' }}>
-                                            {t.type.toUpperCase()} @ {t.price != null ? t.price.toFixed(2) : 'N/A'}
+                                            {/* Show option details if available, otherwise fallback to type/price */}
+                                            {t.label ? (
+                                                <span>
+                                                    {t.label}
+                                                    {t.option_price && <span style={{ color: '#FFD700' }}> @ ₹{t.option_price.toFixed(2)}</span>}
+                                                </span>
+                                            ) : (
+                                                <span>{t.type.toUpperCase()} @ {t.price != null ? t.price.toFixed(2) : 'N/A'}</span>
+                                            )}
                                             {t.pnl != null && ` | P&L: ${t.pnl.toFixed(2)}`}
                                             <span style={{ color: '#888', marginLeft: '10px' }}>
                                                 ({new Date(t.time * 1000).toLocaleString()})
@@ -322,11 +459,21 @@ function App() {
                 </div>
             </div>
 
-            {/* TradingView-style Replay Bar Overlay */}
+            {/* Draggable Replay Bar Overlay */}
             {isReplayMode && (
-                <div className="replay-bar-overlay">
+                <div
+                    className="replay-bar-overlay"
+                    onMouseDown={handleReplayMouseDown}
+                    style={{
+                        left: `${replayPos.x}px`,
+                        top: `${replayPos.y}px`,
+                        // Override fixed positioning from CSS class if needed, or rely on style priority
+                        bottom: 'auto',
+                        transform: 'none'
+                    }}
+                >
                     <div className="replay-info">
-                        <span className="replay-label">Replay Mode</span>
+                        <span className="replay-label">Step-by-Step Mode</span>
                         <span className="replay-value">{replayCurrentDate || 'Ready'}</span>
                     </div>
 
@@ -358,7 +505,7 @@ function App() {
                     </select>
 
                     <button className="exit-btn" onClick={handleExitReplay}>
-                        ✕ Exit Replay
+                        ✕ Exit
                     </button>
                 </div>
             )}

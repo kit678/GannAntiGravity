@@ -25,6 +25,7 @@ class Trade:
     type: str  # 'buy' or 'sell'
     price: float
     label: str
+    option_price: Optional[float] = None  # Price for UI display
     pnl: Optional[float] = None  # Only set for sell trades
     
     def to_dict(self) -> Dict[str, Any]:
@@ -38,6 +39,7 @@ class Position:
     entry_time: int
     entry_price: float
     entry_label: str
+    position_type: str = 'long'  # 'long' or 'short'
     quantity: int = 1
 
 
@@ -136,31 +138,103 @@ class BacktestEngine:
         """
         Execute trading signals from the strategy DataFrame.
         
+        The 5 EMA strategy uses:
+        - SignalType.SELL for short entries AND long exits
+        - SignalType.BUY for long entries AND short exits
+        
+        We parse the signal_label to determine the actual intent:
+        - "Buy X CE" or "Buy X Call" = Long entry
+        - "Buy X PE" or "Buy X Put" = Short entry  
+        - "Exit Long" = Close long
+        - "Exit Short" = Close short
+        
         Args:
             df: DataFrame with signal column from strategy
         """
         for idx, row in df.iterrows():
             timestamp = int(row['timestamp'])
             signal = row['signal']
-            price = row['close']
+            label = str(row.get('signal_label', ''))  # BUGFIX: Move label definition BEFORE usage
             
-            # Handle BUY signal
-            if signal == SignalType.BUY and self.position is None:
+            # Prioritize signal_price (Option Premium) if available, else fallback to Spot Close
+            price = row.get('signal_price')
+            
+            # DEBUG LOGGING for Price Source (only for entry signals)
+            is_entry_signal = signal != SignalType.HOLD and 'Buy' in label
+            if is_entry_signal:
+                print(f"[BacktestEngine] Processing Signal: {label} @ {timestamp}")
+                print(f"  > Signal Price (Option): {price}")
+                print(f"  > Spot Close: {row['close']}")
+
+            if pd.isna(price) or price <= 0:
+                price = row['close']
+                if is_entry_signal:
+                     print("  > Fallback to Spot Close")
+            
+            # Skip if no signal
+            if signal == SignalType.HOLD:
+                continue
+            
+            # Parse the label to determine action type
+            is_entry = 'Buy ' in label and (' CE ' in label or ' PE ' in label)
+            is_exit = 'Exit' in label
+            is_long_entry = is_entry and ' CE ' in label
+            is_short_entry = is_entry and ' PE ' in label
+            is_long_exit = is_exit and 'Long' in label
+            is_short_exit = is_exit and 'Short' in label
+            
+            # Handle LONG ENTRY (BUY signal, CE option)
+            if signal == SignalType.BUY and is_long_entry and self.position is None:
                 self._open_position(
                     entry_time=timestamp,
                     entry_price=price,
-                    entry_label=row.get('signal_label', 'Buy signal')
+                    entry_label=label,
+                    position_type='long'
                 )
             
-            # Handle SELL signal
-            elif signal == SignalType.SELL and self.position is not None:
+            # Handle SHORT ENTRY (SELL signal, PE option)
+            elif signal == SignalType.SELL and is_short_entry and self.position is None:
+                self._open_position(
+                    entry_time=timestamp,
+                    entry_price=price,
+                    entry_label=label,
+                    position_type='short'
+                )
+            
+            # Handle LONG EXIT (SELL signal when in long position)
+            elif signal == SignalType.SELL and is_long_exit and self.position is not None:
                 self._close_position(
                     exit_time=timestamp,
                     exit_price=price,
-                    exit_label=row.get('signal_label', 'Sell signal')
+                    exit_label=label
+                )
+            
+            # Handle SHORT EXIT (BUY signal when in short position)
+            elif signal == SignalType.BUY and is_short_exit and self.position is not None:
+                self._close_position(
+                    exit_time=timestamp,
+                    exit_price=price,
+                    exit_label=label
+                )
+            
+            # FALLBACK for legacy strategies (simple BUY/SELL alternating)
+            elif signal == SignalType.BUY and self.position is None and not is_exit:
+                # Legacy: BUY when no position = enter long
+                self._open_position(
+                    entry_time=timestamp,
+                    entry_price=price,
+                    entry_label=label if label else 'Buy signal',
+                    position_type='long'
+                )
+            elif signal == SignalType.SELL and self.position is not None and not is_entry:
+                # Legacy: SELL when in position = exit
+                self._close_position(
+                    exit_time=timestamp,
+                    exit_price=price,
+                    exit_label=label if label else 'Sell signal'
                 )
     
-    def _open_position(self, entry_time: int, entry_price: float, entry_label: str) -> None:
+    def _open_position(self, entry_time: int, entry_price: float, entry_label: str, position_type: str = 'long') -> None:
         """
         Open a new position (enter trade).
         
@@ -168,22 +242,26 @@ class BacktestEngine:
             entry_time: Unix timestamp of entry
             entry_price: Entry price
             entry_label: Human-readable label for the entry
+            position_type: 'long' or 'short'
         """
         self.position = Position(
             entry_time=entry_time,
             entry_price=entry_price,
-            entry_label=entry_label
+            entry_label=entry_label,
+            position_type=position_type
         )
         
-        # Record buy trade
-        buy_trade = Trade(
+        # Record entry trade (labeled appropriately for direction)
+        trade_type = 'buy' if position_type == 'long' else 'sell'
+        entry_trade = Trade(
             time=entry_time,
-            type='buy',
+            type=trade_type,
             price=entry_price,
             label=entry_label,
+            option_price=entry_price,
             pnl=None
         )
-        self.trades.append(buy_trade)
+        self.trades.append(entry_trade)
     
     def _close_position(self, exit_time: int, exit_price: float, exit_label: str) -> None:
         """
@@ -197,22 +275,37 @@ class BacktestEngine:
         if self.position is None:
             return
         
-        # Calculate P&L
-        pnl = exit_price - self.position.entry_price
-        pnl_pct = (pnl / self.position.entry_price) * 100
+        # Calculate P&L based on position direction
+        if self.position.position_type == 'long':
+            # Long position: profit when price goes UP
+            pnl = exit_price - self.position.entry_price
+        else:
+            # Short position: profit when price goes DOWN
+            pnl = self.position.entry_price - exit_price
+        
+        pnl_pct = (pnl / self.position.entry_price) * 100 if self.position.entry_price > 0 else 0
+        
+        # DEBUG LOGGING for PnL Calculation
+        print(f"[BacktestEngine] Closing {self.position.position_type.upper()} position:")
+        print(f"  > Entry: {self.position.entry_price:.2f} @ {self.position.entry_time}")
+        print(f"  > Exit: {exit_price:.2f} @ {exit_time}")
+        print(f"  > PnL: {pnl:.2f} ({pnl_pct:.2f}%)")
+        print(f"  > Label: {exit_label}")
         
         # Update capital
         self.current_capital += pnl
         
-        # Record sell trade
-        sell_trade = Trade(
+        # Record exit trade (labeled appropriately for direction)
+        trade_type = 'sell' if self.position.position_type == 'long' else 'buy'
+        exit_trade = Trade(
             time=exit_time,
-            type='sell',
+            type=trade_type,
             price=exit_price,
             label=f"{exit_label} (PnL: {pnl:.2f})",
+            option_price=exit_price,
             pnl=pnl
         )
-        self.trades.append(sell_trade)
+        self.trades.append(exit_trade)
         
         # Clear position
         self.position = None

@@ -2,26 +2,85 @@
 // Extended TradingView datafeed implementation
 
 class ChartDatafeed {
-    constructor(originalDatafeed) {
-        console.log("Creating ChartDatafeed wrapper", originalDatafeed);
+    constructor(originalDatafeed, dataSource = 'dhan') {
+        console.log("Creating ChartDatafeed wrapper, source:", dataSource);
         this.originalDatafeed = originalDatafeed;
+        this.dataSource = dataSource; // Store data source
+
+        // State variables
         this.isCustomMode = false;
         this.customData = [];
         this.currentStep = 0;
-        this.playbackSpeed = 1000; // 1 second default
+        this.playbackSpeed = 1000;
         this.playbackInterval = null;
         this.subscribers = {};
         this.isInitialized = false;
         this.lastPlaybackTime = null;
         this.allBarsLoaded = false;
-
-        // Replay trade tracking
         this.backtestTrades = [];
         this.tradeCallback = null;
         this.plottedTradeIndices = new Set();
-        this.progressCallback = null; // NEW: callback for replay progress updates
-        this.lastSignalType = null; // Track last signal type for stateful filtering
+        this.progressCallback = null;
+        this.lastSignalType = null;
+        this.studyCallback = null;
+
+        // Bind all required datafeed methods to ensure proper proxying
+        this.onReady = this.onReady.bind(this);
+        this.searchSymbols = this.searchSymbols.bind(this);
+        this.resolveSymbol = this.resolveSymbol.bind(this);
+        this.getBars = this.getBars.bind(this);
+        this.subscribeBars = this.subscribeBars.bind(this);
+        this.unsubscribeBars = this.unsubscribeBars.bind(this);
     }
+
+    // Required: TradingView calls this first to get configuration
+    onReady(callback) {
+        console.log("[ChartDatafeed] onReady called, dataSource:", this.dataSource);
+        this.originalDatafeed.onReady(callback);
+    }
+
+    // Required: Resolve symbol info - handle :YF suffix for Yahoo Finance
+    resolveSymbol(symbolName, onSymbolResolvedCallback, onResolveErrorCallback) {
+        console.log("[ChartDatafeed] resolveSymbol:", symbolName, "dataSource:", this.dataSource);
+
+        // For YFinance symbols, handle the :YF suffix
+        let cleanSymbol = symbolName;
+        if (symbolName.endsWith(':YF')) {
+            cleanSymbol = symbolName.replace(':YF', '');
+            console.log("[ChartDatafeed] Cleaned YFinance symbol:", cleanSymbol);
+        }
+
+        this.originalDatafeed.resolveSymbol(cleanSymbol, onSymbolResolvedCallback, onResolveErrorCallback);
+    }
+
+    searchSymbols(userInput, exchange, symbolType, onResult) {
+        console.log(`[ChartDatafeed] searchSymbols called: "${userInput}" type=${symbolType} dataSource=${this.dataSource}`);
+
+        if (this.dataSource === 'yfinance') {
+            // Custom search logic for Yahoo Finance
+            console.log(`[ChartDatafeed] Yahoo Search: ${userInput}`);
+
+            const baseUrl = "http://localhost:8005";
+
+            fetch(`${baseUrl}/search?query=${encodeURIComponent(userInput)}&type=${symbolType}&exchange=${exchange}&limit=30&data_source=yfinance`)
+                .then(response => response.json())
+                .then(data => {
+                    console.log("[ChartDatafeed] Search results:", data);
+                    onResult(data);
+                })
+                .catch(err => {
+                    console.error("[ChartDatafeed] Search error:", err);
+                    onResult([]);
+                });
+        } else {
+            // Default behavior for Dhan
+            this.originalDatafeed.searchSymbols(userInput, exchange, symbolType, onResult);
+        }
+    }
+
+    // ... (rest of methods)
+
+
 
     // Load external data for Instant Backtest (all data at once, no replay)
     setBacktestData(candles, resolution = '1', onComplete = null) {
@@ -113,25 +172,29 @@ class ChartDatafeed {
     }
 
     // Progressive Replay: Evaluate strategy dynamically as candles appear
-    setProgressiveReplayData(candles, strategy, datafeedUrl, replayStartIndex, onProgressCallback, onTradeCallback, resolution) {
-        console.log("[Datafeed] Progressive replay mode:", candles.length, "candles, strategy:", strategy);
+    setProgressiveReplayData(candles, strategy, datafeedUrl, replayStartIndex, onProgressCallback, onTradeCallback, resolution, instrumentType = 'options', onStudyCallback = null, scaleRatio = null, pivotSettings = {}) {
+        console.log("[Datafeed] Progressive replay mode:", candles.length, "candles, strategy:", strategy, "instrument:", instrumentType, "scaleRatio:", scaleRatio, "pivotSettings:", pivotSettings);
 
         this._unsubscribeFromOriginal();
 
         this.customData = candles;
         this.strategyName = strategy;
         this.datafeedUrl = datafeedUrl;
+        this.instrumentType = instrumentType;
+        this.scaleRatio = scaleRatio;
+        this.pivotSettings = pivotSettings;  // NEW: store pivot settings for study configuration
         this.progressCallback = onProgressCallback;
         this.tradeCallback = onTradeCallback;
+        this.studyCallback = onStudyCallback;
         this.evaluatedIndices = new Set();
 
         this.isCustomMode = true;
         this.isInitialized = true;
         this.allBarsLoaded = true;
         this.currentStep = replayStartIndex;
-        this.hasSetInitialRange = false; // Reset so initial view gets set once
-        this._initialRefreshDone = false; // Reset so initial chart refresh can happen
-        this.lastSignalType = null; // Reset signal state for new replay
+        this.hasSetInitialRange = false;
+        this._initialRefreshDone = false;
+        this.lastSignalType = null;
         this.playbackStartTime = candles.length > 0 ? candles[0].time : Date.now();
 
         if (window.tvWidget) {
@@ -179,27 +242,12 @@ class ChartDatafeed {
         this._originalSubscriberUIDs = [];
     }
 
-    // Standard UDF methods that pass through to original datafeed
-    onReady(callback) {
-        console.log("ChartDatafeed.onReady called");
-        this.originalDatafeed.onReady(callback);
-    }
-
-    searchSymbols(userInput, exchange, symbolType, onResult) {
-        this.originalDatafeed.searchSymbols(userInput, exchange, symbolType, onResult);
-    }
-
-    resolveSymbol(symbolName, onSymbolResolvedCallback, onResolveErrorCallback, extension) {
-        console.log("ChartDatafeed.resolveSymbol called for", symbolName);
-        this.originalDatafeed.resolveSymbol(symbolName, onSymbolResolvedCallback, onResolveErrorCallback, extension);
-    }
-
     // Core method for historical data
     getBars(symbolInfo, resolution, periodParams, onHistoryCallback, onErrorCallback) {
         // DETAILED LOGGING for debugging pagination
         const fromDate = new Date(periodParams.from * 1000);
         const toDate = new Date(periodParams.to * 1000);
-        console.log(`[getBars] Request: ${symbolInfo.ticker} | ${resolution} | from: ${fromDate.toISOString()} | to: ${toDate.toISOString()} | countBack: ${periodParams.countBack} | firstDataRequest: ${periodParams.firstDataRequest} | customMode: ${this.isCustomMode}`);
+        console.log(`[getBars] Request: ${symbolInfo.ticker} | ${resolution} | from: ${fromDate.toISOString()} | to: ${toDate.toISOString()} | countBack: ${periodParams.countBack} | firstDataRequest: ${periodParams.firstDataRequest} | customMode: ${this.isCustomMode} | dataSource: ${this.dataSource}`);
 
         // CRITICAL: In custom mode, serve ONLY custom data and stop further requests
         if (this.isCustomMode) {
@@ -210,45 +258,130 @@ class ChartDatafeed {
                 return;
             }
 
-            // Return bars up to current step
-            const visibleBars = this.customData.slice(0, this.currentStep + 1);
-            console.log(`[getBars] CUSTOM MODE: Serving ${visibleBars.length}/${this.customData.length} bars (step ${this.currentStep})`);
-            if (visibleBars.length > 0) {
-                console.log(`[getBars] Custom data range: ${new Date(visibleBars[0].time).toISOString()} to ${new Date(visibleBars[visibleBars.length - 1].time).toISOString()}`);
-            }
+            // FILTER: Find bars that fit within the requested range
+            // PeriodParams.from/to are in seconds (unix timestamp)
+            // CustomData is sorted by time (ascending)
 
-            // CRITICAL FIX: Return noData:false if we're at the leading edge (more data will come)
-            // This tells TradingView to call subscribeBars for future updates
-            const atLeadingEdge = this.currentStep < this.customData.length - 1;
-            console.log(`[getBars] At leading edge: ${atLeadingEdge}`);
-            onHistoryCallback(visibleBars, { noData: !atLeadingEdge });
+            // TradingView asks for data in chunks moving backwards.
+            // We need to filter our in-memory customData for the requested window.
+            const fromTimeMs = periodParams.from * 1000;
+            const toTimeMs = periodParams.to * 1000;
+
+            // Limit to current step for replay visibility
+            // But for history loading (scrolling back), we typically show everything UP TO currentStep
+            // If the requested range is totally in the future of currentStep, return empty?
+            // Actually, getBars is mostly used for filling the visible chart.
+
+            // Only serve bars up to the current simulation step
+            const visibleMaxIndex = this.currentStep;
+            const visibleMaxTime = this.customData[visibleMaxIndex].time;
+
+            const effectiveToMs = Math.min(toTimeMs, visibleMaxTime);
+
+            // Filter bars within [from, effectiveTo]
+            const bars = this.customData.filter(b =>
+                b.time >= fromTimeMs && b.time <= effectiveToMs
+            );
+
+            console.log(`[getBars] CUSTOM MODE: Request ${periodParams.from}-${periodParams.to}. Serving ${bars.length} bars.`);
+
+            if (bars.length > 0) {
+                // Check if we have exhausted our data on the left side
+                // If the earliest bar in this batch is the earliest bar we have overall, then noData=true next time
+                const globalEarliest = this.customData[0].time;
+                const batchEarliest = bars[0].time;
+
+                // If the request range covers start of data, signal end
+                // But TradingView logic is strict. If we return *some* data, it might ask for more.
+                // Correct pattern: if query range < global start, return 0 bars + noData=true
+
+                onHistoryCallback(bars, { noData: false });
+            } else {
+                // No bars in this range
+                // If requested range is OLDER than our data, return noData
+                const globalEarliest = this.customData[0].time;
+                if (toTimeMs < globalEarliest) {
+                    console.log("[getBars] CUSTOM MODE: Requested range is older than available data. NoData = true.");
+                    onHistoryCallback([], { noData: true });
+                } else {
+                    // Requested range is newer? or empty gap?
+                    onHistoryCallback([], { noData: false });
+                }
+            }
             return;
         }
 
-        // If not in custom mode, pass through to original UDF datafeed
-        console.log("[Wrapper] Delegating getBars to original datafeed...");
-        console.trace("[TRACE] getBars delegation stack:"); // This will show who called getBars
-        return this.originalDatafeed.getBars(
-            symbolInfo,
-            resolution,
-            periodParams,
-            (bars, meta) => {
-                // DETAILED LOGGING for debugging
-                console.log(`[Wrapper] SUCCESS: ${bars.length} bars | noData: ${meta.noData} | nextTime: ${meta.nextTime}`);
+        // CRITICAL FIX: Make direct HTTP request with data_source parameter
+        // The UDFCompatibleDatafeed doesn't support custom parameters, so we bypass it
+        console.log(`[getBars] Making direct HTTP request with data_source=${this.dataSource}`);
+
+        const baseUrl = "http://localhost:8005";
+        const params = new URLSearchParams({
+            symbol: symbolInfo.ticker,
+            from: periodParams.from,
+            to: periodParams.to,
+            resolution: resolution,
+            data_source: this.dataSource  // KEY FIX: Include data source
+        });
+
+        fetch(`${baseUrl}/history?${params}`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log(`[getBars] HTTP Response:`, data);
+
+                // Parse UDF response format
+                // Expected: {"s":"ok","t":[...],"o":[...],"h":[...],"l":[...],"c":[...],"v":[...]}
+                // or {"s":"no_data"}
+
+                if (data.s === 'no_data' || !data.t || data.t.length === 0) {
+                    console.log(`[getBars] No data available (status: ${data.s})`);
+                    onHistoryCallback([], { noData: true });
+                    return;
+                }
+
+                // Convert UDF format to Bar[] format
+                const bars = [];
+                for (let i = 0; i < data.t.length; i++) {
+                    bars.push({
+                        time: data.t[i] * 1000,  // Convert to milliseconds
+                        open: data.o[i],
+                        high: data.h[i],
+                        low: data.l[i],
+                        close: data.c[i],
+                        volume: data.v[i]
+                    });
+                }
+
+                console.log(`[getBars] Parsed ${bars.length} bars from UDF response`);
                 if (bars.length > 0) {
                     const firstBar = new Date(bars[0].time);
                     const lastBar = new Date(bars[bars.length - 1].time);
                     console.log(`  Range: ${firstBar.toISOString()} to ${lastBar.toISOString()}`);
-                } else {
-                    console.warn("[Wrapper] 0 bars returned");
                 }
+
+                // Check if we should set noData flag
+                const meta = {};
+                if (bars.length === 0) {
+                    // If we got 0 bars, signal no more data
+                    meta.noData = true;
+                    console.log(`[getBars] Setting noData=true (got 0 bars)`);
+                } else if (bars.length < periodParams.countBack) {
+                    // If we got fewer than requested, we might be at start, BUT we don't set noData=true yet.
+                    // We let the NEXT request return 0 to confirm. This handles gaps better.
+                    console.log(`[getBars] Partial chunk: got ${bars.length} < ${periodParams.countBack} requested. Continuing history...`);
+                }
+
                 onHistoryCallback(bars, meta);
-            },
-            (err) => {
-                console.error("[Wrapper] Original getBars FAILED:", err);
-                onErrorCallback(err);
-            }
-        );
+            })
+            .catch(err => {
+                console.error("[getBars] HTTP request failed:", err);
+                onErrorCallback(err.message);
+            });
     }
 
     // Handle realtime updates
@@ -397,11 +530,21 @@ class ChartDatafeed {
             const requestBody = {
                 strategy: this.strategyName,
                 candles: candlesUpToNow,
-                current_index: this.currentStep
+                current_index: this.currentStep,
+                instrument_type: this.instrumentType || 'options'
             };
             // Only include last_action if it has a value (Pydantic v2 rejects null)
             if (this.lastSignalType) {
                 requestBody.last_action = this.lastSignalType;
+            }
+            // Include scale_ratio for angle calculations (studies like Angular Coverage)
+            if (this.scaleRatio != null) {
+                requestBody.scale_ratio = this.scaleRatio;
+            }
+            // Include pivot settings for configurable pivot detection
+            if (this.pivotSettings && (this.pivotSettings.leftBars || this.pivotSettings.rightBars)) {
+                requestBody.left_bars = this.pivotSettings.leftBars || 5;
+                requestBody.right_bars = this.pivotSettings.rightBars || 5;
             }
 
             fetch(`${this.datafeedUrl}/evaluate_strategy_step`, {
@@ -411,16 +554,41 @@ class ChartDatafeed {
             })
                 .then(res => res.json())
                 .then(data => {
-                    if (data.signal && this.tradeCallback) {
-                        console.log("[Progressive] Signal found at step", this.currentStep, ":", data.signal.type, "@", data.signal.price);
+                    // Handle different response types
+                    const responseType = data.type || 'legacy';
 
-                        // Update state and execute callback
-                        this.lastSignalType = data.signal.type;
-                        this.tradeCallback(data.signal);
+                    if (responseType === 'signal' || responseType === 'legacy') {
+                        // STRATEGY RESPONSE: Trade signals
+                        if (data.signal && this.tradeCallback) {
+                            console.log("[Progressive] Signal found at step", this.currentStep, ":", data.signal.type, "@", data.signal.price);
+                            this.lastSignalType = data.signal.type;
+                            this.tradeCallback(data.signal);
+                        }
+
+                        // INDICATOR DRAWINGS: Handle EMA line and other indicators
+                        if (data.indicator_drawings && data.indicator_drawings.length > 0 && this.studyCallback) {
+                            console.log("[Progressive] Indicator drawings at step", this.currentStep, ":", data.indicator_drawings.length, "drawings");
+                            // Convert to study format for unified drawing handling
+                            this.studyCallback({
+                                type: 'drawing_update',
+                                drawings: data.indicator_drawings,
+                                pivot_markers: [],
+                                remove_drawings: []
+                            });
+                        }
+                    } else if (responseType === 'drawing_update') {
+                        // STUDY RESPONSE: Drawing commands
+                        if (this.studyCallback) {
+                            console.log("[Progressive] Study drawings at step", this.currentStep,
+                                "drawings:", data.drawings?.length || 0,
+                                "pivots:", data.pivot_markers?.length || 0);
+                            this.studyCallback(data);
+                        }
                     }
                 })
                 .catch(err => console.error("[Progressive] Evaluation error:", err));
         }
+
 
     }
 
@@ -511,9 +679,9 @@ class ChartDatafeed {
     }
 }
 
-function createChartDatafeed(originalDatafeed) {
-    console.log("createChartDatafeed called");
-    return new ChartDatafeed(originalDatafeed);
+function createChartDatafeed(originalDatafeed, dataSource = 'dhan') {
+    console.log("createChartDatafeed called with source:", dataSource);
+    return new ChartDatafeed(originalDatafeed, dataSource);
 }
 
 export default createChartDatafeed;

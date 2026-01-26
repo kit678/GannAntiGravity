@@ -172,13 +172,29 @@ class TimeCycleBreakoutStrategy(BaseStrategy):
         return df
 
 
+# Import additional strategies
+from five_ema_strategy import FiveEMAStrategy
+
 # Strategy registry - maps strategy names to classes
 STRATEGY_REGISTRY = {
     'mechanical_3day': Mechanical3DaySwingStrategy,
     'gann_square_9': SquareOf9ReversionStrategy,
     'time_cycle_breakout': TimeCycleBreakoutStrategy,
     'ichimoku_cloud': TimeCycleBreakoutStrategy,  # Placeholder
+    'five_ema': FiveEMAStrategy,
+    'angular_coverage': TimeCycleBreakoutStrategy, # Placeholder for backtest compatibility
 }
+
+# Study registry - maps study names to their module identifiers
+# Studies output drawings instead of trade signals
+STUDY_REGISTRY = {
+    'angular_coverage': 'angular_price_coverage',
+}
+
+
+def is_study(name: str) -> bool:
+    """Check if a strategy name is actually a study tool"""
+    return name in STUDY_REGISTRY
 
 
 def get_strategy(strategy_name: str, df: pd.DataFrame, params: Optional[Dict[str, Any]] = None) -> BaseStrategy:
@@ -201,3 +217,4 @@ def get_strategy(strategy_name: str, df: pd.DataFrame, params: Optional[Dict[str
     
     strategy_class = STRATEGY_REGISTRY[strategy_name]
     return strategy_class(df, params)
+

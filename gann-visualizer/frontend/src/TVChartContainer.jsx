@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useState, useImperativeHandle, forwardRef } from 'react';
 import createChartDatafeed from './chart/ChartDatafeed';
+import { processStudyResponse, clearAllStudyDrawings } from './study_tool/StudyDrawingUtils';
 
-export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, interval = '1', onTradeLogged }, ref) => {
+export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, interval = '1', onTradeLogged, dataSource = 'dhan', onSymbolChange }, ref) => {
     const chartContainerRef = useRef(null);
     const datafeedRef = useRef(null);
     const widgetRef = useRef(null);
@@ -14,26 +15,32 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
     // Store trades for replay mode
     const tradesRef = useRef([]);
 
+    // Track study shapes for cleanup
+    const studyShapesRef = useRef({});
+
     useEffect(() => {
-        const script = document.createElement('script');
-        script.src = '/charting_library/charting_library.js';
-        script.async = true;
-        script.onload = () => {
-            initChart();
-        };
-        document.body.appendChild(script);
+        console.log('[TVChart] useEffect triggered - dataSource:', dataSource, 'symbol:', symbol);
+
+        let scriptElement = null;
+        let isMounted = true;
 
         function initChart() {
-            if (!window.TradingView) return;
+            if (!isMounted) return;
+            if (!window.TradingView) {
+                console.error('[TVChart] TradingView not available');
+                return;
+            }
+
+            console.log('[TVChart] Initializing chart with dataSource:', dataSource);
 
             const udfDatafeed = new window.Datafeeds.UDFCompatibleDatafeed(datafeedUrl);
-            const customDatafeed = createChartDatafeed(udfDatafeed);
+            const customDatafeed = createChartDatafeed(udfDatafeed, dataSource);
             datafeedRef.current = customDatafeed;
 
             const widget = new window.TradingView.widget({
                 symbol: symbol,
                 interval: interval,
-                timezone: 'Asia/Kolkata', // Set explicit timezone to match Dhan data
+                timezone: 'Asia/Kolkata',
                 fullscreen: false,
                 container: chartContainerRef.current,
                 datafeed: customDatafeed,
@@ -48,27 +55,81 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
                 user_id: 'public_user_id',
                 theme: 'Dark',
                 autosize: true,
-                // Fix white space on right - limit margin beyond last candle
                 time_scale: {
-                    right_offset: 5,  // Only 5 bars of future space (instead of default ~10%)
-                    visible_range: {
-                        // Let TradingView auto-calculate based on available data
-                    }
+                    right_offset: 5,
+                    visible_range: {}
                 },
                 overrides: {
                     "scalesProperties.showSymbolLabels": true,
                     "mainSeriesProperties.candleStyle.drawBorder": true,
+
                 },
             });
 
             widgetRef.current = widget;
             window.tvWidget = widget;
+
+            widget.onChartReady(() => {
+                console.log("[Chart] Ready");
+
+                // Subscribe to Symbol Changes to keep parent in sync
+                try {
+                    widget.activeChart().onSymbolChanged().subscribe(null, (symbolInfo) => {
+                        console.log("[Chart] Symbol Changed to:", symbolInfo.name);
+                        // Extract cleanly if it has suffix
+                        let cleanName = symbolInfo.name;
+                        // If we are in Yahoo mode and have suffix, maybe strip it for parent state? 
+                        // Actually, parent state usually drives this. But if user changes it via search...
+                        // Let's pass the raw name back.
+                        if (onSymbolChange) onSymbolChange(cleanName);
+                    });
+                } catch (e) {
+                    console.warn("[Chart] Failed to subscribe to symbol changes:", e);
+                }
+
+
+            });
+        }
+
+        // Check if TradingView library is already loaded
+        if (window.TradingView && window.Datafeeds) {
+            console.log('[TVChart] TradingView already loaded, initializing directly');
+            initChart();
+        } else {
+            // Load the library for the first time
+            console.log('[TVChart] Loading TradingView library...');
+            scriptElement = document.createElement('script');
+            scriptElement.src = '/charting_library/charting_library.js';
+            scriptElement.async = true;
+            scriptElement.onload = () => {
+                console.log('[TVChart] TradingView library loaded');
+                initChart();
+            };
+            document.body.appendChild(scriptElement);
         }
 
         return () => {
-            if (script.parentNode) script.parentNode.removeChild(script);
+            console.log('[TVChart] Cleanup - destroying widget');
+            isMounted = false;
+
+            // Properly destroy widget to ensure clean re-initialization
+            if (widgetRef.current) {
+                try {
+                    widgetRef.current.remove();
+                    console.log('[TVChart] Widget destroyed for clean re-init');
+                } catch (e) {
+                    console.warn('[TVChart] Error removing widget:', e);
+                }
+                widgetRef.current = null;
+            }
+            datafeedRef.current = null;
+
+            // Only remove script if we created one
+            if (scriptElement && scriptElement.parentNode) {
+                scriptElement.parentNode.removeChild(scriptElement);
+            }
         };
-    }, [symbol, datafeedUrl, interval]);
+    }, [symbol, datafeedUrl, interval, dataSource]);
 
     // Helper to convert time to seconds (for TradingView shape API)
     const toSeconds = (time) => {
@@ -258,11 +319,30 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
     // Expose methods to parent (App.jsx)
     useImperativeHandle(ref, () => ({
         // Get current chart resolution
+        // Get current chart resolution
         getResolution: () => {
             if (widgetRef.current) {
-                return widgetRef.current.activeChart().resolution();
+                try {
+                    return widgetRef.current.activeChart().resolution();
+                } catch (e) {
+                    console.warn("[TVChart] Failed to get resolution from active widget:", e);
+                }
             }
             return '1'; // Default
+        },
+
+        // Get chart's Price-to-Bar ratio for angle calculations
+        getPriceToBarRatio: () => {
+            if (widgetRef.current) {
+                try {
+                    const ratio = widgetRef.current.activeChart().getPriceToBarRatio();
+                    console.log("[TVChart] Price-to-Bar ratio:", ratio);
+                    return ratio;
+                } catch (e) {
+                    console.warn("[TVChart] Failed to get price-to-bar ratio:", e);
+                }
+            }
+            return null; // Let backend use default
         },
 
         // INSTANT MODE: Plot all candles and signals at once
@@ -525,8 +605,8 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
         },
 
         // PROGRESSIVE REPLAY MODE: Evaluate strategy dynamically as candles appear
-        startProgressiveReplay: (candles, strategy, resolution, replayStartTimestamp, datafeedUrl, onProgressCallback, onTradeCallback) => {
-            console.log("[Progressive Replay] Starting with", candles.length, "candles, strategy:", strategy);
+        startProgressiveReplay: (candles, strategy, resolution, replayStartTimestamp, datafeedUrl, instrumentType, onProgressCallback, onTradeCallback, pivotSettings = {}) => {
+            console.log("[Progressive Replay] Starting with", candles.length, "candles, strategy:", strategy, "instrument:", instrumentType, "pivotSettings:", pivotSettings);
 
             if (!datafeedRef.current || !widgetRef.current) {
                 console.error("Chart not ready");
@@ -555,6 +635,15 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
 
             currentCandlesRef.current = normalizedCandles;
 
+            // Query chart's scale ratio for angle calculations
+            let scaleRatio = null;
+            try {
+                scaleRatio = widgetRef.current.activeChart().getPriceToBarRatio();
+                console.log("[Progressive Replay] Chart scale ratio:", scaleRatio);
+            } catch (e) {
+                console.warn("[Progressive Replay] Could not get scale ratio:", e);
+            }
+
             datafeedRef.current.setProgressiveReplayData(
                 normalizedCandles,
                 strategy,
@@ -577,7 +666,23 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
                     }
                     if (onTradeCallback) onTradeCallback(trade);
                 },
-                resolution
+                resolution,
+                instrumentType,
+                // Study callback - handles drawing_update responses
+                (studyData) => {
+                    if (!widgetRef.current) {
+                        console.warn("[Study] Widget not ready, skipping drawings");
+                        return;
+                    }
+                    try {
+                        const chart = widgetRef.current.activeChart();
+                        studyShapesRef.current = processStudyResponse(chart, studyData, studyShapesRef.current);
+                    } catch (err) {
+                        console.warn("[Study] Error processing drawings:", err.message);
+                    }
+                },
+                scaleRatio,
+                pivotSettings  // NEW: pass pivot settings for configurable pivot detection
             );
 
             widgetRef.current.onChartReady(() => {
@@ -585,6 +690,7 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
                 chart.removeAllShapes();
                 recentMarkersRef.current = {};
                 plottedTradesRef.current = {};  // Reset trade tracking for new replay
+                studyShapesRef.current = {};    // Reset study shape tracking
                 console.log("[Progressive Replay] Chart ready - cleared existing shapes");
             });
 
