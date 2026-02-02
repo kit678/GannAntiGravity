@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState, useImperativeHandle, forwardRef } f
 import createChartDatafeed from './chart/ChartDatafeed';
 import { processStudyResponse, clearAllStudyDrawings } from './study_tool/StudyDrawingUtils';
 
-export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, interval = '1', onTradeLogged, dataSource = 'dhan', onSymbolChange }, ref) => {
+export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, interval = '60', onTradeLogged, dataSource = 'dhan', onSymbolChange }, ref) => {
     const chartContainerRef = useRef(null);
     const datafeedRef = useRef(null);
     const widgetRef = useRef(null);
@@ -62,7 +62,8 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
                 overrides: {
                     "scalesProperties.showSymbolLabels": true,
                     "mainSeriesProperties.candleStyle.drawBorder": true,
-
+                    "paneProperties.priceAxisProperties.log": false,
+                    "paneProperties.priceAxisProperties.lockScale": true,
                 },
             });
 
@@ -71,6 +72,14 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
 
             widget.onChartReady(() => {
                 console.log("[Chart] Ready");
+
+                // Apply default Price-to-Bar Ratio
+                try {
+                    widget.activeChart().setPriceToBarRatio(5.5);
+                    console.log("[Chart] Applied default PriceToBarRatio: 5.5");
+                } catch (e) {
+                    console.warn("[Chart] Failed to set default PriceToBarRatio:", e);
+                }
 
                 // Subscribe to Symbol Changes to keep parent in sync
                 try {
@@ -323,12 +332,15 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
         getResolution: () => {
             if (widgetRef.current) {
                 try {
-                    return widgetRef.current.activeChart().resolution();
+                    const res = widgetRef.current.activeChart().resolution();
+                    console.log(`[TVChart] getResolution calls -> Widget reports: ${res}`);
+                    return res;
                 } catch (e) {
                     console.warn("[TVChart] Failed to get resolution from active widget:", e);
                 }
             }
-            return '1'; // Default
+            console.log(`[TVChart] Widget not ready or failed, falling back to prop interval: ${interval}`);
+            return interval || '1'; // Default to prop or '1'
         },
 
         // Get chart's Price-to-Bar ratio for angle calculations
@@ -635,15 +647,10 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
 
             currentCandlesRef.current = normalizedCandles;
 
-            // Query chart's scale ratio for angle calculations
+            // Start with null scale ratio - will be updated when chart is ready
             let scaleRatio = null;
-            try {
-                scaleRatio = widgetRef.current.activeChart().getPriceToBarRatio();
-                console.log("[Progressive Replay] Chart scale ratio:", scaleRatio);
-            } catch (e) {
-                console.warn("[Progressive Replay] Could not get scale ratio:", e);
-            }
 
+            // Set up the progressive replay data first (without scale ratio)
             datafeedRef.current.setProgressiveReplayData(
                 normalizedCandles,
                 strategy,
@@ -660,7 +667,7 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
                     try {
                         const chart = widgetRef.current.activeChart();
                         console.log("[Progressive Replay] Trade signal:", trade.type, "at", new Date(trade.time * 1000).toLocaleString());
-                        plotTradeShape(chart, trade, normalizedCandles);
+                        plotTradeShape(chart, normalizedCandles);
                     } catch (err) {
                         console.warn("[Progressive Replay] Error plotting trade:", err.message);
                     }
@@ -681,17 +688,34 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
                         console.warn("[Study] Error processing drawings:", err.message);
                     }
                 },
-                scaleRatio,
-                pivotSettings  // NEW: pass pivot settings for configurable pivot detection
+                scaleRatio,  // Initially null
+                pivotSettings
             );
 
             widgetRef.current.onChartReady(() => {
+                if (!widgetRef.current) {
+                    console.warn("[Progressive Replay] Widget lost during init, skipping setup");
+                    return;
+                }
                 const chart = widgetRef.current.activeChart();
                 chart.removeAllShapes();
                 recentMarkersRef.current = {};
                 plottedTradesRef.current = {};  // Reset trade tracking for new replay
                 studyShapesRef.current = {};    // Reset study shape tracking
                 console.log("[Progressive Replay] Chart ready - cleared existing shapes");
+
+                // NOW get the scale ratio since chart is ready
+                try {
+                    scaleRatio = chart.getPriceToBarRatio();
+                    console.log("[Progressive Replay] Got scale ratio from ready chart:", scaleRatio);
+                    // Update the datafeed with the correct scale ratio
+                    if (datafeedRef.current && scaleRatio) {
+                        datafeedRef.current.scaleRatio = scaleRatio;
+                        console.log("[Progressive Replay] Updated datafeed scaleRatio to:", scaleRatio);
+                    }
+                } catch (e) {
+                    console.warn("[Progressive Replay] Could not get scale ratio even after chart ready:", e);
+                }
             });
 
             setIsPlaybackMode(true);

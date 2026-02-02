@@ -198,30 +198,34 @@ class ChartDatafeed {
         this.playbackStartTime = candles.length > 0 ? candles[0].time : Date.now();
 
         if (window.tvWidget) {
-            const chart = window.tvWidget.activeChart();
+            try {
+                const chart = window.tvWidget.activeChart();
 
-            // CRITICAL FIX: Always reset data first, regardless of resolution
-            // This ensures Jan 1st (live) data is cleared before we enter custom mode
-            console.log("[Datafeed] Clearing chart data...");
+                // CRITICAL FIX: Always reset data first, regardless of resolution
+                // This ensures Jan 1st (live) data is cleared before we enter custom mode
+                console.log("[Datafeed] Clearing chart data...");
 
-            // Force clear by resetting data immediately
-            chart.resetData();
+                // Force clear by resetting data immediately
+                chart.resetData();
 
-            // Then set resolution (in case it differs)
-            const currentRes = chart.resolution();
-            if (currentRes !== resolution) {
-                console.log(`[Datafeed] Changing resolution from ${currentRes} to ${resolution}`);
-                chart.setResolution(resolution, () => {
-                    console.log("[Datafeed] Resolution changed, resetting data again");
-                    chart.resetData();
-                });
-            }
+                // Then set resolution (in case it differs)
+                const currentRes = chart.resolution();
+                if (currentRes !== resolution) {
+                    console.log(`[Datafeed] Changing resolution from ${currentRes} to ${resolution}`);
+                    chart.setResolution(resolution, () => {
+                        console.log("[Datafeed] Resolution changed, resetting data again");
+                        chart.resetData();
+                    });
+                }
 
-            // Set initial progress
-            if (this.progressCallback && candles.length > 0) {
-                const progress = replayStartIndex > 0 ? (replayStartIndex / (candles.length - 1)) * 100 : 0;
-                const initialTime = candles[replayStartIndex].time / 1000;
-                this.progressCallback(progress, initialTime);
+                // Set initial progress
+                if (this.progressCallback && candles.length > 0) {
+                    const progress = replayStartIndex > 0 ? (replayStartIndex / (candles.length - 1)) * 100 : 0;
+                    const initialTime = candles[replayStartIndex].time / 1000;
+                    this.progressCallback(progress, initialTime);
+                }
+            } catch (err) {
+                console.warn("[Datafeed] Error initializing chart for progressive replay:", err);
             }
         }
     }

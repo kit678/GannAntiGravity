@@ -50,12 +50,14 @@ class PivotDetector:
         self.last_high_pivot: Optional[Pivot] = None
         self.last_low_pivot: Optional[Pivot] = None
         self.last_pivot_type: Optional[str] = None
+        self.confirmed_pivots: List[Pivot] = []
     
     def reset(self):
         """Reset detector state (call on new symbol/interval)"""
         self.last_high_pivot = None
         self.last_low_pivot = None
         self.last_pivot_type = None
+        self.confirmed_pivots = []
     
     def detect_pivots(self, candles: List[Dict[str, Any]], current_index: int) -> Dict[str, Any]:
         """
@@ -95,29 +97,41 @@ class PivotDetector:
         
         # Check for pivot high
         is_pivot_high = True
+        high_fail_reason = ""
         for i in range(1, self.left_bars + 1):
             if float(candles[candidate_idx - i]['high']) >= candidate_high:
                 is_pivot_high = False
+                high_fail_reason = f"Left neighbor -{i} >= candidate"
                 break
         
         if is_pivot_high:
             for i in range(1, self.right_bars + 1):
                 if float(candles[candidate_idx + i]['high']) >= candidate_high:
                     is_pivot_high = False
+                    high_fail_reason = f"Right neighbor +{i} >= candidate"
                     break
         
         # Check for pivot low
         is_pivot_low = True
+        low_fail_reason = ""
         for i in range(1, self.left_bars + 1):
             if float(candles[candidate_idx - i]['low']) <= candidate_low:
                 is_pivot_low = False
+                low_fail_reason = f"Left neighbor -{i} <= candidate"
                 break
         
         if is_pivot_low:
             for i in range(1, self.right_bars + 1):
                 if float(candles[candidate_idx + i]['low']) <= candidate_low:
                     is_pivot_low = False
+                    low_fail_reason = f"Right neighbor +{i} <= candidate"
                     break
+        
+        if is_pivot_high:
+            print(f"[PivotDetector] FOUND RAW HIGH at {candidate_time} Price: {candidate_high}")
+        
+        if is_pivot_low:
+            print(f"[PivotDetector] FOUND RAW LOW at {candidate_time} Price: {candidate_low}")
         
         # Process confirmed pivots with successive filtering
         if is_pivot_high:
@@ -131,11 +145,17 @@ class PivotDetector:
             # Successive high filter: keep the highest
             if self.last_pivot_type == 'high':
                 if new_pivot.price > self.last_high_pivot.price:
+                    print(f"[PivotDetector] SUCCESSIVE FILTER: Replacing High {self.last_high_pivot.price} with HIGHER High {new_pivot.price}")
                     # Replace with higher high
                     self.last_high_pivot = new_pivot
+                else:
+                    print(f"[PivotDetector] SUCCESSIVE FILTER: Ignoring High {new_pivot.price} (Lower than prev High {self.last_high_pivot.price})")
             else:
-                # Alternate type - complete a fan pair
+                # Alternate type - previous LOW is now confirmed
                 if self.last_low_pivot is not None:
+                    print(f"[PivotDetector] CONFIRMED LOW: {self.last_low_pivot.price} -> New HIGH {new_pivot.price} completes sequence")
+                    self.confirmed_pivots.append(self.last_low_pivot)
+                    
                     result['new_fan'] = {
                         'from': {
                             'time': self.last_low_pivot.time,
@@ -167,11 +187,17 @@ class PivotDetector:
             # Successive low filter: keep the lowest
             if self.last_pivot_type == 'low':
                 if new_pivot.price < self.last_low_pivot.price:
+                    print(f"[PivotDetector] SUCCESSIVE FILTER: Replacing Low {self.last_low_pivot.price} with LOWER Low {new_pivot.price}")
                     # Replace with lower low
                     self.last_low_pivot = new_pivot
+                else:
+                    print(f"[PivotDetector] SUCCESSIVE FILTER: Ignoring Low {new_pivot.price} (Higher than prev Low {self.last_low_pivot.price})")
             else:
-                # Alternate type - complete a fan pair
+                # Alternate type - previous HIGH is now confirmed
                 if self.last_high_pivot is not None:
+                    print(f"[PivotDetector] CONFIRMED HIGH: {self.last_high_pivot.price} -> New LOW {new_pivot.price} completes sequence")
+                    self.confirmed_pivots.append(self.last_high_pivot)
+                    
                     result['new_fan'] = {
                         'from': {
                             'time': self.last_high_pivot.time,
@@ -200,14 +226,24 @@ class PivotDetector:
             'last_high_pivot': {
                 'time': self.last_high_pivot.time,
                 'price': self.last_high_pivot.price,
-                'bar_index': self.last_high_pivot.bar_index
+                'bar_index': self.last_high_pivot.bar_index,
+                'pivot_type': 'high'
             } if self.last_high_pivot else None,
             'last_low_pivot': {
                 'time': self.last_low_pivot.time,
                 'price': self.last_low_pivot.price,
-                'bar_index': self.last_low_pivot.bar_index
+                'bar_index': self.last_low_pivot.bar_index,
+                'pivot_type': 'low'
             } if self.last_low_pivot else None,
-            'last_pivot_type': self.last_pivot_type
+            'last_pivot_type': self.last_pivot_type,
+            'confirmed_pivots': [
+                {
+                    'time': p.time,
+                    'price': p.price,
+                    'bar_index': p.bar_index,
+                    'pivot_type': p.pivot_type
+                } for p in self.confirmed_pivots
+            ]
         }
     
     def restore_state(self, state: Dict[str, Any]):
@@ -235,3 +271,13 @@ class PivotDetector:
             self.last_low_pivot = None
         
         self.last_pivot_type = state.get('last_pivot_type')
+        
+        self.confirmed_pivots = []
+        if state.get('confirmed_pivots'):
+            for p in state['confirmed_pivots']:
+                self.confirmed_pivots.append(Pivot(
+                    time=p['time'],
+                    price=p['price'],
+                    bar_index=p['bar_index'],
+                    pivot_type=p['pivot_type']
+                ))

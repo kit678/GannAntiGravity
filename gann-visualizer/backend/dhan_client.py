@@ -267,18 +267,48 @@ class DhanClient:
             
             try:
                 response = requests.post(url, headers=self.headers, json=payload)
-                print(f"API Response Status: {response.status_code}")
-                
-                if response.status_code != 200:
-                    print(f"API Error Response: {response.text}")
                 
                 # Cap anchor at current time if needed
                 anchor_time = anchor if anchor <= now else now
                 
                 # Use is_flat=True for V2 Endpoint
                 df_chunk = self._process_response(response, is_flat=True, anchor_datetime=anchor_time, interval_str=interval)
+                
                 if not df_chunk.empty:
                     all_dfs.append(df_chunk)
+                else:
+                    # FALLBACK: Try Historical API if Intraday returns nothing (often happens for older dates)
+                    # Historical API typically covers EOD but might support Intraday intervals with correct payload
+                    print(f"Intraday chunk empty for {chunk_from_str}. Trying Historical endpoint fallback...")
+                    hist_url = "https://api.dhan.co/v2/charts/historical"
+                    
+                    # Ensure format is YYYY-MM-DD for historical? Or keep full string?
+                    # Generally historical takes YYYY-MM-DD. Let's try slicing.
+                    hist_from = chunk_from_str.split(' ')[0]
+                    hist_to = chunk_to_str.split(' ')[0]
+                    
+                    hist_payload = {
+                        "exchangeSegment": segment,
+                        "instrument": instrument,
+                        "securityId": security_id,
+                        "expiryCode": 0,
+                        "interval": interval,  # Try passing interval
+                        "fromDate": hist_from,
+                        "toDate": hist_to
+                    }
+                    
+                    try:
+                        resp_hist = requests.post(hist_url, headers=self.headers, json=hist_payload)
+                        df_hist = self._process_response(resp_hist, is_flat=True, anchor_datetime=anchor_time, interval_str=interval)
+                        
+                        if not df_hist.empty:
+                            print(f"Historical Fallback SUCCESS: Retrieved {len(df_hist)} bars")
+                            all_dfs.append(df_hist)
+                        else:
+                            print("Historical Fallback returned no data.")
+                    except Exception as e_hist:
+                        print(f"Historical Fallback failed: {e_hist}")
+
             except Exception as e:
                 print(f"Chunk fetch failed: {e}")
 

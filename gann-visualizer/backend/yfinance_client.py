@@ -72,6 +72,8 @@ class YFinanceClient:
         "1M": "1mo",
     }
     
+    MAX_HOURLY_DAYS = 700  # Safe buffer below 730
+    
     # Maximum historical period for each interval
     INTERVAL_LIMITS = {
         "1m": 7,      # 7 days
@@ -79,13 +81,14 @@ class YFinanceClient:
         "5m": 60,
         "15m": 60,
         "30m": 60,
-        "60m": 730,   # ~2 years (Yahoo allows more for hourly)
-        "1h": 730,
+        "60m": MAX_HOURLY_DAYS,
+        "60": MAX_HOURLY_DAYS, # Ensure string "60" is mapped
+        "1h": MAX_HOURLY_DAYS,
         "1d": 10000,  # Effectively unlimited
         "1wk": 10000,
         "1mo": 10000,
     }
-    
+
     def __init__(self):
         """Initialize Yahoo Finance client."""
         print("[YFinance] Client initialized")
@@ -246,21 +249,39 @@ class YFinanceClient:
         limit_from_now = 36500 # Default huge
         if interval == "1": limit_from_now = 7
         elif interval in ["2", "5", "15", "30"]: limit_from_now = 60
-        elif interval in ["60", "90", "1H"]: limit_from_now = 730
+        elif interval in ["60", "90", "1H"]: limit_from_now = 700
         
         if age_days > limit_from_now:
-            # Instead of erroring or risking an empty return from YF, we clamp the start date
-            # to the maximum allowed history limit.
-            # FIX: Only go back 'limit_from_now' days from NOW.
-            
-            earliest_allowed_date = now - timedelta(days=limit_from_now - 1)
-            
-            # If our requested start date is older than the earliest allowed date,
-            # we must move our start date forward to the earliest allowed date.
-            if start_dt < earliest_allowed_date:
-                print(f"[YFinance] Requested data ({interval}m) starts {age_days} days ago (Limit: {limit_from_now}d).")
-                print(f"[YFinance] Auto-adjusting start date from {start_dt.strftime('%Y-%m-%d')} to {earliest_allowed_date.strftime('%Y-%m-%d')}")
-                start_dt = earliest_allowed_date
+            # FIX for "System thinks 1m but User wants History" bug:
+            # If interval is '1' (1 minute) but request is for historical data (> 7 days old),
+            # YF would clamp it to 7 days. 
+            # If the user actually wanted history, they probably meant Hourly or Daily, 
+            # or the frontend sent the wrong resolution ('1' default).
+            if interval == "1" and age_days > 7:
+                print(f"[YFinance] Auto-promoting '1m' resolution to '1h' to fetch historical data ({age_days} days ago).")
+                print(f"[YFinance] Original request was 1m, which is limited to 7 days.")
+                interval = "60"
+                yf_interval = "1h"
+                # Re-check limit for new interval
+                limit_from_now = 700
+                
+                # If still too old for hourly, clamp or warn
+                if age_days > limit_from_now:
+                    print(f"[YFinance] Still too old for 1h (Limit 700 days). Clamping.")
+                    earliest_allowed_date = now - timedelta(days=limit_from_now - 1)
+                    start_dt = earliest_allowed_date
+            else:
+                # Normal clamping logic
+                # Instead of erroring or risking an empty return from YF, we clamp the start date
+                # to the maximum allowed history limit.
+                earliest_allowed_date = now - timedelta(days=limit_from_now - 1)
+                
+                # If our requested start date is older than the earliest allowed date,
+                # we must move our start date forward to the earliest allowed date.
+                if start_dt < earliest_allowed_date:
+                    print(f"[YFinance] Requested data ({interval}m) starts {age_days} days ago (Limit: {limit_from_now}d).")
+                    print(f"[YFinance] Auto-adjusting start date from {start_dt.strftime('%Y-%m-%d')} to {earliest_allowed_date.strftime('%Y-%m-%d')}")
+                    start_dt = earliest_allowed_date
 
 
         

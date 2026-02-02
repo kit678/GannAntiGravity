@@ -1,0 +1,30 @@
+[PivotSelector] INCLUDED: High at 26097.849609375 > last 26040.900390625
+[PivotSelector] Final inner_highs count: 2
+[PivotSelector] Bearish - Candidate highs above current price 25583.599609375:
+[PivotSelector] INCLUDED: High at 26040.900390625 > last 25583.599609375
+[PivotSelector] INCLUDED: High at 26097.849609375 > last 26040.900390625
+[PivotSelector] Final inner_highs count: 2
+[PivotSelector] Bearish - Candidate highs above current price 25552.94921875:
+[PivotSelector] INCLUDED: High at 26040.900390625 > last 25552.94921875
+[PivotSelector] INCLUDED: High at 26097.849609375 > last 26040.900390625
+[PivotSelector] Final inner_highs count: 2
+[PivotSelector] Bearish - Candidate highs above current price 25500.599609375:
+[PivotSelector] INCLUDED: High at 26040.900390625 > last 25500.599609375
+[PivotSelector] INCLUDED: High at 26097.849609375 > last 26040.900390625
+[PivotSelector] Final inner_highs count: 2
+[PivotSelector] Bearish - Candidate highs above current price 25519.94921875:
+[PivotSelector] INCLUDED: High at 26040.900390625 > last 25519.94921875
+[PivotSelector] INCLUDED: High at 26097.849609375 > last 26040.900390625
+[PivotSelector] Final inner_highs count: 2
+[PivotSelector] Bearish - Candidate highs above current price 25343.25:
+[PivotSelector] INCLUDED: High at 26040.900390625 > last 25343.25
+[PivotSelector] INCLUDED: High at 26097.849609375 > last 26040.900390625
+[PivotSelector] Final inner_highs count: 2
+[PivotSelector] Bearish - Candidate highs above current price 25409.94921875:
+[PivotSelector] INCLUDED: High at 26040.900390625 > last 25409.94921875
+[PivotSelector] INCLUDED: High at 26097.849609375 > last 26040.900390625
+[PivotSelector] Final inner_highs count: 2
+[PivotSelector] Bearish - Candidate highs above current price 25454.19921875:
+[PivotSelector] INCLUDED: High at 26040.900390625 > last 25454.19921875
+[PivotSelector] INCLUDED: High at 26097.849609375 > last 26040.900390625
+[PivotSelector] Final inner_highs count: 2

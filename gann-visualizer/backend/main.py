@@ -12,13 +12,65 @@ from backtest_engine import BacktestEngine  # New backtesting engine
 import time
 from datetime import datetime, timedelta
 import pytz
+import logging
+import sys
+import os
+
+# --- LOGGING CONFIGURATION ---
+timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+LOG_FILE = f"backend_session_{timestamp}.log"
+
+# Create root logger
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
+
+# Formatter
+formatter = logging.Formatter("%(asctime)s [%(levelname)s] %(message)s")
+
+# File Handler (overwrite each restart)
+file_handler = logging.FileHandler(LOG_FILE, mode='w')
+file_handler.setFormatter(formatter)
+logger.addHandler(file_handler)
+
+# Stream Handler (maintain console output)
+# We use the original stdout to avoid recursion when redirecting sys.stdout
+console_handler = logging.StreamHandler(sys.__stdout__)
+console_handler.setFormatter(formatter)
+logger.addHandler(console_handler)
+
+# Redirect print statements to logger
+class StreamToLogger(object):
+    def __init__(self, logger, level=logging.INFO):
+        self.logger = logger
+        self.level = level
+        self.linebuf = ''
+
+    def write(self, buf):
+        for line in buf.rstrip().splitlines():
+            self.logger.log(self.level, line.rstrip())
+
+    def flush(self):
+        pass
+
+    def isatty(self):
+        return False
+
+# Redirect stdout and stderr
+sys.stdout = StreamToLogger(logger, logging.INFO)
+sys.stderr = StreamToLogger(logger, logging.ERROR)
+
+print(f"Logging initialized. Output writing to {os.path.abspath(LOG_FILE)}")
+# -----------------------------
 
 app = FastAPI()
 print("--- BACKEND RESTART v4 - PNL TRACKING ---")
 
 # Position tracking for progressive replay PnL calculation
 # Key: strategy name, Value: { position_type, entry_price, entry_time, entry_label, option_price }
+# Position tracking for progressive replay PnL calculation
+# Key: strategy name, Value: { position_type, entry_price, entry_time, entry_label, option_price }
 _replay_positions = {}
+_study_cache = {'index': -1, 'strategy': None, 'state': None}
 
 # Enable CORS for React Frontend
 # Manual CORS Middleware to guarantee headers
@@ -739,10 +791,8 @@ async def _process_study_bar(req: EvaluateStrategyRequest):
     Process study tools with adaptive fan drawing.
     
     Logic:
-    1. Process all bars to build complete pivot history
-    2. Collect all pivot pairs (fans)
-    3. Find the most recent UNCOVERED fan
-    4. Draw only that fan's angles
+    1. Fast Path (Sequential): Process current bar, return delta (adds/removes).
+    2. Slow Path (Reset/Jump): Replay history to build state, then return snapshot of ACTIVE fans only.
     """
     try:
         from study_tool.angular_coverage_study import AngularPriceCoverageStudy
@@ -773,56 +823,134 @@ async def _process_study_bar(req: EvaluateStrategyRequest):
                 'volume': float(c.get('volume', 0))
             })
         
-        # Process ALL bars to build complete pivot history
-        all_pivots = []
-        all_fan_events = []  # List of fan dicts with lines
+        # OPTIMIZATION: Use cached state if available for sequential replay
+        global _study_cache
         
-        for bar_idx in range(req.current_index + 1):
+        # Initialize cache if needed
+        if '_study_cache' not in globals():
+            _study_cache = {'index': -1, 'strategy': None, 'state': None}
+            
+        is_sequential = (
+            _study_cache['strategy'] == req.strategy and 
+            _study_cache['index'] == req.current_index - 1
+        )
+        
+        output_drawings = []
+        output_pivots = []
+        output_remove = []
+        
+        if is_sequential and _study_cache['state']:
+            # FAST PATH: Restore state and process single bar
+            # print(f"[Study] Fast path: Resuming from index {req.current_index}")
+            study.restore_state(_study_cache['state'])
+            
+            # Process strictly the current bar
             result = study.process_bar(
                 candles=candles,
-                bar_index=bar_idx,
-                state=None
+                bar_index=req.current_index,
+                state=None # Already restored
             )
             
-            # Collect pivots for markers
-            if result.get('pivot_markers'):
-                all_pivots.extend(result['pivot_markers'])
-            
-            # Check if new drawings were created (indicates new fan)
-            if result.get('drawings'):
-                # New fan was created - store it
-                fan_event = {
-                    'bar_idx': bar_idx,
-                    'drawings': result['drawings']
-                }
-                all_fan_events.append(fan_event)
-        
-        # Now find the most recent UNCOVERED fan
-        drawings_to_show = []
-        current_bar = candles[req.current_index] if req.current_index < len(candles) else None
-        
-        if current_bar and all_fan_events:
-            current_close = float(current_bar['close'])
-            current_time = int(current_bar['time'])
-            
-            # Check fans from most recent to oldest
-            for fan_event in reversed(all_fan_events):
-                fan_drawings = fan_event.get('drawings', [])
-                is_covered = _check_fan_covered_by_drawings(fan_drawings, current_close, current_time)
+            # Pass through the Delta updates
+            output_drawings = result.get('drawings', [])
+            output_pivots = result.get('pivot_markers', [])
+            output_remove = result.get('remove_drawings', [])
                 
-                if not is_covered:
-                    # This fan is still active - draw it
-                    drawings_to_show = fan_drawings
-                    print(f"[Study] Drawing active fan from bar {fan_event['bar_idx']} at index {req.current_index}")
-                    break  # Only draw ONE fan (the most recent uncovered)
-        
-        print(f"[Study] Index {req.current_index}: {len(all_pivots)} pivots, {len(all_fan_events)} fans, {len(drawings_to_show)} drawings")
+            # Update cache
+            _study_cache['index'] = req.current_index
+            _study_cache['state'] = result['state']
+            
+        else:
+            # SLOW PATH: Full rebuild (first run or reset)
+            print(f"[Study] Slow path: Rebuilding from 0 to {req.current_index}")
+            _study_cache = {'index': -1, 'strategy': req.strategy, 'state': None}
+            
+            # Run history to build state (ignore outputs)
+            for bar_idx in range(req.current_index + 1):
+                study.process_bar(
+                    candles=candles,
+                    bar_index=bar_idx,
+                    state=None
+                )
+            
+            # Generate SNAPSHOT of currently active fans
+            # This ensures we don't send ghost markers from destroyed fans
+            active_fans = study.angle_engine.active_fans
+            
+            print(f"[Study] Index {req.current_index}: Snapshot of {len(active_fans)} active fans")
+            
+            for fid, fan in active_fans.items():
+                print(f"[Study] Fan {fid}: {len(fan.lines)} lines")
+                # Add Drawings
+                output_drawings.extend(study.angle_engine.fan_to_drawing_commands(fan))
+                
+                # Add Markers (Regenerate with consistent IDs)
+                # The new hierarchical structure stores marker info differently
+                marked_times = set()  # Track to avoid duplicates
+                
+                # Method 1: Use stored hierarchy info (new v2.0 format)
+                hierarchy_info = fan.config.get('hierarchy')
+                if hierarchy_info:
+                    # Mark Origin
+                    if hierarchy_info.get('origin'):
+                        p = hierarchy_info['origin']
+                        if p['time'] not in marked_times:
+                            pid = f"pm_{p['time']}_{p['type']}"
+                            output_pivots.append({
+                                'id': pid,
+                                'type': f"pivot_{p['type']}",
+                                'time': p['time'],
+                                'price': p['price'],
+                                'bar_index': p.get('bar_index', 0)
+                            })
+                            marked_times.add(p['time'])
+                    
+                    # Mark Outer Container pivots
+                    if hierarchy_info.get('outer'):
+                        for key in ['from', 'to']:
+                            p = hierarchy_info['outer'].get(key)
+                            if p and p['time'] not in marked_times:
+                                pid = f"pm_{p['time']}_{p['type']}"
+                                output_pivots.append({
+                                    'id': pid,
+                                    'type': f"pivot_{p['type']}",
+                                    'time': p['time'],
+                                    'price': p['price'],
+                                    'bar_index': p.get('bar_index', 0)
+                                })
+                                marked_times.add(p['time'])
+                
+                # Method 2: Fallback to legacy format (from/to pivots + extra_pivots)
+                else:
+                    pivots_to_regen = [fan.from_pivot, fan.to_pivot]
+                    if 'extra_pivots' in fan.config:
+                        pivots_to_regen.extend(fan.config['extra_pivots'])
+
+                    for p in pivots_to_regen:
+                        if p['time'] not in marked_times:
+                            pid = f"pm_{p['time']}_{p['type']}"
+                            output_pivots.append({
+                                'id': pid,
+                                'type': f"pivot_{p['type']}",
+                                'time': p['time'],
+                                'price': p['price'],
+                                'bar_index': p.get('bar_index', 0)
+                            })
+                            marked_times.add(p['time'])
+            
+            # Update cache after full run
+            _study_cache['index'] = req.current_index
+            _study_cache['state'] = study._get_state()
+            
+            # In reset scenario, we don't need to specify removals as the frontend usually clears shapes
+            output_remove = []
+
         
         return {
             "type": "drawing_update",
-            "drawings": drawings_to_show,
-            "pivot_markers": all_pivots,
-            "remove_drawings": [],
+            "drawings": output_drawings,
+            "pivot_markers": output_pivots,
+            "remove_drawings": output_remove,
             "state": {}
         }
         
@@ -833,54 +961,7 @@ async def _process_study_bar(req: EvaluateStrategyRequest):
         return {"type": "none", "drawings": [], "pivot_markers": []}
 
 
-def _check_fan_covered_by_drawings(drawings: list, current_close: float, current_time: int) -> bool:
-    """
-    Check if a fan is "covered" by price based on its drawing lines.
-    
-    A fan is covered when the current price has crossed ALL angle lines.
-    For uptrend fans: price must be above all lines
-    For downtrend fans: price must be below all lines
-    """
-    if not drawings:
-        return True  # No drawings = considered covered
-    
-    # Determine trend direction from first and last point
-    first_drawing = drawings[0]  # Main line typically
-    if not first_drawing.get('points') or len(first_drawing['points']) < 2:
-        return True
-    
-    start_price = first_drawing['points'][0]['price']
-    end_price = first_drawing['points'][1]['price']
-    is_uptrend = end_price > start_price
-    
-    for drawing in drawings:
-        points = drawing.get('points', [])
-        if len(points) < 2:
-            continue
-        
-        start_time = points[0]['time']
-        end_time = points[1]['time']
-        line_start_price = points[0]['price']
-        line_end_price = points[1]['price']
-        
-        if current_time < start_time:
-            continue  # Line hasn't started yet
-        
-        if current_time > end_time:
-            line_price_at_current = line_end_price
-        else:
-            time_ratio = (current_time - start_time) / max(1, end_time - start_time)
-            line_price_at_current = line_start_price + time_ratio * (line_end_price - line_start_price)
-        
-        # Check if price has crossed this line
-        if is_uptrend:
-            if current_close < line_price_at_current:
-                return False  # Price is still below this line
-        else:
-            if current_close > line_price_at_current:
-                return False  # Price is still above this line
-    
-    return True  # All lines crossed
+
 
 
 

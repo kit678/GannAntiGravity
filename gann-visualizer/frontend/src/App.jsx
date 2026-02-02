@@ -11,9 +11,9 @@ function App() {
     threeDaysAgo.setDate(today.getDate() - 3);
     const formatDate = (date) => date.toISOString().split('T')[0];
     const defaultEndDate = formatDate(today);
-    const defaultStartDate = formatDate(threeDaysAgo);
-    const [instrumentType, setInstrumentType] = useState('options') // 'spot' or 'options'
-    const [dataSource, setDataSource] = useState('dhan') // 'dhan' or 'yfinance'
+    const defaultStartDate = '2025-11-07'; // User requested default
+    const [instrumentType, setInstrumentType] = useState('spot') // User requested default
+    const [dataSource, setDataSource] = useState('yfinance') // User requested default
 
     // Pivot settings for Angular Coverage study
     const [pivotLeftBars, setPivotLeftBars] = useState(5)
@@ -23,7 +23,7 @@ function App() {
     // This prevents the "flicker" loop when syncing chart state
     const activeSymbolRef = useRef('^NSEI')
     // This state controls the *initial* symbol passed to the chart when mounting or switching sources
-    const [chartMountSymbol, setChartMountSymbol] = useState('NIFTY 50')
+    const [chartMountSymbol, setChartMountSymbol] = useState('^NSEI')
 
     const [isReplayMode, setIsReplayMode] = useState(false)
     const [tradeLog, setTradeLog] = useState([])

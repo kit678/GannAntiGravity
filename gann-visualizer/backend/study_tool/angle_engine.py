@@ -8,7 +8,7 @@ Based on reference implementation from PivotFanBus.js
 """
 
 from typing import Dict, List, Any, Optional
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import uuid
 
 
@@ -44,6 +44,7 @@ class AngleFan:
     to_pivot: Dict          # Destination pivot {time, price, type}
     lines: List[AngleLine]  # All lines in this fan
     is_completed: bool      # True if price has covered all angles
+    config: Dict[str, Any] = field(default_factory=dict)  # Metadata
 
 
 class AngleEngine:
@@ -167,20 +168,24 @@ class AngleEngine:
         theta_radians = math.atan(visual_slope)
         theta_deg = math.degrees(theta_radians)
         
-        print(f"[AngleDebug] Fan {fan_id}: Origin={origin_price}@{origin_bar}, Target={target_price}@{target_bar}")
-        print(f"[AngleDebug] dPrice={dp_from_origin}, dBars={db} -> Slope/Bar={slope_per_bar:.4f}")
-        print(f"[AngleDebug] ScaleRatio={scale_ratio} -> VisualSlope={visual_slope:.4f} -> Angle={theta_deg:.2f}°")
+        # DEBUG: Log scale ratio and angle calculation
+        print(f"[AngleEngine] scale_ratio={scale_ratio}, slope_per_bar={slope_per_bar:.4f}, visual_slope={visual_slope:.4f}, theta={theta_deg:.2f}°")
         
-        # Create main angle line - Gray dotted
-        
+        # Helper to ensure finite float values for JSON
+        def _safe_float(val, default=0.0):
+            if not math.isfinite(val):
+                return default
+            # Clip extreme values to prevent overflow in frontend
+            return max(-1e9, min(1e9, val))
+
         # Create main angle line - Gray dotted
         # Drawn from origin (first pivot) to target (second pivot)
         main_line = AngleLine(
             id=f"{fan_id}_main",
             start_time=origin_time,
-            start_price=origin_price,
+            start_price=_safe_float(origin_price),
             end_time=t1 if t0 <= t1 else t0,  # target time
-            end_price=target_price,
+            end_price=_safe_float(target_price),
             color='#808080',  # Gray for full angle
             width=2,
             fraction=None,
@@ -214,9 +219,9 @@ class AngleEngine:
             frac_line = AngleLine(
                 id=f"{fan_id}_f{i}",
                 start_time=origin_time,
-                start_price=origin_price,
+                start_price=_safe_float(origin_price),
                 end_time=target_time,
-                end_price=frac_end_price,
+                end_price=_safe_float(frac_end_price),
                 color=color,
                 width=2,
                 fraction=fraction,

@@ -344,29 +344,230 @@ If you observe strong reaction at target (doji, long wick, reversal pattern):
 
 ## Pivot Management
 
-### Identifying All Relevant Pivot Pairs
+### Terminology: Outer Container vs Inner Sequence
 
-When analyzing a chart, identify **multiple pivot pairs**:
+Understanding the distinction between **Outer** and **Inner** pivots is critical:
 
-1. **INNER pair** = Most recent pivots closest to current price (primary trading focus)
-2. **OUTER pair(s)** = Larger structure pivots (context and confluence)
+| Term | Definition |
+|------|------------|
+| **Outer Container** | The pair of pivots representing the **largest relevant swing** that bounds the current price action. This defines the "full theta" (θ) against which all angular coverage is measured. |
+| **Inner Sequence** | A series of intermediate pivot pairs formed **within** the Outer Container's range. These create smaller nested fans that track the progression of price toward the Outer boundary. |
 
-**Each pair is categorized as Scenario 1 or Scenario 2** based on which pivot formed first:
+**Key Insight:** The Outer Container is **persistent** — it remains the reference frame until its boundary is breached. Inner pivots are **dynamic** — they evolve as price progresses and new pivots form.
 
-| Pair Type | First Pivot | Second Pivot | Scenario | Angles Radiate |
-|-----------|-------------|--------------|----------|----------------|
-| Inner | Low (B) | High (A) | Scenario 2 | UP from B |
-| Outer | Low (E) | High (A) | Scenario 2 | UP from E |
-| Outer | High (I) | Low (E) | Scenario 1 | DOWN from I |
+---
 
-### All Pairs Remain Relevant
+### Bearish Retracement Scenario (Price Falling After a Major High)
 
-**Outer pairs are NOT just for confluence** - they actively inform decision-making:
+This scenario applies when price has made a significant **High** and is now retracing downward.
 
-- **Whether to take a trade** (Does outer context support the direction?)
-- **How long to wait** (Is price near a key outer level?)
-- **When to observe first** (Wait for reaction at outer level before acting on inner)
-- **Trade sizing** (More confidence when inner and outer align)
+#### Step 1: Identify the Outer Container
+
+```
+                    B ● ← OUTER HIGH: Highest High since A
+                   /|
+                  / |
+                 /  |
+                /   |     Price is falling from B toward A
+               /    |
+              /     |
+             /      |
+            /       |
+   ────────●────────┴─────────────────── Horizontal (H) through A
+          A
+    OUTER LOW: Nearest historical Low BELOW current price
+```
+
+1. **Outer Low (A):** Find the nearest historical **Low** that is **below** the current price.
+2. **Outer High (B):** Find the **Highest High** that occurred **between A and Now** (NOT the nearest high — the HIGHEST).
+3. **Outer Angle (θ):** The angle formed by pivot B, pivot A, and the horizontal through A (denoted as ∠BAH).
+
+**This Outer Container remains the constant reference frame** as long as price stays above A.
+
+#### Step 2: Track the Inner Sequence
+
+As price falls from B, **new pivot Lows** form (E, F, G, etc.). Each new Low creates an **Inner Fan** with the most recent relevant High:
+
+```
+        B ●
+         /|\
+        / | \
+       /  |  \     C ●  ← Inner High (lower than B)
+      /   |   \    /|
+     /    |    \  / |
+    /     |     \/  |    D ● ← Another Inner High
+   /      |     /\  |    /|
+  /       |    /  \ |   / |
+ /        |   /    \|  /  |
+●─────────┼──●──────●─●───●─── Time
+A         E         F   (Current Low)
+
+Inner Fans (nested within Outer):
+  - Fan 1: D → F (most recent)
+  - Fan 2: C → F (next level up)
+  - Fan 3: B → F (connects to Outer High)
+```
+
+#### Step 3: Sequential Promotion of Inner Pivots
+
+As price continues falling and breaches horizontal levels:
+
+| Event | Action |
+|-------|--------|
+| Price breaches horizontal through D | Look retrospectively for the next Inner High **above D** (which is C). Draw fan from C → current Low. |
+| Price breaches horizontal through C | Look retrospectively for the next Inner High **above C** (which is B). Draw fan from B → current Low. |
+| Price breaches horizontal through A (Outer Low) | **Recursive Extension:** Search for a new Outer Low below A. B remains the Outer High until a higher High forms. |
+
+##### ⚠️ Ascending Staircase Requirement (CRITICAL)
+
+**Inner Highs must form an ASCENDING sequence toward the Outer High.** This means:
+
+1. **Only consider Highs that are HIGHER than previously identified Inner Highs**
+2. **Ignore any intermediate High that is LOWER than a previously identified High in the sequence**
+3. **The sequence must "climb" from the Inner Anchor (recent Low) UP to the Outer High**
+
+**Example - Correct Selection:**
+```
+Price Levels:
+  B (Outer High) = 24600  ← HIGHEST
+  X (Intermediate) = 24400  ← SKIPPED (lower than C)
+  C (Next High) = 24500  ← INCLUDED (ascending from D)
+  D (First High) = 24200  ← INCLUDED (first above current price)
+  Current Price = 24100
+  
+Valid Inner Sequence: D → C → B (ascending)
+Invalid: D → X → C (X is lower than C, breaks ascending order)
+```
+
+**Rationale:** When price rises from a Low and reaches the horizontal at D, it means D's "angular coverage" is complete. The next relevant resistance is the NEXT HIGHER High (C), not a lower intermediate High (X). Since X is lower than C, it was already "covered" when price passed through it to reach C's level.
+
+#### Step 4: Recursive Extension of Outer Container
+
+When the **Outer Low (A) is breached**:
+
+1. The system searches retrospectively for the **next historical Low below A** — call it A'.
+2. A' becomes the new Outer Low.
+3. B remains the Outer High (unless price has since made a higher high).
+4. The new Outer Angle is ∠BA'H (horizontal through A').
+5. The Inner Sequence continues to be tracked within this extended container.
+
+---
+
+### Bullish Retracement Scenario (Price Rising After a Major Low)
+
+This is the **mirror image** of the bearish scenario, applying when price has made a significant **Low** and is now retracing upward.
+
+#### Step 1: Identify the Outer Container
+
+```
+    OUTER HIGH: Nearest historical High ABOVE current price
+   ────────●────────┬─────────────────── Horizontal (H) through A
+          A         |
+            \       |
+             \      |
+              \     |     Price is rising from B toward A
+               \    |
+                \   |
+                 \  |
+                  \ |
+                   \|
+                    ● B ← OUTER LOW: Lowest Low since A
+```
+
+1. **Outer High (A):** Find the nearest historical **High** that is **above** the current price.
+2. **Outer Low (B):** Find the **Lowest Low** that occurred **between A and Now** (NOT the nearest low — the LOWEST).
+3. **Outer Angle (θ):** The angle formed by pivot B, pivot A, and the horizontal through A (denoted as ∠BAH).
+
+**This Outer Container remains the constant reference frame** as long as price stays below A.
+
+#### Step 2: Track the Inner Sequence
+
+As price rises from B, **new pivot Highs** form (E, F, G, etc.). Each new High creates an **Inner Fan** with the most recent relevant Low:
+
+```
+●─────────┼──●──────●─●───●─── Time
+B         E         F   (Current High)
+ \        |   \    /|  \  |
+  \       |    \  / |   \ |
+   \      |     \/  |    \|
+    \     |     /\  |    D ● ← Inner Low (higher than B)
+     \    |    /  \ |    \|
+      \   |   /    \|     |
+       \  |  /     C ●  ← Another Inner Low
+        \ | /       |
+         \|/        |
+          ●         |
+          B ← OUTER LOW
+```
+
+Inner Fans (nested within Outer):
+  - Fan 1: D → F (most recent)
+  - Fan 2: C → F (next level down)
+  - Fan 3: B → F (connects to Outer Low)
+
+#### Step 3: Sequential Promotion of Inner Pivots
+
+As price continues rising and breaches horizontal levels:
+
+| Event | Action |
+|-------|--------|
+| Price breaches horizontal through D | Look retrospectively for the next Inner Low **below D** (which is C). Draw fan from C → current High. |
+| Price breaches horizontal through C | Look retrospectively for the next Inner Low **below C** (which is B). Draw fan from B → current High. |
+| Price breaches horizontal through A (Outer High) | **Recursive Extension:** Search for a new Outer High above A. B remains the Outer Low until a lower Low forms. |
+
+##### ⚠️ Descending Staircase Requirement (CRITICAL)
+
+**Inner Lows must form a DESCENDING sequence toward the Outer Low.** This means:
+
+1. **Only consider Lows that are LOWER than previously identified Inner Lows**
+2. **Ignore any intermediate Low that is HIGHER than a previously identified Low in the sequence**
+3. **The sequence must "descend" from the Inner Anchor (recent High) DOWN to the Outer Low**
+
+**Example - Correct Selection:**
+```
+Price Levels:
+  Current Price = 24100
+  D (First Low) = 24000  ← INCLUDED (first below current price)
+  X (Intermediate) = 23800  ← SKIPPED (higher than C)
+  C (Next Low) = 23700  ← INCLUDED (descending from D)
+  B (Outer Low) = 23500  ← LOWEST
+  
+Valid Inner Sequence: D → C → B (descending)
+Invalid: D → X → C (X is higher than C, breaks descending order)
+```
+
+**Rationale:** When price falls from a High and reaches the horizontal at D, it means D's "angular support" is being tested. The next relevant support is the NEXT LOWER Low (C), not a higher intermediate Low (X). Since X is higher than C, it was already "tested" when price passed through it to reach C's level.
+
+#### Step 4: Recursive Extension of Outer Container
+
+When the **Outer High (A) is breached**:
+
+1. The system searches retrospectively for the **next historical High above A** — call it A'.
+2. A' becomes the new Outer High.
+3. B remains the Outer Low (unless price has since made a lower low).
+4. The new Outer Angle is ∠BA'H (horizontal through A').
+5. The Inner Sequence continues to be tracked within this extended container.
+
+---
+
+### Summary: The Hierarchical Pivot Framework
+
+| Concept | Bearish Scenario | Bullish Scenario |
+|---------|------------------|------------------|
+| **Outer Low** | Nearest Low BELOW current price | Lowest Low since Outer High |
+| **Outer High** | Highest High since Outer Low | Nearest High ABOVE current price |
+| **Inner Pivots** | Intermediate Highs (D, C) forming fans with new Lows | Intermediate Lows (D, C) forming fans with new Highs |
+| **Promotion Trigger** | Breach of Inner High's horizontal | Breach of Inner Low's horizontal |
+| **Extension Trigger** | Breach of Outer Low (A) | Breach of Outer High (A) |
+| **Angle Direction** | Fans radiate DOWN from Highs | Fans radiate UP from Lows |
+
+### Key Principles
+
+1. **Outer Container is Persistent:** It remains the reference frame until its boundary is breached.
+2. **Inner Sequence is Dynamic:** It evolves as price progresses and new pivots form.
+3. **Retrospective Identification:** When a horizontal is breached, look backwards to find the next relevant pivot.
+4. **Multiple Fans Coexist:** At any point, there may be an Outer fan and one or more Inner fans — all remain relevant.
+5. **Recursive Extension:** When an Outer boundary is breached, the container expands to the next historical extreme.
 
 ### Confluence Zones
 
@@ -386,19 +587,6 @@ Example: Inner 1/2θ aligns with Outer horizontal target → Strong level
 | Inner + outer angles converge | High probability trade zone |
 | Inner signals long but outer suggests resistance | Caution / reduced size |
 
-### Pivot Pair Transition
-
-Only switch primary focus to the next outer pivot pair when:
-- Price has **fully "covered"** the inner angle
-- (i.e., returned to the second pivot's price level)
-
-### Breach Handling
-
-| Event | Action |
-|-------|--------|
-| Second pivot is breached | Calculate new angles with new pivot |
-| Inner pair fully covered | Outer pair becomes new inner |
-
 
 
 ---
@@ -411,6 +599,23 @@ Only switch primary focus to the next outer pivot pair when:
 |-----------|---------|
 | **Higher TF** (1H, 4H, Daily) | Identify major pivots, primary trend, major targets |
 | **Current TF** (15min, 1H) | Monitor angle interactions, confirmation patterns |
+
+### 6. Fan Invalidation Rules
+**Concept:** Fans represent active market geometry. They become invalid when either their endpoint OR start point is breached.
+
+**Rule 1 - Endpoint Breach (Anchor Invalidation):**
+- **Bearish (High → Low):** If price drops **below** the Low (Anchor), the fan is invalidated.
+- **Bullish (Low → High):** If price rises **above** the High (Anchor), the fan is invalidated.
+
+**Rule 2 - Start Point Breach (Angle Traversal Complete):**
+- **Bearish (High → Low):** If price rises **above** the High (Start), the angle has been completely traversed and the fan is obsolete.
+- **Bullish (Low → High):** If price drops **below** the Low (Start), the angle has been completely traversed and the fan is obsolete.
+
+**Implication:**
+- No fan should be displayed if either its start or end pivot has been breached.
+- A new fan will only be drawn when a *new* valid pivot structure forms.
+
+## 7. Configuration Parameters
 | **Lower TF** (1min, 5min) | Fine-tune entry, tighter stops |
 
 ### Entry Protocol

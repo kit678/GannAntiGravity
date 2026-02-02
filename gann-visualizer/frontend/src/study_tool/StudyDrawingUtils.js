@@ -40,8 +40,9 @@ export function processStudyResponse(chart, data, shapeTracking = {}) {
     if (data.pivot_markers && data.pivot_markers.length > 0) {
         data.pivot_markers.forEach(pivot => {
             const shapeId = drawPivotMarker(chart, pivot);
-            if (shapeId && pivot.time) {
-                shapeTracking[`pivot_${pivot.type}_${pivot.time}`] = shapeId;
+            if (shapeId) {
+                const trackingKey = pivot.id || `pivot_${pivot.type}_${pivot.time}`;
+                shapeTracking[trackingKey] = shapeId;
             }
         });
     }
