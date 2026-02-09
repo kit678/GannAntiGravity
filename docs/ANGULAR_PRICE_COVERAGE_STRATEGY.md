@@ -853,11 +853,212 @@ LOW pivot → next LOWEST pivot (BELOW current price)
 
 ---
 
+## Implementation Protocol (v3.1)
+
+This section provides the definitive technical specification for implementing the strategy in code.
+
+### 1. Pivot Detection (PivotDetector)
+
+**Definition:** A pivot is a local extreme point in price action.
+
+**Pivot HIGH:**
+- The HIGH price at bar[i] is greater than the HIGH of all bars in the range [i - left_bars, i + right_bars]
+- Once the `right_bars` condition is satisfied, the pivot is **immediately confirmed**
+
+**Pivot LOW:**
+- The LOW price at bar[i] is less than the LOW of all bars in the range [i - left_bars, i + right_bars]
+- Once the `right_bars` condition is satisfied, the pivot is **immediately confirmed**
+
+**Key Rules:**
+1. A pivot is confirmed **solely** by the left/right bar rule - no alternation required
+2. All confirmed pivots are added to `confirmed_pivots` list immediately
+3. PivotDetector does NOT filter pivots - it detects ALL valid pivots
+4. The order of pivots in `confirmed_pivots` is chronological (by time)
+
+### 2. Context Determination
+
+**Definition:** Context is determined by the **most recent confirmed pivot**.
+
+| Last Confirmed Pivot | Context | Meaning |
+|---------------------|---------|---------|
+| HIGH | **BEARISH** | Price is falling FROM that high |
+| LOW | **BULLISH** | Price is rising FROM that low |
+
+**Key Insight:** The anchor (last confirmed pivot) defines where the current move STARTED, not where it's going.
+
+### 3. Anchor Definition
+
+**Anchor = The most recent confirmed pivot**
+
+- In BEARISH context: Anchor is a HIGH
+- In BULLISH context: Anchor is a LOW
+
+### 4. Stack Building (PivotSelector)
+
+Stack building is a **single backward traversal** from the anchor, stopping at the 3rd outer pivot (1 primary + 2 successive).
+
+#### BEARISH Context (Anchor = HIGH):
+
+**Inner Stack (Highs):**
+- Traverse backwards from anchor
+- Collect HIGHs that are **successively HIGHER** going back in time
+- These are the resistance levels that were breached on the way up
+
+**Outer Stack (Lows):**
+- Continue backwards from anchor
+- Collect LOWs that are **below the anchor price** and **successively LOWER** going back
+- These are the support/target levels below
+- **STOP** at the 3rd outer pivot (1 primary + 2 successive)
+
+#### BULLISH Context (Anchor = LOW):
+
+**Inner Stack (Lows):**
+- Traverse backwards from anchor
+- Collect LOWs that are **successively LOWER** going back in time
+- These are the support levels that were tested on the way down
+
+**Outer Stack (Highs):**
+- Continue backwards from anchor
+- Collect HIGHs that are **above the anchor price** and **successively HIGHER** going back
+- These are the resistance/target levels above
+- **STOP** at the 3rd outer pivot (1 primary + 2 successive)
+
+### 5. Successive Filtering (Stack Building)
+
+**This filtering happens ONLY in PivotSelector during backward traversal, NOT in PivotDetector.**
+
+**Example (Bearish - Inner Highs):**
+```
+Going backwards in time:
+  H1 = 100 → add to inner stack (first high)
+  H2 = 105 → add (higher than H1) ✓
+  H3 = 102 → SKIP (not higher than H2) ✗
+  H4 = 110 → add (higher than H2) ✓
+  
+Final Inner Stack: [H1, H2, H4] (ascending prices going back)
+```
+
+**Rationale:** We only keep pivots that form a "staircase" structure. Intermediate pivots that don't extend the staircase are skipped because they were already "covered" by higher/lower pivots.
+
+### 6. Stopping Condition
+
+Traversal stops when we have found **3 outer pivots** (1 primary + 2 successive).
+
+This naturally limits how far back we look - we don't scan the entire dataset.
+
+### 7. Summary Diagram (Bearish Context)
+
+```
+Time →
+                                                    
+O2 ●───────────────●───────────────●──────● Anchor (HIGH)
+(outer            I2              I1      I0   ↓
+ high)                                    │    │ Price falling
+        ●                   ●             │    │ from anchor
+       O1                  O0             │    ↓
+    (outer high)        (outer high)      │
+                                          ↓
+                    Inner Stack: I0 < I1 < I2 (lows, successively lower going back)
+                    Outer Stack: O0 > O1 (highs above anchor, successively higher going back)
+                    STOP at O2 (3rd outer pivot)
+```
+
+### 8. Fan Drawing (Step 3)
+
+**Definition:** A fan is drawn from each pivot in the Inner and Outer stacks TO the Anchor.
+
+#### Fan Structure:
+- **Origin Pivot:** A pivot from Inner or Outer stack
+- **Destination Pivot:** The Anchor (most recent confirmed pivot)
+- **Lines:** Main angle line + fractional angle lines (7/8, 3/4, 1/2, 1/4)
+
+#### Drawing Rules:
+
+**BEARISH Context (Anchor = HIGH):**
+```
+For each pivot in Inner Stack (Lows):
+  Draw fan FROM inner_low TO anchor_high
+  → Lines radiate UPWARD from the low toward the high
+  → These are SUPPORT angles
+
+For each pivot in Outer Stack (Highs above anchor):
+  Draw fan FROM outer_high TO anchor_high
+  → Lines radiate DOWNWARD from the outer high
+  → These represent the larger structure
+```
+
+**BULLISH Context (Anchor = LOW):**
+```
+For each pivot in Inner Stack (Highs):
+  Draw fan FROM inner_high TO anchor_low
+  → Lines radiate DOWNWARD from the high toward the low
+  → These are RESISTANCE angles
+
+For each pivot in Outer Stack (Lows below anchor):
+  Draw fan FROM outer_low TO anchor_low
+  → Lines radiate UPWARD from the outer low
+  → These represent the larger structure
+```
+
+#### Fan Identification:
+Each fan has a unique ID based on origin and destination pivots:
+```
+fan_id = f"{origin_pivot_time}_{anchor_pivot_time}"
+```
+
+### 9. Fan Invalidation (Step 4)
+
+**Definition:** Fans become invalid when their defining structure is breached.
+
+#### Invalidation Rules:
+
+**Rule 1 - Anchor Breach:**
+- **Bearish (Anchor = HIGH):** If price rises **ABOVE** the anchor high → ALL fans invalidated
+- **Bullish (Anchor = LOW):** If price falls **BELOW** the anchor low → ALL fans invalidated
+
+**Rationale:** The anchor defines the current structure. Breaching it means a new structure is forming.
+
+**Rule 2 - Origin Pivot Breach:**
+- **Inner Fan:** If price breaches the origin pivot's price level, that specific fan is invalidated
+- **Outer Fan:** Same rule applies
+
+**Bearish Example:**
+```
+Inner fan from Low L to High H:
+  If price falls BELOW L → fan L→H is invalidated
+  (The support represented by L has been broken)
+```
+
+**Bullish Example:**
+```
+Inner fan from High H to Low L:
+  If price rises ABOVE H → fan H→L is invalidated
+  (The resistance represented by H has been broken)
+```
+
+#### Hierarchy Change:
+When the anchor is breached:
+1. A NEW anchor forms (the pivot that caused the breach, or the next confirmed pivot)
+2. Context may FLIP (bearish → bullish or vice versa)
+3. Stacks are completely rebuilt from the new anchor
+4. ALL old fans are removed and new fans are drawn
+
+#### Fan Lifecycle Summary:
+```
+1. New pivot confirmed → Stacks rebuilt → New fans drawn
+2. Price moves → Check for invalidation at each bar
+3. Origin breached → Remove that specific fan
+4. Anchor breached → Context flip → Remove ALL fans → Rebuild
+```
+
+---
+
 ## Document History
 
 | Version | Date | Changes |
 |---------|------|---------|
 | 1.0 | 2026-01-04 | Initial documentation based on strategy walkthrough |
+| 1.1 | 2026-02-08 | Added Implementation Protocol v3.1 - clarified pivot detection, context, and stack building |
 
 ---
 
@@ -866,3 +1067,4 @@ LOW pivot → next LOWEST pivot (BELOW current price)
 > 2. Test confirmation rules
 > 3. Validate on multiple instruments and timeframes
 > 4. Refine entry/exit rules based on backtest results
+

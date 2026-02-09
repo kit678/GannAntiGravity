@@ -1,23 +1,21 @@
 """
-Angular Price Coverage Study (v2.0 - Hierarchical Framework)
+Angular Price Coverage Study (v3.0 - Stack Persistence)
 
-Main study orchestrator that combines pivot detection and angle drawing
-for the Angular Price Coverage analysis tool.
+Main study orchestrator that implements Master Protocol v3.0:
+1. Persistent Pivot Stacks (Inner/Outer)
+2. Immediate Fan rendering on load
+3. Configuration Gates (ShowRecursiveInnerFans, ShowRecursiveOuterFans)
 
-Key Features (v2.0):
-- Supports Outer Container + Inner Sequence visualization
-- Multiple simultaneous fans (Outer fan + Inner fans)
-- Sequential promotion as horizontals are breached
-- Proper cleanup when fans become irrelevant
-
-This study processes candles bar-by-bar during replay and outputs
-drawing commands for the frontend to render.
+This replaces the old Reactive/Scenario-based logic.
 """
 
 from typing import Dict, List, Any, Optional
+import os
+import logging
+from datetime import datetime
 from .pivot_detector import PivotDetector
 from .angle_engine import AngleEngine
-from .pivot_selector import PivotSelector, PivotHierarchy
+from .pivot_selector import PivotSelector, PivotStacks
 
 
 # Default configuration
@@ -31,35 +29,25 @@ DEFAULT_CONFIG = {
     'remove_completed_fans': True,
     'main_line_width': 1,
     'fraction_line_width': 2,
-    'scale_ratio': 1.0,  # Default scale ratio (price points per bar)
-    'max_inner_fans': 3,  # Maximum inner fans to display simultaneously
-    'show_outer_fan': True,  # Whether to show the outer container fan
-    'show_inner_fans': True,  # Whether to show inner sequence fans
-    'outer_fan_opacity': 0.5,  # Opacity for outer fan lines (for visual distinction)
-    'inner_fan_colors': ['#4CAF50', '#2196F3', '#9C27B0']  # Colors for inner fans
+    'scale_ratio': 1.0,
+    'show_recursive_inner_fans': True,  # Draw all inner fans in stack
+    'show_recursive_outer_fans': True,  # Draw all outer fans in stack
+    'max_inner_fans': 5,
+    'max_outer_fans': 3
 }
 
 
 class AngularPriceCoverageStudy:
     """
-    Angular Price Coverage Study (v2.0)
+    Angular Price Coverage Study (v3.0)
     
-    Detects pivot highs and lows, draws Gann angle fans for BOTH the Outer
-    Container and the Inner Sequence, providing a complete visualization
-    of market structure.
-    
-    Usage:
-        study = AngularPriceCoverageStudy(config)
-        result = study.process_bar(candles, bar_index, state)
-        # result contains drawings and updated state
+    Persistently maintains PivotStacks (Inner/Outer) and renders fans
+    immediately based on the active stack state.
     """
     
     def __init__(self, config: Optional[Dict[str, Any]] = None):
         """
         Initialize the study with configuration.
-        
-        Args:
-            config: Optional configuration dict (uses defaults if not provided)
         """
         self.config = {**DEFAULT_CONFIG, **(config or {})}
         
@@ -79,164 +67,80 @@ class AngularPriceCoverageStudy:
             scale_ratio=self.config['scale_ratio']
         )
         
-        # Track current hierarchy state
-        self.current_hierarchy: Optional[PivotHierarchy] = None
+        # Persistent State (v3.0)
+        self.stacks: Optional[PivotStacks] = None
         self.active_fan_ids: Dict[str, str] = {}  # Map: pair_id -> fan_id
-    
-    def _get_last_pivot(self):
-        """Get the most recent confirmed pivot."""
-        last_pivot = None
-        if self.pivot_detector.last_high_pivot and self.pivot_detector.last_low_pivot:
-            if self.pivot_detector.last_high_pivot.time > self.pivot_detector.last_low_pivot.time:
-                last_pivot = self.pivot_detector.last_high_pivot
-            else:
-                last_pivot = self.pivot_detector.last_low_pivot
-        elif self.pivot_detector.last_high_pivot:
-            last_pivot = self.pivot_detector.last_high_pivot
-        elif self.pivot_detector.last_low_pivot:
-            last_pivot = self.pivot_detector.last_low_pivot
-        return last_pivot
-    
-    def _generate_pair_id(self, pair: Dict[str, Any]) -> str:
-        """Generate a unique ID for a pivot pair."""
-        return f"{pair['from']['time']}_{pair['to']['time']}_{pair.get('type', 'unknown')}"
-    
-    def _clear_all_fans(self, result: Dict[str, Any]):
-        """Clear all active fans and their markers."""
-        for fid in list(self.angle_engine.active_fans.keys()):
-            fan = self.angle_engine.active_fans[fid]
-            # Remove Lines
-            for line in fan.lines:
-                result['remove_drawings'].append(line.id)
-            # Remove Linked Markers
-            if 'marker_ids' in fan.config:
-                for mid in fan.config['marker_ids']:
-                    result['remove_drawings'].append(mid)
-            self.angle_engine.remove_fan(fid)
+        self._initialized: bool = False  # Track whether initialize_history has been called
         
-        self.active_fan_ids = {}
+        # Setup File Logger
+        log_dir = os.path.join(os.getcwd(), 'logs', 'study_debug')
+        os.makedirs(log_dir, exist_ok=True)
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        log_file = os.path.join(log_dir, f'angular_study_{timestamp}.log')
+        
+        self.logger = logging.getLogger(f'AngularStudy_{timestamp}')
+        self.logger.setLevel(logging.DEBUG)
+        
+        # Avoid duplicate handlers if re-initialized
+        if not self.logger.handlers:
+            fh = logging.FileHandler(log_file)
+            fh.setFormatter(logging.Formatter('%(asctime)s - %(message)s'))
+            self.logger.addHandler(fh)
+        
+        self.log(f"Initialized AngularPriceCoverageStudy. Config: {self.config}")
+
+    def log(self, msg: str):
+        """Helper to log to file (console disabled to prevent flooding)."""
+        # print(msg)  # Disabled to prevent log flooding
+        if hasattr(self, 'logger'):
+            self.logger.info(msg)
     
-    def _create_fan_for_pair(
-        self,
-        pair: Dict[str, Any],
-        candles: List[Dict[str, Any]],
-        result: Dict[str, Any],
-        is_outer: bool = False
-    ) -> Optional[str]:
+    def initialize_history(self, candles: List[Dict[str, Any]]):
         """
-        Create a fan for a pivot pair and add to result.
+        STEP 2: Immediate Historical Initialization.
         
-        Args:
-            pair: The pivot pair dict
-            candles: Current candle data
-            result: Result dict to append drawings to
-            is_outer: Whether this is the Outer container fan
+        Scans ALL provided history to:
+        1. Detect confirmed pivots up to the last candle.
+        2. Build the initial PivotStacks (Active Context).
+        """
+        self.log(f"[Study] initialize_history called with {len(candles)} candles")
+        
+        # Optimization: We only need to run detection where it's possible
+        start_idx = self.config['left_bars'] + self.config['right_bars']
+        
+        if len(candles) <= start_idx:
+            self.log("[Study] Not enough candles for pivot detection")
+            return
+
+        # Explicitly reset detector before scanning history
+        self.pivot_detector.reset()
+        
+        count_pivots_found = 0
+        for i in range(start_idx, len(candles)):
+            res = self.pivot_detector.detect_pivots(candles, i)
+            if res.get('pivot_high') or res.get('pivot_low'):
+                count_pivots_found += 1
             
-        Returns:
-            The fan ID if created, None otherwise
-        """
-        pair_id = self._generate_pair_id(pair)
+        self.log(f"[Study] Historical detection complete. Found {len(self.pivot_detector.confirmed_pivots)} confirmed pivots.")
         
-        # Check if we already have this fan active
-        if pair_id in self.active_fan_ids:
-            return self.active_fan_ids[pair_id]
+        # Build Stacks based on FINAL history state
+        current_bar = candles[-1]
+        last_pivot = self._get_last_pivot()
         
-        # Create the fan
-        fan = self.angle_engine.create_fan(
-            from_pivot=pair['from'],
-            to_pivot=pair['to'],
-            current_candles=candles
-        )
-        
-        fan.config['pair_id'] = pair_id
-        fan.config['is_outer'] = is_outer
-        fan.config['pair_type'] = pair.get('type', 'unknown')
-        
-        # Add drawing commands
-        result['drawings'].extend(
-            self.angle_engine.fan_to_drawing_commands(fan)
-        )
-        
-        self.active_fan_ids[pair_id] = fan.id
-        
-        return fan.id
-    
-    def _add_pivot_markers(
-        self,
-        hierarchy: PivotHierarchy,
-        result: Dict[str, Any]
-    ) -> List[str]:
-        """
-        Add markers for all relevant pivots in the hierarchy.
-        
-        Returns:
-            List of marker IDs for cleanup tracking
-        """
-        marker_ids = []
-        marked_times = set()  # Avoid duplicate markers
-        
-        # Mark Origin pivot
-        if hierarchy.origin_pivot:
-            p = hierarchy.origin_pivot
-            if p['time'] not in marked_times:
-                pid = f"pm_{p['time']}_{p['type']}"
-                marker_ids.append(pid)
-                result['pivot_markers'].append({
-                    'id': pid,
-                    'type': f"pivot_{p['type']}",
-                    'time': p['time'],
-                    'price': p['price'],
-                    'bar_index': p.get('bar_index', 0)
-                })
-                marked_times.add(p['time'])
-        
-        # Mark Outer Container pivots
-        if hierarchy.outer_container:
-            for key in ['from', 'to']:
-                p = hierarchy.outer_container[key]
-                if p['time'] not in marked_times:
-                    pid = f"pm_{p['time']}_{p['type']}"
-                    marker_ids.append(pid)
-                    result['pivot_markers'].append({
-                        'id': pid,
-                        'type': f"pivot_{p['type']}",
-                        'time': p['time'],
-                        'price': p['price'],
-                        'bar_index': p.get('bar_index', 0)
-                    })
-                    marked_times.add(p['time'])
-        
-        # Mark Inner Anchor pivot (the opposite-type pivot used for inner fans)
-        if hierarchy.inner_anchor:
-            p = hierarchy.inner_anchor
-            if p['time'] not in marked_times:
-                pid = f"pm_{p['time']}_{p['type']}"
-                marker_ids.append(pid)
-                result['pivot_markers'].append({
-                    'id': pid,
-                    'type': f"pivot_{p['type']}",
-                    'time': p['time'],
-                    'price': p['price'],
-                    'bar_index': p.get('bar_index', 0)
-                })
-                marked_times.add(p['time'])
-        
-        # Mark Inner Sequence pivots (just the 'from' pivot of each)
-        for inner_pair in hierarchy.inner_sequence[:self.config['max_inner_fans']]:
-            p = inner_pair['from']
-            if p['time'] not in marked_times:
-                pid = f"pm_{p['time']}_{p['type']}"
-                marker_ids.append(pid)
-                result['pivot_markers'].append({
-                    'id': pid,
-                    'type': f"pivot_{p['type']}",
-                    'time': p['time'],
-                    'price': p['price'],
-                    'bar_index': p.get('bar_index', 0)
-                })
-                marked_times.add(p['time'])
-        
-        return marker_ids
+        if last_pivot:
+            self.log(f"[Study] Last Pivot: {last_pivot.pivot_type} at {last_pivot.time}")
+            self.stacks = PivotSelector.select_stacks(
+                current_price=float(current_bar['close']),
+                current_time=int(current_bar['time']),
+                confirmed_pivots=self.pivot_detector.confirmed_pivots,
+                last_pivot=last_pivot
+            )
+            if self.stacks:
+                self.log(f"[Study] Stacks initialized: Anchor={self.stacks.anchor['time']}, Inner={len(self.stacks.inner_stack)}, Outer={len(self.stacks.outer_stack)}")
+            else:
+                self.log("[Study] select_stacks returned None")
+        else:
+            self.log("[Study] No Last Pivot found after scanning history.")
     
     def process_bar(
         self,
@@ -246,24 +150,21 @@ class AngularPriceCoverageStudy:
     ) -> Dict[str, Any]:
         """
         Process a single bar and return drawing updates.
-        
-        Args:
-            candles: All candles up to and including current bar
-            bar_index: Index of current bar being processed
-            state: Previous state (for replay continuation)
-            
-        Returns:
-            Dict with:
-                - type: 'drawing_update'
-                - drawings: List of drawing commands
-                - pivot_markers: List of pivot marker commands
-                - remove_drawings: List of drawing IDs to remove
-                - state: Updated state for next bar
         """
-        # Restore state if provided
+        # Restore state if provided (for Replay consistency)
         if state:
             self._restore_state(state)
         
+        # Initialize history if this is the first call (and not yet initialized)
+        # This handles the "Chart Load" scenario in Replay where we start at bar_index X
+        if not self._initialized and len(candles) > self.config['left_bars'] + self.config['right_bars']:
+            # We treat the history *up to this bar* as the initialization set
+            # This ensures we don't look into the future during replay
+            self.log(f"[Study] First process_bar call at index {bar_index}. Running initialize_history.")
+            history_subset = candles[:bar_index+1]
+            self.initialize_history(history_subset)
+            self._initialized = True  # Mark as initialized
+
         result = {
             'type': 'drawing_update',
             'drawings': [],
@@ -272,251 +173,110 @@ class AngularPriceCoverageStudy:
             'state': {}
         }
         
-        # Detect pivots at this bar
-        pivot_result = self.pivot_detector.detect_pivots(candles, bar_index)
+        # 1. Detect Pivots at this new bar
+        # (This might add a new pivot to pivot_detector.confirmed_pivots)
+        detection_result = self.pivot_detector.detect_pivots(candles, bar_index)
         
-        # Get current bar info
+        # 2. Update Context/Stacks
+        # If a new pivot was confirmed, we MUST regenerate the Stacks
+        # Or if the price broke structure (Kill Switch - Step 4, currently skipped)
+        
+        # For Step 2, we just rebuild stacks every bar to be safe/simple
+        # Optimization can come later.
+        
         current_bar = candles[bar_index]
-        current_time = int(current_bar['time'])
-        current_close = float(current_bar['close'])
-        
-        # Get the most recent confirmed pivot
         last_pivot = self._get_last_pivot()
         
-        # Use PivotSelector to identify the complete hierarchy
-        # Primary Hierarchy: Based on the LAST pivot (Future facing)
-        hierarchy = PivotSelector.select_hierarchy(
-            current_price=current_close,
-            current_time=current_time,
-            confirmed_pivots=self.pivot_detector.confirmed_pivots,
-            last_pivot=last_pivot
-        )
-        
-        # Secondary Hierarchy: Based on PREVIOUS pivot (Past facing / Completed Leg)
-        # This ensures that when we form a new Low, we still see the Fan coming down from the High.
-        secondary_hierarchy = None
-        prev_pivot = None
+        # Re-evaluate stacks at every step (State Persistence via Re-selection)
+        # This ensures if a new pivot forms, the stack updates.
         if last_pivot:
-            # Find the pivot immediately preceding last_pivot
-            # Confirmed pivots are a list; identifying index
-            pivots = self.pivot_detector.confirmed_pivots
-            if len(pivots) >= 2:
-                # Assuming simple chronological order in list (usually append order)
-                # But let's be safe and verify timestamps
-                sorted_pivots = sorted(pivots, key=lambda p: p.time)
-                if sorted_pivots[-1].time == last_pivot.time:
-                    prev_pivot = sorted_pivots[-2]
-                
-        if prev_pivot:
-             secondary_hierarchy = PivotSelector.select_hierarchy(
-                current_price=current_close,
-                current_time=current_time,
+             new_stacks = PivotSelector.select_stacks(
+                current_price=float(current_bar['close']),
+                current_time=int(current_bar['time']),
                 confirmed_pivots=self.pivot_detector.confirmed_pivots,
-                last_pivot=prev_pivot
+                last_pivot=last_pivot
             )
+             
+             # Check if stacks changed significantly needed for redraw?
+             # For now, we'll just update self.stacks
+             # In Step 3 (Drawing), we will use this to draw fans.
+             self.stacks = new_stacks
 
-        # Merge hierarchies for display? 
-        # Check if hierarchy changed (primary or secondary)
-        # For simplicity, we clear fans if PRIMARY changes. 
-        # Ideally, we should track both independently.
+        # 3. Draw Fans (Placeholder for Step 3 - Currently NO OP to isolate Step 2)
+        # self._update_drawings(result, candles)
         
-        hierarchy_changed = self._check_hierarchy_changed(hierarchy)
+        # 4. Markers (Visualize the pivots for debugging Step 2)
+        if self.stacks:
+             self._add_stack_markers(result)
         
-        if hierarchy_changed:
-            self._clear_all_fans(result)
-        
-        hierarchies_to_process = []
-        if hierarchy: hierarchies_to_process.append((hierarchy, True)) # True = Primary
-        if secondary_hierarchy: hierarchies_to_process.append((secondary_hierarchy, False)) # False = Secondary
-
-        if hierarchies_to_process:
-            self.current_hierarchy = hierarchy # Track primary
-            
-            for h_obj, is_primary in hierarchies_to_process:
-                # Track pairs to draw
-                pairs_to_draw = []
-                
-                # Outer Container
-                if h_obj.outer_container and self.config['show_outer_fan']:
-                    pairs_to_draw.append((h_obj.outer_container, True))
-                
-                # Inner Sequence
-                if h_obj.inner_sequence and self.config['show_inner_fans']:
-                    for inner_pair in h_obj.inner_sequence[:self.config['max_inner_fans']]:
-                        pairs_to_draw.append((inner_pair, False))
-                
-                # Draw them
-                created_fans = []
-                for pair, is_outer in pairs_to_draw:
-                    fan_id = self._create_fan_for_pair(pair, candles, result, is_outer)
-                    if fan_id:
-                        created_fans.append(fan_id)
-                
-                # Markers
-                if result['drawings'] or not is_primary or is_primary: 
-                    # Always update markers for ANY active hierarchy
-                    marker_ids = self._add_pivot_markers(h_obj, result)
-                    
-                    if created_fans:
-                        first_fan = self.angle_engine.active_fans.get(created_fans[0])
-                        if first_fan:
-                            first_fan.config['marker_ids'] = marker_ids
-        else:
-            self._clear_all_fans(result)
-            self.current_hierarchy = None
-
-        # CRITICAL: Ensure the raw LAST PIVOT is always marked if it exists,
-        # even if it's not yet part of any hierarchy (e.g. the very latest formed pivot)
-        # This matches the "Force Add" logic that was previously working.
-        if last_pivot:
-            lp_dict = PivotSelector._pivot_to_dict(last_pivot)
-            pid = f"pm_{lp_dict['time']}_{lp_dict['type']}"
-            # Check if we already added it in the hierarchy loops above
-            already_added = any(m['id'] == pid for m in result['pivot_markers'])
-            
-            if not already_added:
-                result['pivot_markers'].append({
-                    'id': pid,
-                    'type': f"pivot_{lp_dict['type']}",
-                    'time': lp_dict['time'],
-                    'price': lp_dict['price'],
-                    'bar_index': lp_dict.get('bar_index', 0)
-                })
-        
-        # Check for completed fans
-        if self.config['remove_completed_fans'] and bar_index < len(candles):
-            completed_fan_ids = []
-            
-            for fan_id in list(self.angle_engine.active_fans.keys()):
-                if self.angle_engine.check_fan_completion(fan_id, current_bar):
-                    completed_fan_ids.append(fan_id)
-            
-            # Remove completed fans
-            for fan_id in completed_fan_ids:
-                fan = self.angle_engine.active_fans.get(fan_id)
-                if fan:
-                    for line in fan.lines:
-                        result['remove_drawings'].append(line.id)
-                    # Remove from tracking
-                    pair_id = fan.config.get('pair_id')
-                    if pair_id and pair_id in self.active_fan_ids:
-                        del self.active_fan_ids[pair_id]
-                    self.angle_engine.remove_fan(fan_id)
-        
-        # Save state for next bar
+        # Save state
         result['state'] = self._get_state()
         
         return result
-    
-    def _check_hierarchy_changed(self, new_hierarchy: Optional[PivotHierarchy]) -> bool:
-        """
-        Check if the hierarchy has changed significantly enough to redraw.
-        """
-        if self.current_hierarchy is None and new_hierarchy is None:
-            return False
-        
-        if self.current_hierarchy is None or new_hierarchy is None:
-            return True
-        
-        # Check if context changed
-        if self.current_hierarchy.context != new_hierarchy.context:
-            return True
-        
-        # Check if outer container changed
-        old_outer = self.current_hierarchy.outer_container
-        new_outer = new_hierarchy.outer_container
-        
-        if (old_outer is None) != (new_outer is None):
-            return True
-        
-        if old_outer and new_outer:
-            if old_outer['from']['time'] != new_outer['from']['time']:
-                return True
-            if old_outer['to']['time'] != new_outer['to']['time']:
-                return True
-        
-        # Check if inner sequence changed significantly
-        old_inner = self.current_hierarchy.inner_sequence
-        new_inner = new_hierarchy.inner_sequence
-        
-        if len(old_inner) != len(new_inner):
-            return True
-        
-        for i in range(min(len(old_inner), len(new_inner))):
-            if old_inner[i]['from']['time'] != new_inner[i]['from']['time']:
-                return True
-        
-        return False
-    
-    def reset(self):
-        """Reset study state (call on new symbol/interval)"""
-        self.pivot_detector.reset()
-        self.angle_engine.active_fans = {}
-        self.current_hierarchy = None
-        self.active_fan_ids = {}
-    
+
+    def _get_last_pivot(self):
+        """Helper to get the last CONFIRMED pivot from detector."""
+        if self.pivot_detector.confirmed_pivots:
+            return self.pivot_detector.confirmed_pivots[-1]
+        return None
+
+    def _add_stack_markers(self, result: Dict[str, Any]):
+        """Add markers for all pivots in the active stacks."""
+        # Anchor
+        if self.stacks.anchor:
+            p = self.stacks.anchor
+            result['pivot_markers'].append({
+                'id': f"anchor_{p['time']}",
+                'type': f"anchor_{p['type']}", # Special type for visual debugging?
+                'time': p['time'],
+                'price': p['price'],
+                'bar_index': p.get('bar_index', 0),
+                'text': 'A' # Label as Anchor
+            })
+            
+        # Inner Stack
+        for i, p in enumerate(self.stacks.inner_stack):
+            result['pivot_markers'].append({
+                'id': f"inner_{i}_{p['time']}",
+                'type': f"pivot_{p['type']}",
+                'time': p['time'],
+                'price': p['price'],
+                'bar_index': p.get('bar_index', 0),
+                'text': f"I{i}"
+            })
+
+        # Outer Stack
+        for i, p in enumerate(self.stacks.outer_stack):
+            result['pivot_markers'].append({
+                'id': f"outer_{i}_{p['time']}",
+                'type': f"pivot_{p['type']}",
+                'time': p['time'],
+                'price': p['price'],
+                'bar_index': p.get('bar_index', 0),
+                'text': f"O{i}"
+            })
+
     def _get_state(self) -> Dict[str, Any]:
-        """Get combined state from all components"""
-        # Serialize current_hierarchy if it exists
-        hierarchy_data = None
-        if self.current_hierarchy:
-            hierarchy_data = {
-                'context': self.current_hierarchy.context,
-                'outer_container': self.current_hierarchy.outer_container,
-                'inner_sequence': self.current_hierarchy.inner_sequence,
-                'origin_pivot': self.current_hierarchy.origin_pivot,
-                'inner_anchor': self.current_hierarchy.inner_anchor
-            }
-        
+        """Get combined state."""
+        # We don't serialize 'stacks' directly because they are derived from pivots
+        # But for efficiency we could.
+        # For now, just serialize detector state.
         return {
             'pivot_detector': self.pivot_detector.get_state(),
-            'angle_engine': self.angle_engine.get_state(),
-            'config': self.config,
-            'active_fan_ids': self.active_fan_ids,
-            'current_hierarchy': hierarchy_data
+            'config': self.config
         }
     
     def _restore_state(self, state: Dict[str, Any]):
-        """Restore state from a state dict."""
+        """Restore state."""
         if 'pivot_detector' in state:
             self.pivot_detector.restore_state(state['pivot_detector'])
-        
-        if 'angle_engine' in state:
-            self.angle_engine.restore_state(state['angle_engine'])
-        
         if 'config' in state:
             self.config = {**DEFAULT_CONFIG, **state['config']}
-        
-        if 'active_fan_ids' in state:
-            self.active_fan_ids = state['active_fan_ids']
-        
-        # Restore current_hierarchy
-        if 'current_hierarchy' in state and state['current_hierarchy']:
-            h = state['current_hierarchy']
-            self.current_hierarchy = PivotHierarchy(
-                context=h['context'],
-                outer_container=h.get('outer_container'),
-                inner_sequence=h.get('inner_sequence', []),
-                origin_pivot=h.get('origin_pivot'),
-                inner_anchor=h.get('inner_anchor')
-            )
-        else:
-            self.current_hierarchy = None
-    
-    def restore_state(self, state: Dict[str, Any]):
-        """Public method to restore state (for backward compatibility)."""
-        self._restore_state(state)
+            
+        # Note: self.stacks will be `None` after restore
+        # It will be rebuilt in process_bar via initialize_history or re-select
+        self.stacks = None
 
-
-# Factory function for easy instantiation
+# Factory function
 def create_study(config: Optional[Dict[str, Any]] = None) -> AngularPriceCoverageStudy:
-    """
-    Create an Angular Price Coverage Study instance.
-    
-    Args:
-        config: Optional configuration overrides
-        
-    Returns:
-        Configured study instance
-    """
     return AngularPriceCoverageStudy(config)

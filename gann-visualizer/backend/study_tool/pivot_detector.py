@@ -127,13 +127,15 @@ class PivotDetector:
                     low_fail_reason = f"Right neighbor +{i} <= candidate"
                     break
         
-        if is_pivot_high:
-            print(f"[PivotDetector] FOUND RAW HIGH at {candidate_time} Price: {candidate_high}")
+        # Debug prints disabled to prevent log flooding
+        # if is_pivot_high:
+        #     print(f"[PivotDetector] FOUND RAW HIGH at {candidate_time} Price: {candidate_high}")
+        # if is_pivot_low:
+        #     print(f"[PivotDetector] FOUND RAW LOW at {candidate_time} Price: {candidate_low}")
         
-        if is_pivot_low:
-            print(f"[PivotDetector] FOUND RAW LOW at {candidate_time} Price: {candidate_low}")
+        # Process detected pivots - add to confirmed_pivots IMMEDIATELY
+        # Successive filtering: if same type as last, replace if better (higher high / lower low)
         
-        # Process confirmed pivots with successive filtering
         if is_pivot_high:
             new_pivot = Pivot(
                 time=candidate_time,
@@ -142,20 +144,22 @@ class PivotDetector:
                 pivot_type='high'
             )
             
-            # Successive high filter: keep the highest
-            if self.last_pivot_type == 'high':
+            if self.last_pivot_type == 'high' and self.last_high_pivot is not None:
+                # Same type as last - successive filtering
                 if new_pivot.price > self.last_high_pivot.price:
-                    print(f"[PivotDetector] SUCCESSIVE FILTER: Replacing High {self.last_high_pivot.price} with HIGHER High {new_pivot.price}")
-                    # Replace with higher high
+                    # New high is higher - REPLACE the last one in confirmed_pivots
+                    if self.confirmed_pivots and self.confirmed_pivots[-1].pivot_type == 'high':
+                        self.confirmed_pivots[-1] = new_pivot
                     self.last_high_pivot = new_pivot
-                else:
-                    print(f"[PivotDetector] SUCCESSIVE FILTER: Ignoring High {new_pivot.price} (Lower than prev High {self.last_high_pivot.price})")
+                # else: ignore this lower high
             else:
-                # Alternate type - previous LOW is now confirmed
+                # Different type or first pivot - add immediately
+                self.confirmed_pivots.append(new_pivot)
+                self.last_high_pivot = new_pivot
+                self.last_pivot_type = 'high'
+                
+                # Generate fan signal if we have a preceding low
                 if self.last_low_pivot is not None:
-                    print(f"[PivotDetector] CONFIRMED LOW: {self.last_low_pivot.price} -> New HIGH {new_pivot.price} completes sequence")
-                    self.confirmed_pivots.append(self.last_low_pivot)
-                    
                     result['new_fan'] = {
                         'from': {
                             'time': self.last_low_pivot.time,
@@ -170,9 +174,6 @@ class PivotDetector:
                             'type': 'high'
                         }
                     }
-                
-                self.last_high_pivot = new_pivot
-                self.last_pivot_type = 'high'
             
             result['pivot_high'] = new_pivot
         
@@ -184,20 +185,22 @@ class PivotDetector:
                 pivot_type='low'
             )
             
-            # Successive low filter: keep the lowest
-            if self.last_pivot_type == 'low':
+            if self.last_pivot_type == 'low' and self.last_low_pivot is not None:
+                # Same type as last - successive filtering
                 if new_pivot.price < self.last_low_pivot.price:
-                    print(f"[PivotDetector] SUCCESSIVE FILTER: Replacing Low {self.last_low_pivot.price} with LOWER Low {new_pivot.price}")
-                    # Replace with lower low
+                    # New low is lower - REPLACE the last one in confirmed_pivots
+                    if self.confirmed_pivots and self.confirmed_pivots[-1].pivot_type == 'low':
+                        self.confirmed_pivots[-1] = new_pivot
                     self.last_low_pivot = new_pivot
-                else:
-                    print(f"[PivotDetector] SUCCESSIVE FILTER: Ignoring Low {new_pivot.price} (Higher than prev Low {self.last_low_pivot.price})")
+                # else: ignore this higher low
             else:
-                # Alternate type - previous HIGH is now confirmed
+                # Different type or first pivot - add immediately
+                self.confirmed_pivots.append(new_pivot)
+                self.last_low_pivot = new_pivot
+                self.last_pivot_type = 'low'
+                
+                # Generate fan signal if we have a preceding high
                 if self.last_high_pivot is not None:
-                    print(f"[PivotDetector] CONFIRMED HIGH: {self.last_high_pivot.price} -> New LOW {new_pivot.price} completes sequence")
-                    self.confirmed_pivots.append(self.last_high_pivot)
-                    
                     result['new_fan'] = {
                         'from': {
                             'time': self.last_high_pivot.time,
@@ -212,9 +215,6 @@ class PivotDetector:
                             'type': 'low'
                         }
                     }
-                
-                self.last_low_pivot = new_pivot
-                self.last_pivot_type = 'low'
             
             result['pivot_low'] = new_pivot
         

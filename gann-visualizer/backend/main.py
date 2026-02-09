@@ -865,15 +865,22 @@ async def _process_study_bar(req: EvaluateStrategyRequest):
             print(f"[Study] Slow path: Rebuilding from 0 to {req.current_index}")
             _study_cache = {'index': -1, 'strategy': req.strategy, 'state': None}
             
-            # Run history to build state (ignore outputs)
+            # Run history to build state and capture final result
+            final_result = None
             for bar_idx in range(req.current_index + 1):
-                study.process_bar(
+                final_result = study.process_bar(
                     candles=candles,
                     bar_index=bar_idx,
                     state=None
                 )
             
-            # Generate SNAPSHOT of currently active fans
+            # NEW: Include pivot_markers from refactored study (Step 2)
+            # This enables visualization before fan drawing is implemented
+            if final_result and 'pivot_markers' in final_result:
+                output_pivots.extend(final_result['pivot_markers'])
+                print(f"[Study] Index {req.current_index}: Added {len(final_result['pivot_markers'])} pivot markers from study")
+            
+            # Generate SNAPSHOT of currently active fans (legacy/Step 3+)
             # This ensures we don't send ghost markers from destroyed fans
             active_fans = study.angle_engine.active_fans
             
@@ -945,12 +952,27 @@ async def _process_study_bar(req: EvaluateStrategyRequest):
             # In reset scenario, we don't need to specify removals as the frontend usually clears shapes
             output_remove = []
 
+        # Add debug info for frontend console
+        debug_info = {}
+        if study.stacks:
+            debug_info = {
+                'context': study.stacks.context,
+                'anchor': study.stacks.anchor,
+                'inner_stack_count': len(study.stacks.inner_stack),
+                'outer_stack_count': len(study.stacks.outer_stack),
+                'inner_stack': study.stacks.inner_stack,
+                'outer_stack': study.stacks.outer_stack,
+                'total_confirmed_pivots': len(study.pivot_detector.confirmed_pivots),
+                'left_bars': study.config.get('left_bars', 5),
+                'right_bars': study.config.get('right_bars', 5)
+            }
         
         return {
             "type": "drawing_update",
             "drawings": output_drawings,
             "pivot_markers": output_pivots,
             "remove_drawings": output_remove,
+            "debug_info": debug_info,
             "state": {}
         }
         

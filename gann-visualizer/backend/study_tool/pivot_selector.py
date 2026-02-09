@@ -1,17 +1,18 @@
 """
-Pivot Selector Module (v2.1 - Fixed Hierarchical Framework)
+Pivot Selector Module (v3.1 - Corrected Stack-Based Framework)
 
-Implements the "Outer Container + Inner Sequence" logic for the Angular Price Coverage Strategy.
+Implements the "Master Protocol v3.0" logic with corrected context determination:
 
-Key Concepts:
-- Outer Container: The largest relevant swing bounding current price action
-- Inner Sequence: Intermediate pivot pairs nested within the Outer Container
-- CRITICAL: Fans ALWAYS connect opposite pivot types (High ↔ Low)
+Context Logic:
+- Anchor = most recent confirmed pivot
+- If Anchor is HIGH → Context = BEARISH (price is falling FROM that high)
+- If Anchor is LOW → Context = BULLISH (price is rising FROM that low)
 
-This module identifies BOTH the Outer pair and the sequence of Inner pairs,
-enabling the visualization of nested Gann fans.
-
-Logic based on Strategy Docs (Section 9 - Pivot Management).
+Stack Logic:
+- Single backward traversal from anchor, pivot-by-pivot
+- Inner Stack: Opposite type to anchor, successively deeper
+- Outer Stack: Same type as anchor, successive (below/above anchor price)
+- STOP at 2nd successive outer pivot
 """
 
 from typing import List, Optional, Dict, Any
@@ -20,35 +21,30 @@ from .pivot_detector import Pivot
 
 
 @dataclass
-class PivotHierarchy:
+class PivotStacks:
     """
-    Represents the complete hierarchical structure of pivots.
+    Represents the active pivot stacks for the current market state.
     
     Attributes:
-        context: 'bullish' (price rising) or 'bearish' (price falling)
-        outer_container: The Outer pair (largest bounding swing)
-        inner_sequence: List of Inner pairs (nested within Outer)
-        origin_pivot: The most recent pivot (starting point for analysis)
-        inner_anchor: The pivot of opposite type used as anchor for inner fans
+        context: 'bullish' (anchor=low, price rising) or 'bearish' (anchor=high, price falling)
+        anchor: The most recent confirmed pivot (starting point for traversal)
+        inner_stack: Pivots of OPPOSITE type to anchor, successively deeper
+        outer_stack: Pivots of SAME type as anchor, below/above anchor price
     """
     context: str
-    outer_container: Optional[Dict[str, Any]] = None
-    inner_sequence: List[Dict[str, Any]] = field(default_factory=list)
-    origin_pivot: Optional[Dict[str, Any]] = None
-    inner_anchor: Optional[Dict[str, Any]] = None  # The opposite-type pivot for inner fans
+    anchor: Optional[Dict[str, Any]] = None
+    inner_stack: List[Dict[str, Any]] = field(default_factory=list)
+    outer_stack: List[Dict[str, Any]] = field(default_factory=list)
 
 
 class PivotSelector:
     """
-    Hierarchical Pivot Selector (v2.1 - Fixed)
+    Hierarchical Pivot Selector (v3.1 - Corrected)
     
-    Implements the documented strategy for identifying:
-    1. The Outer Container (persistent reference frame)
-    2. The Inner Sequence (dynamic intermediate pivots)
-    
-    CRITICAL FIX: Fans always connect opposite pivot types (High ↔ Low).
-    
-    Supports both Bearish and Bullish retracement scenarios.
+    Key fixes:
+    1. Context determined by anchor type: HIGH=bearish, LOW=bullish
+    2. Single backward traversal with unified stopping at 2nd outer pivot
+    3. Anchor IS the most recent pivot (not searched for by opposite type)
     """
 
     @staticmethod
@@ -62,361 +58,170 @@ class PivotSelector:
         }
 
     @staticmethod
-    def select_hierarchy(
+    def select_stacks(
         current_price: float,
         current_time: int,
         confirmed_pivots: List[Pivot],
         last_pivot: Optional[Pivot]
-    ) -> Optional[PivotHierarchy]:
+    ) -> Optional[PivotStacks]:
         """
-        Identify the complete pivot hierarchy (Outer Container + Inner Sequence).
+        Identify the complete pivot stacks (Inner + Outer) for the current moment.
+        
+        Logic:
+        1. Anchor = most recent confirmed pivot (last_pivot)
+        2. Context from anchor type: HIGH=bearish, LOW=bullish
+        3. Traverse backwards from anchor, pivot-by-pivot
+        4. Build Inner Stack (opposite type, successive)
+        5. Build Outer Stack (same type, successive, below/above anchor)
+        6. STOP at 2nd successive outer pivot
         
         Args:
             current_price: Current Close price
             current_time: Current timestamp
-            confirmed_pivots: Full history of confirmed pivots (sorted by time)
-            last_pivot: The most recent confirmed pivot
+            confirmed_pivots: Full history of confirmed pivots
+            last_pivot: The most recent confirmed pivot (becomes anchor)
             
         Returns:
-            PivotHierarchy object or None if insufficient data
+            PivotStacks object or None if insufficient data
         """
-        if last_pivot:
-            print(f"[PivotSelector] select_hierarchy called at {current_time}. Last Pivot: {last_pivot.pivot_type} at {last_pivot.price}")
-        else:
-            print(f"[PivotSelector] select_hierarchy called at {current_time}. Last Pivot: None")
-
         if not confirmed_pivots or not last_pivot:
             return None
 
-        # Determine Context based on the LAST pivot type
-        # If Last Pivot is LOW -> We are moving UP (Bullish Context)
-        # If Last Pivot is HIGH -> We are moving DOWN (Bearish Context)
-        context = 'bullish' if last_pivot.pivot_type == 'low' else 'bearish'
+        # Anchor = most recent confirmed pivot
+        anchor = last_pivot
         
-        origin_pivot = PivotSelector._pivot_to_dict(last_pivot)
+        # Context from anchor type:
+        # - Anchor HIGH → price is falling FROM it → BEARISH
+        # - Anchor LOW → price is rising FROM it → BULLISH
+        context = 'bearish' if anchor.pivot_type == 'high' else 'bullish'
         
-        # Sort pivots by time (oldest first for sequential analysis)
+        # Sort pivots by time
         sorted_pivots = sorted(confirmed_pivots, key=lambda p: p.time)
         
+        # Find anchor index in sorted list
+        anchor_index = -1
+        for i in range(len(sorted_pivots) - 1, -1, -1):
+            if (sorted_pivots[i].time == anchor.time and 
+                sorted_pivots[i].pivot_type == anchor.pivot_type):
+                anchor_index = i
+                break
+        
+        if anchor_index == -1:
+            return None
+        
+        # Initialize Stacks
+        stacks = PivotStacks(
+            context=context,
+            anchor=PivotSelector._pivot_to_dict(anchor)
+        )
+        
+        # Build stacks based on context
+        # Pass current_price for outer pivot comparison
         if context == 'bearish':
-            return PivotSelector._select_bearish_hierarchy(
-                current_price, origin_pivot, sorted_pivots
-            )
+            PivotSelector._build_bearish_stacks(stacks, sorted_pivots, anchor_index, current_price)
         else:
-            return PivotSelector._select_bullish_hierarchy(
-                current_price, origin_pivot, sorted_pivots
-            )
+            PivotSelector._build_bullish_stacks(stacks, sorted_pivots, anchor_index, current_price)
+
+        return stacks
 
     @staticmethod
-    def _select_bearish_hierarchy(
-        current_price: float,
-        origin_pivot: Dict[str, Any],
-        sorted_pivots: List[Pivot]
-    ) -> PivotHierarchy:
+    def _build_bearish_stacks(
+        stacks: PivotStacks, 
+        sorted_pivots: List[Pivot], 
+        anchor_index: int,
+        current_price: float
+    ):
         """
-        Bearish Scenario: Price is falling after a major High.
+        Bearish Context (Anchor = HIGH, price falling):
         
-        The origin_pivot is a HIGH (that's what made context bearish).
+        Traverse backwards from anchor:
+        - Inner Stack: HIGHS that are successively HIGHER going back (resistance levels)
+        - Outer Stack: LOWS below CURRENT PRICE, successively LOWER going back (support/target levels)
+        - STOP at 2nd outer pivot
         
-        For Inner Fans, we need to:
-        1. Find the most recent LOW as the "anchor" (fan destination)
-        2. Find intermediate HIGHs that connect TO this LOW
-        
-        For Outer Container:
-        1. Find Outer Low (A): Nearest Low BELOW current price
-        2. Find Outer High (B): HIGHEST High between A and Now
+        Key: Outer LOWs are compared against CURRENT_PRICE, not anchor price.
+        This ensures intermediate pullback lows (above current price) are not included.
         """
-        hierarchy = PivotHierarchy(
-            context='bearish',
-            origin_pivot=origin_pivot
-        )
+        inner_stack = []
+        outer_stack = []
         
-        # Step 1: Find the most recent LOW to use as Inner Fan anchor
-        # This is CRITICAL - we need the opposite type for valid fan construction
-        inner_anchor_pivot = None
-        for i in range(len(sorted_pivots) - 1, -1, -1):
+        # Get anchor price for inner stack comparison
+        anchor_price = sorted_pivots[anchor_index].price
+        
+        # Track successive values
+        inner_max = anchor_price   # First inner high must be higher than anchor
+        outer_min = current_price  # Outer lows must be below CURRENT PRICE
+        
+        # Single backward traversal
+        for i in range(anchor_index - 1, -1, -1):
             p = sorted_pivots[i]
-            if p.pivot_type == 'low':
-                inner_anchor_pivot = p
-                break
-        
-        if inner_anchor_pivot:
-            # FAN INVALIDATION RULE:
-            # If current price is BELOW the anchor Low, the pivot is breached.
-            # The structure C->E is no longer valid as an active reaction range.
-            if current_price < inner_anchor_pivot.price:
-                # print(f"[PivotSelector] Anchor Low {inner_anchor_pivot.price} breached by price {current_price}. Invalidating.")
-                inner_anchor_pivot = None
-            else:
-                hierarchy.inner_anchor = PivotSelector._pivot_to_dict(inner_anchor_pivot)
-        
-        # Step 2: Find Outer Low (A) - nearest Low BELOW current price
-        outer_low = None
-        outer_low_index = -1
-        
-        for i in range(len(sorted_pivots) - 1, -1, -1):
-            p = sorted_pivots[i]
-            if p.pivot_type == 'low' and p.price < current_price:
-                outer_low = p
-                outer_low_index = i
-                break
-        
-        if outer_low is None:
-            # No valid Outer Low found - can't establish container
-            return hierarchy
-        
-        # Step 3: Find Outer High (B) - HIGHEST High between A and Now
-        outer_high = None
-        highest_price = -float('inf')
-        
-        for i in range(outer_low_index + 1, len(sorted_pivots)):
-            p = sorted_pivots[i]
-            if p.pivot_type == 'high' and p.price > highest_price:
-                highest_price = p.price
-                outer_high = p
-        
-        if outer_high is None:
-            return hierarchy
-        
-        # Create Outer Container (High → Low)
-        hierarchy.outer_container = {
-            'from': PivotSelector._pivot_to_dict(outer_high),  # Fan radiates FROM the High
-            'to': PivotSelector._pivot_to_dict(outer_low),     # Fan points TO the Low
-            'type': 'outer',
-            'context': 'bearish'
-        }
-        
-        # Step 4: Find Inner Sequence - intermediate HIGHs that connect to the recent LOW
-        # Only if we have a valid inner anchor (a recent LOW)
-        if inner_anchor_pivot is None:
-            return hierarchy
-        
-        # Collect ALL candidate highs between outer_high and inner_anchor that are above current price
-        candidate_highs = []
-        
-        for i in range(len(sorted_pivots) - 1, -1, -1):
-            p = sorted_pivots[i]
-            
-            # Stop when we reach the outer low (before our active range)
-            if p.time <= outer_low.time:
-                break
-            
-            # Skip if this is the outer high (already covered by outer fan)
-            if p.time == outer_high.time:
-                continue
             
             if p.pivot_type == 'high':
-                # This is an intermediate High - check if it's above current price
-                # (still relevant as resistance)
-                if p.price > current_price:
-                    candidate_highs.append(p)
+                # Inner Stack: HIGHS successively HIGHER
+                if p.price > inner_max:
+                    inner_stack.append(p)
+                    inner_max = p.price
+                    
+            elif p.pivot_type == 'low':
+                # Outer Stack: LOWS below CURRENT PRICE, successively LOWER
+                if p.price < outer_min:
+                    outer_stack.append(p)
+                    outer_min = p.price
+                    
+                    # STOP at 3rd outer pivot (1 primary + 2 successive)
+                    if len(outer_stack) >= 3:
+                        break
         
-        # Sort candidate highs by TIME (oldest first) - iterate FROM outer TOWARD anchor
-        # This ensures: earlier higher highs set the max, later lower highs get shadowed
-        candidate_highs.sort(key=lambda p: p.time)
-        
-        # DEBUG: Log candidate highs in time order (oldest first)
-        print(f"[PivotSelector] Bearish - Candidate highs above current price {current_price} (oldest first):")
-        for h in candidate_highs:
-            print(f"  - High at price {h.price}, time {h.time}")
-        
-        # ASCENDING STAIRCASE FILTER (corrected v3):
-        # Iterate from OLDEST to NEWEST (outer toward anchor)
-        # Only include a high if it's HIGHER than any EARLIER high we've seen
-        # This way, a later high that's LOWER than an earlier one gets "shadowed" and skipped
-        # CRITICAL: Start with outer_high price as baseline - any inner high must be HIGHER than outer_high
-        inner_highs = []
-        # FIX: Start with -infinity. Do NOT use outer_high as baseline, 
-        # otherwise we reject legitimate Lower Highs in a downtrend.
-        max_price_seen = -float('inf')
-        
-        for high in candidate_highs:
-            # Only include if this high is HIGHER than any earlier high we've seen
-            if high.price > max_price_seen:
-                print(f"[PivotSelector] INCLUDED: High at {high.price} > max_earlier {max_price_seen}")
-                inner_highs.append(high)
-                max_price_seen = high.price
-            else:
-                print(f"[PivotSelector] SKIPPED: High at {high.price} <= max_earlier {max_price_seen} (shadowed by earlier higher pivot)")
-        
-        print(f"[PivotSelector] Final inner_highs count: {len(inner_highs)}")
-        
-        # Create Inner Sequence pairs (each High → the recent Low anchor)
-        # ADDITIONAL FILTER: Skip fans where the start point (High) has been breached
-        # If current_price > High, the fan is obsolete (angle completely traversed)
-        for inner_high in inner_highs:
-            if current_price > inner_high.price:
-                print(f"[PivotSelector] SKIPPED FAN: High at {inner_high.price} breached by price {current_price} (angle traversed)")
-                continue
-            hierarchy.inner_sequence.append({
-                'from': PivotSelector._pivot_to_dict(inner_high),           # Fan radiates FROM the High
-                'to': PivotSelector._pivot_to_dict(inner_anchor_pivot),     # Fan points TO the recent Low
-                'type': 'inner',
-                'context': 'bearish'
-            })
-        
-        return hierarchy
+        stacks.inner_stack = [PivotSelector._pivot_to_dict(p) for p in inner_stack]
+        stacks.outer_stack = [PivotSelector._pivot_to_dict(p) for p in outer_stack]
 
     @staticmethod
-    def _select_bullish_hierarchy(
-        current_price: float,
-        origin_pivot: Dict[str, Any],
-        sorted_pivots: List[Pivot]
-    ) -> PivotHierarchy:
+    def _build_bullish_stacks(
+        stacks: PivotStacks, 
+        sorted_pivots: List[Pivot], 
+        anchor_index: int,
+        current_price: float
+    ):
         """
-        Bullish Scenario: Price is rising after a major Low.
+        Bullish Context (Anchor = LOW, price rising):
         
-        The origin_pivot is a LOW (that's what made context bullish).
+        Traverse backwards from anchor:
+        - Inner Stack: LOWS that are successively LOWER going back (support levels)
+        - Outer Stack: HIGHS above CURRENT PRICE, successively HIGHER going back (resistance/target levels)
+        - STOP at 2nd outer pivot
         
-        For Inner Fans, we need to:
-        1. Find the most recent HIGH as the "anchor" (fan destination)
-        2. Find intermediate LOWs that connect TO this HIGH
-        
-        For Outer Container:
-        1. Find Outer High (A): Nearest High ABOVE current price
-        2. Find Outer Low (B): LOWEST Low between A and Now
+        Key: Outer HIGHs are compared against CURRENT_PRICE, not anchor price.
+        This ensures intermediate pullback highs (below current price) are not included.
         """
-        hierarchy = PivotHierarchy(
-            context='bullish',
-            origin_pivot=origin_pivot
-        )
+        inner_stack = []
+        outer_stack = []
         
-        # Step 1: Find the most recent HIGH to use as Inner Fan anchor
-        # This is CRITICAL - we need the opposite type for valid fan construction
-        inner_anchor_pivot = None
-        for i in range(len(sorted_pivots) - 1, -1, -1):
+        # Get anchor price for inner stack comparison
+        anchor_price = sorted_pivots[anchor_index].price
+        
+        # Track successive values
+        inner_min = anchor_price   # First inner low must be lower than anchor
+        outer_max = current_price  # Outer highs must be above CURRENT PRICE
+        
+        # Single backward traversal
+        for i in range(anchor_index - 1, -1, -1):
             p = sorted_pivots[i]
-            if p.pivot_type == 'high':
-                inner_anchor_pivot = p
-                break
-        
-        if inner_anchor_pivot:
-            # FAN INVALIDATION RULE:
-            # If current price is ABOVE the anchor High, the pivot is breached.
-            # The structure Low->High is no longer valid as an active reaction range.
-            if current_price > inner_anchor_pivot.price:
-                # print(f"[PivotSelector] Anchor High {inner_anchor_pivot.price} breached by price {current_price}. Invalidating.")
-                inner_anchor_pivot = None
-            else:
-                hierarchy.inner_anchor = PivotSelector._pivot_to_dict(inner_anchor_pivot)
-                # print(f"  [Bullish] Inner Anchor Selected: {inner_anchor_pivot.price} at {inner_anchor_pivot.time}")
-        else:
-            print(f"  [Bullish] No valid Inner Anchor (High) found in sorted_pivots")
-        
-        # Step 2: Find Outer High (A) - nearest High ABOVE current price
-        outer_high = None
-        outer_high_index = -1
-        
-        for i in range(len(sorted_pivots) - 1, -1, -1):
-            p = sorted_pivots[i]
-            if p.pivot_type == 'high' and p.price > current_price:
-                outer_high = p
-                outer_high_index = i
-                break
-        
-        if outer_high is None:
-            return hierarchy
-        
-        # Step 3: Find Outer Low (B) - LOWEST Low between A and Now
-        outer_low = None
-        lowest_price = float('inf')
-        
-        for i in range(outer_high_index + 1, len(sorted_pivots)):
-            p = sorted_pivots[i]
-            if p.pivot_type == 'low' and p.price < lowest_price:
-                lowest_price = p.price
-                outer_low = p
-        
-        if outer_low is None:
-            return hierarchy
-        
-        # Create Outer Container (Low → High)
-        hierarchy.outer_container = {
-            'from': PivotSelector._pivot_to_dict(outer_low),   # Fan radiates FROM the Low
-            'to': PivotSelector._pivot_to_dict(outer_high),    # Fan points TO the High
-            'type': 'outer',
-            'context': 'bullish'
-        }
-        
-        # Step 4: Find Inner Sequence - intermediate LOWs that connect to the recent HIGH
-        # Only if we have a valid inner anchor (a recent HIGH)
-        if inner_anchor_pivot is None:
-            return hierarchy
-        
-        # Collect ALL candidate lows between outer_low and inner_anchor that are below current price
-        candidate_lows = []
-        
-        for i in range(len(sorted_pivots) - 1, -1, -1):
-            p = sorted_pivots[i]
-            
-            # Stop when we reach the outer high (before our active range)
-            if p.time <= outer_high.time:
-                break
-            
-            # Skip if this is the outer low (already covered by outer fan)
-            if p.time == outer_low.time:
-                continue
             
             if p.pivot_type == 'low':
-                # This is an intermediate Low - check if it's below current price
-                # (still relevant as support)
-                if p.price < current_price:
-                    candidate_lows.append(p)
+                # Inner Stack: LOWS successively LOWER
+                if p.price < inner_min:
+                    inner_stack.append(p)
+                    inner_min = p.price
+                    
+            elif p.pivot_type == 'high':
+                # Outer Stack: HIGHS above CURRENT PRICE, successively HIGHER
+                if p.price > outer_max:
+                    outer_stack.append(p)
+                    outer_max = p.price
+                    
+                    # STOP at 3rd outer pivot (1 primary + 2 successive)
+                    if len(outer_stack) >= 3:
+                        break
         
-        # Sort candidate lows by TIME (oldest first) - iterate FROM outer TOWARD anchor
-        # This ensures: earlier lower lows set the min, later higher lows get shadowed
-        candidate_lows.sort(key=lambda p: p.time)
-        
-        # DESCENDING STAIRCASE FILTER (corrected v3):
-        # Iterate from OLDEST to NEWEST (outer toward anchor)
-        # Only include a low if it's LOWER than any EARLIER low we've seen
-        # This way, a later low that's HIGHER than an earlier one gets "shadowed" and skipped
-        # CRITICAL: Start with outer_low price as baseline - any inner low must be LOWER than outer_low
-        inner_lows = []
-        # FIX: Start with infinity. Do NOT use outer_low as baseline,
-        # otherwise we reject legitimate Higher Lows in an uptrend.
-        min_price_seen = float('inf')
-        
-        for low in candidate_lows:
-            # Only include if this low is LOWER than any earlier low we've seen
-            if low.price < min_price_seen:
-                inner_lows.append(low)
-                min_price_seen = low.price
-        
-        # Create Inner Sequence pairs (each Low → the recent High anchor)
-        # ADDITIONAL FILTER: Skip fans where the start point (Low) has been breached
-        # If current_price < Low, the fan is obsolete (angle completely traversed)
-        for inner_low in inner_lows:
-            if current_price < inner_low.price:
-                print(f"[PivotSelector] SKIPPED FAN: Low at {inner_low.price} breached by price {current_price} (angle traversed)")
-                continue
-            hierarchy.inner_sequence.append({
-                'from': PivotSelector._pivot_to_dict(inner_low),            # Fan radiates FROM the Low
-                'to': PivotSelector._pivot_to_dict(inner_anchor_pivot),     # Fan points TO the recent High
-                'type': 'inner',
-                'context': 'bullish'
-            })
-        
-        return hierarchy
-
-    # Keep legacy method for backward compatibility
-    @staticmethod
-    def select_active_pair(
-        current_price: float,
-        current_time: int,
-        confirmed_pivots: List[Pivot],
-        last_pivot: Optional[Pivot]
-    ) -> Optional[Dict[str, Any]]:
-        """
-        Legacy method - returns only the Outer Container's pair.
-        
-        For full hierarchy support, use select_hierarchy() instead.
-        """
-        hierarchy = PivotSelector.select_hierarchy(
-            current_price, current_time, confirmed_pivots, last_pivot
-        )
-        
-        if hierarchy and hierarchy.outer_container:
-            return hierarchy.outer_container
-        
-        return None
+        stacks.inner_stack = [PivotSelector._pivot_to_dict(p) for p in inner_stack]
+        stacks.outer_stack = [PivotSelector._pivot_to_dict(p) for p in outer_stack]

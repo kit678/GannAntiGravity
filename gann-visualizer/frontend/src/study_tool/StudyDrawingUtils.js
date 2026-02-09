@@ -203,7 +203,7 @@ export function drawPivotMarker(chart, pivot) {
     }
 
     try {
-        const isHigh = pivot.type === 'pivot_high' || pivot.type === 'high';
+        const isHigh = pivot.type === 'pivot_high' || pivot.type === 'high' || pivot.type === 'anchor_high';
 
         const point = {
             time: pivot.time,

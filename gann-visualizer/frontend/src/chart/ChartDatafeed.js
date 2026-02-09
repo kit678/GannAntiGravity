@@ -228,6 +228,14 @@ class ChartDatafeed {
                 console.warn("[Datafeed] Error initializing chart for progressive replay:", err);
             }
         }
+
+        // CRITICAL FIX: Evaluate strategy at initial position AFTER chart is ready
+        // Delay to ensure TradingView widget has fully initialized
+        // This ensures pivots/drawings appear immediately on chart load
+        setTimeout(() => {
+            console.log("[Datafeed] Evaluating initial strategy state at step", this.currentStep);
+            this._evaluateCurrentStep();
+        }, 500);
     }
 
     // Helper to unsubscribe from the original UDF datafeed
@@ -519,6 +527,13 @@ class ChartDatafeed {
         // Update the chart display
         this.updateChartDisplay();
 
+        // Evaluate strategy at the new current step
+        this._evaluateCurrentStep();
+    }
+
+    // Evaluate strategy at current step without advancing
+    // Separated from playback_step to allow initial evaluation on chart load
+    _evaluateCurrentStep() {
         // PROGRESSIVE STRATEGY EVALUATION
         // If in progressive mode, evaluate strategy at current step
         if (this.strategyName && this.datafeedUrl && !this.evaluatedIndices.has(this.currentStep)) {
@@ -583,17 +598,35 @@ class ChartDatafeed {
                     } else if (responseType === 'drawing_update') {
                         // STUDY RESPONSE: Drawing commands
                         if (this.studyCallback) {
-                            console.log("[Progressive] Study drawings at step", this.currentStep,
-                                "drawings:", data.drawings?.length || 0,
-                                "pivots:", data.pivot_markers?.length || 0);
+                            console.log("=== [STUDY DEBUG] ===");
+                            console.log("[Study] Step:", this.currentStep);
+                            console.log("[Study] Drawings:", data.drawings?.length || 0);
+                            console.log("[Study] Pivot Markers:", data.pivot_markers?.length || 0);
+
+                            // Log each pivot marker for debugging
+                            if (data.pivot_markers && data.pivot_markers.length > 0) {
+                                console.table(data.pivot_markers.map(p => ({
+                                    id: p.id,
+                                    text: p.text,
+                                    type: p.type,
+                                    price: p.price,
+                                    time: new Date(p.time * 1000).toLocaleString(),
+                                    bar_index: p.bar_index
+                                })));
+                            }
+
+                            // Log debug_info if provided by backend
+                            if (data.debug_info) {
+                                console.log("[Study] Debug Info:", data.debug_info);
+                            }
+                            console.log("===================");
+
                             this.studyCallback(data);
                         }
                     }
                 })
                 .catch(err => console.error("[Progressive] Evaluation error:", err));
         }
-
-
     }
 
     // Helper to update the chart display
