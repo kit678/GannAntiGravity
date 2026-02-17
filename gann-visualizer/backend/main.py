@@ -886,78 +886,12 @@ async def _process_study_bar(req: EvaluateStrategyRequest):
                 output_remove.extend(final_result.get('remove_drawings', []))
             print(f"[Study] Index {req.current_index}: Added {len(output_pivots)} pivot markers from study")
             
-            # Generate SNAPSHOT of currently active fans (legacy/Step 3+)
-            # This ensures we don't send ghost markers from destroyed fans
-            if hasattr(study, 'angle_engine'):
-                active_fans = study.angle_engine.active_fans
-                
-                print(f"[Study] Index {req.current_index}: Snapshot of {len(active_fans)} active fans")
-                
-                for fid, fan in active_fans.items():
-                    print(f"[Study] Fan {fid}: {len(fan.lines)} lines")
-                    # Add Drawings
-                    output_drawings.extend(study.angle_engine.fan_to_drawing_commands(fan))
-                    
-                    # Add Markers (Regenerate with consistent IDs)
-                    # The new hierarchical structure stores marker info differently
-                    marked_times = set()  # Track to avoid duplicates
-                    
-                    # Method 1: Use stored hierarchy info (new v2.0 format)
-                    hierarchy_info = fan.config.get('hierarchy')
-                    if hierarchy_info:
-                        # Mark Origin
-                        if hierarchy_info.get('origin'):
-                            p = hierarchy_info['origin']
-                            if p['time'] not in marked_times:
-                                pid = f"pm_{p['time']}_{p['type']}"
-                                output_pivots.append({
-                                    'id': pid,
-                                    'type': f"pivot_{p['type']}",
-                                    'time': p['time'],
-                                    'price': p['price'],
-                                    'bar_index': p.get('bar_index', 0)
-                                })
-                                marked_times.add(p['time'])
-                        
-                        # Mark Outer Container pivots
-                        if hierarchy_info.get('outer'):
-                            for key in ['from', 'to']:
-                                p = hierarchy_info['outer'].get(key)
-                                if p and p['time'] not in marked_times:
-                                    pid = f"pm_{p['time']}_{p['type']}"
-                                    output_pivots.append({
-                                        'id': pid,
-                                        'type': f"pivot_{p['type']}",
-                                        'time': p['time'],
-                                        'price': p['price'],
-                                        'bar_index': p.get('bar_index', 0)
-                                    })
-                                    marked_times.add(p['time'])
-                    
-                    # Method 2: Fallback to legacy format (from/to pivots + extra_pivots)
-                    else:
-                        pivots_to_regen = [fan.from_pivot, fan.to_pivot]
-                        if 'extra_pivots' in fan.config:
-                            pivots_to_regen.extend(fan.config['extra_pivots'])
-    
-                        for p in pivots_to_regen:
-                            if p['time'] not in marked_times:
-                                pid = f"pm_{p['time']}_{p['type']}"
-                                output_pivots.append({
-                                    'id': pid,
-                                    'type': f"pivot_{p['type']}",
-                                    'time': p['time'],
-                                    'price': p['price'],
-                                    'bar_index': p.get('bar_index', 0)
-                                })
-                                marked_times.add(p['time'])
-            
             # Update cache after full run
             _study_cache['index'] = req.current_index
-            _study_cache['state'] = study._get_state()
+            _study_cache['state'] = study.get_state()
             
-            # In reset scenario, we don't need to specify removals as the frontend usually clears shapes
-            output_remove = []
+            # Note: _sync_fans in the study handles all drawing creation/removal.
+            # No need for a separate snapshot here.
 
         # Add debug info for frontend console
         debug_info = {}

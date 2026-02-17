@@ -72,7 +72,7 @@ class FanManager:
             anchor = sorted_pivots[anchor_idx]
 
             # --- Rule 1: Anchor Validity ---
-            if not FanManager._is_anchor_valid(anchor, sorted_pivots, anchor_idx, valid_candles, current_price):
+            if not FanManager._is_anchor_valid(anchor, sorted_pivots, anchor_idx, valid_candles, current_price, breach_mode):
                 continue
 
             # Track the last accepted target price for Rule 5 (Successive Geometry)
@@ -146,26 +146,35 @@ class FanManager:
         sorted_pivots: List[Pivot],
         anchor_idx: int,
         valid_candles: List[Dict[str, Any]],
-        current_price: float
+        current_price: float,
+        breach_mode: str = 'wick'
     ) -> bool:
         """
         Rule 1: Check if anchor is valid.
-        - High Anchor: Invalid if any later High pivot is higher.
-        - Low Anchor: Invalid if current price < anchor price (breached).
+        - High Anchor: Invalid if price has traded above anchor level after it.
+        - Low Anchor: Invalid if price has traded below anchor level after it.
         """
+        # Get candles after the anchor
+        after_anchor = [c for c in valid_candles if int(c['time']) > anchor.time]
+
         if anchor.pivot_type == 'high':
-            # Check if any later HIGH pivot is higher
-            for i in range(anchor_idx + 1, len(sorted_pivots)):
-                if sorted_pivots[i].pivot_type == 'high' and sorted_pivots[i].price > anchor.price:
+            # Check if price exceeded anchor high after it formed
+            if after_anchor:
+                if breach_mode == 'close':
+                    max_price = max(float(c['close']) for c in after_anchor)
+                else:  # wick
+                    max_price = max(float(c['high']) for c in after_anchor)
+                if max_price > anchor.price:
                     return False
             return True
         else:  # low anchor
-            # Invalid if price has fallen below this low
-            if current_price < anchor.price:
-                return False
-            # Also check if any later LOW pivot is lower
-            for i in range(anchor_idx + 1, len(sorted_pivots)):
-                if sorted_pivots[i].pivot_type == 'low' and sorted_pivots[i].price < anchor.price:
+            # Check if price fell below anchor low after it formed
+            if after_anchor:
+                if breach_mode == 'close':
+                    min_price = min(float(c['close']) for c in after_anchor)
+                else:  # wick
+                    min_price = min(float(c['low']) for c in after_anchor)
+                if min_price < anchor.price:
                     return False
             return True
 

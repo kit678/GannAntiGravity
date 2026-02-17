@@ -242,6 +242,14 @@ class AngularPriceCoverageStudy:
                     'text': fan['priority_label'][0]  # P, S, T
                 })
 
+    def get_state(self) -> Dict[str, Any]:
+        """Public interface for state serialization (called by main.py)."""
+        return self._get_state()
+
+    def restore_state(self, state: Dict[str, Any]):
+        """Public interface for state restoration (called by main.py)."""
+        self._restore_state(state)
+
     def _get_state(self) -> Dict[str, Any]:
         """Get combined state for serialization."""
         return {

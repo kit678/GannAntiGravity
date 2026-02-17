@@ -59,7 +59,14 @@ export function processStudyResponse(chart, data, shapeTracking = {}) {
             const shapeId = shapeTracking[drawingId];
             if (shapeId) {
                 try {
-                    chart.removeEntity(shapeId);
+                    if (typeof shapeId === 'object' && typeof shapeId.then === 'function') {
+                        // Handle Promise-based shape IDs
+                        shapeId.then(id => {
+                            if (id) chart.removeEntity(id);
+                        }).catch(() => { });
+                    } else {
+                        chart.removeEntity(shapeId);
+                    }
                     delete shapeTracking[drawingId];
                 } catch (e) {
                     console.warn('[StudyDrawing] Failed to remove shape:', drawingId, e);
