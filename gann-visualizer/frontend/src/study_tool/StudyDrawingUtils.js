@@ -39,9 +39,15 @@ export function processStudyResponse(chart, data, shapeTracking = {}) {
     // Draw pivot markers
     if (data.pivot_markers && data.pivot_markers.length > 0) {
         data.pivot_markers.forEach(pivot => {
+            const trackingKey = pivot.id || `pivot_${pivot.type}_${pivot.time}`;
+
+            // Skip if this marker already exists (prevents duplicates from initial + study responses)
+            if (shapeTracking[trackingKey]) {
+                return;
+            }
+
             const shapeId = drawPivotMarker(chart, pivot);
             if (shapeId) {
-                const trackingKey = pivot.id || `pivot_${pivot.type}_${pivot.time}`;
                 shapeTracking[trackingKey] = shapeId;
             }
         });
@@ -214,13 +220,16 @@ export function drawPivotMarker(chart, pivot) {
         // 'triangle_down' might not be valid for createShape in this version, causing fallback to a flag-like default.
         // 'arrow_down' is the standard shape that looks like a triangle pointer.
 
+        const defaultShape = isHigh ? 'arrow_down' : 'arrow_up';
+        const defaultColor = isHigh ? '#e91e63' : '#2196F3';
+
         const options = {
-            shape: isHigh ? 'arrow_down' : 'arrow_up',
+            shape: pivot.shape || defaultShape,
             lock: true,
             disableUndo: true,
-            text: '', // Ensure no text is displayed (flags often have text)
+            text: pivot.text || '', // Ensure no text is displayed (flags often have text)
             overrides: {
-                color: isHigh ? '#e91e63' : '#2196F3',
+                color: pivot.color || defaultColor,
                 linewidth: 1,
             },
             zOrder: 'top'

@@ -652,6 +652,7 @@ async def fetch_candles(req: FetchCandlesRequest):
         # Calculate lookback date adjustment based on resolution and lookback_bars
         # This provides pivot/strategy context without fetching unnecessary data
         from_dt = datetime.strptime(req.from_date, '%Y-%m-%d')
+        target_start_ts = int(from_dt.timestamp())  # Used to filter initial markers
         
         if req.lookback_bars > 0:
             # Calculate how many days of data we need for lookback_bars based on resolution
@@ -744,7 +745,7 @@ async def fetch_candles(req: FetchCandlesRequest):
         
         print(f"[Replay] Returning {len(candles_list)} candles, option_cache_ready: {option_cache_ready}")
         
-        return {"candles": candles_list, "option_cache_ready": option_cache_ready}
+        return {"candles": candles_list, "option_cache_ready": option_cache_ready, "markers": []}
     except HTTPException:
         raise 
     except Exception as e:
@@ -795,21 +796,26 @@ async def _process_study_bar(req: EvaluateStrategyRequest):
     2. Slow Path (Reset/Jump): Replay history to build state, then return snapshot of ACTIVE fans only.
     """
     try:
-        from study_tool.angular_coverage_study import AngularPriceCoverageStudy
-        
         # Pass scale_ratio from frontend if provided, otherwise default
         study_config = {}
         if req.scale_ratio is not None and req.scale_ratio > 0:
             study_config['scale_ratio'] = req.scale_ratio
-            print(f"[Study] Using scale_ratio from chart: {req.scale_ratio}")
+            # print(f"[Study] Using scale_ratio from chart: {req.scale_ratio}")
         
         # Pass configurable pivot settings if provided
         if req.left_bars is not None:
             study_config['left_bars'] = req.left_bars
         if req.right_bars is not None:
             study_config['right_bars'] = req.right_bars
-        
-        study = AngularPriceCoverageStudy(config=study_config)
+            
+        if req.strategy == 'pivot_points_only':
+            from study_tool.pivot_points_study import PivotPointsStudy
+            study = PivotPointsStudy(config=study_config)
+            print(f"[Study] Evaluating PivotPointsStudy (config: {study_config})")
+        else:
+            from study_tool.angular_coverage_study import AngularPriceCoverageStudy
+            study = AngularPriceCoverageStudy(config=study_config)
+            print(f"[Study] Evaluating AngularPriceCoverageStudy (config: {study_config})")
         
         # Convert candles to expected format
         candles = []
@@ -862,61 +868,47 @@ async def _process_study_bar(req: EvaluateStrategyRequest):
             
         else:
             # SLOW PATH: Full rebuild (first run or reset)
+            # process_bar handles initialize_history internally on first call
+            # (same pattern as AngularPriceCoverageStudy)
             print(f"[Study] Slow path: Rebuilding from 0 to {req.current_index}")
             _study_cache = {'index': -1, 'strategy': req.strategy, 'state': None}
             
-            # Run history to build state and capture final result
-            final_result = None
-            for bar_idx in range(req.current_index + 1):
-                final_result = study.process_bar(
-                    candles=candles,
-                    bar_index=bar_idx,
-                    state=None
-                )
+            # Single call - process_bar auto-initializes history up to bar_index
+            final_result = study.process_bar(
+                candles=candles,
+                bar_index=req.current_index,
+                state=None
+            )
             
-            # NEW: Include pivot_markers from refactored study (Step 2)
-            # This enables visualization before fan drawing is implemented
-            if final_result and 'pivot_markers' in final_result:
-                output_pivots.extend(final_result['pivot_markers'])
-                print(f"[Study] Index {req.current_index}: Added {len(final_result['pivot_markers'])} pivot markers from study")
+            if final_result:
+                output_pivots.extend(final_result.get('pivot_markers', []))
+                output_drawings.extend(final_result.get('drawings', []))
+                output_remove.extend(final_result.get('remove_drawings', []))
+            print(f"[Study] Index {req.current_index}: Added {len(output_pivots)} pivot markers from study")
             
             # Generate SNAPSHOT of currently active fans (legacy/Step 3+)
             # This ensures we don't send ghost markers from destroyed fans
-            active_fans = study.angle_engine.active_fans
-            
-            print(f"[Study] Index {req.current_index}: Snapshot of {len(active_fans)} active fans")
-            
-            for fid, fan in active_fans.items():
-                print(f"[Study] Fan {fid}: {len(fan.lines)} lines")
-                # Add Drawings
-                output_drawings.extend(study.angle_engine.fan_to_drawing_commands(fan))
+            if hasattr(study, 'angle_engine'):
+                active_fans = study.angle_engine.active_fans
                 
-                # Add Markers (Regenerate with consistent IDs)
-                # The new hierarchical structure stores marker info differently
-                marked_times = set()  # Track to avoid duplicates
+                print(f"[Study] Index {req.current_index}: Snapshot of {len(active_fans)} active fans")
                 
-                # Method 1: Use stored hierarchy info (new v2.0 format)
-                hierarchy_info = fan.config.get('hierarchy')
-                if hierarchy_info:
-                    # Mark Origin
-                    if hierarchy_info.get('origin'):
-                        p = hierarchy_info['origin']
-                        if p['time'] not in marked_times:
-                            pid = f"pm_{p['time']}_{p['type']}"
-                            output_pivots.append({
-                                'id': pid,
-                                'type': f"pivot_{p['type']}",
-                                'time': p['time'],
-                                'price': p['price'],
-                                'bar_index': p.get('bar_index', 0)
-                            })
-                            marked_times.add(p['time'])
+                for fid, fan in active_fans.items():
+                    print(f"[Study] Fan {fid}: {len(fan.lines)} lines")
+                    # Add Drawings
+                    output_drawings.extend(study.angle_engine.fan_to_drawing_commands(fan))
                     
-                    # Mark Outer Container pivots
-                    if hierarchy_info.get('outer'):
-                        for key in ['from', 'to']:
-                            p = hierarchy_info['outer'].get(key)
-                            if p and p['time'] not in marked_times:
+                    # Add Markers (Regenerate with consistent IDs)
+                    # The new hierarchical structure stores marker info differently
+                    marked_times = set()  # Track to avoid duplicates
+                    
+                    # Method 1: Use stored hierarchy info (new v2.0 format)
+                    hierarchy_info = fan.config.get('hierarchy')
+                    if hierarchy_info:
+                        # Mark Origin
+                        if hierarchy_info.get('origin'):
+                            p = hierarchy_info['origin']
+                            if p['time'] not in marked_times:
                                 pid = f"pm_{p['time']}_{p['type']}"
                                 output_pivots.append({
                                     'id': pid,
@@ -926,24 +918,39 @@ async def _process_study_bar(req: EvaluateStrategyRequest):
                                     'bar_index': p.get('bar_index', 0)
                                 })
                                 marked_times.add(p['time'])
-                
-                # Method 2: Fallback to legacy format (from/to pivots + extra_pivots)
-                else:
-                    pivots_to_regen = [fan.from_pivot, fan.to_pivot]
-                    if 'extra_pivots' in fan.config:
-                        pivots_to_regen.extend(fan.config['extra_pivots'])
-
-                    for p in pivots_to_regen:
-                        if p['time'] not in marked_times:
-                            pid = f"pm_{p['time']}_{p['type']}"
-                            output_pivots.append({
-                                'id': pid,
-                                'type': f"pivot_{p['type']}",
-                                'time': p['time'],
-                                'price': p['price'],
-                                'bar_index': p.get('bar_index', 0)
-                            })
-                            marked_times.add(p['time'])
+                        
+                        # Mark Outer Container pivots
+                        if hierarchy_info.get('outer'):
+                            for key in ['from', 'to']:
+                                p = hierarchy_info['outer'].get(key)
+                                if p and p['time'] not in marked_times:
+                                    pid = f"pm_{p['time']}_{p['type']}"
+                                    output_pivots.append({
+                                        'id': pid,
+                                        'type': f"pivot_{p['type']}",
+                                        'time': p['time'],
+                                        'price': p['price'],
+                                        'bar_index': p.get('bar_index', 0)
+                                    })
+                                    marked_times.add(p['time'])
+                    
+                    # Method 2: Fallback to legacy format (from/to pivots + extra_pivots)
+                    else:
+                        pivots_to_regen = [fan.from_pivot, fan.to_pivot]
+                        if 'extra_pivots' in fan.config:
+                            pivots_to_regen.extend(fan.config['extra_pivots'])
+    
+                        for p in pivots_to_regen:
+                            if p['time'] not in marked_times:
+                                pid = f"pm_{p['time']}_{p['type']}"
+                                output_pivots.append({
+                                    'id': pid,
+                                    'type': f"pivot_{p['type']}",
+                                    'time': p['time'],
+                                    'price': p['price'],
+                                    'bar_index': p.get('bar_index', 0)
+                                })
+                                marked_times.add(p['time'])
             
             # Update cache after full run
             _study_cache['index'] = req.current_index
@@ -954,7 +961,7 @@ async def _process_study_bar(req: EvaluateStrategyRequest):
 
         # Add debug info for frontend console
         debug_info = {}
-        if study.stacks:
+        if hasattr(study, 'stacks') and study.stacks:
             debug_info = {
                 'context': study.stacks.context,
                 'anchor': study.stacks.anchor,
@@ -1247,41 +1254,130 @@ def run_backtest(req: BacktestRequest):
         if df is None or df.empty:
             raise HTTPException(status_code=500, detail=f"Failed to fetch data for {req.symbol}")
 
-        # NEW ARCHITECTURE: Use separated strategy and backtesting engine
-        try:
-            # Prepare strategy parameters
-            strategy_params = {}
+
+        # NEW ARCHITECTURE: Handle Studies vs Strategies
+        from strategies import is_study
+        
+        drawings = []
+        markers = []
+        filtered_trades = []
+        
+        if is_study(req.strategy):
+            print(f"Running STUDY backtest: {req.strategy}")
+            # Instantiate Study
+            study_config = {
+                'left_bars': 5, # Default, or could pass from req if BacktestRequest supported it
+                'right_bars': 5
+            }
             
-            # For five_ema strategy, pass dhan_client for option data enrichment
-            if req.strategy == 'five_ema':
-                strategy_params['dhan_client'] = client
-                strategy_params['underlying'] = 'NIFTY' if 'NIFTY' in req.symbol else 'BANKNIFTY'
-                strategy_params['use_option_data'] = True
+            if req.strategy == 'pivot_points_only':
+                from study_tool.pivot_points_study import PivotPointsStudy
+                study = PivotPointsStudy(config=study_config)
+            else:
+                from study_tool.angular_coverage_study import AngularPriceCoverageStudy
+                study = AngularPriceCoverageStudy(config=study_config)
             
-            # Get strategy instance (pure signal generator)
-            strategy = get_strategy(req.strategy, df, params=strategy_params)
+            # Prepare candles for study
+            # Study expects dicts: {'time', 'open', 'high', 'low', 'close'}
+            # Chart data already has 'time' (from pop timestamp) but we are before that conversion in the flow 
+            # We must use df which has 'timestamp'
+            study_candles = []
+            records = df.to_dict('records')
+            for r in records:
+                study_candles.append({
+                    'time': int(r['timestamp']),
+                    'open': float(r['open']),
+                    'high': float(r['high']),
+                    'low': float(r['low']),
+                    'close': float(r['close']),
+                    'volume': float(r.get('volume', 0))
+                })
             
-            # Create backtesting engine (handles position management and P&L)
-            backtest_engine = BacktestEngine(strategy)
-            
-            # Run backtest
-            result = backtest_engine.run(symbol=req.symbol)
-            
-            # Convert trades to old format for frontend compatibility
-            trades = [t.to_dict() for t in result.trades]
-            
-            print(f"NEW ENGINE: Backtest completed - {result.metrics['total_trades']} trades, P&L: {result.metrics['total_pnl']}")
-            
-        except Exception as strategy_error:
-            print(f"CRITICAL: Strategy Execution Failed: {strategy_error}")
-            import traceback
-            traceback.print_exc()
-            # STRICT MODE: Do not fallback. Fail the request.
-            raise HTTPException(status_code=500, detail=str(strategy_error))
-            
-            # Legacy Fallback Removed
-            # engine = GannStrategyEngine(df)
-            # ...
+            # Run Study (Full History Scan)
+            # Both studies support some form of history init
+            if hasattr(study, 'initialize_history'):
+                 study.initialize_history(study_candles)
+            elif hasattr(study, '_initialize_history'):
+                 # For PivotPointsStudy, we can force a scan
+                 study._initialize_history(study_candles, len(study_candles))
+
+            # Extract Markers/Drawings
+            # 1. Pivot Markers
+            if hasattr(study, 'pivot_detector'):
+                 for p in study.pivot_detector.confirmed_pivots:
+                     # Add markers
+                     marker_type = 'pivot_high' if p.pivot_type == 'high' else 'pivot_low'
+                     color = '#26a69a' if p.pivot_type == 'high' else '#ef5350'
+                     shape = 'arrow_down' if p.pivot_type == 'high' else 'arrow_up'
+                     
+                     markers.append({
+                        'id': f"{marker_type}_{p.time}",
+                        'type': marker_type,
+                        'time': p.time,
+                        'price': p.price,
+                        'bar_index': p.bar_index,
+                        'text': '',
+                        'color': color,
+                        'shape': shape
+                     })
+                     
+            # 2. Fan Drawings (Angular Study Only)
+            if hasattr(study, 'angle_engine') and req.strategy != 'pivot_points_only':
+                 # Angular study needs a different extraction method usually done via process_bar
+                 # For "Instant" results, we might need to rely on what initialize_history set up, 
+                 # or run a quick loop if stacks were created.
+                 # initialize_history in AngularStudy sets up `self.stacks`.
+                 # We can use that to draw the *current* state (last active fans).
+                 if study.stacks:
+                      # This is a simplification: it only draws the state at the END of history
+                      # Ideally "Backtest" for a visual study means "show me the final result"
+                      pass 
+
+        else:
+            # STRATEGY Execution (Trades)
+            try:
+                # Prepare strategy parameters
+                strategy_params = {}
+                
+                # For five_ema strategy, pass dhan_client for option data enrichment
+                if req.strategy == 'five_ema':
+                    strategy_params['dhan_client'] = client
+                    strategy_params['underlying'] = 'NIFTY' if 'NIFTY' in req.symbol else 'BANKNIFTY'
+                    strategy_params['use_option_data'] = True
+                
+                # Get strategy instance (pure signal generator)
+                strategy = get_strategy(req.strategy, df, params=strategy_params)
+                
+                # Create backtesting engine (handles position management and P&L)
+                backtest_engine = BacktestEngine(strategy)
+                
+                # Run backtest
+                result = backtest_engine.run(symbol=req.symbol)
+                
+                # Convert trades to old format for frontend compatibility
+                trades = [t.to_dict() for t in result.trades]
+                
+                print(f"NEW ENGINE: Backtest completed - {result.metrics['total_trades']} trades, P&L: {result.metrics['total_pnl']}")
+                
+                # Filter Trades by Date
+                # CRITICAL FIX: Use IST timezone since Dhan data is in IST
+                ist = pytz.timezone('Asia/Kolkata')
+                from_dt = ist.localize(datetime.strptime(req.from_date, "%Y-%m-%d"))
+                from_ts = int(from_dt.timestamp())
+                to_dt = ist.localize(datetime.strptime(req.to_date, "%Y-%m-%d").replace(hour=23, minute=59, second=59))
+                to_ts = int(to_dt.timestamp())
+                
+                filtered_trades = [
+                    t for t in trades 
+                    if from_ts <= int(t['time']) <= to_ts
+                ]
+                
+            except Exception as strategy_error:
+                print(f"CRITICAL: Strategy Execution Failed: {strategy_error}")
+                import traceback
+                traceback.print_exc()
+                # STRICT MODE: Do not fallback. Fail the request.
+                raise HTTPException(status_code=500, detail=str(strategy_error))
         
         # Prepare response
         # We return EVERYTHING so frontend can replay it
@@ -1320,17 +1416,19 @@ def run_backtest(req: BacktestRequest):
             if from_ts <= c['time'] <= to_ts
         ]
         
-        # Filter Trades
-        filtered_trades = [
-            t for t in trades 
-            if from_ts <= int(t['time']) <= to_ts
+        # Filter Markers (for studies)
+        filtered_markers = [
+            m for m in markers
+            if from_ts <= int(m['time']) <= to_ts
         ]
         
-        print(f"Backtest Filtering: {len(chart_data_list)} -> {len(filtered_candles)} bars, {len(trades)} -> {len(filtered_trades)} trades (Range: {req.from_date} to {req.to_date})")
+        print(f"Backtest Filtering: {len(chart_data_list)} -> {len(filtered_candles)} bars, {len(filtered_trades)} trades, {len(filtered_markers)} markers (Range: {req.from_date} to {req.to_date})")
 
         return {
             "candles": filtered_candles,
             "trades": filtered_trades,
+            "markers": filtered_markers,
+            "drawings": drawings,
             "strategy": req.strategy,
             "symbol": req.symbol
         }
@@ -1338,6 +1436,127 @@ def run_backtest(req: BacktestRequest):
         import traceback
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Backend Error: {str(e)}")
+
+@app.post("/fetch_candles")
+def fetch_candles(req: FetchCandlesRequest):
+    """
+    Fetch candles for progressive replay/simulation.
+    This fetches historical data + lookback bars.
+    NEW: Also returns INITIAL MARKERS if a study is active, so they appear immediately.
+    """
+    try:
+        data_source = req.data_source
+        client = get_data_client(data_source)
+        
+        # Calculate extended range for lookback context
+        to_dt = datetime.strptime(req.to_date, '%Y-%m-%d')
+        from_dt = datetime.strptime(req.from_date, '%Y-%m-%d')
+        # Ensure we have enough history for lookback_bars
+        # For High Timeframe (1D, 1W), 5 days is NOT enough.
+        # For intraday (1m), 5 days is 1875 bars.
+        # If lookback_bars is 5000, we need more.
+        # Safest is to fetch significantly more history.
+        buffer_days = 365 # Fetch 1 year of context to be safe
+        start_dt = from_dt - timedelta(days=buffer_days)
+        
+        # Fetch Data
+        print(f"[FetchCandles] Requesting range: {start_dt} to {req.to_date} for resolution {req.resolution}")
+        df = client.fetch_data(req.symbol, start_dt.strftime('%Y-%m-%d'), req.to_date, interval=req.resolution)
+        
+        if df is None or df.empty:
+             print(f"[FetchCandles] No data returned from client")
+             raise HTTPException(status_code=404, detail="No data found for symbol/range")
+
+        print(f"[FetchCandles] Client returned {len(df)} rows. First timestamp: {df['timestamp'].iloc[0] if not df.empty else 'None'}")
+        
+        # Determine Cutoff
+        target_start_ts = int(from_dt.timestamp())
+        
+        # Filter (keeping lookback bars)
+        df_sorted = df.sort_values('timestamp')
+        
+        # Find index of start date
+        start_indices = df_sorted[df_sorted['timestamp'] >= target_start_ts].index
+        
+        final_df = df_sorted
+        if not start_indices.empty:
+            start_idx = start_indices[0]
+            # Include lookback_bars before the start
+            slice_start = max(0, start_idx - req.lookback_bars)
+            final_df = df_sorted.iloc[slice_start:]
+        
+        # Convert to list
+        candles = []
+        records = final_df.to_dict('records')
+        for r in records:
+            candles.append({
+                'time': int(r['timestamp']), # UNIX timestamp
+                'open': float(r['open']),
+                'high': float(r['high']),
+                'low': float(r['low']),
+                'close': float(r['close']),
+                'volume': float(r.get('volume', 0))
+            })
+            
+        # PROCESS STUDY for INITIAL MARKERS
+        # Currently only for Pivot Points study
+        initial_markers = []
+        if req.strategy == 'pivot_points_only':
+            from strategies import is_study
+            if is_study(req.strategy):
+                print(f"[FetchCandles] Pre-calculating historical pivots for {req.strategy}")
+                
+                # DEBUG DATA
+                print(f"DEBUG: First 5 candles for study init: {candles[:5]}")
+
+                from study_tool.pivot_points_study import PivotPointsStudy
+                
+                # Hardcoded defaults or could be passed
+                study = PivotPointsStudy(config={'left_bars': 5, 'right_bars': 5})
+                
+                # Prepare study candles (format is same)
+                if hasattr(study, '_initialize_history'):
+                    print(f"[FetchCandles] Initializing study history with {len(candles)} candles")
+                    study._initialize_history(candles, len(candles))
+                    if hasattr(study, 'pivot_detector'):
+                         # Confirmed pivots should be populated by _initialize_history
+                         # Check if pivotal data exists
+                         pivots = getattr(study.pivot_detector, 'confirmed_pivots', [])
+                         print(f"[FetchCandles] Pivots found: {len(pivots)}")
+                
+                # Extract markers
+                if hasattr(study, 'pivot_detector'):
+                    # Use get-attribute safety
+                    pivots = getattr(study.pivot_detector, 'confirmed_pivots', [])
+                    for p in pivots:
+                         marker_type = 'pivot_high' if p.pivot_type == 'high' else 'pivot_low'
+                         color = '#26a69a' if p.pivot_type == 'high' else '#ef5350'
+                         shape = 'arrow_down' if p.pivot_type == 'high' else 'arrow_up'
+                         
+                         initial_markers.append({
+                            'id': f"{marker_type}_{p.time}",
+                            'type': marker_type,
+                            'time': p.time,
+                            'price': p.price,
+                            'bar_index': p.bar_index,
+                            'text': '', # No text label
+                            'color': color,
+                            'shape': shape
+                         })
+                         
+        print(f"Fetched {len(candles)} candles for replay. Initial Markers: {len(initial_markers)}")
+
+        return {
+            "candles": candles,
+            "symbol": req.symbol,
+            "markers": initial_markers # Return markers
+        }
+
+    except Exception as e:
+        print(f"Error in fetch_candles: {e}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=8005, reload=True)

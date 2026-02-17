@@ -183,12 +183,14 @@ STRATEGY_REGISTRY = {
     'ichimoku_cloud': TimeCycleBreakoutStrategy,  # Placeholder
     'five_ema': FiveEMAStrategy,
     'angular_coverage': TimeCycleBreakoutStrategy, # Placeholder for backtest compatibility
+    'pivot_points_only': TimeCycleBreakoutStrategy, # Placeholder
 }
 
 # Study registry - maps study names to their module identifiers
 # Studies output drawings instead of trade signals
 STUDY_REGISTRY = {
     'angular_coverage': 'angular_price_coverage',
+    'pivot_points_only': 'pivot_points_study',
 }
 
 

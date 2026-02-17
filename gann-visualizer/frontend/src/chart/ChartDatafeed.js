@@ -238,6 +238,33 @@ class ChartDatafeed {
         }, 500);
     }
 
+    // NEW: Update strategy parameters (called when chart is ready and scale ratio is available)
+    setReplayStrategy(strategy, instrumentType, onTradeCallback, scaleRatio, pivotSettings) {
+        console.log("[Datafeed] Updating replay strategy params:", strategy, instrumentType, scaleRatio, pivotSettings);
+        this.strategyName = strategy;
+        this.instrumentType = instrumentType;
+        this.tradeCallback = onTradeCallback;
+        if (scaleRatio) this.scaleRatio = scaleRatio;
+        if (pivotSettings) this.pivotSettings = pivotSettings;
+
+        // Setup done - trigger initial evaluation if not already done
+        if (!this.evaluatedIndices.has(this.currentStep)) {
+            this._evaluateCurrentStep();
+        }
+
+        // CRITICAL FIX: Ensure chart data is reset now that widget is definitely ready
+        // This handles cases where setProgressiveReplayData failed to reset because widget wasn't ready
+        if (window.tvWidget) {
+            try {
+                const chart = window.tvWidget.activeChart();
+                console.log("[Datafeed] Widget ready - forcing final data reset for replay");
+                chart.resetData();
+            } catch (e) {
+                console.warn("[Datafeed] Failed to reset data in setReplayStrategy:", e);
+            }
+        }
+    }
+
     // Helper to unsubscribe from the original UDF datafeed
     _unsubscribeFromOriginal() {
         console.log("[ChartDatafeed] Unsubscribing from original UDF datafeed");

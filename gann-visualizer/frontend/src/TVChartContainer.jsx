@@ -358,8 +358,9 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
         },
 
         // INSTANT MODE: Plot all candles and signals at once
-        startBacktestInstant: (candles, trades, resolution = '1') => {
+        startBacktestInstant: (candles, trades, resolution = '1', markers = [], drawings = []) => {
             console.log("Starting Instant Backtest", candles.length, "candles,", trades.length, "trades, resolution:", resolution);
+            console.log("Instant Study Data:", markers.length, "markers,", drawings.length, "drawings");
 
             if (!datafeedRef.current || !widgetRef.current) {
                 console.error("Chart not ready");
@@ -408,6 +409,7 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
                 const chart = widgetRef.current.activeChart();
                 chart.removeAllShapes();
                 recentMarkersRef.current = {};
+                studyShapesRef.current = {}; // Clear study shapes
 
                 // CRITICAL FIX: Set visible range FIRST to force TradingView to index all bars
                 // This ensures that when we call createShape later, the bars exist in the chart
@@ -425,7 +427,7 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
 
                         // Wait a bit for TradingView to fully index the bars after range change
                         setTimeout(() => {
-                            console.log("[FIX] Now plotting markers (post-range-set)...");
+                            console.log("[FIX] Now plotting markers/trades (post-range-set)...");
 
                             // Plot all trades - snap each trade time to nearest candle
                             let plotted = 0;
@@ -444,6 +446,20 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
                                 }
                             });
                             console.log(`Successfully plotted ${plotted}/${trades.length} trades`);
+
+                            // PLOT STUDY MARKERS (Pivots/Drawings)
+                            if (markers.length > 0 || drawings.length > 0) {
+                                console.log(`Plotting ${markers.length} study markers and ${drawings.length} drawings`);
+                                try {
+                                    studyShapesRef.current = processStudyResponse(chart, {
+                                        pivot_markers: markers,
+                                        drawings: drawings
+                                    }, studyShapesRef.current);
+                                } catch (studyErr) {
+                                    console.error("Error plotting study data:", studyErr);
+                                }
+                            }
+
                         }, 500); // 500ms delay to allow bar indexing
                     }).catch(err => {
                         console.error("Error setting visible range:", err);
@@ -459,7 +475,18 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
                                 console.warn("Failed to plot trade:", t, err2);
                             }
                         });
-                        console.log(`Fallback plotted ${plotted}/${trades.length} trades`);
+
+                        // Fallback study plotting
+                        if (markers.length > 0 || drawings.length > 0) {
+                            try {
+                                studyShapesRef.current = processStudyResponse(chart, {
+                                    pivot_markers: markers,
+                                    drawings: drawings
+                                }, studyShapesRef.current);
+                            } catch (studyErr) {
+                                console.error("Error plotting study data:", studyErr);
+                            }
+                        }
                     });
                 } else {
                     console.warn("No candles to set visible range");
@@ -704,17 +731,42 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
                 studyShapesRef.current = {};    // Reset study shape tracking
                 console.log("[Progressive Replay] Chart ready - cleared existing shapes");
 
-                // NOW get the scale ratio since chart is ready
+                // Get scale ratio for angle calculations
                 try {
                     scaleRatio = chart.getPriceToBarRatio();
-                    console.log("[Progressive Replay] Got scale ratio from ready chart:", scaleRatio);
-                    // Update the datafeed with the correct scale ratio
-                    if (datafeedRef.current && scaleRatio) {
-                        datafeedRef.current.scaleRatio = scaleRatio;
-                        console.log("[Progressive Replay] Updated datafeed scaleRatio to:", scaleRatio);
-                    }
+                    console.log("[Progressive Replay] Captured Price-to-Bar Ratio:", scaleRatio);
                 } catch (e) {
-                    console.warn("[Progressive Replay] Could not get scale ratio even after chart ready:", e);
+                    console.warn("Could not get price-to-bar ratio:", e);
+                }
+
+                // Plot Initial Markers (e.g. historical pivots) if provided
+                // Plot Initial Markers (e.g. historical pivots) if provided
+                if (pivotSettings && pivotSettings.initialMarkers && pivotSettings.initialMarkers.length > 0) {
+                    console.log(`[Progressive Replay] Plotting ${pivotSettings.initialMarkers.length} initial markers`);
+                    try {
+                        console.log("[Progressive Replay] Marker processing started");
+                        // Use processStudyResponse to handle marker plotting
+                        studyShapesRef.current = processStudyResponse(chart, {
+                            pivot_markers: pivotSettings.initialMarkers,
+                            drawings: [] // No initial drawings for now
+                        }, studyShapesRef.current);
+                        console.log("[Progressive Replay] Marker processing complete");
+                    } catch (err) {
+                        console.error("[Progressive Replay] Failed to plot initial markers:", err);
+                    }
+                } else {
+                    console.warn("[Progressive Replay] No initial markers found in pivotSettings:", pivotSettings);
+                }
+
+                // Update datafeed with scale ratio and pivot settings
+                if (datafeedRef.current) {
+                    datafeedRef.current.setReplayStrategy(
+                        strategy,
+                        instrumentType,
+                        onTradeCallback,
+                        scaleRatio,
+                        pivotSettings
+                    );
                 }
             });
 

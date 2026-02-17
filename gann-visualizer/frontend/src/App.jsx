@@ -162,7 +162,7 @@ function App() {
             // Trigger Instant Chart Update
             if (chartRef.current) {
                 // Pass the requested resolution to ensure chart alignment
-                chartRef.current.startBacktestInstant(result.candles, result.trades, currentResolution);
+                chartRef.current.startBacktestInstant(result.candles, result.trades, currentResolution, result.markers, result.drawings);
             }
 
             // Hide replay controls in instant mode
@@ -237,7 +237,7 @@ function App() {
             }
 
             const data = await response.json();
-            console.log(`[Step-by-Step] Fetched ${data.candles.length} candles (includes ${LOOKBACK_BARS} lookback bars for context)`);
+            console.log(`[Step-by-Step] Fetched ${data.candles.length} candles (includes ${LOOKBACK_BARS} lookback bars for context). Initial Markers: ${data.markers ? data.markers.length : 0}`);
 
             // Activate UI only after data is ready to prevent race conditions
             setIsReplayMode(true);
@@ -261,7 +261,11 @@ function App() {
                     (trade) => {
                         handleTradeLogged(trade);
                     },
-                    { leftBars: pivotLeftBars, rightBars: pivotRightBars }  // Pivot settings
+                    {
+                        leftBars: pivotLeftBars,
+                        rightBars: pivotRightBars,
+                        initialMarkers: data.markers || [] // Pass markers if available
+                    }
                 );
             }
         } catch (error) {
@@ -351,6 +355,7 @@ function App() {
                         <option value="mechanical_3day">Mechanical 3-Day Swing</option>
                         <option value="five_ema">5 EMA Breakout Strategy</option>
                         <option value="angular_coverage">Angular Price Coverage Study</option>
+                        <option value="pivot_points_only">Pivot Points Only</option>
                         <option value="ichimoku_cloud">Ichimoku Cloud Breakout</option>
                         <option value="gann_square_9">Gann Square of 9</option>
                     </select>
@@ -370,8 +375,8 @@ function App() {
                         <label>End: <input type="date" defaultValue={defaultEndDate} ref={endDateRef} /></label>
                     </div>
 
-                    {/* Pivot settings - only show for Angular Coverage study */}
-                    {strategy === 'angular_coverage' && (
+                    {/* Pivot settings - only show for Angular Coverage study and Pivot Points Only */}
+                    {(strategy === 'angular_coverage' || strategy === 'pivot_points_only') && (
                         <div className="pivot-settings">
                             <label title="Bars to the left of candidate candle for pivot detection">
                                 L: <input type="number" min="1" max="50" value={pivotLeftBars}

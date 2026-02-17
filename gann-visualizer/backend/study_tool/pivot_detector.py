@@ -127,11 +127,12 @@ class PivotDetector:
                     low_fail_reason = f"Right neighbor +{i} <= candidate"
                     break
         
-        # Debug prints disabled to prevent log flooding
-        # if is_pivot_high:
-        #     print(f"[PivotDetector] FOUND RAW HIGH at {candidate_time} Price: {candidate_high}")
-        # if is_pivot_low:
-        #     print(f"[PivotDetector] FOUND RAW LOW at {candidate_time} Price: {candidate_low}")
+        if is_pivot_high:
+             # print(f"[PivotDetector] FOUND RAW HIGH at {candidate_time} Price: {candidate_high}")
+             pass
+        if is_pivot_low:
+             # print(f"[PivotDetector] FOUND RAW LOW at {candidate_time} Price: {candidate_low}")
+             pass
         
         # Process detected pivots - add to confirmed_pivots IMMEDIATELY
         # Successive filtering: if same type as last, replace if better (higher high / lower low)
@@ -143,6 +144,9 @@ class PivotDetector:
                 bar_index=candidate_idx,
                 pivot_type='high'
             )
+            
+            # DEBUG LOG
+            # print(f"DEBUG: Found High Pivot at {candidate_idx} price {candidate_high}")
             
             if self.last_pivot_type == 'high' and self.last_high_pivot is not None:
                 # Same type as last - successive filtering
@@ -184,6 +188,9 @@ class PivotDetector:
                 bar_index=candidate_idx,
                 pivot_type='low'
             )
+
+            # DEBUG LOG
+            # print(f"DEBUG: Found Low Pivot at {candidate_idx} price {candidate_low}")
             
             if self.last_pivot_type == 'low' and self.last_low_pivot is not None:
                 # Same type as last - successive filtering
