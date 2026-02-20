@@ -312,7 +312,47 @@ class AngleEngine:
                 fan_id=fan_id
             )
             lines.append(frac_line)
+            
+        # --- HORIZONTAL TARGET (1/2 Angle Intersection) ---
+        # The horizontal target originates where the 1/2 fractional line intersects
+        # the vertical time axis of the ANCHOR pivot.
         
+        # 1. Determine intersection coordinates (Y intercept)
+        db_anchor = abs(target_bar - origin_bar) # distance to anchor
+        frac_theta_half = theta_radians * 0.5    # 1/2 Angle
+        
+        # Calculate visual height at anchor intersection
+        y_visual_intercept = db_anchor * math.tan(frac_theta_half)
+        intercept_price = origin_price + (y_visual_intercept * scale_ratio)
+        intercept_time = get_time_for_bar_index(origin_bar + db_anchor) # This is strictly the Anchor's Time
+        
+        # 2. Determine end coordinates (Circle Edge)
+        # Using Pythagoras: x^2 + y^2 = r^2 -> x = sqrt(r^2 - y^2)
+        # We must clamp y_visual_intercept to radius to prevent domain errors
+        clamped_y_visual = min(y_visual_intercept, radius)
+        
+        # Calculate horizontal distance from origin to circle edge at this Y height
+        x_visual_edge = math.sqrt(max(0, radius**2 - clamped_y_visual**2))
+        end_edge_time = get_time_for_bar_index(origin_bar + x_visual_edge)
+        
+        # Only draw if the intersection point is actually BEFORE the circle edge,
+        # otherwise the horizontal line would have negative/zero length.
+        if x_visual_edge > db_anchor:
+            horizontal_line = AngleLine(
+                id=f"{fan_id}_htarget",
+                start_time=int(intercept_time),
+                start_price=_safe_float(intercept_price),
+                end_time=int(end_edge_time),
+                end_price=_safe_float(intercept_price), # Perfectly flat
+                color='#FFFFFF', # White Dotted per screenshot
+                width=1,
+                fraction=None,
+                fan_id=fan_id
+            )
+            # We must explicitly tag this inside angular_coverage_study.py or StudyDrawingUtils.js
+            # to remain dotted if we want 'options.linestyle: 1', but passing through standard AngleLine
+            # it will adopt the trend_line shape. We will handle styling overrides in fan_to_drawing_commands.
+            lines.append(horizontal_line)
         fan = AngleFan(
             id=fan_id,
             from_pivot=from_pivot,
@@ -448,7 +488,7 @@ class AngleEngine:
                 'options': {
                     'linecolor': line.color,
                     'linewidth': line.width,
-                    'linestyle': 1,  # 1 = Dotted
+                    'linestyle': 1 if line.id.endswith('_main') else 1,  # 1 = Dotted. All lines dotted per screenshot.
                     'fanLabel': fan.priority_label,
                     'extendLeft': False,
                     'extendRight': False
