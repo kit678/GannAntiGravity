@@ -17,6 +17,28 @@
 export function processStudyResponse(chart, data, shapeTracking = {}) {
     if (!chart || !data) return shapeTracking;
 
+    // Remove completed drawings FIRST
+    if (data.remove_drawings && data.remove_drawings.length > 0) {
+        data.remove_drawings.forEach(drawingId => {
+            const shapeId = shapeTracking[drawingId];
+            if (shapeId) {
+                try {
+                    if (typeof shapeId === 'object' && typeof shapeId.then === 'function') {
+                        // Handle Promise-based shape IDs
+                        shapeId.then(id => {
+                            if (id) chart.removeEntity(id);
+                        }).catch(() => { });
+                    } else {
+                        chart.removeEntity(shapeId);
+                    }
+                    delete shapeTracking[drawingId];
+                } catch (e) {
+                    console.warn('[StudyDrawing] Failed to remove shape:', drawingId, e);
+                }
+            }
+        });
+    }
+
     // Draw angle lines or polylines (EMA, indicators)
     if (data.drawings && data.drawings.length > 0) {
         data.drawings.forEach(drawing => {
@@ -49,28 +71,6 @@ export function processStudyResponse(chart, data, shapeTracking = {}) {
             const shapeId = drawPivotMarker(chart, pivot);
             if (shapeId) {
                 shapeTracking[trackingKey] = shapeId;
-            }
-        });
-    }
-
-    // Remove completed drawings
-    if (data.remove_drawings && data.remove_drawings.length > 0) {
-        data.remove_drawings.forEach(drawingId => {
-            const shapeId = shapeTracking[drawingId];
-            if (shapeId) {
-                try {
-                    if (typeof shapeId === 'object' && typeof shapeId.then === 'function') {
-                        // Handle Promise-based shape IDs
-                        shapeId.then(id => {
-                            if (id) chart.removeEntity(id);
-                        }).catch(() => { });
-                    } else {
-                        chart.removeEntity(shapeId);
-                    }
-                    delete shapeTracking[drawingId];
-                } catch (e) {
-                    console.warn('[StudyDrawing] Failed to remove shape:', drawingId, e);
-                }
             }
         });
     }

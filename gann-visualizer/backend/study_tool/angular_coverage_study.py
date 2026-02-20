@@ -207,6 +207,25 @@ class AngularPriceCoverageStudy:
             # Generate drawing commands
             drawings = self.angle_engine.fan_to_drawing_commands(fan_obj)
             result['drawings'].extend(drawings)
+            
+        # Update existing fans if their priority label changed
+        for key in new_keys & old_keys:
+            fan_data = new_fan_map[key]
+            engine_fan_id = self._active_fan_keys[key]
+            if engine_fan_id in self.angle_engine.active_fans:
+                fan_obj = self.angle_engine.active_fans[engine_fan_id]
+                if fan_obj.priority_label != fan_data['priority_label']:
+                    self.log(f"[Study] Promoting fan: {key} from {fan_obj.priority_label} to {fan_data['priority_label']}")
+                    fan_obj.priority_label = fan_data['priority_label']
+                    
+                    # We need to re-send to frontend because options.fanLabel is used for visibility
+                    # First, queue the old lines for removal
+                    for line in fan_obj.lines:
+                        result['remove_drawings'].append(line.id)
+                        
+                    # Then generate and append the new lines with the updated label
+                    drawings = self.angle_engine.fan_to_drawing_commands(fan_obj)
+                    result['drawings'].extend(drawings)
 
         # Add pivot markers for debugging
         self._add_fan_markers(logical_fans, result)

@@ -20,6 +20,13 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
     // Track fan labels for visibility toggling
     const fanLabelsRef = useRef({});
 
+    // Store latest visible labels so callbacks don't capture stale state
+    const visibleFanLabelsRef = useRef(['Primary', 'Secondary', 'Tertiary']);
+
+    useEffect(() => {
+        visibleFanLabelsRef.current = props.visibleFanLabels || ['Primary', 'Secondary', 'Tertiary'];
+    }, [props.visibleFanLabels]);
+
     useEffect(() => {
         console.log('[TVChart] useEffect triggered - dataSource:', dataSource, 'symbol:', symbol);
 
@@ -489,7 +496,7 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
                                     }, studyShapesRef.current);
 
                                     // Track Fan Labels & Apply Visibility
-                                    const visibleLabels = props.visibleFanLabels || ['Primary', 'Secondary', 'Tertiary'];
+                                    const visibleLabels = visibleFanLabelsRef.current;
                                     drawings.forEach(d => {
                                         if (d.options && d.options.fanLabel) {
                                             fanLabelsRef.current[d.id] = d.options.fanLabel;
@@ -769,7 +776,7 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
 
                         // Handle Fan Visibility
                         if (studyData.drawings && studyData.drawings.length > 0) {
-                            const visibleLabels = props.visibleFanLabels || ['Primary', 'Secondary', 'Tertiary'];
+                            const visibleLabels = visibleFanLabelsRef.current;
                             studyData.drawings.forEach(d => {
                                 if (d.options && d.options.fanLabel) {
                                     fanLabelsRef.current[d.id] = d.options.fanLabel;
