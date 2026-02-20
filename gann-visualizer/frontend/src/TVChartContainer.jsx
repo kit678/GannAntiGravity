@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState, useImperativeHandle, forwardRef } f
 import createChartDatafeed from './chart/ChartDatafeed';
 import { processStudyResponse, clearAllStudyDrawings } from './study_tool/StudyDrawingUtils';
 
-export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, interval = '60', onTradeLogged, dataSource = 'dhan', onSymbolChange }, ref) => {
+export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, interval = '60', onTradeLogged, dataSource = 'dhan', onSymbolChange, ...props }, ref) => {
     const chartContainerRef = useRef(null);
     const datafeedRef = useRef(null);
     const widgetRef = useRef(null);
@@ -17,6 +17,8 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
 
     // Track study shapes for cleanup
     const studyShapesRef = useRef({});
+    // Track fan labels for visibility toggling
+    const fanLabelsRef = useRef({});
 
     useEffect(() => {
         console.log('[TVChart] useEffect triggered - dataSource:', dataSource, 'symbol:', symbol);
@@ -139,6 +141,36 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
             }
         };
     }, [symbol, datafeedUrl, interval, dataSource]);
+
+    // Handle Visibility Toggles
+    useEffect(() => {
+        if (!widgetRef.current) return;
+
+        try {
+            const chart = widgetRef.current.activeChart();
+            const visibleLabels = props.visibleFanLabels || ['Primary', 'Secondary', 'Tertiary'];
+            console.log('[TVChart] Updating fan visibility:', visibleLabels);
+
+            Object.keys(fanLabelsRef.current).forEach(drawingId => {
+                const label = fanLabelsRef.current[drawingId];
+                const shapeId = studyShapesRef.current[drawingId];
+
+                if (shapeId && label) {
+                    const isVisible = visibleLabels.includes(label) || label === 'Unknown';
+                    // processStudyResponse handles IDs that might be promises or direct
+                    if (typeof shapeId === 'object' && typeof shapeId.then === 'function') {
+                        shapeId.then(id => {
+                            if (id) chart.setEntityVisibility(id, isVisible);
+                        });
+                    } else {
+                        chart.setEntityVisibility(shapeId, isVisible);
+                    }
+                }
+            });
+        } catch (e) {
+            console.warn('[TVChart] Error updating visibility:', e);
+        }
+    }, [props.visibleFanLabels]);
 
     // Helper to convert time to seconds (for TradingView shape API)
     const toSeconds = (time) => {
@@ -455,6 +487,29 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
                                         pivot_markers: markers,
                                         drawings: drawings
                                     }, studyShapesRef.current);
+
+                                    // Track Fan Labels & Apply Visibility
+                                    const visibleLabels = props.visibleFanLabels || ['Primary', 'Secondary', 'Tertiary'];
+                                    drawings.forEach(d => {
+                                        if (d.options && d.options.fanLabel) {
+                                            fanLabelsRef.current[d.id] = d.options.fanLabel;
+
+                                            // Apply immediate visibility
+                                            const shapeId = studyShapesRef.current[d.id];
+                                            const isVisible = visibleLabels.includes(d.options.fanLabel);
+
+                                            if (shapeId) {
+                                                if (typeof shapeId === 'object' && typeof shapeId.then === 'function') {
+                                                    shapeId.then(id => {
+                                                        if (id) chart.setEntityVisibility(id, isVisible);
+                                                    });
+                                                } else {
+                                                    chart.setEntityVisibility(shapeId, isVisible);
+                                                }
+                                            }
+                                        }
+                                    });
+
                                 } catch (studyErr) {
                                     console.error("Error plotting study data:", studyErr);
                                 }
@@ -711,6 +766,31 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
                     try {
                         const chart = widgetRef.current.activeChart();
                         studyShapesRef.current = processStudyResponse(chart, studyData, studyShapesRef.current);
+
+                        // Handle Fan Visibility
+                        if (studyData.drawings && studyData.drawings.length > 0) {
+                            const visibleLabels = props.visibleFanLabels || ['Primary', 'Secondary', 'Tertiary'];
+                            studyData.drawings.forEach(d => {
+                                if (d.options && d.options.fanLabel) {
+                                    fanLabelsRef.current[d.id] = d.options.fanLabel;
+
+                                    // Apply immediate visibility
+                                    const shapeId = studyShapesRef.current[d.id];
+                                    const isVisible = visibleLabels.includes(d.options.fanLabel);
+
+                                    if (shapeId) {
+                                        if (typeof shapeId === 'object' && typeof shapeId.then === 'function') {
+                                            shapeId.then(id => {
+                                                if (id) chart.setEntityVisibility(id, isVisible);
+                                            });
+                                        } else {
+                                            chart.setEntityVisibility(shapeId, isVisible);
+                                        }
+                                    }
+                                }
+                            });
+                        }
+
                     } catch (err) {
                         console.warn("[Study] Error processing drawings:", err.message);
                     }

@@ -17,8 +17,23 @@ import sys
 import os
 
 # --- LOGGING CONFIGURATION ---
+LOG_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "logs")
+
+# Ensure log directory exists
+if not os.path.exists(LOG_DIR):
+    os.makedirs(LOG_DIR)
+
+# Clean up old session logs in the logs directory
+for filename in os.listdir(LOG_DIR):
+    if filename.startswith("backend_session_") and filename.endswith(".log"):
+        file_path = os.path.join(LOG_DIR, filename)
+        try:
+            os.remove(file_path)
+        except Exception as e:
+            print(f"Failed to delete old log {file_path}: {e}")
+
 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-LOG_FILE = f"backend_session_{timestamp}.log"
+LOG_FILE = os.path.join(LOG_DIR, f"backend_session_{timestamp}.log")
 
 # Create root logger
 logger = logging.getLogger()

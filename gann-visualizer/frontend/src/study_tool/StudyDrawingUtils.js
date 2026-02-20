@@ -102,6 +102,7 @@ export function drawAngleLine(chart, drawing) {
             overrides: {
                 linecolor: drawing.options?.linecolor || '#FF6600',
                 linewidth: drawing.options?.linewidth || 2,
+                linestyle: drawing.options?.linestyle !== undefined ? drawing.options.linestyle : 0,
                 extendLeft: drawing.options?.extendLeft || false,
                 extendRight: drawing.options?.extendRight || false,
             },

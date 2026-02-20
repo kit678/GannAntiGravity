@@ -44,6 +44,7 @@ class AngleFan:
     to_pivot: Dict          # Destination pivot {time, price, type}
     lines: List[AngleLine]  # All lines in this fan
     is_completed: bool      # True if price has covered all angles
+    priority_label: str = "Unknown" # Fan priority (Primary, Secondary, etc.)
     config: Dict[str, Any] = field(default_factory=dict)  # Metadata
 
 
@@ -94,7 +95,8 @@ class AngleEngine:
         self,
         from_pivot: Dict[str, Any],
         to_pivot: Dict[str, Any],
-        current_candles: List[Dict[str, Any]]
+        current_candles: List[Dict[str, Any]],
+        priority_label: str = "Unknown"
     ) -> AngleFan:
         """
         Create an angle fan from two pivots using EXPLICIT ANGLE DIVISION.
@@ -104,11 +106,14 @@ class AngleEngine:
         - θ = arctan(price_change / time_change)
         - Divide THAT specific angle by fractions (7/8, 3/4, 1/2, 1/4)
         - Sub-slopes = tan(θ * fraction)
+        - Lines should be dotted.
+        - 1/2 angle line should be double thickness.
         
         Args:
             from_pivot: Source pivot {time, price, bar_index, type}
             to_pivot: Destination pivot {time, price, bar_index, type}
             current_candles: All candles for time calculations
+            priority_label: Label for fan priority (Primary, Secondary, etc.)
             
         Returns:
             AngleFan with all lines calculated
@@ -178,14 +183,96 @@ class AngleEngine:
             # Clip extreme values to prevent overflow in frontend
             return max(-1e9, min(1e9, val))
 
-        # Create main angle line - Gray dotted
-        # Drawn from origin (first pivot) to target (second pivot)
+        # Calculate Radius in Visual Units (Bars) based on PA segment
+        # visual_height = price_change / scale_ratio
+        # radius = sqrt(bars^2 + visual_height^2)
+        visual_height_total = dp_from_origin / (scale_ratio if scale_ratio else 1.0)
+        radius = math.hypot(db, visual_height_total)
+
+        import datetime
+        from collections import Counter
+
+        # Extract modal daily schedule from recent history to map perfect 1:1 visual bars
+        # This prevents TradingView from squishing overnight gaps (e.g., treating 18 hrs as 18 bars)
+        sample_candles = current_candles[-200:] if len(current_candles) > 200 else current_candles
+        
+        time_slots_counter = Counter()
+        for c in sample_candles:
+            dt = datetime.datetime.fromtimestamp(int(c['time']))
+            time_slots_counter[(dt.hour, dt.minute)] += 1
+            
+        # Filter out rare one-off pre/post market trades to find the bulk active session
+        if time_slots_counter:
+            max_count = time_slots_counter.most_common(1)[0][1]
+            threshold = max_count * 0.3
+            valid_slots = [slot for slot, count in time_slots_counter.items() if count >= threshold]
+            valid_slots.sort() # Sort chronologically (HH, MM)
+        else:
+            valid_slots = [(9, 15), (10, 15), (11, 15), (12, 15), (13, 15), (14, 15), (15, 15)]
+        
+        # Helper to get time for a specific bar index (handling future)
+        def get_time_for_bar_index(bar_idx):
+            bar_idx = int(round(bar_idx))
+            # 1. If index exists in history, use exact timestamp
+            if 0 <= bar_idx < len(current_candles):
+                 return int(current_candles[bar_idx]['time'])
+            
+            # 2. If index is in future, project using the extracted schedule
+            last_idx = len(current_candles) - 1
+            last_time = int(current_candles[-1]['time'])
+            
+            if bar_idx > last_idx:
+                delta_bars = bar_idx - last_idx
+                current_dt = datetime.datetime.fromtimestamp(last_time)
+                
+                # We step exactly 'delta_bars' through our discovered real-world market schedule.
+                # This guarantees 1 programmatic bar = 1 visual TradingView bar.
+                for _ in range(delta_bars):
+                    current_slot_idx = -1
+                    curr_hb = (current_dt.hour, current_dt.minute)
+                    
+                    for i, slot in enumerate(valid_slots):
+                        if curr_hb < slot:
+                            current_slot_idx = i
+                            break
+                            
+                    if current_slot_idx != -1:
+                        # Move to next slot today
+                        next_slot = valid_slots[current_slot_idx]
+                        current_dt = current_dt.replace(hour=next_slot[0], minute=next_slot[1])
+                    else:
+                        # Wrap around to next day's first slot
+                        next_slot = valid_slots[0]
+                        current_dt += datetime.timedelta(days=1)
+                        current_dt = current_dt.replace(hour=next_slot[0], minute=next_slot[1])
+                        
+                        # Skip weekends
+                        while current_dt.isoweekday() > 5:
+                            current_dt += datetime.timedelta(days=1)
+                            
+                return int(current_dt.timestamp())
+            
+            # 3. If index is before history (unlikely), project backwards
+            first_time = int(current_candles[0]['time'])
+            delta_bars = 0 - bar_idx
+            return first_time - (delta_bars * interval_seconds)
+
+        # --- EQUIDISTANT RADIUS EXTENSION ---
+        # The user requested that ALL angle lines (including main) are equidistant,
+        # perfectly touching the circumference of a circle anchored at origin (radius PA).
+        
+        # 1. Main Angle Line
+        main_dx_bars = radius * math.cos(theta_radians)
+        main_dy_visual = radius * math.sin(theta_radians)
+        main_end_price = origin_price + (main_dy_visual * scale_ratio)
+        main_end_time = get_time_for_bar_index(origin_bar + main_dx_bars)
+
         main_line = AngleLine(
             id=f"{fan_id}_main",
             start_time=origin_time,
             start_price=_safe_float(origin_price),
-            end_time=t1 if t0 <= t1 else t0,  # target time
-            end_price=_safe_float(target_price),
+            end_time=int(main_end_time),
+            end_price=_safe_float(main_end_price),
             color='#808080',  # Gray for full angle
             width=2,
             fraction=None,
@@ -194,36 +281,33 @@ class AngleEngine:
         lines.append(main_line)
         
         # Fractional angles per strategy
-        angle_fractions = [7/8, 3/4, 1/2, 1/4]
-        angle_colors = ['#2196F3', '#4CAF50', '#FF9800', '#F44336']
-        
-        # Target time for fractional lines (same as main line end)
-        target_time = t1 if t0 <= t1 else t0
+        angle_fractions = [7/8, 3/4, 1/2, 1/4, 1/8]
+        angle_colors = ['#2196F3', '#4CAF50', '#FF9800', '#F44336', '#9C27B0']
         
         for i, fraction in enumerate(angle_fractions):
-            # Calculate Fractional Theta
+            # Calculate Fractional Theta (Angle of the line in visual space)
             frac_theta = theta_radians * fraction
             
-            # Convert back to Slope (Visual)
-            frac_visual_slope = math.tan(frac_theta)
+            # Use identical radius for exact equidistant lengths
+            dx_bars = radius * math.cos(frac_theta)
+            dy_visual = radius * math.sin(frac_theta)
             
-            # Convert back to Price Slope (Price per Bar)
-            frac_slope_per_bar = frac_visual_slope * scale_ratio
-            
-            # Calculate fractional price change over the same bar distance
-            total_price_change = frac_slope_per_bar * db
-            frac_end_price = origin_price + total_price_change
+            frac_end_price = origin_price + (dy_visual * scale_ratio)
+            frac_end_time = get_time_for_bar_index(origin_bar + dx_bars)
             
             color = angle_colors[i] if i < len(angle_colors) else '#888888'
+            
+            # Thickness Rule: 1/2 angle line is double thickness
+            line_width = self.fraction_line_width * 2 if fraction == 0.5 else self.fraction_line_width
             
             frac_line = AngleLine(
                 id=f"{fan_id}_f{i}",
                 start_time=origin_time,
                 start_price=_safe_float(origin_price),
-                end_time=target_time,
+                end_time=int(frac_end_time),
                 end_price=_safe_float(frac_end_price),
                 color=color,
-                width=2,
+                width=line_width,
                 fraction=fraction,
                 fan_id=fan_id
             )
@@ -234,12 +318,26 @@ class AngleEngine:
             from_pivot=from_pivot,
             to_pivot=to_pivot,
             lines=lines,
-            is_completed=False
+            is_completed=False,
+            priority_label=priority_label
         )
         
         # Track active fan
         self.active_fans[fan_id] = fan
         
+        print(f"--- [AngleEngine] Fan Created: {fan_id} ---")
+        print(f"  Origin: Bar {origin_bar}, Time {origin_time}, Price {origin_price}")
+        print(f"  Target: Bar {target_bar}, Time {t1 if t0 <= t1 else t0}, Price {target_price}")
+        print(f"  Delta: db={db}, dp_origin={dp_from_origin:.2f}")
+        print(f"  Scale Params: Ratio={scale_ratio}, Radius={radius:.2f} bars, Slope/Bar={slope_per_bar:.4f}")
+        
+        for line in lines:
+            if line.fraction is not None:
+                print(f"  Line {line.fraction}: EndBar={line.end_time} (approx), EndPrice={line.end_price:.2f}")
+                # Note: line.end_time is the estimated timestamp, not bar index. 
+                # We can't log the exact bar index here unless we stored it in AngleLine, 
+                # but the timestamp is what the frontend sees.
+
         return fan
     
     def check_fan_completion(
@@ -350,6 +448,8 @@ class AngleEngine:
                 'options': {
                     'linecolor': line.color,
                     'linewidth': line.width,
+                    'linestyle': 1,  # 1 = Dotted
+                    'fanLabel': fan.priority_label,
                     'extendLeft': False,
                     'extendRight': False
                 }

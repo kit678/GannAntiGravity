@@ -197,7 +197,8 @@ class AngularPriceCoverageStudy:
             fan_obj = self.angle_engine.create_fan(
                 from_pivot=fan_data['target'],   # Target is the "from" (left pivot)
                 to_pivot=fan_data['anchor'],      # Anchor is the "to" (right pivot)
-                current_candles=candles[:current_bar_index + 1]
+                current_candles=candles[:current_bar_index + 1],
+                priority_label=fan_data['priority_label']
             )
 
             # Store mapping

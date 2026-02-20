@@ -19,6 +19,9 @@ function App() {
     const [pivotLeftBars, setPivotLeftBars] = useState(5)
     const [pivotRightBars, setPivotRightBars] = useState(5)
 
+    // Fan Visibility Settings
+    const [visibleFanLabels, setVisibleFanLabels] = useState(['Primary', 'Secondary', 'Tertiary'])
+
     // Use Ref for active symbol to avoid re-rendering chart on every internal symbol change
     // This prevents the "flicker" loop when syncing chart state
     const activeSymbolRef = useRef('^NSEI')
@@ -388,6 +391,44 @@ function App() {
                                     onChange={(e) => setPivotRightBars(Math.max(1, parseInt(e.target.value) || 5))}
                                     style={{ width: '40px' }} />
                             </label>
+
+                            {strategy === 'angular_coverage' && (
+                                <div className="fan-toggles" style={{ display: 'flex', gap: '8px', marginLeft: '10px', fontSize: '11px', alignItems: 'center' }}>
+                                    <label style={{ display: 'flex', alignItems: 'center' }}>
+                                        <input type="checkbox"
+                                            checked={visibleFanLabels.includes('Primary')}
+                                            onChange={(e) => {
+                                                const newLabels = e.target.checked
+                                                    ? [...visibleFanLabels, 'Primary']
+                                                    : visibleFanLabels.filter(l => l !== 'Primary');
+                                                setVisibleFanLabels(newLabels);
+                                            }}
+                                        /> Pri
+                                    </label>
+                                    <label style={{ display: 'flex', alignItems: 'center' }}>
+                                        <input type="checkbox"
+                                            checked={visibleFanLabels.includes('Secondary')}
+                                            onChange={(e) => {
+                                                const newLabels = e.target.checked
+                                                    ? [...visibleFanLabels, 'Secondary']
+                                                    : visibleFanLabels.filter(l => l !== 'Secondary');
+                                                setVisibleFanLabels(newLabels);
+                                            }}
+                                        /> Sec
+                                    </label>
+                                    <label style={{ display: 'flex', alignItems: 'center' }}>
+                                        <input type="checkbox"
+                                            checked={visibleFanLabels.includes('Tertiary')}
+                                            onChange={(e) => {
+                                                const newLabels = e.target.checked
+                                                    ? [...visibleFanLabels, 'Tertiary']
+                                                    : visibleFanLabels.filter(l => l !== 'Tertiary');
+                                                setVisibleFanLabels(newLabels);
+                                            }}
+                                        /> Ter
+                                    </label>
+                                </div>
+                            )}
                         </div>
                     )}
 
@@ -411,6 +452,7 @@ function App() {
                         onTradeLogged={handleTradeLogged}
                         onSymbolChange={handleSymbolChange}
                         interval={chartRef.current?.getResolution() || '1'}
+                        visibleFanLabels={visibleFanLabels}
                     />
                 </div>
 
