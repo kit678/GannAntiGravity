@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException, Query, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, Dict, Any
 import uvicorn
 import pandas as pd
 from dhan_client import DhanClient
@@ -127,6 +127,7 @@ class BacktestRequest(BaseModel):
     days: int = 5
     resolution: str = "1" # Default to 1-minute
     data_source: str = "dhan"  # "dhan" or "yfinance"
+    pivotSettings: Optional[Dict[str, Any]] = None  # Settings like leftBars, rightBars, showIntersectionLabels
 
 class FetchCandlesRequest(BaseModel):
     symbol: str
@@ -136,8 +137,7 @@ class FetchCandlesRequest(BaseModel):
     strategy: Optional[str] = None  # Optional: if provided, prefetch option data for option strategies
     data_source: str = "dhan"  # "dhan" or "yfinance"
     lookback_bars: int = 50  # Number of bars to fetch before from_date for pivot context
-
-
+    pivotSettings: Optional[Dict[str, Any]] = None  # Settings like leftBars, rightBars, showIntersectionLabels
 def get_data_client(data_source: str = "dhan"):
     """Factory function to get appropriate data client."""
     if data_source == "yfinance":
@@ -153,6 +153,7 @@ class EvaluateStrategyRequest(BaseModel):
     scale_ratio: float | None = None  # Chart's Price-to-Bar ratio for angle calculations
     left_bars: int | None = None  # Configurable pivot detection
     right_bars: int | None = None  # Configurable pivot detection
+    show_intersection_labels: bool = False  # Toggle for drawing price labels on intersection
 
 @app.get("/")
 def read_root():
@@ -822,6 +823,8 @@ async def _process_study_bar(req: EvaluateStrategyRequest):
             study_config['left_bars'] = req.left_bars
         if req.right_bars is not None:
             study_config['right_bars'] = req.right_bars
+        if req.show_intersection_labels is not None:
+            study_config['show_intersection_labels'] = req.show_intersection_labels
             
         if req.strategy == 'pivot_points_only':
             from study_tool.pivot_points_study import PivotPointsStudy
@@ -859,6 +862,7 @@ async def _process_study_bar(req: EvaluateStrategyRequest):
         output_drawings = []
         output_pivots = []
         output_remove = []
+        output_intersection_events = []
         
         if is_sequential and _study_cache['state']:
             # FAST PATH: Restore state and process single bar
@@ -876,6 +880,7 @@ async def _process_study_bar(req: EvaluateStrategyRequest):
             output_drawings = result.get('drawings', [])
             output_pivots = result.get('pivot_markers', [])
             output_remove = result.get('remove_drawings', [])
+            output_intersection_events = result.get('intersection_events', [])
                 
             # Update cache
             _study_cache['index'] = req.current_index
@@ -899,6 +904,7 @@ async def _process_study_bar(req: EvaluateStrategyRequest):
                 output_pivots.extend(final_result.get('pivot_markers', []))
                 output_drawings.extend(final_result.get('drawings', []))
                 output_remove.extend(final_result.get('remove_drawings', []))
+                output_intersection_events.extend(final_result.get('intersection_events', []))
             print(f"[Study] Index {req.current_index}: Added {len(output_pivots)} pivot markers from study")
             
             # Update cache after full run
@@ -928,6 +934,7 @@ async def _process_study_bar(req: EvaluateStrategyRequest):
             "drawings": output_drawings,
             "pivot_markers": output_pivots,
             "remove_drawings": output_remove,
+            "intersection_events": output_intersection_events,
             "debug_info": debug_info,
             "state": {}
         }
@@ -1215,10 +1222,18 @@ def run_backtest(req: BacktestRequest):
             print(f"Running STUDY backtest: {req.strategy}")
             # Instantiate Study
             study_config = {
-                'left_bars': 5, # Default, or could pass from req if BacktestRequest supported it
+                'left_bars': 5, # Default
                 'right_bars': 5
             }
             
+            if getattr(req, 'pivotSettings', None):
+                if 'leftBars' in req.pivotSettings:
+                    study_config['left_bars'] = req.pivotSettings['leftBars']
+                if 'rightBars' in req.pivotSettings:
+                    study_config['right_bars'] = req.pivotSettings['rightBars']
+                if 'showIntersectionLabels' in req.pivotSettings:
+                    study_config['show_intersection_labels'] = req.pivotSettings['showIntersectionLabels']
+
             if req.strategy == 'pivot_points_only':
                 from study_tool.pivot_points_study import PivotPointsStudy
                 study = PivotPointsStudy(config=study_config)
@@ -1447,58 +1462,57 @@ def fetch_candles(req: FetchCandlesRequest):
                 'volume': float(r.get('volume', 0))
             })
             
-        # PROCESS STUDY for INITIAL MARKERS
-        # Currently only for Pivot Points study
+        # PROCESS STUDY for INITIAL MARKERS AND DRAWINGS
         initial_markers = []
-        if req.strategy == 'pivot_points_only':
-            from strategies import is_study
-            if is_study(req.strategy):
-                print(f"[FetchCandles] Pre-calculating historical pivots for {req.strategy}")
-                
-                # DEBUG DATA
-                print(f"DEBUG: First 5 candles for study init: {candles[:5]}")
-
+        initial_drawings = []
+        
+        from strategies import is_study
+        if is_study(req.strategy):
+            print(f"[FetchCandles] Pre-calculating historical state for {req.strategy}")
+            
+            # Map request pivotSettings to study config format
+            study_config = {}
+            if req.pivotSettings:
+                if 'leftBars' in req.pivotSettings: study_config['left_bars'] = req.pivotSettings['leftBars']
+                if 'rightBars' in req.pivotSettings: study_config['right_bars'] = req.pivotSettings['rightBars']
+                if 'showIntersectionLabels' in req.pivotSettings: study_config['show_intersection_labels'] = req.pivotSettings['showIntersectionLabels']
+            
+            if req.strategy == 'pivot_points_only':
                 from study_tool.pivot_points_study import PivotPointsStudy
+                study = PivotPointsStudy(config=study_config)
+            elif req.strategy == 'angular_coverage':
+                from study_tool.angular_coverage_study import AngularPriceCoverageStudy
+                study = AngularPriceCoverageStudy(config=study_config)
+            else:
+                study = None
                 
-                # Hardcoded defaults or could be passed
-                study = PivotPointsStudy(config={'left_bars': 5, 'right_bars': 5})
-                
-                # Prepare study candles (format is same)
-                if hasattr(study, '_initialize_history'):
-                    print(f"[FetchCandles] Initializing study history with {len(candles)} candles")
-                    study._initialize_history(candles, len(candles))
-                    if hasattr(study, 'pivot_detector'):
-                         # Confirmed pivots should be populated by _initialize_history
-                         # Check if pivotal data exists
-                         pivots = getattr(study.pivot_detector, 'confirmed_pivots', [])
-                         print(f"[FetchCandles] Pivots found: {len(pivots)}")
-                
-                # Extract markers
-                if hasattr(study, 'pivot_detector'):
-                    # Use get-attribute safety
-                    pivots = getattr(study.pivot_detector, 'confirmed_pivots', [])
-                    for p in pivots:
-                         marker_type = 'pivot_high' if p.pivot_type == 'high' else 'pivot_low'
-                         color = '#26a69a' if p.pivot_type == 'high' else '#ef5350'
-                         shape = 'arrow_down' if p.pivot_type == 'high' else 'arrow_up'
-                         
-                         initial_markers.append({
-                            'id': f"{marker_type}_{p.time}",
-                            'type': marker_type,
-                            'time': p.time,
-                            'price': p.price,
-                            'bar_index': p.bar_index,
-                            'text': '', # No text label
-                            'color': color,
-                            'shape': shape
-                         })
-                         
-        print(f"Fetched {len(candles)} candles for replay. Initial Markers: {len(initial_markers)}")
+            if study and len(candles) > 0:
+                try:
+                    print(f"[FetchCandles] Initializing study state on {len(candles)} bars...")
+                    # Run the slow-path initialization for the exact start state
+                    # Bar index is len(candles) - 1 to represent the state at the cutoff
+                    final_result = study.process_bar(
+                        candles=candles,
+                        bar_index=len(candles) - 1,
+                        state=None
+                    )
+                    
+                    if final_result:
+                        initial_markers = final_result.get('pivot_markers', [])
+                        initial_drawings = final_result.get('drawings', [])
+                        print(f"[FetchCandles] Generated {len(initial_markers)} initial markers and {len(initial_drawings)} initial drawings")
+                except Exception as e:
+                    print(f"[FetchCandles] Error precalculating history: {e}")
+                    import traceback
+                    traceback.print_exc()
+
+        print(f"Fetched {len(candles)} candles for replay. Initial Markers: {len(initial_markers)}, Initial Drawings: {len(initial_drawings)}")
 
         return {
             "candles": candles,
             "symbol": req.symbol,
-            "markers": initial_markers # Return markers
+            "markers": initial_markers,
+            "drawings": initial_drawings
         }
 
     except Exception as e:

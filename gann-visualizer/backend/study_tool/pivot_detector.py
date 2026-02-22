@@ -19,6 +19,7 @@ class Pivot:
     price: float        # Price at pivot
     bar_index: int      # Index in candle array
     pivot_type: str     # 'high' or 'low'
+    label: str = ""    # Permanent identity (e.g., 'H1', 'L1')
 
 
 class PivotDetector:
@@ -51,6 +52,10 @@ class PivotDetector:
         self.last_low_pivot: Optional[Pivot] = None
         self.last_pivot_type: Optional[str] = None
         self.confirmed_pivots: List[Pivot] = []
+        
+        # Absolute counters for permanent identity mapping
+        self.high_count: int = 0
+        self.low_count: int = 0
     
     def reset(self):
         """Reset detector state (call on new symbol/interval)"""
@@ -58,6 +63,8 @@ class PivotDetector:
         self.last_low_pivot = None
         self.last_pivot_type = None
         self.confirmed_pivots = []
+        self.high_count = 0
+        self.low_count = 0
     
     def detect_pivots(self, candles: List[Dict[str, Any]], current_index: int) -> Dict[str, Any]:
         """
@@ -151,13 +158,16 @@ class PivotDetector:
             if self.last_pivot_type == 'high' and self.last_high_pivot is not None:
                 # Same type as last - successive filtering
                 if new_pivot.price > self.last_high_pivot.price:
-                    # New high is higher - REPLACE the last one in confirmed_pivots
+                    # New high is higher - REPLACE the last one in confirmed_pivots. Inherit previous label.
+                    new_pivot.label = self.last_high_pivot.label
                     if self.confirmed_pivots and self.confirmed_pivots[-1].pivot_type == 'high':
                         self.confirmed_pivots[-1] = new_pivot
                     self.last_high_pivot = new_pivot
                 # else: ignore this lower high
             else:
                 # Different type or first pivot - add immediately
+                self.high_count += 1
+                new_pivot.label = f"H{self.high_count}"
                 self.confirmed_pivots.append(new_pivot)
                 self.last_high_pivot = new_pivot
                 self.last_pivot_type = 'high'
@@ -169,13 +179,15 @@ class PivotDetector:
                             'time': self.last_low_pivot.time,
                             'price': self.last_low_pivot.price,
                             'bar_index': self.last_low_pivot.bar_index,
-                            'type': 'low'
+                            'type': 'low',
+                            'label': self.last_low_pivot.label
                         },
                         'to': {
                             'time': new_pivot.time,
                             'price': new_pivot.price,
                             'bar_index': new_pivot.bar_index,
-                            'type': 'high'
+                            'type': 'high',
+                            'label': new_pivot.label
                         }
                     }
             
@@ -195,13 +207,16 @@ class PivotDetector:
             if self.last_pivot_type == 'low' and self.last_low_pivot is not None:
                 # Same type as last - successive filtering
                 if new_pivot.price < self.last_low_pivot.price:
-                    # New low is lower - REPLACE the last one in confirmed_pivots
+                    # New low is lower - REPLACE the last one in confirmed_pivots. Inherit previous label.
+                    new_pivot.label = self.last_low_pivot.label
                     if self.confirmed_pivots and self.confirmed_pivots[-1].pivot_type == 'low':
                         self.confirmed_pivots[-1] = new_pivot
                     self.last_low_pivot = new_pivot
                 # else: ignore this higher low
             else:
                 # Different type or first pivot - add immediately
+                self.low_count += 1
+                new_pivot.label = f"L{self.low_count}"
                 self.confirmed_pivots.append(new_pivot)
                 self.last_low_pivot = new_pivot
                 self.last_pivot_type = 'low'
@@ -213,13 +228,15 @@ class PivotDetector:
                             'time': self.last_high_pivot.time,
                             'price': self.last_high_pivot.price,
                             'bar_index': self.last_high_pivot.bar_index,
-                            'type': 'high'
+                            'type': 'high',
+                            'label': self.last_high_pivot.label
                         },
                         'to': {
                             'time': new_pivot.time,
                             'price': new_pivot.price,
                             'bar_index': new_pivot.bar_index,
-                            'type': 'low'
+                            'type': 'low',
+                            'label': new_pivot.label
                         }
                     }
             
@@ -234,21 +251,26 @@ class PivotDetector:
                 'time': self.last_high_pivot.time,
                 'price': self.last_high_pivot.price,
                 'bar_index': self.last_high_pivot.bar_index,
-                'pivot_type': 'high'
+                'pivot_type': 'high',
+                'label': self.last_high_pivot.label
             } if self.last_high_pivot else None,
             'last_low_pivot': {
                 'time': self.last_low_pivot.time,
                 'price': self.last_low_pivot.price,
                 'bar_index': self.last_low_pivot.bar_index,
-                'pivot_type': 'low'
+                'pivot_type': 'low',
+                'label': self.last_low_pivot.label
             } if self.last_low_pivot else None,
             'last_pivot_type': self.last_pivot_type,
+            'high_count': self.high_count,
+            'low_count': self.low_count,
             'confirmed_pivots': [
                 {
                     'time': p.time,
                     'price': p.price,
                     'bar_index': p.bar_index,
-                    'pivot_type': p.pivot_type
+                    'pivot_type': p.pivot_type,
+                    'label': p.label
                 } for p in self.confirmed_pivots
             ]
         }
@@ -261,7 +283,8 @@ class PivotDetector:
                 time=hp['time'],
                 price=hp['price'],
                 bar_index=hp['bar_index'],
-                pivot_type='high'
+                pivot_type='high',
+                label=hp.get('label', "")
             )
         else:
             self.last_high_pivot = None
@@ -272,12 +295,15 @@ class PivotDetector:
                 time=lp['time'],
                 price=lp['price'],
                 bar_index=lp['bar_index'],
-                pivot_type='low'
+                pivot_type='low',
+                label=lp.get('label', "")
             )
         else:
             self.last_low_pivot = None
         
         self.last_pivot_type = state.get('last_pivot_type')
+        self.high_count = state.get('high_count', 0)
+        self.low_count = state.get('low_count', 0)
         
         self.confirmed_pivots = []
         if state.get('confirmed_pivots'):
@@ -286,5 +312,6 @@ class PivotDetector:
                     time=p['time'],
                     price=p['price'],
                     bar_index=p['bar_index'],
-                    pivot_type=p['pivot_type']
+                    pivot_type=p['pivot_type'],
+                    label=p.get('label', "")
                 ))

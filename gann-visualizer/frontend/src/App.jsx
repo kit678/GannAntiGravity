@@ -18,9 +18,14 @@ function App() {
     // Pivot settings for Angular Coverage study
     const [pivotLeftBars, setPivotLeftBars] = useState(5)
     const [pivotRightBars, setPivotRightBars] = useState(5)
+    const [showIntersectionLabels, setShowIntersectionLabels] = useState(false)
 
     // Fan Visibility Settings
-    const [visibleFanLabels, setVisibleFanLabels] = useState(['Primary', 'Secondary', 'Tertiary'])
+    // 'availableFanLabels' is dynamically populated by the chart based on actually drawn fans
+    // Each entry is { identity: 'L131-H130', displayLabel: 'P1 (L131-H130)' }
+    const [availableFanLabels, setAvailableFanLabels] = useState([])
+    // 'visibleFanLabels' tracks identity keys the user has checked ON (auto-populated as fans appear)
+    const [visibleFanLabels, setVisibleFanLabels] = useState([])
 
     // Use Ref for active symbol to avoid re-rendering chart on every internal symbol change
     // This prevents the "flicker" loop when syncing chart state
@@ -35,6 +40,8 @@ function App() {
     const [replayCurrentDate, setReplayCurrentDate] = useState('')
     const [resultsHeight, setResultsHeight] = useState(35) // Default to closed (just header)
     const [isResizing, setIsResizing] = useState(false)
+    const [bottomPanelTab, setBottomPanelTab] = useState('backtest') // 'backtest' | 'interactions'
+    const [priceInteractions, setPriceInteractions] = useState([]) // Live interaction log
 
     // Replay Toolbar Position State
     const [replayPos, setReplayPos] = useState({ x: window.innerWidth / 2 - 300, y: window.innerHeight - 200 });
@@ -141,11 +148,14 @@ function App() {
                     to_date: toDate,
                     days: 0,
                     resolution: currentResolution, // Send resolution to backend
-                    data_source: dataSource
+                    data_source: dataSource,
+                    pivotSettings: {
+                        leftBars: pivotLeftBars,
+                        rightBars: pivotRightBars,
+                        showIntersectionLabels: showIntersectionLabels
+                    }
                 })
             });
-
-            // ... (rest of function)
 
             if (!response.ok) {
                 alert("Backtest Failed: " + response.statusText);
@@ -195,6 +205,7 @@ function App() {
 
         setTradeLog([]);
         setBacktestSummary(null);
+        setPriceInteractions([]);
         // Reset position to reasonable default if offscreen
         setReplayPos({ x: window.innerWidth / 2 - 300, y: window.innerHeight - 250 });
 
@@ -218,7 +229,12 @@ function App() {
                     resolution: currentResolution,
                     strategy: strategy,
                     data_source: dataSource,
-                    lookback_bars: LOOKBACK_BARS
+                    lookback_bars: LOOKBACK_BARS,
+                    pivotSettings: {
+                        leftBars: pivotLeftBars,
+                        rightBars: pivotRightBars,
+                        showIntersectionLabels: showIntersectionLabels
+                    }
                 })
             });
 
@@ -267,7 +283,9 @@ function App() {
                     {
                         leftBars: pivotLeftBars,
                         rightBars: pivotRightBars,
-                        initialMarkers: data.markers || [] // Pass markers if available
+                        showIntersectionLabels: showIntersectionLabels,
+                        initialMarkers: data.markers || [], // Pass markers if available
+                        initialDrawings: data.drawings || [] // Pass initial drawings (fans) if available
                     }
                 );
             }
@@ -393,40 +411,29 @@ function App() {
                             </label>
 
                             {strategy === 'angular_coverage' && (
+                                <label title="Draw text labels showing hit prices on intersections" style={{ display: 'flex', alignItems: 'center' }}>
+                                    <input type="checkbox"
+                                        checked={showIntersectionLabels}
+                                        onChange={(e) => setShowIntersectionLabels(e.target.checked)}
+                                    /> Show Intersections
+                                </label>
+                            )}
+
+                            {strategy === 'angular_coverage' && availableFanLabels.length > 0 && (
                                 <div className="fan-toggles" style={{ display: 'flex', gap: '8px', marginLeft: '10px', fontSize: '11px', alignItems: 'center' }}>
-                                    <label style={{ display: 'flex', alignItems: 'center' }}>
-                                        <input type="checkbox"
-                                            checked={visibleFanLabels.includes('Primary')}
-                                            onChange={(e) => {
-                                                const newLabels = e.target.checked
-                                                    ? [...visibleFanLabels, 'Primary']
-                                                    : visibleFanLabels.filter(l => l !== 'Primary');
-                                                setVisibleFanLabels(newLabels);
-                                            }}
-                                        /> Pri
-                                    </label>
-                                    <label style={{ display: 'flex', alignItems: 'center' }}>
-                                        <input type="checkbox"
-                                            checked={visibleFanLabels.includes('Secondary')}
-                                            onChange={(e) => {
-                                                const newLabels = e.target.checked
-                                                    ? [...visibleFanLabels, 'Secondary']
-                                                    : visibleFanLabels.filter(l => l !== 'Secondary');
-                                                setVisibleFanLabels(newLabels);
-                                            }}
-                                        /> Sec
-                                    </label>
-                                    <label style={{ display: 'flex', alignItems: 'center' }}>
-                                        <input type="checkbox"
-                                            checked={visibleFanLabels.includes('Tertiary')}
-                                            onChange={(e) => {
-                                                const newLabels = e.target.checked
-                                                    ? [...visibleFanLabels, 'Tertiary']
-                                                    : visibleFanLabels.filter(l => l !== 'Tertiary');
-                                                setVisibleFanLabels(newLabels);
-                                            }}
-                                        /> Ter
-                                    </label>
+                                    {availableFanLabels.map(fan => (
+                                        <label key={fan.identity} style={{ display: 'flex', alignItems: 'center' }}>
+                                            <input type="checkbox"
+                                                checked={visibleFanLabels.includes(fan.identity)}
+                                                onChange={(e) => {
+                                                    const newLabels = e.target.checked
+                                                        ? [...visibleFanLabels, fan.identity]
+                                                        : visibleFanLabels.filter(l => l !== fan.identity);
+                                                    setVisibleFanLabels(newLabels);
+                                                }}
+                                            /> {fan.displayLabel}
+                                        </label>
+                                    ))}
                                 </div>
                             )}
                         </div>
@@ -451,55 +458,107 @@ function App() {
                         dataSource={dataSource}
                         onTradeLogged={handleTradeLogged}
                         onSymbolChange={handleSymbolChange}
+                        instrumentType={instrumentType}
                         interval={chartRef.current?.getResolution() || '1'}
                         visibleFanLabels={visibleFanLabels}
+                        onAvailableFansUpdated={setAvailableFanLabels}
+                        onAutoEnableVisibility={(newIds) => setVisibleFanLabels(prev => [...new Set([...prev, ...newIds])])}
+                        onPriceInteraction={(hit) => setPriceInteractions(prev => [...prev, hit])}
                     />
                 </div>
 
                 <div className="resize-handle" onMouseDown={handleResizeStart}></div>
 
-                <div className="backtest-results" style={{ height: `${resultsHeight}px` }}>
-                    <div className="results-header">
-                        <h3>Backtest Results</h3>
-                        <span style={{ fontSize: '10px', color: '#666' }}>
-                            {resultsHeight <= 40 ? '(Drag up to expand)' : ''}
+                <div className="bottom-panel" style={{ height: `${resultsHeight}px` }}>
+                    {/* Tab Bar */}
+                    <div className="panel-tabs">
+                        <button
+                            className={`panel-tab${bottomPanelTab === 'backtest' ? ' active' : ''}`}
+                            onClick={() => setBottomPanelTab('backtest')}
+                        >
+                            Backtest Results
+                        </button>
+                        <button
+                            className={`panel-tab${bottomPanelTab === 'interactions' ? ' active' : ''}`}
+                            onClick={() => { setBottomPanelTab('interactions'); if (resultsHeight <= 40) setResultsHeight(180); }}
+                        >
+                            Price Interactions {priceInteractions.length > 0 && <span className="tab-badge">{priceInteractions.length}</span>}
+                        </button>
+                        <span className="panel-drag-hint">
+                            {resultsHeight <= 40 ? '↑ Drag to expand' : ''}
                         </span>
                     </div>
+
+                    {/* Tab Content */}
                     <div className="results-content">
-                        {backtestSummary ? (
-                            <div className="summary">
-                                <p><strong>Strategy:</strong> {strategy}</p>
-                                <p><strong>Total Signals:</strong> {backtestSummary.totalTrades}</p>
-                                <p><strong>Completed Trades:</strong> {backtestSummary.completedTrades}</p>
-                                <p><strong>Win Rate:</strong> {backtestSummary.winRate}%</p>
-                                <p><strong>Total P&L:</strong> <span style={{ color: backtestSummary.totalPnL >= 0 ? '#00E676' : '#FF5252' }}>{backtestSummary.totalPnL}</span></p>
-                            </div>
-                        ) : (
-                            <p>Select a strategy and run backtest to see results here.</p>
+                        {bottomPanelTab === 'backtest' && (
+                            <>
+                                {backtestSummary ? (
+                                    <div className="summary">
+                                        <p><strong>Strategy:</strong> {strategy}</p>
+                                        <p><strong>Total Signals:</strong> {backtestSummary.totalTrades}</p>
+                                        <p><strong>Completed Trades:</strong> {backtestSummary.completedTrades}</p>
+                                        <p><strong>Win Rate:</strong> {backtestSummary.winRate}%</p>
+                                        <p><strong>Total P&L:</strong> <span style={{ color: backtestSummary.totalPnL >= 0 ? '#00E676' : '#FF5252' }}>{backtestSummary.totalPnL}</span></p>
+                                    </div>
+                                ) : (
+                                    <p>Select a strategy and run backtest to see results here.</p>
+                                )}
+
+                                {tradeLog.length > 0 && (
+                                    <div className="trade-log">
+                                        <h4>Trade Log ({tradeLog.length})</h4>
+                                        <ul>
+                                            {tradeLog.map((t, i) => (
+                                                <li key={i} style={{ color: t.type === 'buy' ? '#00E676' : '#FF5252' }}>
+                                                    {t.label ? (
+                                                        <span>
+                                                            {t.label}
+                                                            {t.option_price && <span style={{ color: '#FFD700' }}> @ ₹{t.option_price.toFixed(2)}</span>}
+                                                        </span>
+                                                    ) : (
+                                                        <span>{t.type.toUpperCase()} @ {t.price != null ? t.price.toFixed(2) : 'N/A'}</span>
+                                                    )}
+                                                    {t.pnl != null && ` | P&L: ${t.pnl.toFixed(2)}`}
+                                                    <span style={{ color: '#888', marginLeft: '10px' }}>
+                                                        ({new Date(t.time * 1000).toLocaleString()})
+                                                    </span>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                )}
+                            </>
                         )}
 
-                        {tradeLog.length > 0 && (
-                            <div className="trade-log">
-                                <h4>Trade Log ({tradeLog.length})</h4>
-                                <ul>
-                                    {tradeLog.map((t, i) => (
-                                        <li key={i} style={{ color: t.type === 'buy' ? '#00E676' : '#FF5252' }}>
-                                            {/* Show option details if available, otherwise fallback to type/price */}
-                                            {t.label ? (
-                                                <span>
-                                                    {t.label}
-                                                    {t.option_price && <span style={{ color: '#FFD700' }}> @ ₹{t.option_price.toFixed(2)}</span>}
-                                                </span>
-                                            ) : (
-                                                <span>{t.type.toUpperCase()} @ {t.price != null ? t.price.toFixed(2) : 'N/A'}</span>
-                                            )}
-                                            {t.pnl != null && ` | P&L: ${t.pnl.toFixed(2)}`}
-                                            <span style={{ color: '#888', marginLeft: '10px' }}>
-                                                ({new Date(t.time * 1000).toLocaleString()})
-                                            </span>
-                                        </li>
-                                    ))}
-                                </ul>
+                        {bottomPanelTab === 'interactions' && (
+                            <div className="interactions-list">
+                                {priceInteractions.length === 0 ? (
+                                    <p>No price interactions recorded yet. Start a step-by-step simulation with Show Intersections enabled.</p>
+                                ) : (
+                                    <table className="interactions-table">
+                                        <thead>
+                                            <tr>
+                                                <th>#</th>
+                                                <th>Time</th>
+                                                <th>Fan</th>
+                                                <th>Fraction</th>
+                                                <th>Price</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {priceInteractions.map((hit, i) => (
+                                                <tr key={i}>
+                                                    <td>{i + 1}</td>
+                                                    <td>{new Date(hit.time * 1000).toLocaleString()}</td>
+                                                    <td style={{ color: '#90CAF9' }}>{hit.fan}</td>
+                                                    <td style={{ color: '#FFEB3B' }}>{hit.fraction}</td>
+                                                    <td>{hit.price != null ? hit.price.toFixed(2) : 'N/A'}</td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                )}
                             </div>
                         )}
                     </div>

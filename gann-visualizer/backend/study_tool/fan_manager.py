@@ -66,9 +66,6 @@ class FanManager:
 
         # Iterate anchors: most recent pivot first
         for anchor_idx in range(len(sorted_pivots) - 1, -1, -1):
-            if total_fans >= max_fans:
-                break
-
             anchor = sorted_pivots[anchor_idx]
 
             # --- Rule 1: Anchor Validity ---
@@ -80,9 +77,6 @@ class FanManager:
 
             # Iterate targets: scan backwards from just before the anchor
             for target_idx in range(anchor_idx - 1, -1, -1):
-                if total_fans >= max_fans:
-                    break
-
                 target = sorted_pivots[target_idx]
 
                 # --- Rule 2: Geometric Validity ---
@@ -116,20 +110,23 @@ class FanManager:
                             continue
 
                 # All rules passed — emit fan
-                priority_label = ['Primary', 'Secondary', 'Tertiary'][total_fans] if total_fans < 3 else f'Fan_{total_fans + 1}'
+                priority_label = f"P{total_fans + 1}"
 
                 active_fans.append({
+                    'fan_id': f"Fan_{anchor.label}_{target.label}",
                     'anchor': {
                         'time': anchor.time,
                         'price': anchor.price,
                         'type': anchor.pivot_type,
-                        'bar_index': anchor.bar_index
+                        'bar_index': anchor.bar_index,
+                        'label': anchor.label
                     },
                     'target': {
                         'time': target.time,
                         'price': target.price,
                         'type': target.pivot_type,
-                        'bar_index': target.bar_index
+                        'bar_index': target.bar_index,
+                        'label': target.label
                     },
                     'priority': total_fans,
                     'priority_label': priority_label

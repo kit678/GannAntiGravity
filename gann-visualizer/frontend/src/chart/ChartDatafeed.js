@@ -229,13 +229,8 @@ class ChartDatafeed {
             }
         }
 
-        // CRITICAL FIX: Evaluate strategy at initial position AFTER chart is ready
-        // Delay to ensure TradingView widget has fully initialized
-        // This ensures pivots/drawings appear immediately on chart load
-        setTimeout(() => {
-            console.log("[Datafeed] Evaluating initial strategy state at step", this.currentStep);
-            this._evaluateCurrentStep();
-        }, 500);
+        // NOTE: Initial evaluation is triggered by setReplayStrategy() after onChartReady fires.
+        // This ensures we have the correct scale ratio and the chart is fully initialized before drawing.
     }
 
     // NEW: Update strategy parameters (called when chart is ready and scale ratio is available)
@@ -246,11 +241,6 @@ class ChartDatafeed {
         this.tradeCallback = onTradeCallback;
         if (scaleRatio) this.scaleRatio = scaleRatio;
         if (pivotSettings) this.pivotSettings = pivotSettings;
-
-        // Setup done - trigger initial evaluation if not already done
-        if (!this.evaluatedIndices.has(this.currentStep)) {
-            this._evaluateCurrentStep();
-        }
 
         // CRITICAL FIX: Ensure chart data is reset now that widget is definitely ready
         // This handles cases where setProgressiveReplayData failed to reset because widget wasn't ready
@@ -263,6 +253,16 @@ class ChartDatafeed {
                 console.warn("[Datafeed] Failed to reset data in setReplayStrategy:", e);
             }
         }
+
+        // Always re-evaluate the initial step here, because:
+        // 1. onChartReady calls removeAllShapes() before this runs
+        // 2. The earlier 500ms-delayed _evaluateCurrentStep() may have drawn before the chart was cleared
+        // Removing from evaluatedIndices forces a fresh backend call with correct scale ratio
+        this.evaluatedIndices.delete(this.currentStep);
+        setTimeout(() => {
+            console.log("[Datafeed] Re-evaluating initial step after chart ready:", this.currentStep);
+            this._evaluateCurrentStep();
+        }, 300);
     }
 
     // Helper to unsubscribe from the original UDF datafeed
@@ -588,9 +588,12 @@ class ChartDatafeed {
                 requestBody.scale_ratio = this.scaleRatio;
             }
             // Include pivot settings for configurable pivot detection
-            if (this.pivotSettings && (this.pivotSettings.leftBars || this.pivotSettings.rightBars)) {
-                requestBody.left_bars = this.pivotSettings.leftBars || 5;
-                requestBody.right_bars = this.pivotSettings.rightBars || 5;
+            if (this.pivotSettings) {
+                if (this.pivotSettings.leftBars) requestBody.left_bars = this.pivotSettings.leftBars;
+                if (this.pivotSettings.rightBars) requestBody.right_bars = this.pivotSettings.rightBars;
+                if (this.pivotSettings.showIntersectionLabels !== undefined) {
+                    requestBody.show_intersection_labels = this.pivotSettings.showIntersectionLabels;
+                }
             }
 
             fetch(`${this.datafeedUrl}/evaluate_strategy_step`, {

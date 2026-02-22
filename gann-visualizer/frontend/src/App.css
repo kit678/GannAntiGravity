@@ -327,36 +327,67 @@ body {
   border-radius: 2px;
 }
 
-.backtest-results {
-  height: 200px;
+.bottom-panel {
   min-height: 0px;
-  /* Allow collapsing */
   max-height: 80vh;
   background-color: #1e1e1e;
   border-top: 2px solid #383838;
-  padding: 0;
-  /* Remove default padding, handle in inner */
   overflow-y: hidden;
-  /* Hide scroll when collapsed */
   color: #d1d4dc;
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
 }
 
-.backtest-results .results-header {
-  padding: 8px 10px;
-  background: #2b2b2b;
-  border-bottom: 1px solid #383838;
+/* Tab Bar */
+.panel-tabs {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  background: #2b2b2b;
+  border-bottom: 1px solid #383838;
+  padding: 0 6px;
+  gap: 2px;
+  flex-shrink: 0;
 }
 
-.backtest-results h3 {
-  margin: 0;
-  font-size: 0.9rem;
-  color: #b2b5be;
+.panel-tab {
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: #787b86;
+  padding: 6px 14px;
+  font-size: 0.82rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.panel-tab:hover {
+  color: #d1d4dc;
+}
+
+.panel-tab.active {
+  color: #2962ff;
+  border-bottom-color: #2962ff;
+}
+
+.tab-badge {
+  background: #2962ff;
+  color: white;
+  border-radius: 10px;
+  padding: 1px 6px;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.panel-drag-hint {
+  margin-left: auto;
+  font-size: 0.72rem;
+  color: #555;
+  padding-right: 8px;
 }
 
 .results-content {
@@ -399,4 +430,38 @@ body {
   padding: 4px 0;
   border-bottom: 1px solid #2a2e39;
   font-size: 0.85em;
+}
+
+/* Price Interactions Tab */
+.interactions-list {
+  height: 100%;
+  overflow-y: auto;
+}
+
+.interactions-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+}
+
+.interactions-table th {
+  text-align: left;
+  padding: 5px 10px;
+  background: #2b2b2b;
+  color: #787b86;
+  font-weight: 600;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  border-bottom: 1px solid #383838;
+}
+
+.interactions-table td {
+  padding: 4px 10px;
+  border-bottom: 1px solid #242731;
+  color: #d1d4dc;
+}
+
+.interactions-table tbody tr:hover {
+  background: #1a1d27;
 }

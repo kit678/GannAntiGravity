@@ -34,6 +34,8 @@ class AngleLine:
     width: int              # Line width in pixels
     fraction: Optional[float]  # Fraction value (None for main angle)
     fan_id: str             # Parent fan identifier
+    start_bar_index: float = 0.0 # Origin bar index for accurate intersection
+    end_bar_index: float = 0.0   # End bar index for accurate intersection
 
 
 @dataclass
@@ -46,6 +48,8 @@ class AngleFan:
     is_completed: bool      # True if price has covered all angles
     priority_label: str = "Unknown" # Fan priority (Primary, Secondary, etc.)
     config: Dict[str, Any] = field(default_factory=dict)  # Metadata
+    intersections: List[Any] = field(default_factory=list) # Store IntersectionEvent objects
+    label_ids: List[str] = field(default_factory=list)     # Store drawing IDs
 
 
 class AngleEngine:
@@ -96,6 +100,7 @@ class AngleEngine:
         from_pivot: Dict[str, Any],
         to_pivot: Dict[str, Any],
         current_candles: List[Dict[str, Any]],
+        fan_id: Optional[str] = None,
         priority_label: str = "Unknown"
     ) -> AngleFan:
         """
@@ -120,7 +125,9 @@ class AngleEngine:
         """
         import math
         
-        fan_id = str(uuid.uuid4())[:8]
+        if fan_id is None:
+            fan_id = str(uuid.uuid4())[:8]
+            
         lines = []
         
         # Extract pivot data
@@ -276,7 +283,9 @@ class AngleEngine:
             color='#808080',  # Gray for full angle
             width=2,
             fraction=None,
-            fan_id=fan_id
+            fan_id=fan_id,
+            start_bar_index=float(origin_bar),
+            end_bar_index=float(origin_bar + main_dx_bars)
         )
         lines.append(main_line)
         
@@ -309,7 +318,9 @@ class AngleEngine:
                 color=color,
                 width=line_width,
                 fraction=fraction,
-                fan_id=fan_id
+                fan_id=fan_id,
+                start_bar_index=float(origin_bar),
+                end_bar_index=float(origin_bar + dx_bars)
             )
             lines.append(frac_line)
             
@@ -347,7 +358,9 @@ class AngleEngine:
                 color='#FFFFFF', # White Dotted per screenshot
                 width=1,
                 fraction=None,
-                fan_id=fan_id
+                fan_id=fan_id,
+                start_bar_index=float(origin_bar + db_anchor),
+                end_bar_index=float(origin_bar + x_visual_edge)
             )
             # We must explicitly tag this inside angular_coverage_study.py or StudyDrawingUtils.js
             # to remain dotted if we want 'options.linestyle: 1', but passing through standard AngleLine
@@ -490,6 +503,7 @@ class AngleEngine:
                     'linewidth': line.width,
                     'linestyle': 1 if line.id.endswith('_main') else 1,  # 1 = Dotted. All lines dotted per screenshot.
                     'fanLabel': fan.priority_label,
+                    'fanIdentity': fan.id.replace("Fan_", "").replace("_", "-"),
                     'extendLeft': False,
                     'extendRight': False
                 }
@@ -507,6 +521,9 @@ class AngleEngine:
                     'from_pivot': fan.from_pivot,
                     'to_pivot': fan.to_pivot,
                     'is_completed': fan.is_completed,
+                    'priority_label': fan.priority_label,
+                    'intersections': [event.to_dict() for event in fan.intersections] if hasattr(fan, 'intersections') else [],
+                    'label_ids': fan.label_ids if hasattr(fan, 'label_ids') else [],
                     'lines': [
                         {
                             'id': line.id,
@@ -517,7 +534,9 @@ class AngleEngine:
                             'color': line.color,
                             'width': line.width,
                             'fraction': line.fraction,
-                            'fan_id': line.fan_id
+                            'fan_id': line.fan_id,
+                            'start_bar_index': line.start_bar_index,
+                            'end_bar_index': line.end_bar_index
                         }
                         for line in fan.lines
                     ]
@@ -528,6 +547,7 @@ class AngleEngine:
     
     def restore_state(self, state: Dict[str, Any]):
         """Restore engine state from serialized form"""
+        from .intersection_detector import IntersectionEvent
         self.active_fans = {}
         
         for fan_id, fan_data in state.get('active_fans', {}).items():
@@ -541,17 +561,25 @@ class AngleEngine:
                     color=line['color'],
                     width=line['width'],
                     fraction=line['fraction'],
-                    fan_id=line['fan_id']
+                    fan_id=line['fan_id'],
+                    start_bar_index=line.get('start_bar_index', 0.0),
+                    end_bar_index=line.get('end_bar_index', 0.0)
                 )
                 for line in fan_data.get('lines', [])
             ]
+            
+            intersections_data = fan_data.get('intersections', [])
+            intersections = [IntersectionEvent(**ev) for ev in intersections_data]
             
             fan = AngleFan(
                 id=fan_data['id'],
                 from_pivot=fan_data['from_pivot'],
                 to_pivot=fan_data['to_pivot'],
                 lines=lines,
-                is_completed=fan_data.get('is_completed', False)
+                is_completed=fan_data.get('is_completed', False),
+                priority_label=fan_data.get('priority_label', 'Unknown'),
+                intersections=intersections,
+                label_ids=fan_data.get('label_ids', [])
             )
             self.active_fans[fan_id] = fan
 

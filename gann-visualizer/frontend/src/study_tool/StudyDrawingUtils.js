@@ -47,6 +47,9 @@ export function processStudyResponse(chart, data, shapeTracking = {}) {
             if (drawing.type === 'polyline') {
                 // Handle polyline (EMA line, moving averages, etc.)
                 shapeId = drawPolyline(chart, drawing, shapeTracking);
+            } else if (drawing.type === 'price_label') {
+                // Handle price_label markers for intersections
+                shapeId = drawPriceLabel(chart, drawing);
             } else {
                 // Handle trend_line and other types
                 shapeId = drawAngleLine(chart, drawing);
@@ -95,6 +98,17 @@ export function drawAngleLine(chart, drawing) {
             price: p.price
         }));
 
+        // Protective validation: TradingView crashes hard if coordinate fields are undefined or NaN
+        const isValid = points.every(p =>
+            p.time !== undefined && p.time !== null && !isNaN(p.time) &&
+            p.price !== undefined && p.price !== null && !isNaN(p.price)
+        );
+
+        if (!isValid) {
+            console.error('[StudyDrawing] Cannot draw trend_line due to invalid coordinates:', drawing);
+            return null;
+        }
+
         const options = {
             shape: 'trend_line',
             lock: true,
@@ -118,6 +132,49 @@ export function drawAngleLine(chart, drawing) {
         return result;
     } catch (e) {
         console.error('[StudyDrawing] Failed to draw angle line:', e);
+        return null;
+    }
+}
+
+/**
+ * Draw a single price_label on the chart
+ * @param {Object} chart - TradingView chart instance
+ * @param {Object} drawing - Drawing definition from backend
+ * @returns {string|null} - Shape ID if created, null otherwise
+ */
+export function drawPriceLabel(chart, drawing) {
+    if (!chart || !drawing || drawing.type !== 'price_label') {
+        return null;
+    }
+
+    try {
+        const point = {
+            time: drawing.points[0].time,
+            price: drawing.points[0].price
+        };
+
+        const options = {
+            shape: 'text',
+            lock: true,
+            disableUndo: true,
+            text: drawing.options?.text || 'Hit',
+            overrides: {
+                color: '#FFFFFF',
+                fontsize: 14,
+                bold: true
+            },
+            zOrder: 'top'
+        };
+
+        const result = chart.createShape(point, options);
+
+        if (result && typeof result.then === 'function') {
+            return result;
+        }
+
+        return result;
+    } catch (e) {
+        console.error('[StudyDrawing] Failed to draw price label:', e);
         return null;
     }
 }
@@ -172,6 +229,16 @@ export function drawPolyline(chart, drawing, shapeTracking = {}) {
                 { time: points[i].time, price: points[i].price },
                 { time: points[i + 1].time, price: points[i + 1].price }
             ];
+
+            const isValid = segmentPoints.every(p =>
+                p.time !== undefined && p.time !== null && !isNaN(p.time) &&
+                p.price !== undefined && p.price !== null && !isNaN(p.price)
+            );
+
+            if (!isValid) {
+                console.warn(`[StudyDrawing] Skipping polyline segment ${i} due to invalid coordinates`, segmentPoints);
+                continue;
+            }
 
             const result = chart.createMultipointShape(segmentPoints, {
                 shape: 'trend_line',

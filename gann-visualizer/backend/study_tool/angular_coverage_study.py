@@ -15,22 +15,27 @@ from datetime import datetime
 from .pivot_detector import PivotDetector
 from .angle_engine import AngleEngine
 from .fan_manager import FanManager
+from .intersection_detector import IntersectionDetector
 
 
 # Default configuration
 DEFAULT_CONFIG = {
     'left_bars': 5,
     'right_bars': 5,
-    'fractions': [7/8, 3/4, 1/2, 1/4, 1/8],
-    'fraction_colors': ['#c62828', '#ad1457', '#6a1b9a', '#283593', '#00695c'],
-    'main_color': '#FF6600',
-    'line_extension_bars': 50,
-    'remove_completed_fans': True,
+    'line_extension_bars': 100, # Initial extension, will be adaptive
+    'fraction_colors': {
+        1/8: '#FF5252', 1/4: '#FF5252', 3/8: '#FF5252', 
+        1/2: '#2196F3', 
+        5/8: '#4CAF50', 3/4: '#4CAF50', 7/8: '#4CAF50',
+        1.0: '#FFFFFF'
+    },
+    'main_color': '#FFFFFF',
     'main_line_width': 1,
     'fraction_line_width': 2,
     'scale_ratio': 1.0,
-    'max_fans': 3,              # Global fan limit (Rule 6)
     'breach_mode': 'wick',      # 'wick' or 'close' (Rule 4)
+    'show_intersection_labels': False, # Whether to draw price text on hit
+    'max_historical_fans': 3,   # Cap on fans when looking backwards for context
 }
 
 
@@ -52,7 +57,7 @@ class AngularPriceCoverageStudy:
         )
 
         self.angle_engine = AngleEngine(
-            fractions=self.config['fractions'],
+            # fractions=self.config['fractions'], # Fractions are now derived from fraction_colors keys
             fraction_colors=self.config['fraction_colors'],
             main_color=self.config['main_color'],
             line_extension_bars=self.config['line_extension_bars'],
@@ -60,9 +65,16 @@ class AngularPriceCoverageStudy:
             fraction_line_width=self.config['fraction_line_width'],
             scale_ratio=self.config['scale_ratio']
         )
+        
+        self.intersection_detector = IntersectionDetector()
 
         # Track active fan keys for diffing (old vs new set)
         self._active_fan_keys: Dict[str, str] = {}  # fan_key -> engine_fan_id
+        
+        # State machine persistent roster: fan_id -> fan_data
+        self._persisted_fans: Dict[str, Dict] = {}
+        self._is_initialized = False
+
         self._initialized: bool = False
 
         # Setup File Logger
@@ -142,8 +154,83 @@ class AngularPriceCoverageStudy:
         # 2. Run unified backward traversal (same logic every bar)
         self._sync_fans(candles, bar_index, result)
 
-        # 3. Save state
+        # 3. Detect intersections for this bar
+        current_candle = candles[bar_index]
+        events = self.intersection_detector.detect(current_candle, self.angle_engine.active_fans, bar_index)
+        if events:
+            for event in events:
+                if event.fan_id in self.angle_engine.active_fans:
+                    fan_obj = self.angle_engine.active_fans[event.fan_id]
+                    # Store the event and label ID in the fan object
+                    fan_obj.intersections.append(event)
+                    
+                    label_id = f"hit_{event.fan_id}_{event.line_id}_{event.time}_{event.price}"
+                    fan_obj.label_ids.append(label_id)
+
+                    try:
+                        import os
+                        log_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'logs')
+                        os.makedirs(log_dir, exist_ok=True)
+                        log_file = os.path.join(log_dir, 'intersections.csv')
+                        
+                        frac_str = str(event.fraction) if event.fraction is not None else "Horizontal"
+                        log_line = f"{event.time},{event.priority_label},{frac_str},{event.price}\n"
+                        
+                        if not os.path.exists(log_file):
+                            with open(log_file, 'w') as f:
+                                f.write("Timestamp,FanIdentity,Fraction,Price\n")
+                        with open(log_file, 'a') as f:
+                            f.write(log_line)
+                    except Exception as e:
+                        print(f"Failed to log intersection: {e}")
+
+                    # Compute fraction display name and color
+                    if event.fraction is None:
+                        frac_name = "Horizontal"
+                        color = '#FFFFFF'
+                    else:
+                        frac_map = {0.125: '1/8', 0.25: '1/4', 0.375: '3/8', 0.5: '1/2', 0.625: '5/8', 0.75: '3/4', 0.875: '7/8', 1.0: '1/1'}
+                        closest_frac = min(frac_map.keys(), key=lambda k: abs(k - event.fraction))
+                        if abs(closest_frac - event.fraction) < 0.01:
+                            frac_name = frac_map[closest_frac]
+                        else:
+                            frac_name = f"{event.fraction:.2f}"
+                        color = '#FFEB3B'
+
+                    fan_display_name = event.fan_id.replace("Fan_", "").replace("_", "-")
+
+                    # ALWAYS emit intersection event data for the Price Interactions tab
+                    if 'intersection_events' not in result:
+                        result['intersection_events'] = []
+                    result['intersection_events'].append({
+                        'time': event.time,
+                        'fan': event.priority_label,
+                        'fanIdentity': fan_display_name,
+                        'fraction': frac_name,
+                        'price': event.price
+                    })
+
+                    # Optionally draw price_label on chart (cosmetic toggle)
+                    if self.config.get('show_intersection_labels', False):
+                        text = f"{event.priority_label} Hit {frac_name}"
+                        result['drawings'].append({
+                            'type': 'price_label',
+                            'id': label_id,
+                            'points': [{'time': event.time, 'price': event.price}],
+                            'options': {
+                                'text': text,
+                                'fanLabel': event.priority_label,
+                                'fanIdentity': fan_display_name,
+                                'color': color, 
+                                'textcolor': '#000000'
+                            }
+                        })
+
+        # 4. Save state
         result['state'] = self._get_state()
+        
+        if len(result['drawings']) > 0 or len(result['remove_drawings']) > 0:
+            self.log(f"[Study] process_bar sending {len(result['drawings'])} drawings, {len(result['remove_drawings'])} removes")
 
         return result
 
@@ -157,20 +244,59 @@ class AngularPriceCoverageStudy:
         Core sync: run FanManager, diff with current engine state,
         remove invalidated fans, create new ones.
         """
-        # Get logically active fans from unified traversal
+        # Generate raw un-capped logical fans
         logical_fans = FanManager.find_active_fans(
             confirmed_pivots=self.pivot_detector.confirmed_pivots,
             candles=candles,
             current_bar_index=current_bar_index,
-            max_fans=self.config['max_fans'],
             breach_mode=self.config['breach_mode']
         )
 
-        # Build new fan key map
+        logical_fan_map = {f['fan_id']: f for f in logical_fans}
+
+        # Initialize State Machine if this is the first sync
+        if not self._is_initialized:
+            # On first load, only grab up to max_historical_fans to prevent clutter
+            limit = self.config.get('max_historical_fans', 3)
+            for i, fan in enumerate(logical_fans):
+                if i >= limit:
+                    break
+                self._persisted_fans[fan['fan_id']] = fan
+            self._is_initialized = True
+        else:
+            # 1. Cull fans that broke mathematical/breach validity
+            keys_to_remove = []
+            for fan_id in self._persisted_fans:
+                if fan_id not in logical_fan_map:
+                    keys_to_remove.append(fan_id)
+            
+            for key in keys_to_remove:
+                del self._persisted_fans[key]
+                
+            # 2. Add brand new fans (Anchor must be the absolutely most recent pivot)
+            if self.pivot_detector.confirmed_pivots:
+                latest_pivot = self.pivot_detector.confirmed_pivots[-1]
+                for fan in logical_fans:
+                    if fan['anchor']['label'] == latest_pivot.label:
+                        self._persisted_fans[fan['fan_id']] = fan
+
+        # Re-sort persistent roster by anchor timestamp (descending) to assign correct P-labels
+        sorted_roster = sorted(
+            self._persisted_fans.values(),
+            key=lambda f: f['anchor']['time'],
+            reverse=True
+        )
+
+        # Build final map for AngleEngine syncing
         new_fan_map = {}
-        for fan in logical_fans:
-            key = f"{fan['anchor']['time']}_{fan['target']['time']}"
-            new_fan_map[key] = fan
+        for priority_idx, fan in enumerate(sorted_roster):
+            # Update the priority tracking info so line labels stay accurate
+            fan['priority'] = priority_idx
+            
+            # Embed the full fan identity in the priority label so it propagates to UI controls
+            fan_display_name = fan['fan_id'].replace("Fan_", "").replace("_", "-")
+            fan['priority_label'] = f"P{priority_idx + 1} ({fan_display_name})"
+            new_fan_map[fan['fan_id']] = fan
 
         new_keys = set(new_fan_map.keys())
         old_keys = set(self._active_fan_keys.keys())
@@ -178,13 +304,15 @@ class AngularPriceCoverageStudy:
         # Remove invalidated fans (in old set but not in new)
         for key in old_keys - new_keys:
             engine_fan_id = self._active_fan_keys[key]
-            self.log(f"[Study] Removing fan: {key} (engine_id={engine_fan_id})")
+            self.log(f"[Study] Removing fan: {key}")
 
             # Add removal commands for all lines in this fan
             if engine_fan_id in self.angle_engine.active_fans:
                 fan_obj = self.angle_engine.active_fans[engine_fan_id]
                 for line in fan_obj.lines:
                     result['remove_drawings'].append(line.id)
+                for label_id in fan_obj.label_ids:
+                    result['remove_drawings'].append(label_id)
                 self.angle_engine.remove_fan(engine_fan_id)
 
             del self._active_fan_keys[key]
@@ -198,6 +326,7 @@ class AngularPriceCoverageStudy:
                 from_pivot=fan_data['target'],   # Target is the "from" (left pivot)
                 to_pivot=fan_data['anchor'],      # Anchor is the "to" (right pivot)
                 current_candles=candles[:current_bar_index + 1],
+                fan_id=fan_data['fan_id'],
                 priority_label=fan_data['priority_label']
             )
 
@@ -208,6 +337,8 @@ class AngularPriceCoverageStudy:
             drawings = self.angle_engine.fan_to_drawing_commands(fan_obj)
             result['drawings'].extend(drawings)
             
+
+
         # Update existing fans if their priority label changed
         for key in new_keys & old_keys:
             fan_data = new_fan_map[key]
@@ -223,17 +354,60 @@ class AngularPriceCoverageStudy:
                     for line in fan_obj.lines:
                         result['remove_drawings'].append(line.id)
                         
+                    # Queue old labels for removal
+                    for label_id in fan_obj.label_ids:
+                        result['remove_drawings'].append(label_id)
+                    fan_obj.label_ids.clear()
+                        
                     # Then generate and append the new lines with the updated label
                     drawings = self.angle_engine.fan_to_drawing_commands(fan_obj)
                     result['drawings'].extend(drawings)
+                    
+                    # Re-generate the updated labels
+                    for event in fan_obj.intersections:
+                        event.priority_label = fan_obj.priority_label
+                        
+                        label_id = f"hit_{event.fan_id}_{event.line_id}_{event.time}_{event.price}"
+                        fan_obj.label_ids.append(label_id)
+
+                        if event.fraction is None:
+                            frac_name = "Horizontal"
+                            color = '#FFFFFF'
+                        else:
+                            frac_map = {0.125: '1/8', 0.25: '1/4', 0.375: '3/8', 0.5: '1/2', 0.625: '5/8', 0.75: '3/4', 0.875: '7/8', 1.0: '1/1'}
+                            closest_frac = min(frac_map.keys(), key=lambda k: abs(k - event.fraction))
+                            if abs(closest_frac - event.fraction) < 0.01:
+                                frac_name = frac_map[closest_frac]
+                            else:
+                                frac_name = f"{event.fraction:.2f}"
+                            color = '#FFEB3B'
+                            
+                        # Extract pure fan name (e.g., "Fan_H5_L2" -> "H5-L2")
+                        fan_display_name = event.fan_id.replace("Fan_", "").replace("_", "-")
+                            
+                        # Only draw chart labels if toggle is on
+                        if self.config.get('show_intersection_labels', False):
+                            text = f"{event.priority_label} Hit {frac_name}"
+                            result['drawings'].append({
+                                'type': 'price_label',
+                                'id': label_id,
+                                'points': [{'time': event.time, 'price': event.price}],
+                                'options': {
+                                    'text': text,
+                                    'fanLabel': event.priority_label,
+                                    'fanIdentity': fan_display_name,
+                                    'color': color, 
+                                    'textcolor': '#000000'
+                                }
+                            })
 
         # Add pivot markers for debugging
-        self._add_fan_markers(logical_fans, result)
+        self._add_fan_markers(result)
 
-    def _add_fan_markers(self, logical_fans: List[Dict[str, Any]], result: Dict[str, Any]):
-        """Add pivot markers for all active fan pivots."""
+    def _add_fan_markers(self, result: Dict[str, Any]):
+        """Add pivot markers ONLY for active persisted fan pivots."""
         seen = set()
-        for fan in logical_fans:
+        for fan in self._persisted_fans.values():
             # Anchor marker
             a = fan['anchor']
             a_key = f"anchor_{a['time']}"
@@ -245,7 +419,7 @@ class AngularPriceCoverageStudy:
                     'time': a['time'],
                     'price': a['price'],
                     'bar_index': a.get('bar_index', 0),
-                    'text': 'A'
+                    'text': a.get('label', 'A')
                 })
 
             # Target marker
@@ -259,7 +433,7 @@ class AngularPriceCoverageStudy:
                     'time': t['time'],
                     'price': t['price'],
                     'bar_index': t.get('bar_index', 0),
-                    'text': fan['priority_label'][0]  # P, S, T
+                    'text': t.get('label', 'T')
                 })
 
     def get_state(self) -> Dict[str, Any]:
@@ -275,7 +449,10 @@ class AngularPriceCoverageStudy:
         return {
             'pivot_detector': self.pivot_detector.get_state(),
             'angle_engine': self.angle_engine.get_state(),
+            'intersection_detector': self.intersection_detector.get_state(),
             'active_fan_keys': dict(self._active_fan_keys),
+            'persisted_fans': dict(self._persisted_fans),
+            'is_initialized': self._is_initialized,
             'config': self.config
         }
 
@@ -285,8 +462,14 @@ class AngularPriceCoverageStudy:
             self.pivot_detector.restore_state(state['pivot_detector'])
         if 'angle_engine' in state:
             self.angle_engine.restore_state(state['angle_engine'])
+        if 'intersection_detector' in state:
+            self.intersection_detector.restore_state(state['intersection_detector'])
         if 'active_fan_keys' in state:
             self._active_fan_keys = state['active_fan_keys']
+        if 'persisted_fans' in state:
+            self._persisted_fans = state['persisted_fans']
+        if 'is_initialized' in state:
+            self._is_initialized = state['is_initialized']
         if 'config' in state:
             self.config = {**DEFAULT_CONFIG, **state['config']}
 

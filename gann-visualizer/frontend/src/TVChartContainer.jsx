@@ -90,6 +90,19 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
                     console.warn("[Chart] Failed to set default PriceToBarRatio:", e);
                 }
 
+                // Actively remove any Bollinger Bands that might have been loaded from a saved layout
+                try {
+                    const allStudies = widget.activeChart().getAllStudies();
+                    allStudies.forEach(study => {
+                        if (study.name && study.name.toLowerCase().includes('bollinger')) {
+                            widget.activeChart().removeEntity(study.id);
+                            console.log("[Chart] Actively removed Bollinger Bands from saved layout");
+                        }
+                    });
+                } catch (e) {
+                    console.warn("[Chart] Failed to remove Bollinger Bands:", e);
+                }
+
                 // Subscribe to Symbol Changes to keep parent in sync
                 try {
                     widget.activeChart().onSymbolChanged().subscribe(null, (symbolInfo) => {
@@ -155,15 +168,15 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
 
         try {
             const chart = widgetRef.current.activeChart();
-            const visibleLabels = props.visibleFanLabels || ['Primary', 'Secondary', 'Tertiary'];
+            const visibleLabels = props.visibleFanLabels || [];
             console.log('[TVChart] Updating fan visibility:', visibleLabels);
 
             Object.keys(fanLabelsRef.current).forEach(drawingId => {
-                const label = fanLabelsRef.current[drawingId];
+                const identity = fanLabelsRef.current[drawingId];
                 const shapeId = studyShapesRef.current[drawingId];
 
-                if (shapeId && label) {
-                    const isVisible = visibleLabels.includes(label) || label === 'Unknown';
+                if (shapeId && identity) {
+                    const isVisible = visibleLabels.includes(identity) || identity === 'Unknown';
                     // processStudyResponse handles IDs that might be promises or direct
                     if (typeof shapeId === 'object' && typeof shapeId.then === 'function') {
                         shapeId.then(id => {
@@ -364,6 +377,61 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
         }
     };
 
+    // --- ADDED: Extract available fan identities from incoming drawings ---
+    // Tracks identity -> latest display label mapping
+    const fanDisplayMapRef = useRef({});
+
+    const updateAvailableFans = (drawings) => {
+        if (!props.onAvailableFansUpdated) return;
+
+        if (!drawings || !Array.isArray(drawings)) return;
+
+        let foundNew = false;
+        let newIdentities = [];
+
+        drawings.forEach(d => {
+            if (d.options && d.options.fanIdentity && d.options.fanIdentity !== 'Unknown') {
+                const identity = d.options.fanIdentity;
+                const displayLabel = d.options.fanLabel || identity;
+
+                // Always update the display label (it may change as priorities shift)
+                fanDisplayMapRef.current[identity] = displayLabel;
+
+                // Track if this is a brand new identity
+                if (!fanLabelsRef.current || !Object.values(fanLabelsRef.current).includes(identity)) {
+                    // Check if we already know about this identity
+                    const existingIdentities = new Set(Object.values(fanLabelsRef.current || {}));
+                    if (!existingIdentities.has(identity)) {
+                        foundNew = true;
+                        newIdentities.push(identity);
+                    }
+                }
+            }
+        });
+
+        // Always rebuild the available fans list with latest display labels
+        const allIdentities = Object.keys(fanDisplayMapRef.current);
+        if (allIdentities.length > 0) {
+            const fanObjects = allIdentities
+                .map(id => ({ identity: id, displayLabel: fanDisplayMapRef.current[id] }))
+                .sort((a, b) => {
+                    // Sort by priority number extracted from displayLabel
+                    const matchA = a.displayLabel.match(/^P(\d+)/);
+                    const matchB = b.displayLabel.match(/^P(\d+)/);
+                    const numA = matchA ? parseInt(matchA[1]) : 999;
+                    const numB = matchB ? parseInt(matchB[1]) : 999;
+                    return numA - numB;
+                });
+
+            props.onAvailableFansUpdated(fanObjects);
+
+            // Auto-enable visibility for newly discovered fans
+            if (foundNew && newIdentities.length > 0 && props.onAutoEnableVisibility) {
+                props.onAutoEnableVisibility(newIdentities);
+            }
+        }
+    };
+
     // Expose methods to parent (App.jsx)
     useImperativeHandle(ref, () => ({
         // Get current chart resolution
@@ -395,6 +463,9 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
             }
             return null; // Let backend use default
         },
+
+        // --- ADDED: Extract available fan labels from incoming drawings ---
+        updateAvailableFans: updateAvailableFans,
 
         // INSTANT MODE: Plot all candles and signals at once
         startBacktestInstant: (candles, trades, resolution = '1', markers = [], drawings = []) => {
@@ -490,6 +561,8 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
                             if (markers.length > 0 || drawings.length > 0) {
                                 console.log(`Plotting ${markers.length} study markers and ${drawings.length} drawings`);
                                 try {
+                                    updateAvailableFans(drawings);
+
                                     studyShapesRef.current = processStudyResponse(chart, {
                                         pivot_markers: markers,
                                         drawings: drawings
@@ -498,12 +571,13 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
                                     // Track Fan Labels & Apply Visibility
                                     const visibleLabels = visibleFanLabelsRef.current;
                                     drawings.forEach(d => {
-                                        if (d.options && d.options.fanLabel) {
-                                            fanLabelsRef.current[d.id] = d.options.fanLabel;
+                                        if (d.options && (d.options.fanIdentity || d.options.fanLabel)) {
+                                            const identity = d.options.fanIdentity || d.options.fanLabel;
+                                            fanLabelsRef.current[d.id] = identity;
 
                                             // Apply immediate visibility
                                             const shapeId = studyShapesRef.current[d.id];
-                                            const isVisible = visibleLabels.includes(d.options.fanLabel);
+                                            const isVisible = visibleLabels.includes(identity);
 
                                             if (shapeId) {
                                                 if (typeof shapeId === 'object' && typeof shapeId.then === 'function') {
@@ -541,6 +615,7 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
                         // Fallback study plotting
                         if (markers.length > 0 || drawings.length > 0) {
                             try {
+                                updateAvailableFans(drawings);
                                 studyShapesRef.current = processStudyResponse(chart, {
                                     pivot_markers: markers,
                                     drawings: drawings
@@ -774,16 +849,31 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
                         const chart = widgetRef.current.activeChart();
                         studyShapesRef.current = processStudyResponse(chart, studyData, studyShapesRef.current);
 
+                        // Emit price interaction events from backend intersection_events (always present)
+                        if (props.onPriceInteraction && studyData.intersection_events && studyData.intersection_events.length > 0) {
+                            studyData.intersection_events.forEach(evt => {
+                                props.onPriceInteraction({
+                                    time: evt.time,
+                                    fan: evt.fan,
+                                    fraction: evt.fraction,
+                                    price: evt.price,
+                                });
+                            });
+                        }
+
                         // Handle Fan Visibility
                         if (studyData.drawings && studyData.drawings.length > 0) {
+                            updateAvailableFans(studyData.drawings);
+
                             const visibleLabels = visibleFanLabelsRef.current;
                             studyData.drawings.forEach(d => {
-                                if (d.options && d.options.fanLabel) {
-                                    fanLabelsRef.current[d.id] = d.options.fanLabel;
+                                if (d.options && (d.options.fanIdentity || d.options.fanLabel)) {
+                                    const identity = d.options.fanIdentity || d.options.fanLabel;
+                                    fanLabelsRef.current[d.id] = identity;
 
                                     // Apply immediate visibility
                                     const shapeId = studyShapesRef.current[d.id];
-                                    const isVisible = visibleLabels.includes(d.options.fanLabel);
+                                    const isVisible = visibleLabels.includes(identity);
 
                                     if (shapeId) {
                                         if (typeof shapeId === 'object' && typeof shapeId.then === 'function') {
@@ -822,27 +912,69 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
                 try {
                     scaleRatio = chart.getPriceToBarRatio();
                     console.log("[Progressive Replay] Captured Price-to-Bar Ratio:", scaleRatio);
+                    // Re-apply 5.5 to counteract any distortion from fan toggle DOM rendering
+                    chart.setPriceToBarRatio(5.5);
+                    scaleRatio = 5.5;
+                    console.log("[Progressive Replay] Re-locked Price-to-Bar Ratio to 5.5");
                 } catch (e) {
                     console.warn("Could not get price-to-bar ratio:", e);
                 }
 
-                // Plot Initial Markers (e.g. historical pivots) if provided
-                // Plot Initial Markers (e.g. historical pivots) if provided
-                if (pivotSettings && pivotSettings.initialMarkers && pivotSettings.initialMarkers.length > 0) {
-                    console.log(`[Progressive Replay] Plotting ${pivotSettings.initialMarkers.length} initial markers`);
+                // Plot Initial Markers AND Initial Drawings (Fans) if provided
+                if (pivotSettings && (
+                    (pivotSettings.initialMarkers && pivotSettings.initialMarkers.length > 0) ||
+                    (pivotSettings.initialDrawings && pivotSettings.initialDrawings.length > 0)
+                )) {
+                    console.log(`[Progressive Replay] Plotting ${pivotSettings.initialMarkers?.length || 0} initial markers and ${pivotSettings.initialDrawings?.length || 0} initial drawings`);
                     try {
-                        console.log("[Progressive Replay] Marker processing started");
-                        // Use processStudyResponse to handle marker plotting
+                        console.log("[Progressive Replay] Marker/Drawing processing started");
+
+                        const initMarkers = pivotSettings.initialMarkers || [];
+                        const initDrawings = pivotSettings.initialDrawings || [];
+
+                        // Pre-register fan visibility labels for initial fans BEFORE plotting
+                        if (initDrawings.length > 0) {
+                            updateAvailableFans(initDrawings);
+                            initDrawings.forEach(d => {
+                                if (d.options && (d.options.fanIdentity || d.options.fanLabel)) {
+                                    fanLabelsRef.current[d.id] = d.options.fanIdentity || d.options.fanLabel;
+                                }
+                            });
+                        }
+
+                        // Use processStudyResponse to handle plotting both markers and drawings
                         studyShapesRef.current = processStudyResponse(chart, {
-                            pivot_markers: pivotSettings.initialMarkers,
-                            drawings: [] // No initial drawings for now
+                            pivot_markers: initMarkers,
+                            drawings: initDrawings
                         }, studyShapesRef.current);
-                        console.log("[Progressive Replay] Marker processing complete");
+
+                        // Apply visibility to initial drawings
+                        if (initDrawings.length > 0) {
+                            const visibleLabels = visibleFanLabelsRef.current || [];
+                            initDrawings.forEach(d => {
+                                if (d.options && (d.options.fanIdentity || d.options.fanLabel)) {
+                                    const identity = d.options.fanIdentity || d.options.fanLabel;
+                                    const shapeId = studyShapesRef.current[d.id];
+                                    const isVisible = visibleLabels.includes(identity);
+                                    if (shapeId) {
+                                        if (typeof shapeId === 'object' && typeof shapeId.then === 'function') {
+                                            shapeId.then(id => {
+                                                if (id) chart.setEntityVisibility(id, isVisible);
+                                            });
+                                        } else {
+                                            chart.setEntityVisibility(shapeId, isVisible);
+                                        }
+                                    }
+                                }
+                            });
+                        }
+
+                        console.log("[Progressive Replay] Marker/Drawing processing complete");
                     } catch (err) {
-                        console.error("[Progressive Replay] Failed to plot initial markers:", err);
+                        console.error("[Progressive Replay] Failed to plot initial markers/drawings:", err);
                     }
                 } else {
-                    console.warn("[Progressive Replay] No initial markers found in pivotSettings:", pivotSettings);
+                    console.log("[Progressive Replay] No initial markers/drawings found in pivotSettings");
                 }
 
                 // Update datafeed with scale ratio and pivot settings
