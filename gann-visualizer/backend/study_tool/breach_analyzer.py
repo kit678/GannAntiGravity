@@ -120,6 +120,7 @@ class BreachAnalyzer:
                     angle_slope = 0.0 # Placeholder: Calculate actual slope from fan_obj.lines if needed
                     
                     self.active_breaches[state_key] = {
+                        'fan_id': event.fan_id,
                         'direction': direction,
                         'extreme_price': extreme_price,
                         'first_breach_bar': bar_index,
@@ -132,7 +133,14 @@ class BreachAnalyzer:
         # 2. Update existing Unconfirmed Breaches (Check for Confirmation or Reversal)
         keys_to_remove = []
         for state_key, state in self.active_breaches.items():
-            fan_id, line_id = state_key.split('_', 1)
+            fan_id = state.get('fan_id')
+            
+            # Fallback for older state dicts that might not have fan_id stored
+            if not fan_id:
+                # This is a naive fallback that might fail if fan_id has multiple underscores,
+                # but it's better than nothing for migrating old state.
+                fan_id = state_key.rsplit('_', 1)[0]
+                
             if fan_id not in active_fans:
                 keys_to_remove.append(state_key)
                 continue
