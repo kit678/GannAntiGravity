@@ -7,6 +7,11 @@
 - High Anchor: Angle formed at the Low pivot (Low, High, horizontal through Low).
 - Low Anchor: Angle formed at the High pivot (High, Low, horizontal through High).
 
+## Key Terminology
+- **Anchor**: The most recent confirmed pivot (rightmost). Determines the type of breach being tracked.
+- **Target (Origin)**: The temporally earlier pivot that forms the fan with the Anchor.
+- **Division Line Reversal**: Occurs when price crosses a division line but fails to achieve the required successive closes (e.g., 2 closes) before returning to the other side.
+
 ## Step 1: Detect All Pivots
 Scan the entire historical dataset to detect all pivot Highs and Lows (e.g., 5 left bars, 5 right bars). This produces a complete, time-ordered list of confirmed pivots.
 
@@ -95,3 +100,31 @@ for each pivot as Anchor (recent to old):
         emit Fan(Anchor, Target, priority=total_fans)
         total_fans += 1
 ```
+
+
+## Angle Division Lines
+Each fan radiates the following angle division lines from its origin pivot (the temporally earlier of the two pivots):
+- **7/8, 3/4, 1/2, 1/4, 1/8** — fractional sub-angles of the main angle θ
+- Line slope = tan(θ × fraction), extended to an equal radius from the origin
+- The **1/8 line** is drawn for visualization and acts as a potential support/resistance level, but is not part of the formal target sequence
+
+## Horizontal Target Derivation
+After the 1/2 angle line is breached, the next target is a **horizontal price level** derived as follows:
+
+1. Draw a vertical line through the **Anchor pivot** (the rightmost/most-recent pivot)
+2. Find the intersection of this vertical line with the **1/2 angle division line**
+3. From that intersection point, draw a horizontal line extending rightward to the edge of the fan's radius
+
+This gives one horizontal target per fan, which is the price level to be reached after the 1/2 angle is confirmed breached.
+
+## Target Sequence
+Price is expected to progress through targets in this order after a fan is validated (see Fan Validation below):
+
+```
+7/8 → 3/4 → 1/2 → Horizontal Target → Full Coverage
+```
+
+**Special case:** If price reaches the **1/4 angle line before reaching the horizontal target**, the horizontal target is cancelled. The 1/4 interaction signals a reversal, not a continuation.
+
+## Fan Validation Rule
+A fan is only considered active for trading after price first interacts with its **7/8 angle line**. This interaction validates that price is respecting the fan's geometry. The interaction type (touch, reversal, or breach) is recorded.
