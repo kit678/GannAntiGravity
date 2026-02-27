@@ -34,11 +34,13 @@ CommoditiesCourse/
 # Project Specific - Secrets & Scripts with potential secrets
 dhan_auth.py
 dhan-test-script.py
-# *.log
-# **/logs/
-# **/study_debug/
+*.log
+**/logs/
+**/study_debug/
+!gann-visualizer/backend/logs/
+!gann-visualizer/backend/logs/*.log
 pivot_debug*
-# angular_study_debug.log
+angular_study_debug.log
 startup_error.txt
 debug_log_copy.py
 
