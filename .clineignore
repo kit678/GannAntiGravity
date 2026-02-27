@@ -1,0 +1,43 @@
+# Common Directories to Ignore
+node_modules/
+**/node_modules/
+.git/
+.agent/
+.gemini/
+
+# Python Cache and Test files
+__pycache__/
+**/__pycache__/
+.pytest_cache/
+**/.pytest_cache/
+.venv/
+env/
+venv/
+
+# Project-specific Logs
+logs/
+**/logs/
+*.log
+
+# Frontend Build Folders
+dist/
+**/dist/
+build/
+**/build/
+
+# IDE and System Files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Data Files (likely too large for AI context)
+*.csv
+*.sqlite
+*.sqlite3
+**/extracted_images/
+**/extracted_gann_data/
+
+# Environment Variables (Security)
+.env
+.env.*

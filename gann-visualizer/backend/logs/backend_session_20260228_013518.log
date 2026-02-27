@@ -1,0 +1,931 @@
+2026-02-28 01:35:18,292 [INFO] Logging initialized. Output writing to C:\Dev\GannTesting\gann-visualizer\backend\logs\backend_session_20260228_013518.log
+2026-02-28 01:35:18,292 [INFO] --- BACKEND RESTART v4 - PNL TRACKING ---
+2026-02-28 01:35:18,292 [INFO] Middleware Stack: [Middleware(BaseHTTPMiddleware, dispatch=<function cors_middleware at 0x00000218951622A0>)]
+2026-02-28 01:35:19,956 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
+2026-02-28 01:35:19,959 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
+2026-02-28 01:35:20,027 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
+2026-02-28 01:35:20,176 [INFO] 
+2026-02-28 01:35:20,177 [INFO] ============================================================
+2026-02-28 01:35:20,177 [INFO] [UDF_HISTORY] === NEW REQUEST ===
+2026-02-28 01:35:20,177 [INFO] [UDF_HISTORY] symbol=^NSEI, resolution=1
+2026-02-28 01:35:20,177 [INFO] [UDF_HISTORY] from_=1772153660, to=1772222780, data_source=yfinance
+2026-02-28 01:35:20,177 [INFO] ============================================================
+2026-02-28 01:35:20,177 [INFO] [udf_history] Auto-detected Yahoo Finance symbol: ^NSEI
+2026-02-28 01:35:20,177 [INFO] [YFinance] Client initialized
+2026-02-28 01:35:20,179 [INFO] 
+2026-02-28 01:35:20,179 [INFO] ============================================================
+2026-02-28 01:35:20,179 [INFO] [UDF_HISTORY] INCOMING REQUEST
+2026-02-28 01:35:20,179 [INFO]   Symbol: ^NSEI
+2026-02-28 01:35:20,180 [INFO]   Data Source: yfinance
+2026-02-28 01:35:20,180 [INFO]   Resolution: 1
+2026-02-28 01:35:20,180 [INFO]   From (Unix): 1772153660 -> 2026-02-27 06:24:20
+2026-02-28 01:35:20,180 [INFO]   To (Unix): 1772222780 -> 2026-02-28 01:36:20
+2026-02-28 01:35:20,180 [INFO] ============================================================
+2026-02-28 01:35:20,180 [INFO] [UDF_HISTORY] Calling client.fetch_data(^NSEI, 2026-02-27 06:24:20, 2026-02-28 01:36:20, interval=1)
+2026-02-28 01:35:20,180 [INFO] Cache MISS: ^NSEI:1:2026-02-27 06:24:20:2026-02-28 01:36:20
+2026-02-28 01:35:20,180 [INFO] [YFinance] Fetching ^NSEI | interval=1 -> 1m | 2026-02-27 06:24:20 to 2026-02-28 01:36:20
+2026-02-28 01:35:20,182 [INFO] [YFinance] Requesting dates: start=2026-02-27, end=2026-03-01 for ^NSEI
+2026-02-28 01:35:20,905 [INFO] [YFinance] Received 375 bars
+2026-02-28 01:35:20,907 [INFO] [YFinance] Returning 375 bars, range: 2026-02-27 09:15:00 to 2026-02-27 15:29:00
+2026-02-28 01:35:20,908 [INFO] Cache PUT: ^NSEI:1:2026-02-27 06:24:20:2026-02-28 01:36:20 (TTL: 300.0s, 375 rows)
+2026-02-28 01:35:20,908 [INFO] [UDF_HISTORY] fetch_data returned: type=<class 'pandas.core.frame.DataFrame'>, empty=False
+2026-02-28 01:35:20,908 [INFO] [UDF_HISTORY] Raw data shape: (375, 6), columns: ['timestamp', 'open', 'high', 'low', 'close', 'volume']
+2026-02-28 01:35:20,908 [INFO] [UDF_HISTORY] Raw timestamp range: 1772163900 - 1772186340
+2026-02-28 01:35:20,908 [INFO] [UDF_HISTORY] Raw date range: 2026-02-27 09:15:00 - 2026-02-27 15:29:00
+2026-02-28 01:35:20,908 [INFO] DEBUG: fetch_data result type: <class 'pandas.core.frame.DataFrame'>
+2026-02-28 01:35:20,908 [INFO] DEBUG: fetch_data result shape: (375, 6)
+2026-02-28 01:35:20,914 [INFO] DEBUG: Data Head:
+2026-02-28 01:35:20,915 [INFO]     timestamp          open          high           low         close  volume
+2026-02-28 01:35:20,915 [INFO] 0  1772163900  25470.150391  25470.150391  25396.349609  25400.650391       0
+2026-02-28 01:35:20,915 [INFO] 1  1772163960  25400.250000  25408.750000  25388.199219  25405.099609       0
+2026-02-28 01:35:20,916 [INFO] DEBUG: from_=1772153660 (2026-02-27 06:24:20)
+2026-02-28 01:35:20,916 [INFO] DEBUG: to=1772222780 (2026-02-28 01:36:20)
+2026-02-28 01:35:20,917 [INFO] DEBUG: df['timestamp'] dtype=int64
+2026-02-28 01:35:20,917 [INFO] DEBUG: df timestamp range: 1772163900 - 1772186340
+2026-02-28 01:35:20,918 [INFO] DEBUG: df timestamp as dates: 2026-02-27T09:15:00 - 2026-02-27T15:29:00
+2026-02-28 01:35:20,920 [INFO] Filtered data from 375 to 375 bars (filter_from=1772153660, to=1772222780)
+2026-02-28 01:35:20,920 [INFO] PAGINATION: Returning 375 bars for ^NSEI (1)
+2026-02-28 01:35:20,928 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
+2026-02-28 01:35:25,554 [INFO] 
+2026-02-28 01:35:25,555 [INFO] ============================================================
+2026-02-28 01:35:25,555 [INFO] [UDF_HISTORY] === NEW REQUEST ===
+2026-02-28 01:35:25,555 [INFO] [UDF_HISTORY] symbol=^NSEI, resolution=60
+2026-02-28 01:35:25,555 [INFO] [UDF_HISTORY] from_=1765855451, to=1772222785, data_source=yfinance
+2026-02-28 01:35:25,555 [INFO] ============================================================
+2026-02-28 01:35:25,555 [INFO] [udf_history] Auto-detected Yahoo Finance symbol: ^NSEI
+2026-02-28 01:35:25,555 [INFO] [YFinance] Client initialized
+2026-02-28 01:35:25,555 [INFO] 
+2026-02-28 01:35:25,556 [INFO] ============================================================
+2026-02-28 01:35:25,556 [INFO] [UDF_HISTORY] INCOMING REQUEST
+2026-02-28 01:35:25,556 [INFO]   Symbol: ^NSEI
+2026-02-28 01:35:25,556 [INFO]   Data Source: yfinance
+2026-02-28 01:35:25,556 [INFO]   Resolution: 60
+2026-02-28 01:35:25,556 [INFO]   From (Unix): 1765855451 -> 2025-12-16 08:54:11
+2026-02-28 01:35:25,556 [INFO]   To (Unix): 1772222785 -> 2026-02-28 01:36:25
+2026-02-28 01:35:25,556 [INFO] ============================================================
+2026-02-28 01:35:25,556 [INFO] [UDF_HISTORY] Calling client.fetch_data(^NSEI, 2025-12-16 08:54:11, 2026-02-28 01:36:25, interval=60)
+2026-02-28 01:35:25,556 [INFO] Cache MISS: ^NSEI:60:2025-12-16 08:54:11:2026-02-28 01:36:25
+2026-02-28 01:35:25,557 [INFO] [YFinance] Fetching ^NSEI | interval=60 -> 1h | 2025-12-16 08:54:11 to 2026-02-28 01:36:25
+2026-02-28 01:35:25,557 [INFO] [YFinance] Requesting dates: start=2025-12-16, end=2026-03-01 for ^NSEI
+2026-02-28 01:35:25,683 [INFO] [YFinance] Received 349 bars
+2026-02-28 01:35:25,686 [INFO] [YFinance] Returning 349 bars, range: 2025-12-16 09:15:00 to 2026-02-27 15:15:00
+2026-02-28 01:35:25,687 [INFO] Cache PUT: ^NSEI:60:2025-12-16 08:54:11:2026-02-28 01:36:25 (TTL: 300.0s, 349 rows)
+2026-02-28 01:35:25,687 [INFO] [UDF_HISTORY] fetch_data returned: type=<class 'pandas.core.frame.DataFrame'>, empty=False
+2026-02-28 01:35:25,687 [INFO] [UDF_HISTORY] Raw data shape: (349, 6), columns: ['timestamp', 'open', 'high', 'low', 'close', 'volume']
+2026-02-28 01:35:25,687 [INFO] [UDF_HISTORY] Raw timestamp range: 1765856700 - 1772185500
+2026-02-28 01:35:25,688 [INFO] [UDF_HISTORY] Raw date range: 2025-12-16 09:15:00 - 2026-02-27 15:15:00
+2026-02-28 01:35:25,688 [INFO] DEBUG: fetch_data result type: <class 'pandas.core.frame.DataFrame'>
+2026-02-28 01:35:25,688 [INFO] DEBUG: fetch_data result shape: (349, 6)
+2026-02-28 01:35:25,692 [INFO] DEBUG: Data Head:
+2026-02-28 01:35:25,692 [INFO]     timestamp          open          high           low         close  volume
+2026-02-28 01:35:25,692 [INFO] 0  1765856700  25966.750000  25970.000000  25879.550781  25892.849609       0
+2026-02-28 01:35:25,692 [INFO] 1  1765860300  25892.449219  25922.699219  25888.150391  25898.800781       0
+2026-02-28 01:35:25,692 [INFO] DEBUG: from_=1765855451 (2025-12-16 08:54:11)
+2026-02-28 01:35:25,692 [INFO] DEBUG: to=1772222785 (2026-02-28 01:36:25)
+2026-02-28 01:35:25,692 [INFO] DEBUG: df['timestamp'] dtype=int64
+2026-02-28 01:35:25,693 [INFO] DEBUG: df timestamp range: 1765856700 - 1772185500
+2026-02-28 01:35:25,693 [INFO] DEBUG: df timestamp as dates: 2025-12-16T09:15:00 - 2026-02-27T15:15:00
+2026-02-28 01:35:25,693 [INFO] Filtered data from 349 to 349 bars (filter_from=1765855451, to=1772222785)
+2026-02-28 01:35:25,693 [INFO] PAGINATION: Returning 349 bars for ^NSEI (60)
+2026-02-28 01:35:25,697 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
+2026-02-28 01:35:29,670 [INFO] 
+2026-02-28 01:35:29,671 [INFO] ============================================================
+2026-02-28 01:35:29,671 [INFO] [UDF_HISTORY] === NEW REQUEST ===
+2026-02-28 01:35:29,671 [INFO] 
+2026-02-28 01:35:29,671 [INFO] [UDF_HISTORY] symbol=^NSEI, resolution=1
+2026-02-28 01:35:29,671 [INFO] ============================================================
+2026-02-28 01:35:29,672 [INFO] [UDF_HISTORY] from_=1772222129, to=1772222729, data_source=dhan
+2026-02-28 01:35:29,672 [INFO] [UDF_HISTORY] === NEW REQUEST ===
+2026-02-28 01:35:29,672 [INFO] ============================================================
+2026-02-28 01:35:29,672 [INFO] [UDF_HISTORY] symbol=^NSEI, resolution=60
+2026-02-28 01:35:29,673 [INFO] [udf_history] Auto-detected Yahoo Finance symbol: ^NSEI
+2026-02-28 01:35:29,673 [INFO] [UDF_HISTORY] from_=1772186729, to=1772222729, data_source=dhan
+2026-02-28 01:35:29,673 [INFO] [YFinance] Client initialized
+2026-02-28 01:35:29,673 [INFO] ============================================================
+2026-02-28 01:35:29,674 [INFO] 
+2026-02-28 01:35:29,674 [INFO] [udf_history] Auto-detected Yahoo Finance symbol: ^NSEI
+2026-02-28 01:35:29,674 [INFO] ============================================================
+2026-02-28 01:35:29,674 [INFO] [YFinance] Client initialized
+2026-02-28 01:35:29,674 [INFO] [UDF_HISTORY] INCOMING REQUEST
+2026-02-28 01:35:29,675 [INFO] 
+2026-02-28 01:35:29,675 [INFO]   Symbol: ^NSEI
+2026-02-28 01:35:29,675 [INFO] ============================================================
+2026-02-28 01:35:29,675 [INFO]   Data Source: yfinance
+2026-02-28 01:35:29,675 [INFO] [UDF_HISTORY] INCOMING REQUEST
+2026-02-28 01:35:29,676 [INFO]   Resolution: 1
+2026-02-28 01:35:29,676 [INFO]   Symbol: ^NSEI
+2026-02-28 01:35:29,676 [INFO]   From (Unix): 1772222129 -> 2026-02-28 01:25:29
+2026-02-28 01:35:29,676 [INFO]   Data Source: yfinance
+2026-02-28 01:35:29,676 [INFO]   To (Unix): 1772222729 -> 2026-02-28 01:35:29
+2026-02-28 01:35:29,676 [INFO]   Resolution: 60
+2026-02-28 01:35:29,676 [INFO] ============================================================
+2026-02-28 01:35:29,676 [INFO]   From (Unix): 1772186729 -> 2026-02-27 15:35:29
+2026-02-28 01:35:29,677 [INFO] [UDF_HISTORY] Calling client.fetch_data(^NSEI, 2026-02-28 01:25:29, 2026-02-28 01:35:29, interval=1)
+2026-02-28 01:35:29,677 [INFO]   To (Unix): 1772222729 -> 2026-02-28 01:35:29
+2026-02-28 01:35:29,677 [INFO] Cache MISS: ^NSEI:1:2026-02-28 01:25:29:2026-02-28 01:35:29
+2026-02-28 01:35:29,677 [INFO] ============================================================
+2026-02-28 01:35:29,677 [INFO] [YFinance] Fetching ^NSEI | interval=1 -> 1m | 2026-02-28 01:25:29 to 2026-02-28 01:35:29
+2026-02-28 01:35:29,677 [INFO] [UDF_HISTORY] Calling client.fetch_data(^NSEI, 2026-02-27 15:35:29, 2026-02-28 01:35:29, interval=60)
+2026-02-28 01:35:29,677 [INFO] [YFinance] Requesting dates: start=2026-02-28, end=2026-03-01 for ^NSEI
+2026-02-28 01:35:29,678 [INFO] Cache MISS: ^NSEI:60:2026-02-27 15:35:29:2026-02-28 01:35:29
+2026-02-28 01:35:29,678 [INFO] [YFinance] Fetching ^NSEI | interval=60 -> 1h | 2026-02-27 15:35:29 to 2026-02-28 01:35:29
+2026-02-28 01:35:29,678 [INFO] [YFinance] Requesting dates: start=2026-02-27, end=2026-03-01 for ^NSEI
+2026-02-28 01:35:29,770 [ERROR] $^NSEI: possibly delisted; no price data found  (1m 2026-02-28 -> 2026-03-01)
+2026-02-28 01:35:29,771 [INFO] [YFinance] No data returned for ^NSEI
+2026-02-28 01:35:29,771 [INFO] [UDF_HISTORY] fetch_data returned: type=<class 'pandas.core.frame.DataFrame'>, empty=True
+2026-02-28 01:35:29,771 [INFO] DEBUG: fetch_data result type: <class 'pandas.core.frame.DataFrame'>
+2026-02-28 01:35:29,771 [INFO] DEBUG: fetch_data result shape: (0, 0)
+2026-02-28 01:35:29,771 [INFO] Data fetch returned empty for ^NSEI. Checking for fallback...
+2026-02-28 01:35:29,771 [INFO] [Retry] CHECK: Original from=2026-02-28 01:25:29, New from=2026-02-24 01:35:29
+2026-02-28 01:35:29,771 [INFO] [Retry] Fetch returned empty. Attempting retry with -4d lookback: 2026-02-24 01:35:29
+2026-02-28 01:35:29,772 [INFO] Cache MISS: ^NSEI:1:2026-02-24 01:35:29:2026-02-28 01:35:29
+2026-02-28 01:35:29,772 [INFO] [YFinance] Fetching ^NSEI | interval=1 -> 1m | 2026-02-24 01:35:29 to 2026-02-28 01:35:29
+2026-02-28 01:35:29,772 [INFO] [YFinance] Requesting dates: start=2026-02-24, end=2026-03-01 for ^NSEI
+2026-02-28 01:35:29,937 [INFO] [YFinance] Received 7 bars
+2026-02-28 01:35:29,939 [INFO] [YFinance] Returning 7 bars, range: 2026-02-27 09:15:00 to 2026-02-27 15:15:00
+2026-02-28 01:35:29,939 [INFO] Cache PUT: ^NSEI:60:2026-02-27 15:35:29:2026-02-28 01:35:29 (TTL: 300.0s, 7 rows)
+2026-02-28 01:35:29,939 [INFO] [UDF_HISTORY] fetch_data returned: type=<class 'pandas.core.frame.DataFrame'>, empty=False
+2026-02-28 01:35:29,939 [INFO] [UDF_HISTORY] Raw data shape: (7, 6), columns: ['timestamp', 'open', 'high', 'low', 'close', 'volume']
+2026-02-28 01:35:29,940 [INFO] [UDF_HISTORY] Raw timestamp range: 1772163900 - 1772185500
+2026-02-28 01:35:29,940 [INFO] [UDF_HISTORY] Raw date range: 2026-02-27 09:15:00 - 2026-02-27 15:15:00
+2026-02-28 01:35:29,940 [INFO] DEBUG: fetch_data result type: <class 'pandas.core.frame.DataFrame'>
+2026-02-28 01:35:29,940 [INFO] DEBUG: fetch_data result shape: (7, 6)
+2026-02-28 01:35:29,944 [INFO] DEBUG: Data Head:
+2026-02-28 01:35:29,944 [INFO]     timestamp          open          high           low         close  volume
+2026-02-28 01:35:29,944 [INFO] 0  1772163900  25470.150391  25470.150391  25309.400391  25322.599609       0
+2026-02-28 01:35:29,944 [INFO] 1  1772167500  25321.949219  25346.449219  25292.650391  25335.000000       0
+2026-02-28 01:35:29,944 [INFO] DEBUG: from_=1772186729 (2026-02-27 15:35:29)
+2026-02-28 01:35:29,951 [INFO] DEBUG: to=1772222729 (2026-02-28 01:35:29)
+2026-02-28 01:35:29,952 [INFO] DEBUG: df['timestamp'] dtype=int64
+2026-02-28 01:35:29,953 [INFO] DEBUG: df timestamp range: 1772163900 - 1772185500
+2026-02-28 01:35:29,953 [INFO] DEBUG: df timestamp as dates: 2026-02-27T09:15:00 - 2026-02-27T15:15:00
+2026-02-28 01:35:29,953 [INFO] Filtered data from 7 to 0 bars (filter_from=1772186729, to=1772222729)
+2026-02-28 01:35:29,954 [INFO]   [DEBUG] Data was filtered out! Data range: 1772163900 - 1772185500
+2026-02-28 01:35:29,954 [INFO]   [DEBUG] Filter range: 1772186729 - 1772222729
+2026-02-28 01:35:29,955 [INFO] [SmartFilter] Request 'from' (1772186729) is after all available data (max: 1772185500)
+2026-02-28 01:35:29,957 [INFO] [SmartFilter] Returning all 7 bars since they fall before 'from' but are the best available data
+2026-02-28 01:35:29,957 [INFO] [SmartFilter] Recovered 7 bars by relaxing 'from' filter
+2026-02-28 01:35:29,958 [INFO] PAGINATION: Returning 7 bars for ^NSEI (60)
+2026-02-28 01:35:29,961 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
+2026-02-28 01:35:29,964 [INFO] [YFinance] Received 1500 bars
+2026-02-28 01:35:29,969 [INFO] [YFinance] Returning 1500 bars, range: 2026-02-24 09:15:00 to 2026-02-27 15:29:00
+2026-02-28 01:35:29,969 [INFO] Cache PUT: ^NSEI:1:2026-02-24 01:35:29:2026-02-28 01:35:29 (TTL: 300.0s, 1500 rows)
+2026-02-28 01:35:29,969 [INFO] [Retry] SUCCESS: Fetched 1500 bars with extended lookback.
+2026-02-28 01:35:29,969 [INFO] DEBUG: from_=1772222129 (2026-02-28 01:25:29)
+2026-02-28 01:35:29,970 [INFO] DEBUG: to=1772222729 (2026-02-28 01:35:29)
+2026-02-28 01:35:29,970 [INFO] DEBUG: df['timestamp'] dtype=int64
+2026-02-28 01:35:29,970 [INFO] DEBUG: df timestamp range: 1771904700 - 1772186340
+2026-02-28 01:35:29,970 [INFO] DEBUG: df timestamp as dates: 2026-02-24T09:15:00 - 2026-02-27T15:29:00
+2026-02-28 01:35:29,971 [INFO] Filtered data from 1500 to 0 bars (filter_from=1772222129, to=1772222729)
+2026-02-28 01:35:29,971 [INFO]   [DEBUG] Data was filtered out! Data range: 1771904700 - 1772186340
+2026-02-28 01:35:29,971 [INFO]   [DEBUG] Filter range: 1772222129 - 1772222729
+2026-02-28 01:35:29,971 [INFO] [SmartFilter] Request 'from' (1772222129) is after all available data (max: 1772186340)
+2026-02-28 01:35:29,971 [INFO] [SmartFilter] Returning all 1500 bars since they fall before 'from' but are the best available data
+2026-02-28 01:35:29,972 [INFO] [SmartFilter] Recovered 1500 bars by relaxing 'from' filter
+2026-02-28 01:35:29,972 [INFO] PAGINATION: Returning 1500 bars for ^NSEI (1)
+2026-02-28 01:35:29,987 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
+2026-02-28 01:35:40,561 [INFO] 
+2026-02-28 01:35:40,561 [INFO] ============================================================
+2026-02-28 01:35:40,561 [INFO] [UDF_HISTORY] === NEW REQUEST ===
+2026-02-28 01:35:40,562 [INFO] [UDF_HISTORY] symbol=^NSEI, resolution=60
+2026-02-28 01:35:40,562 [INFO] [UDF_HISTORY] from_=1772186740, to=1772222740, data_source=dhan
+2026-02-28 01:35:40,562 [INFO] ============================================================
+2026-02-28 01:35:40,562 [INFO] [udf_history] Auto-detected Yahoo Finance symbol: ^NSEI
+2026-02-28 01:35:40,562 [INFO] [YFinance] Client initialized
+2026-02-28 01:35:40,562 [INFO] 
+2026-02-28 01:35:40,563 [INFO] ============================================================
+2026-02-28 01:35:40,563 [INFO] [UDF_HISTORY] INCOMING REQUEST
+2026-02-28 01:35:40,563 [INFO]   Symbol: ^NSEI
+2026-02-28 01:35:40,563 [INFO]   Data Source: yfinance
+2026-02-28 01:35:40,563 [INFO]   Resolution: 60
+2026-02-28 01:35:40,563 [INFO]   From (Unix): 1772186740 -> 2026-02-27 15:35:40
+2026-02-28 01:35:40,563 [INFO]   To (Unix): 1772222740 -> 2026-02-28 01:35:40
+2026-02-28 01:35:40,563 [INFO] ============================================================
+2026-02-28 01:35:40,563 [INFO] [UDF_HISTORY] Calling client.fetch_data(^NSEI, 2026-02-27 15:35:40, 2026-02-28 01:35:40, interval=60)
+2026-02-28 01:35:40,563 [INFO] Cache MISS: ^NSEI:60:2026-02-27 15:35:40:2026-02-28 01:35:40
+2026-02-28 01:35:40,563 [INFO] [YFinance] Fetching ^NSEI | interval=60 -> 1h | 2026-02-27 15:35:40 to 2026-02-28 01:35:40
+2026-02-28 01:35:40,564 [INFO] [YFinance] Requesting dates: start=2026-02-27, end=2026-03-01 for ^NSEI
+2026-02-28 01:35:40,754 [INFO] [YFinance] Received 7 bars
+2026-02-28 01:35:40,756 [INFO] [YFinance] Returning 7 bars, range: 2026-02-27 09:15:00 to 2026-02-27 15:15:00
+2026-02-28 01:35:40,757 [INFO] Cache PUT: ^NSEI:60:2026-02-27 15:35:40:2026-02-28 01:35:40 (TTL: 300.0s, 7 rows)
+2026-02-28 01:35:40,757 [INFO] [UDF_HISTORY] fetch_data returned: type=<class 'pandas.core.frame.DataFrame'>, empty=False
+2026-02-28 01:35:40,757 [INFO] [UDF_HISTORY] Raw data shape: (7, 6), columns: ['timestamp', 'open', 'high', 'low', 'close', 'volume']
+2026-02-28 01:35:40,758 [INFO] [UDF_HISTORY] Raw timestamp range: 1772163900 - 1772185500
+2026-02-28 01:35:40,758 [INFO] [UDF_HISTORY] Raw date range: 2026-02-27 09:15:00 - 2026-02-27 15:15:00
+2026-02-28 01:35:40,758 [INFO] DEBUG: fetch_data result type: <class 'pandas.core.frame.DataFrame'>
+2026-02-28 01:35:40,758 [INFO] DEBUG: fetch_data result shape: (7, 6)
+2026-02-28 01:35:40,765 [INFO] DEBUG: Data Head:
+2026-02-28 01:35:40,765 [INFO]     timestamp          open          high           low         close  volume
+2026-02-28 01:35:40,765 [INFO] 0  1772163900  25470.150391  25470.150391  25309.400391  25322.599609       0
+2026-02-28 01:35:40,765 [INFO] 1  1772167500  25321.949219  25346.449219  25292.650391  25335.000000       0
+2026-02-28 01:35:40,766 [INFO] DEBUG: from_=1772186740 (2026-02-27 15:35:40)
+2026-02-28 01:35:40,766 [INFO] DEBUG: to=1772222740 (2026-02-28 01:35:40)
+2026-02-28 01:35:40,766 [INFO] DEBUG: df['timestamp'] dtype=int64
+2026-02-28 01:35:40,766 [INFO] DEBUG: df timestamp range: 1772163900 - 1772185500
+2026-02-28 01:35:40,766 [INFO] DEBUG: df timestamp as dates: 2026-02-27T09:15:00 - 2026-02-27T15:15:00
+2026-02-28 01:35:40,767 [INFO] Filtered data from 7 to 0 bars (filter_from=1772186740, to=1772222740)
+2026-02-28 01:35:40,767 [INFO]   [DEBUG] Data was filtered out! Data range: 1772163900 - 1772185500
+2026-02-28 01:35:40,767 [INFO]   [DEBUG] Filter range: 1772186740 - 1772222740
+2026-02-28 01:35:40,767 [INFO] [SmartFilter] Request 'from' (1772186740) is after all available data (max: 1772185500)
+2026-02-28 01:35:40,767 [INFO] [SmartFilter] Returning all 7 bars since they fall before 'from' but are the best available data
+2026-02-28 01:35:40,768 [INFO] [SmartFilter] Recovered 7 bars by relaxing 'from' filter
+2026-02-28 01:35:40,768 [INFO] PAGINATION: Returning 7 bars for ^NSEI (60)
+2026-02-28 01:35:40,769 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
+2026-02-28 01:35:50,262 [INFO] 
+2026-02-28 01:35:50,262 [INFO] ============================================================
+2026-02-28 01:35:50,262 [INFO] [UDF_HISTORY] === NEW REQUEST ===
+2026-02-28 01:35:50,262 [INFO] [UDF_HISTORY] symbol=^NSEI, resolution=60
+2026-02-28 01:35:50,262 [INFO] [UDF_HISTORY] from_=1772186750, to=1772222750, data_source=dhan
+2026-02-28 01:35:50,263 [INFO] ============================================================
+2026-02-28 01:35:50,263 [INFO] [udf_history] Auto-detected Yahoo Finance symbol: ^NSEI
+2026-02-28 01:35:50,263 [INFO] [YFinance] Client initialized
+2026-02-28 01:35:50,263 [INFO] 
+2026-02-28 01:35:50,263 [INFO] ============================================================
+2026-02-28 01:35:50,264 [INFO] [UDF_HISTORY] INCOMING REQUEST
+2026-02-28 01:35:50,264 [INFO]   Symbol: ^NSEI
+2026-02-28 01:35:50,264 [INFO]   Data Source: yfinance
+2026-02-28 01:35:50,264 [INFO]   Resolution: 60
+2026-02-28 01:35:50,264 [INFO]   From (Unix): 1772186750 -> 2026-02-27 15:35:50
+2026-02-28 01:35:50,264 [INFO]   To (Unix): 1772222750 -> 2026-02-28 01:35:50
+2026-02-28 01:35:50,264 [INFO] ============================================================
+2026-02-28 01:35:50,264 [INFO] [UDF_HISTORY] Calling client.fetch_data(^NSEI, 2026-02-27 15:35:50, 2026-02-28 01:35:50, interval=60)
+2026-02-28 01:35:50,264 [INFO] Cache MISS: ^NSEI:60:2026-02-27 15:35:50:2026-02-28 01:35:50
+2026-02-28 01:35:50,265 [INFO] [YFinance] Fetching ^NSEI | interval=60 -> 1h | 2026-02-27 15:35:50 to 2026-02-28 01:35:50
+2026-02-28 01:35:50,265 [INFO] [YFinance] Requesting dates: start=2026-02-27, end=2026-03-01 for ^NSEI
+2026-02-28 01:35:50,400 [INFO] [YFinance] Received 7 bars
+2026-02-28 01:35:50,403 [INFO] [YFinance] Returning 7 bars, range: 2026-02-27 09:15:00 to 2026-02-27 15:15:00
+2026-02-28 01:35:50,404 [INFO] Cache PUT: ^NSEI:60:2026-02-27 15:35:50:2026-02-28 01:35:50 (TTL: 300.0s, 7 rows)
+2026-02-28 01:35:50,404 [INFO] [UDF_HISTORY] fetch_data returned: type=<class 'pandas.core.frame.DataFrame'>, empty=False
+2026-02-28 01:35:50,404 [INFO] [UDF_HISTORY] Raw data shape: (7, 6), columns: ['timestamp', 'open', 'high', 'low', 'close', 'volume']
+2026-02-28 01:35:50,404 [INFO] [UDF_HISTORY] Raw timestamp range: 1772163900 - 1772185500
+2026-02-28 01:35:50,404 [INFO] [UDF_HISTORY] Raw date range: 2026-02-27 09:15:00 - 2026-02-27 15:15:00
+2026-02-28 01:35:50,404 [INFO] DEBUG: fetch_data result type: <class 'pandas.core.frame.DataFrame'>
+2026-02-28 01:35:50,404 [INFO] DEBUG: fetch_data result shape: (7, 6)
+2026-02-28 01:35:50,408 [INFO] DEBUG: Data Head:
+2026-02-28 01:35:50,408 [INFO]     timestamp          open          high           low         close  volume
+2026-02-28 01:35:50,408 [INFO] 0  1772163900  25470.150391  25470.150391  25309.400391  25322.599609       0
+2026-02-28 01:35:50,408 [INFO] 1  1772167500  25321.949219  25346.449219  25292.650391  25335.000000       0
+2026-02-28 01:35:50,408 [INFO] DEBUG: from_=1772186750 (2026-02-27 15:35:50)
+2026-02-28 01:35:50,408 [INFO] DEBUG: to=1772222750 (2026-02-28 01:35:50)
+2026-02-28 01:35:50,408 [INFO] DEBUG: df['timestamp'] dtype=int64
+2026-02-28 01:35:50,408 [INFO] DEBUG: df timestamp range: 1772163900 - 1772185500
+2026-02-28 01:35:50,409 [INFO] DEBUG: df timestamp as dates: 2026-02-27T09:15:00 - 2026-02-27T15:15:00
+2026-02-28 01:35:50,409 [INFO] Filtered data from 7 to 0 bars (filter_from=1772186750, to=1772222750)
+2026-02-28 01:35:50,409 [INFO]   [DEBUG] Data was filtered out! Data range: 1772163900 - 1772185500
+2026-02-28 01:35:50,409 [INFO]   [DEBUG] Filter range: 1772186750 - 1772222750
+2026-02-28 01:35:50,410 [INFO] [SmartFilter] Request 'from' (1772186750) is after all available data (max: 1772185500)
+2026-02-28 01:35:50,410 [INFO] [SmartFilter] Returning all 7 bars since they fall before 'from' but are the best available data
+2026-02-28 01:35:50,410 [INFO] [SmartFilter] Recovered 7 bars by relaxing 'from' filter
+2026-02-28 01:35:50,410 [INFO] PAGINATION: Returning 7 bars for ^NSEI (60)
+2026-02-28 01:35:50,411 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
+2026-02-28 01:35:57,052 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
+2026-02-28 01:35:57,055 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
+2026-02-28 01:35:57,059 [INFO] [Step-by-Step] Fetching candles: ^NSEI [yfinance] from 2025-11-07 to 2026-02-27, resolution: 60
+2026-02-28 01:35:57,059 [INFO] [Step-by-Step] Lookback bars requested: 5000
+2026-02-28 01:35:57,059 [INFO] [YFinance] Client initialized
+2026-02-28 01:35:57,059 [INFO] [Step-by-Step] Adjusted from_date: 2025-11-07 -> 2016-08-24 (expanded lookback: 3362 days)
+2026-02-28 01:35:57,059 [INFO] Cache MISS: ^NSEI:60:2016-08-24:2026-02-27
+2026-02-28 01:35:57,059 [INFO] [YFinance] Fetching ^NSEI | interval=60 -> 1h | 2016-08-24 to 2026-02-27
+2026-02-28 01:35:57,059 [INFO] [YFinance] WARNING: Requested 3474 days but 1h limit is 700 days
+2026-02-28 01:35:57,059 [INFO] [YFinance] Adjusted start date to 2024-03-29
+2026-02-28 01:35:57,060 [INFO] [YFinance] Requesting dates: start=2024-03-29, end=2026-02-28 for ^NSEI
+2026-02-28 01:35:57,540 [INFO] [YFinance] Received 3305 bars
+2026-02-28 01:35:57,549 [INFO] [YFinance] Returning 3305 bars, range: 2024-04-01 09:15:00 to 2026-02-27 15:15:00
+2026-02-28 01:35:57,550 [INFO] Cache PUT: ^NSEI:60:2016-08-24:2026-02-27 (TTL: 300.0s, 3305 rows)
+2026-02-28 01:35:57,558 [INFO] [Replay] Returning 3305 candles, option_cache_ready: False
+2026-02-28 01:35:57,627 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
+2026-02-28 01:35:57,629 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
+2026-02-28 01:35:58,010 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
+2026-02-28 01:35:58,058 [INFO] Initialized AngularPriceCoverageStudy v4.0. Config: {'left_bars': 5, 'right_bars': 5, 'line_extension_bars': 100, 'fraction_colors': {0.125: '#FF5252', 0.25: '#FF5252', 0.375: '#FF5252', 0.5: '#2196F3', 0.625: '#4CAF50', 0.75: '#4CAF50', 0.875: '#4CAF50', 1.0: '#FFFFFF'}, 'main_color': '#FFFFFF', 'main_line_width': 1, 'fraction_line_width': 2, 'scale_ratio': 5.5, 'breach_mode': 'wick', 'show_intersection_labels': False, 'max_historical_fans': 3}
+2026-02-28 01:35:58,059 [INFO] [Study] Evaluating AngularPriceCoverageStudy (config: {'scale_ratio': 5.5, 'left_bars': 5, 'right_bars': 5, 'show_intersection_labels': False})
+2026-02-28 01:35:58,062 [INFO] [Study] Slow path: Rebuilding from 0 to 2766
+2026-02-28 01:35:58,062 [INFO] [Study] First process_bar at index 2766. Running initialize_history.
+2026-02-28 01:35:58,064 [INFO] [Study] initialize_history called with 2767 candles
+2026-02-28 01:35:58,070 [INFO] [Study] Historical detection complete. Found 259 confirmed pivots.
+2026-02-28 01:35:58,228 [INFO] [Study] Creating fan: Fan_H127_L126 (P1 (H127-L126))
+2026-02-28 01:35:58,228 [INFO] [AngleEngine] scale_ratio=5.5, slope_per_bar=28.1770, visual_slope=5.1231, theta=78.96°
+2026-02-28 01:35:58,229 [INFO] --- [AngleEngine] Fan Created: Fan_H127_L126 ---
+2026-02-28 01:35:58,230 [INFO]   Origin: Bar 2663, Time 1760424300, Price 25061.25
+2026-02-28 01:35:58,230 [INFO]   Target: Bar 2700, Time 1761201900, Price 26103.80078125
+2026-02-28 01:35:58,230 [INFO]   Delta: db=37, dp_origin=1042.55
+2026-02-28 01:35:58,230 [INFO]   Scale Params: Ratio=5.5, Radius=193.13 bars, Slope/Bar=28.1770
+2026-02-28 01:35:58,230 [INFO]   Line 0.875: EndBar=1761795900 (approx), EndPrice=26053.49
+2026-02-28 01:35:58,230 [INFO]   Line 0.75: EndBar=1762407900 (approx), EndPrice=25973.81
+2026-02-28 01:35:58,231 [INFO]   Line 0.5: EndBar=1763361900 (approx), EndPrice=25736.59
+2026-02-28 01:35:58,231 [INFO]   Line 0.25: EndBar=1763959500 (approx), EndPrice=25420.00
+2026-02-28 01:35:58,231 [INFO]   Line 0.125: EndBar=1764049500 (approx), EndPrice=25243.32
+2026-02-28 01:35:58,231 [INFO] [Study] Creating fan: Fan_H127_L123 (P3 (H127-L123))
+2026-02-28 01:35:58,232 [INFO] [AngleEngine] scale_ratio=5.5, slope_per_bar=15.4674, visual_slope=2.8122, theta=70.43°
+2026-02-28 01:35:58,232 [INFO] --- [AngleEngine] Fan Created: Fan_H127_L123 ---
+2026-02-28 01:35:58,233 [INFO]   Origin: Bar 2602, Time 1759221900, Price 24588.0
+2026-02-28 01:35:58,233 [INFO]   Target: Bar 2700, Time 1761201900, Price 26103.80078125
+2026-02-28 01:35:58,233 [INFO]   Delta: db=98, dp_origin=1515.80
+2026-02-28 01:35:58,233 [INFO]   Scale Params: Ratio=5.5, Radius=292.51 bars, Slope/Bar=15.4674
+2026-02-28 01:35:58,233 [INFO]   Line 0.875: EndBar=1761889500 (approx), EndPrice=26003.46
+2026-02-28 01:35:58,233 [INFO]   Line 0.75: EndBar=1762764300 (approx), EndPrice=25869.76
+2026-02-28 01:35:58,233 [INFO]   Line 0.5: EndBar=1763711100 (approx), EndPrice=25515.64
+2026-02-28 01:35:58,234 [INFO]   Line 0.25: EndBar=1764567900 (approx), EndPrice=25074.62
+2026-02-28 01:35:58,234 [INFO]   Line 0.125: EndBar=1764665100 (approx), EndPrice=24834.21
+2026-02-28 01:35:58,234 [INFO] [Study] Creating fan: Fan_H127_L124 (P2 (H127-L124))
+2026-02-28 01:35:58,234 [INFO] [AngleEngine] scale_ratio=5.5, slope_per_bar=16.8500, visual_slope=3.0636, theta=71.92°
+2026-02-28 01:35:58,235 [INFO] --- [AngleEngine] Fan Created: Fan_H127_L124 ---
+2026-02-28 01:35:58,235 [INFO]   Origin: Bar 2635, Time 1759905900, Price 25008.55078125
+2026-02-28 01:35:58,235 [INFO]   Target: Bar 2700, Time 1761201900, Price 26103.80078125
+2026-02-28 01:35:58,235 [INFO]   Delta: db=65, dp_origin=1095.25
+2026-02-28 01:35:58,235 [INFO]   Scale Params: Ratio=5.5, Radius=209.48 bars, Slope/Bar=16.8500
+2026-02-28 01:35:58,236 [INFO]   Line 0.875: EndBar=1761727500 (approx), EndPrice=26034.48
+2026-02-28 01:35:58,236 [INFO]   Line 0.75: EndBar=1762245900 (approx), EndPrice=25939.95
+2026-02-28 01:35:58,236 [INFO]   Line 0.5: EndBar=1763102700 (approx), EndPrice=25685.12
+2026-02-28 01:35:58,236 [INFO]   Line 0.25: EndBar=1763624700 (approx), EndPrice=25364.21
+2026-02-28 01:35:58,236 [INFO]   Line 0.125: EndBar=1763714700 (approx), EndPrice=25188.59
+2026-02-28 01:35:58,236 [INFO] [IntDet] Bar 2766 | 2025-11-06 15:15 | H=25521.45 L=25498.70 C=25519.95 | Fans=3 Lines=21
+2026-02-28 01:35:58,236 [INFO]   [P1 (H127-L126)] main: lineP=27963.49 | bars_from_origin=103.0 slope=28.1770 | ABOVE gap=2442.04
+2026-02-28 01:35:58,236 [INFO]   [P1 (H127-L126)] 0.875: lineP=26543.66 | bars_from_origin=103.0 slope=14.3923 | ABOVE gap=1022.21
+2026-02-28 01:35:58,236 [INFO]   [P1 (H127-L126)] 0.75: lineP=26012.18 | bars_from_origin=103.0 slope=9.2323 | ABOVE gap=490.73
+2026-02-28 01:35:58,236 [INFO]   [P1 (H127-L126)] 0.5: lineP=25527.86 | bars_from_origin=103.0 slope=4.5302 | ABOVE gap=6.41
+2026-02-28 01:35:58,237 [INFO]   [P1 (H127-L126)] 0.25: lineP=25264.52 | bars_from_origin=103.0 slope=1.9735 | BELOW gap=234.18
+2026-02-28 01:35:58,237 [INFO]   [P1 (H127-L126)] 0.125: lineP=25159.81 | bars_from_origin=103.0 slope=0.9569 | BELOW gap=338.89
+2026-02-28 01:35:58,237 [INFO]   [P1 (H127-L126)] main: lineP=25228.87 | bars_from_origin=66.0 slope=0.0000 | BELOW gap=269.83
+2026-02-28 01:35:58,237 [INFO]   [P3 (H127-L123)] main: lineP=27124.65 | bars_from_origin=164.0 slope=15.4674 | ABOVE gap=1603.20
+2026-02-28 01:35:58,237 [INFO]   [P3 (H127-L123)] 0.875: lineP=26257.75 | bars_from_origin=164.0 slope=10.1814 | ABOVE gap=736.30
+2026-02-28 01:35:58,237 [INFO]   [P3 (H127-L123)] 0.75: lineP=25777.16 | bars_from_origin=164.0 slope=7.2510 | ABOVE gap=255.71
+2026-02-28 01:35:58,237 [INFO]   [P3 (H127-L123)] 0.5: lineP=25224.59 | bars_from_origin=164.0 slope=3.8816 | BELOW gap=274.11
+2026-02-28 01:35:58,237 [INFO]   [P3 (H127-L123)] 0.25: lineP=24874.24 | bars_from_origin=164.0 slope=1.7454 | BELOW gap=624.46
+2026-02-28 01:35:58,237 [INFO]   [P3 (H127-L123)] 0.125: lineP=24727.69 | bars_from_origin=164.0 slope=0.8518 | BELOW gap=771.01
+2026-02-28 01:35:58,237 [INFO]   [P3 (H127-L123)] main: lineP=24968.40 | bars_from_origin=66.0 slope=0.0000 | BELOW gap=530.30
+2026-02-28 01:35:58,237 [INFO]   [P2 (H127-L124)] main: lineP=27215.90 | bars_from_origin=131.0 slope=16.8500 | ABOVE gap=1694.45
+2026-02-28 01:35:58,237 [INFO]   [P2 (H127-L124)] 0.875: lineP=26418.50 | bars_from_origin=131.0 slope=10.7630 | ABOVE gap=897.05
+2026-02-28 01:35:58,238 [INFO]   [P2 (H127-L124)] 0.75: lineP=25998.13 | bars_from_origin=131.0 slope=7.5540 | ABOVE gap=476.68
+2026-02-28 01:35:58,238 [INFO]   [P2 (H127-L124)] 0.5: lineP=25531.28 | bars_from_origin=131.0 slope=3.9903 | ABOVE gap=9.83
+2026-02-28 01:35:58,238 [INFO]   [P2 (H127-L124)] 0.25: lineP=25242.39 | bars_from_origin=131.0 slope=1.7850 | BELOW gap=256.31
+2026-02-28 01:35:58,238 [INFO]   [P2 (H127-L124)] 0.125: lineP=25122.54 | bars_from_origin=131.0 slope=0.8702 | BELOW gap=376.16
+2026-02-28 01:35:58,238 [INFO]   [P2 (H127-L124)] main: lineP=25267.92 | bars_from_origin=66.0 slope=0.0000 | BELOW gap=230.78
+2026-02-28 01:35:58,238 [INFO] [Study] Index 2766: Added 4 pivot markers from study
+2026-02-28 01:35:58,240 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
+2026-02-28 01:36:17,532 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
+2026-02-28 01:36:17,541 [INFO] Initialized AngularPriceCoverageStudy v4.0. Config: {'left_bars': 5, 'right_bars': 5, 'line_extension_bars': 100, 'fraction_colors': {0.125: '#FF5252', 0.25: '#FF5252', 0.375: '#FF5252', 0.5: '#2196F3', 0.625: '#4CAF50', 0.75: '#4CAF50', 0.875: '#4CAF50', 1.0: '#FFFFFF'}, 'main_color': '#FFFFFF', 'main_line_width': 1, 'fraction_line_width': 2, 'scale_ratio': 5.5, 'breach_mode': 'wick', 'show_intersection_labels': False, 'max_historical_fans': 3}
+2026-02-28 01:36:17,542 [INFO] [Study] Evaluating AngularPriceCoverageStudy (config: {'scale_ratio': 5.5, 'left_bars': 5, 'right_bars': 5, 'show_intersection_labels': False})
+2026-02-28 01:36:17,544 [INFO] [Study] First process_bar at index 2767. Running initialize_history.
+2026-02-28 01:36:17,546 [INFO] [Study] initialize_history called with 2768 candles
+2026-02-28 01:36:17,552 [INFO] [Study] Historical detection complete. Found 259 confirmed pivots.
+2026-02-28 01:36:17,704 [INFO] [IntDet] Bar 2767 | 2025-11-07 09:15 | H=25438.50 L=25318.65 C=25343.25 | Fans=3 Lines=21
+2026-02-28 01:36:17,704 [INFO]   [P1 (H127-L126)] main: lineP=27991.66 | bars_from_origin=104.0 slope=28.1770 | ABOVE gap=2553.16
+2026-02-28 01:36:17,704 [INFO]   [P1 (H127-L126)] 0.875: lineP=26558.05 | bars_from_origin=104.0 slope=14.3923 | ABOVE gap=1119.55
+2026-02-28 01:36:17,704 [INFO]   [P1 (H127-L126)] 0.75: lineP=26021.41 | bars_from_origin=104.0 slope=9.2323 | ABOVE gap=582.91
+2026-02-28 01:36:17,704 [INFO]   [P1 (H127-L126)] 0.5: lineP=25532.39 | bars_from_origin=104.0 slope=4.5302 | ABOVE gap=93.89
+2026-02-28 01:36:17,704 [INFO]   [P1 (H127-L126)] 0.25: lineP=25266.49 | bars_from_origin=104.0 slope=1.9735 | BELOW gap=52.16
+2026-02-28 01:36:17,705 [INFO]   [P1 (H127-L126)] 0.125: lineP=25160.77 | bars_from_origin=104.0 slope=0.9569 | BELOW gap=157.89
+2026-02-28 01:36:17,705 [INFO]   [P1 (H127-L126)] main: lineP=25228.87 | bars_from_origin=67.0 slope=0.0000 | BELOW gap=89.78
+2026-02-28 01:36:17,705 [INFO]   [P3 (H127-L123)] main: lineP=27140.11 | bars_from_origin=165.0 slope=15.4674 | ABOVE gap=1701.61
+2026-02-28 01:36:17,705 [INFO]   [P3 (H127-L123)] 0.875: lineP=26267.93 | bars_from_origin=165.0 slope=10.1814 | ABOVE gap=829.43
+2026-02-28 01:36:17,705 [INFO]   [P3 (H127-L123)] 0.75: lineP=25784.41 | bars_from_origin=165.0 slope=7.2510 | ABOVE gap=345.91
+2026-02-28 01:36:17,705 [INFO]   [P3 (H127-L123)] 0.5: lineP=25228.47 | bars_from_origin=165.0 slope=3.8816 | BELOW gap=90.18
+2026-02-28 01:36:17,705 [INFO]   [P3 (H127-L123)] 0.25: lineP=24875.99 | bars_from_origin=165.0 slope=1.7454 | BELOW gap=442.66
+2026-02-28 01:36:17,705 [INFO]   [P3 (H127-L123)] 0.125: lineP=24728.54 | bars_from_origin=165.0 slope=0.8518 | BELOW gap=590.11
+2026-02-28 01:36:17,705 [INFO]   [P3 (H127-L123)] main: lineP=24968.40 | bars_from_origin=67.0 slope=0.0000 | BELOW gap=350.25
+2026-02-28 01:36:17,705 [INFO]   [P2 (H127-L124)] main: lineP=27232.75 | bars_from_origin=132.0 slope=16.8500 | ABOVE gap=1794.25
+2026-02-28 01:36:17,706 [INFO]   [P2 (H127-L124)] 0.875: lineP=26429.26 | bars_from_origin=132.0 slope=10.7630 | ABOVE gap=990.76
+2026-02-28 01:36:17,706 [INFO]   [P2 (H127-L124)] 0.75: lineP=26005.68 | bars_from_origin=132.0 slope=7.5540 | ABOVE gap=567.18
+2026-02-28 01:36:17,706 [INFO]   [P2 (H127-L124)] 0.5: lineP=25535.27 | bars_from_origin=132.0 slope=3.9903 | ABOVE gap=96.77
+2026-02-28 01:36:17,706 [INFO]   [P2 (H127-L124)] 0.25: lineP=25244.17 | bars_from_origin=132.0 slope=1.7850 | BELOW gap=74.48
+2026-02-28 01:36:17,706 [INFO]   [P2 (H127-L124)] 0.125: lineP=25123.41 | bars_from_origin=132.0 slope=0.8702 | BELOW gap=195.24
+2026-02-28 01:36:17,706 [INFO]   [P2 (H127-L124)] main: lineP=25267.92 | bars_from_origin=67.0 slope=0.0000 | BELOW gap=50.73
+2026-02-28 01:36:17,707 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
+2026-02-28 01:36:18,212 [INFO] Initialized AngularPriceCoverageStudy v4.0. Config: {'left_bars': 5, 'right_bars': 5, 'line_extension_bars': 100, 'fraction_colors': {0.125: '#FF5252', 0.25: '#FF5252', 0.375: '#FF5252', 0.5: '#2196F3', 0.625: '#4CAF50', 0.75: '#4CAF50', 0.875: '#4CAF50', 1.0: '#FFFFFF'}, 'main_color': '#FFFFFF', 'main_line_width': 1, 'fraction_line_width': 2, 'scale_ratio': 5.5, 'breach_mode': 'wick', 'show_intersection_labels': False, 'max_historical_fans': 3}
+2026-02-28 01:36:18,212 [INFO] [Study] Evaluating AngularPriceCoverageStudy (config: {'scale_ratio': 5.5, 'left_bars': 5, 'right_bars': 5, 'show_intersection_labels': False})
+2026-02-28 01:36:18,215 [INFO] [Study] First process_bar at index 2768. Running initialize_history.
+2026-02-28 01:36:18,216 [INFO] [Study] initialize_history called with 2769 candles
+2026-02-28 01:36:18,221 [INFO] [Study] Historical detection complete. Found 259 confirmed pivots.
+2026-02-28 01:36:18,368 [INFO] [IntDet] Bar 2768 | 2025-11-07 10:15 | H=25413.80 L=25338.20 C=25409.95 | Fans=3 Lines=21
+2026-02-28 01:36:18,368 [INFO]   [P1 (H127-L126)] main: lineP=28019.84 | bars_from_origin=105.0 slope=28.1770 | ABOVE gap=2606.04
+2026-02-28 01:36:18,368 [INFO]   [P1 (H127-L126)] 0.875: lineP=26572.44 | bars_from_origin=105.0 slope=14.3923 | ABOVE gap=1158.64
+2026-02-28 01:36:18,368 [INFO]   [P1 (H127-L126)] 0.75: lineP=26030.64 | bars_from_origin=105.0 slope=9.2323 | ABOVE gap=616.84
+2026-02-28 01:36:18,368 [INFO]   [P1 (H127-L126)] 0.5: lineP=25536.92 | bars_from_origin=105.0 slope=4.5302 | ABOVE gap=123.12
+2026-02-28 01:36:18,368 [INFO]   [P1 (H127-L126)] 0.25: lineP=25268.47 | bars_from_origin=105.0 slope=1.9735 | BELOW gap=69.73
+2026-02-28 01:36:18,368 [INFO]   [P1 (H127-L126)] 0.125: lineP=25161.72 | bars_from_origin=105.0 slope=0.9569 | BELOW gap=176.48
+2026-02-28 01:36:18,368 [INFO]   [P1 (H127-L126)] main: lineP=25228.87 | bars_from_origin=68.0 slope=0.0000 | BELOW gap=109.33
+2026-02-28 01:36:18,369 [INFO]   [P3 (H127-L123)] main: lineP=27155.58 | bars_from_origin=166.0 slope=15.4674 | ABOVE gap=1741.78
+2026-02-28 01:36:18,369 [INFO]   [P3 (H127-L123)] 0.875: lineP=26278.12 | bars_from_origin=166.0 slope=10.1814 | ABOVE gap=864.31
+2026-02-28 01:36:18,369 [INFO]   [P3 (H127-L123)] 0.75: lineP=25791.66 | bars_from_origin=166.0 slope=7.2510 | ABOVE gap=377.86
+2026-02-28 01:36:18,369 [INFO]   [P3 (H127-L123)] 0.5: lineP=25232.35 | bars_from_origin=166.0 slope=3.8816 | BELOW gap=105.85
+2026-02-28 01:36:18,369 [INFO]   [P3 (H127-L123)] 0.25: lineP=24877.73 | bars_from_origin=166.0 slope=1.7454 | BELOW gap=460.47
+2026-02-28 01:36:18,369 [INFO]   [P3 (H127-L123)] 0.125: lineP=24729.39 | bars_from_origin=166.0 slope=0.8518 | BELOW gap=608.81
+2026-02-28 01:36:18,369 [INFO]   [P3 (H127-L123)] main: lineP=24968.40 | bars_from_origin=68.0 slope=0.0000 | BELOW gap=369.80
+2026-02-28 01:36:18,369 [INFO]   [P2 (H127-L124)] main: lineP=27249.60 | bars_from_origin=133.0 slope=16.8500 | ABOVE gap=1835.80
+2026-02-28 01:36:18,369 [INFO]   [P2 (H127-L124)] 0.875: lineP=26440.03 | bars_from_origin=133.0 slope=10.7630 | ABOVE gap=1026.23
+2026-02-28 01:36:18,369 [INFO]   [P2 (H127-L124)] 0.75: lineP=26013.24 | bars_from_origin=133.0 slope=7.5540 | ABOVE gap=599.44
+2026-02-28 01:36:18,369 [INFO]   [P2 (H127-L124)] 0.5: lineP=25539.26 | bars_from_origin=133.0 slope=3.9903 | ABOVE gap=125.46
+2026-02-28 01:36:18,369 [INFO]   [P2 (H127-L124)] 0.25: lineP=25245.96 | bars_from_origin=133.0 slope=1.7850 | BELOW gap=92.24
+2026-02-28 01:36:18,369 [INFO]   [P2 (H127-L124)] 0.125: lineP=25124.28 | bars_from_origin=133.0 slope=0.8702 | BELOW gap=213.92
+2026-02-28 01:36:18,370 [INFO]   [P2 (H127-L124)] main: lineP=25267.92 | bars_from_origin=68.0 slope=0.0000 | BELOW gap=70.28
+2026-02-28 01:36:18,370 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
+2026-02-28 01:36:18,989 [INFO] Initialized AngularPriceCoverageStudy v4.0. Config: {'left_bars': 5, 'right_bars': 5, 'line_extension_bars': 100, 'fraction_colors': {0.125: '#FF5252', 0.25: '#FF5252', 0.375: '#FF5252', 0.5: '#2196F3', 0.625: '#4CAF50', 0.75: '#4CAF50', 0.875: '#4CAF50', 1.0: '#FFFFFF'}, 'main_color': '#FFFFFF', 'main_line_width': 1, 'fraction_line_width': 2, 'scale_ratio': 5.5, 'breach_mode': 'wick', 'show_intersection_labels': False, 'max_historical_fans': 3}
+2026-02-28 01:36:18,989 [INFO] [Study] Evaluating AngularPriceCoverageStudy (config: {'scale_ratio': 5.5, 'left_bars': 5, 'right_bars': 5, 'show_intersection_labels': False})
+2026-02-28 01:36:18,991 [INFO] [Study] First process_bar at index 2769. Running initialize_history.
+2026-02-28 01:36:18,991 [INFO] [Study] initialize_history called with 2770 candles
+2026-02-28 01:36:18,996 [INFO] [Study] Historical detection complete. Found 259 confirmed pivots.
+2026-02-28 01:36:19,160 [INFO] [IntDet] Bar 2769 | 2025-11-07 11:15 | H=25471.05 L=25405.15 C=25454.20 | Fans=3 Lines=21
+2026-02-28 01:36:19,160 [INFO]   [P1 (H127-L126)] main: lineP=28048.02 | bars_from_origin=106.0 slope=28.1770 | ABOVE gap=2576.97
+2026-02-28 01:36:19,160 [INFO]   [P1 (H127-L126)] 0.875: lineP=26586.83 | bars_from_origin=106.0 slope=14.3923 | ABOVE gap=1115.78
+2026-02-28 01:36:19,160 [INFO]   [P1 (H127-L126)] 0.75: lineP=26039.87 | bars_from_origin=106.0 slope=9.2323 | ABOVE gap=568.82
+2026-02-28 01:36:19,160 [INFO]   [P1 (H127-L126)] 0.5: lineP=25541.45 | bars_from_origin=106.0 slope=4.5302 | ABOVE gap=70.40
+2026-02-28 01:36:19,160 [INFO]   [P1 (H127-L126)] 0.25: lineP=25270.44 | bars_from_origin=106.0 slope=1.9735 | BELOW gap=134.71
+2026-02-28 01:36:19,160 [INFO]   [P1 (H127-L126)] 0.125: lineP=25162.68 | bars_from_origin=106.0 slope=0.9569 | BELOW gap=242.47
+2026-02-28 01:36:19,160 [INFO]   [P1 (H127-L126)] main: lineP=25228.87 | bars_from_origin=69.0 slope=0.0000 | BELOW gap=176.28
+2026-02-28 01:36:19,161 [INFO]   [P3 (H127-L123)] main: lineP=27171.05 | bars_from_origin=167.0 slope=15.4674 | ABOVE gap=1700.00
+2026-02-28 01:36:19,161 [INFO]   [P3 (H127-L123)] 0.875: lineP=26288.30 | bars_from_origin=167.0 slope=10.1814 | ABOVE gap=817.25
+2026-02-28 01:36:19,161 [INFO]   [P3 (H127-L123)] 0.75: lineP=25798.91 | bars_from_origin=167.0 slope=7.2510 | ABOVE gap=327.86
+2026-02-28 01:36:19,161 [INFO]   [P3 (H127-L123)] 0.5: lineP=25236.23 | bars_from_origin=167.0 slope=3.8816 | BELOW gap=168.92
+2026-02-28 01:36:19,161 [INFO]   [P3 (H127-L123)] 0.25: lineP=24879.48 | bars_from_origin=167.0 slope=1.7454 | BELOW gap=525.67
+2026-02-28 01:36:19,161 [INFO]   [P3 (H127-L123)] 0.125: lineP=24730.24 | bars_from_origin=167.0 slope=0.8518 | BELOW gap=674.91
+2026-02-28 01:36:19,161 [INFO]   [P3 (H127-L123)] main: lineP=24968.40 | bars_from_origin=69.0 slope=0.0000 | BELOW gap=436.75
+2026-02-28 01:36:19,161 [INFO]   [P2 (H127-L124)] main: lineP=27266.45 | bars_from_origin=134.0 slope=16.8500 | ABOVE gap=1795.40
+2026-02-28 01:36:19,161 [INFO]   [P2 (H127-L124)] 0.875: lineP=26450.79 | bars_from_origin=134.0 slope=10.7630 | ABOVE gap=979.74
+2026-02-28 01:36:19,161 [INFO]   [P2 (H127-L124)] 0.75: lineP=26020.79 | bars_from_origin=134.0 slope=7.5540 | ABOVE gap=549.74
+2026-02-28 01:36:19,161 [INFO]   [P2 (H127-L124)] 0.5: lineP=25543.25 | bars_from_origin=134.0 slope=3.9903 | ABOVE gap=72.20
+2026-02-28 01:36:19,161 [INFO]   [P2 (H127-L124)] 0.25: lineP=25247.74 | bars_from_origin=134.0 slope=1.7850 | BELOW gap=157.41
+2026-02-28 01:36:19,161 [INFO]   [P2 (H127-L124)] 0.125: lineP=25125.15 | bars_from_origin=134.0 slope=0.8702 | BELOW gap=280.00
+2026-02-28 01:36:19,162 [INFO]   [P2 (H127-L124)] main: lineP=25267.92 | bars_from_origin=69.0 slope=0.0000 | BELOW gap=137.23
+2026-02-28 01:36:19,163 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
+2026-02-28 01:36:19,535 [INFO] Initialized AngularPriceCoverageStudy v4.0. Config: {'left_bars': 5, 'right_bars': 5, 'line_extension_bars': 100, 'fraction_colors': {0.125: '#FF5252', 0.25: '#FF5252', 0.375: '#FF5252', 0.5: '#2196F3', 0.625: '#4CAF50', 0.75: '#4CAF50', 0.875: '#4CAF50', 1.0: '#FFFFFF'}, 'main_color': '#FFFFFF', 'main_line_width': 1, 'fraction_line_width': 2, 'scale_ratio': 5.5, 'breach_mode': 'wick', 'show_intersection_labels': False, 'max_historical_fans': 3}
+2026-02-28 01:36:19,536 [INFO] [Study] Evaluating AngularPriceCoverageStudy (config: {'scale_ratio': 5.5, 'left_bars': 5, 'right_bars': 5, 'show_intersection_labels': False})
+2026-02-28 01:36:19,538 [INFO] [Study] First process_bar at index 2770. Running initialize_history.
+2026-02-28 01:36:19,539 [INFO] [Study] initialize_history called with 2771 candles
+2026-02-28 01:36:19,544 [INFO] [Study] Historical detection complete. Found 259 confirmed pivots.
+2026-02-28 01:36:19,701 [INFO] [IntDet] Bar 2770 | 2025-11-07 12:15 | H=25502.35 L=25447.05 C=25486.30 | Fans=3 Lines=21
+2026-02-28 01:36:19,701 [INFO]   [P1 (H127-L126)] main: lineP=28076.19 | bars_from_origin=107.0 slope=28.1770 | ABOVE gap=2573.84
+2026-02-28 01:36:19,702 [INFO]   [P1 (H127-L126)] 0.875: lineP=26601.22 | bars_from_origin=107.0 slope=14.3923 | ABOVE gap=1098.87
+2026-02-28 01:36:19,702 [INFO]   [P1 (H127-L126)] 0.75: lineP=26049.11 | bars_from_origin=107.0 slope=9.2323 | ABOVE gap=546.76
+2026-02-28 01:36:19,702 [INFO]   [P1 (H127-L126)] 0.5: lineP=25545.98 | bars_from_origin=107.0 slope=4.5302 | ABOVE gap=43.63
+2026-02-28 01:36:19,702 [INFO]   [P1 (H127-L126)] 0.25: lineP=25272.41 | bars_from_origin=107.0 slope=1.9735 | BELOW gap=174.64
+2026-02-28 01:36:19,702 [INFO]   [P1 (H127-L126)] 0.125: lineP=25163.64 | bars_from_origin=107.0 slope=0.9569 | BELOW gap=283.42
+2026-02-28 01:36:19,702 [INFO]   [P1 (H127-L126)] main: lineP=25228.87 | bars_from_origin=70.0 slope=0.0000 | BELOW gap=218.18
+2026-02-28 01:36:19,702 [INFO]   [P3 (H127-L123)] main: lineP=27186.52 | bars_from_origin=168.0 slope=15.4674 | ABOVE gap=1684.17
+2026-02-28 01:36:19,702 [INFO]   [P3 (H127-L123)] 0.875: lineP=26298.48 | bars_from_origin=168.0 slope=10.1814 | ABOVE gap=796.13
+2026-02-28 01:36:19,702 [INFO]   [P3 (H127-L123)] 0.75: lineP=25806.16 | bars_from_origin=168.0 slope=7.2510 | ABOVE gap=303.81
+2026-02-28 01:36:19,702 [INFO]   [P3 (H127-L123)] 0.5: lineP=25240.12 | bars_from_origin=168.0 slope=3.8816 | BELOW gap=206.94
+2026-02-28 01:36:19,702 [INFO]   [P3 (H127-L123)] 0.25: lineP=24881.22 | bars_from_origin=168.0 slope=1.7454 | BELOW gap=565.83
+2026-02-28 01:36:19,702 [INFO]   [P3 (H127-L123)] 0.125: lineP=24731.09 | bars_from_origin=168.0 slope=0.8518 | BELOW gap=715.96
+2026-02-28 01:36:19,702 [INFO]   [P3 (H127-L123)] main: lineP=24968.40 | bars_from_origin=70.0 slope=0.0000 | BELOW gap=478.65
+2026-02-28 01:36:19,703 [INFO]   [P2 (H127-L124)] main: lineP=27283.30 | bars_from_origin=135.0 slope=16.8500 | ABOVE gap=1780.95
+2026-02-28 01:36:19,703 [INFO]   [P2 (H127-L124)] 0.875: lineP=26461.55 | bars_from_origin=135.0 slope=10.7630 | ABOVE gap=959.20
+2026-02-28 01:36:19,703 [INFO]   [P2 (H127-L124)] 0.75: lineP=26028.35 | bars_from_origin=135.0 slope=7.5540 | ABOVE gap=526.00
+2026-02-28 01:36:19,703 [INFO]   [P2 (H127-L124)] 0.5: lineP=25547.24 | bars_from_origin=135.0 slope=3.9903 | ABOVE gap=44.90
+2026-02-28 01:36:19,703 [INFO]   [P2 (H127-L124)] 0.25: lineP=25249.53 | bars_from_origin=135.0 slope=1.7850 | BELOW gap=197.52
+2026-02-28 01:36:19,703 [INFO]   [P2 (H127-L124)] 0.125: lineP=25126.02 | bars_from_origin=135.0 slope=0.8702 | BELOW gap=321.03
+2026-02-28 01:36:19,703 [INFO]   [P2 (H127-L124)] main: lineP=25267.92 | bars_from_origin=70.0 slope=0.0000 | BELOW gap=179.13
+2026-02-28 01:36:19,704 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
+2026-02-28 01:36:20,175 [INFO] Initialized AngularPriceCoverageStudy v4.0. Config: {'left_bars': 5, 'right_bars': 5, 'line_extension_bars': 100, 'fraction_colors': {0.125: '#FF5252', 0.25: '#FF5252', 0.375: '#FF5252', 0.5: '#2196F3', 0.625: '#4CAF50', 0.75: '#4CAF50', 0.875: '#4CAF50', 1.0: '#FFFFFF'}, 'main_color': '#FFFFFF', 'main_line_width': 1, 'fraction_line_width': 2, 'scale_ratio': 5.5, 'breach_mode': 'wick', 'show_intersection_labels': False, 'max_historical_fans': 3}
+2026-02-28 01:36:20,175 [INFO] [Study] Evaluating AngularPriceCoverageStudy (config: {'scale_ratio': 5.5, 'left_bars': 5, 'right_bars': 5, 'show_intersection_labels': False})
+2026-02-28 01:36:20,177 [INFO] [Study] First process_bar at index 2771. Running initialize_history.
+2026-02-28 01:36:20,179 [INFO] [Study] initialize_history called with 2772 candles
+2026-02-28 01:36:20,185 [INFO] [Study] Historical detection complete. Found 259 confirmed pivots.
+2026-02-28 01:36:20,359 [INFO] [IntDet] Bar 2771 | 2025-11-07 13:15 | H=25550.80 L=25456.60 C=25474.40 | Fans=3 Lines=21
+2026-02-28 01:36:20,360 [INFO]   [P1 (H127-L126)] main: lineP=28104.37 | bars_from_origin=108.0 slope=28.1770 | ABOVE gap=2553.57
+2026-02-28 01:36:20,360 [INFO]   [P1 (H127-L126)] 0.875: lineP=26615.62 | bars_from_origin=108.0 slope=14.3923 | ABOVE gap=1064.82
+2026-02-28 01:36:20,360 [INFO]   [P1 (H127-L126)] 0.75: lineP=26058.34 | bars_from_origin=108.0 slope=9.2323 | ABOVE gap=507.54
+2026-02-28 01:36:20,360 [INFO]   [P1 (H127-L126)] 0.5: lineP=25550.51 | bars_from_origin=108.0 slope=4.5302 | HIT gap=0.00
+2026-02-28 01:36:20,360 [INFO]     >>> HIT RECORDED: P1 (H127-L126) frac=0.5 @ 25550.51
+2026-02-28 01:36:20,360 [INFO]   [P1 (H127-L126)] 0.25: lineP=25274.39 | bars_from_origin=108.0 slope=1.9735 | BELOW gap=182.21
+2026-02-28 01:36:20,360 [INFO]   [P1 (H127-L126)] 0.125: lineP=25164.59 | bars_from_origin=108.0 slope=0.9569 | BELOW gap=292.01
+2026-02-28 01:36:20,360 [INFO]   [P1 (H127-L126)] main: lineP=25228.87 | bars_from_origin=71.0 slope=0.0000 | BELOW gap=227.73
+2026-02-28 01:36:20,360 [INFO]   [P3 (H127-L123)] main: lineP=27201.98 | bars_from_origin=169.0 slope=15.4674 | ABOVE gap=1651.18
+2026-02-28 01:36:20,361 [INFO]   [P3 (H127-L123)] 0.875: lineP=26308.66 | bars_from_origin=169.0 slope=10.1814 | ABOVE gap=757.86
+2026-02-28 01:36:20,361 [INFO]   [P3 (H127-L123)] 0.75: lineP=25813.41 | bars_from_origin=169.0 slope=7.2510 | ABOVE gap=262.61
+2026-02-28 01:36:20,361 [INFO]   [P3 (H127-L123)] 0.5: lineP=25244.00 | bars_from_origin=169.0 slope=3.8816 | BELOW gap=212.60
+2026-02-28 01:36:20,361 [INFO]   [P3 (H127-L123)] 0.25: lineP=24882.97 | bars_from_origin=169.0 slope=1.7454 | BELOW gap=573.63
+2026-02-28 01:36:20,361 [INFO]   [P3 (H127-L123)] 0.125: lineP=24731.95 | bars_from_origin=169.0 slope=0.8518 | BELOW gap=724.65
+2026-02-28 01:36:20,361 [INFO]   [P3 (H127-L123)] main: lineP=24968.40 | bars_from_origin=71.0 slope=0.0000 | BELOW gap=488.20
+2026-02-28 01:36:20,361 [INFO]   [P2 (H127-L124)] main: lineP=27300.15 | bars_from_origin=136.0 slope=16.8500 | ABOVE gap=1749.35
+2026-02-28 01:36:20,361 [INFO]   [P2 (H127-L124)] 0.875: lineP=26472.32 | bars_from_origin=136.0 slope=10.7630 | ABOVE gap=921.52
+2026-02-28 01:36:20,361 [INFO]   [P2 (H127-L124)] 0.75: lineP=26035.90 | bars_from_origin=136.0 slope=7.5540 | ABOVE gap=485.10
+2026-02-28 01:36:20,361 [INFO]   [P2 (H127-L124)] 0.5: lineP=25551.24 | bars_from_origin=136.0 slope=3.9903 | ABOVE gap=0.43
+2026-02-28 01:36:20,361 [INFO]   [P2 (H127-L124)] 0.25: lineP=25251.31 | bars_from_origin=136.0 slope=1.7850 | BELOW gap=205.29
+2026-02-28 01:36:20,362 [INFO]   [P2 (H127-L124)] 0.125: lineP=25126.89 | bars_from_origin=136.0 slope=0.8702 | BELOW gap=329.71
+2026-02-28 01:36:20,362 [INFO]   [P2 (H127-L124)] main: lineP=25267.92 | bars_from_origin=71.0 slope=0.0000 | BELOW gap=188.68
+2026-02-28 01:36:20,362 [INFO]   [IntDet] Total hits this bar: 1
+2026-02-28 01:36:20,362 [INFO] [Study] Emitting intersection event (DIRECT): {'time': 1762501500, 'fan': 'P1 (H127-L126)', 'fanIdentity': 'H127-L126', 'fraction': '1/2', 'price': 25550.514733043343, 'type': 'TOUCH', 'details': 'Angle Test'}
+2026-02-28 01:36:20,370 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
+2026-02-28 01:36:21,370 [INFO] Initialized AngularPriceCoverageStudy v4.0. Config: {'left_bars': 5, 'right_bars': 5, 'line_extension_bars': 100, 'fraction_colors': {0.125: '#FF5252', 0.25: '#FF5252', 0.375: '#FF5252', 0.5: '#2196F3', 0.625: '#4CAF50', 0.75: '#4CAF50', 0.875: '#4CAF50', 1.0: '#FFFFFF'}, 'main_color': '#FFFFFF', 'main_line_width': 1, 'fraction_line_width': 2, 'scale_ratio': 5.5, 'breach_mode': 'wick', 'show_intersection_labels': False, 'max_historical_fans': 3}
+2026-02-28 01:36:21,370 [INFO] [Study] Evaluating AngularPriceCoverageStudy (config: {'scale_ratio': 5.5, 'left_bars': 5, 'right_bars': 5, 'show_intersection_labels': False})
+2026-02-28 01:36:21,373 [INFO] [Study] First process_bar at index 2772. Running initialize_history.
+2026-02-28 01:36:21,375 [INFO] [Study] initialize_history called with 2773 candles
+2026-02-28 01:36:21,380 [INFO] [Study] Historical detection complete. Found 260 confirmed pivots.
+2026-02-28 01:36:21,540 [INFO] [Study] Creating fan: Fan_L130_H130 (P1 (L130-H130))
+2026-02-28 01:36:21,540 [INFO] [AngleEngine] scale_ratio=5.5, slope_per_bar=-30.2406, visual_slope=-5.4983, theta=-79.69°
+2026-02-28 01:36:21,541 [INFO] --- [AngleEngine] Fan Created: Fan_L130_H130 ---
+2026-02-28 01:36:21,541 [INFO]   Origin: Bar 2751, Time 1762159500, Price 25802.5
+2026-02-28 01:36:21,541 [INFO]   Target: Bar 2767, Time 1762487100, Price 25318.650390625
+2026-02-28 01:36:21,541 [INFO]   Delta: db=16, dp_origin=-483.85
+2026-02-28 01:36:21,541 [INFO]   Scale Params: Ratio=5.5, Radius=89.42 bars, Slope/Bar=-30.2406
+2026-02-28 01:36:21,541 [INFO]   Line 0.875: EndBar=1762836300 (approx), EndPrice=25341.17
+2026-02-28 01:36:21,541 [INFO]   Line 0.75: EndBar=1763009100 (approx), EndPrice=25377.59
+2026-02-28 01:36:21,541 [INFO]   Line 0.5: EndBar=1763451900 (approx), EndPrice=25487.40
+2026-02-28 01:36:21,541 [INFO]   Line 0.25: EndBar=1763628300 (approx), EndPrice=25634.92
+2026-02-28 01:36:21,541 [INFO]   Line 0.125: EndBar=1763703900 (approx), EndPrice=25717.43
+2026-02-28 01:36:21,541 [INFO] [Study] Creating fan: Fan_L130_H129 (P2 (L130-H129))
+2026-02-28 01:36:21,541 [INFO] [AngleEngine] scale_ratio=5.5, slope_per_bar=-20.5052, visual_slope=-3.7282, theta=-74.99°
+2026-02-28 01:36:21,542 [INFO] --- [AngleEngine] Fan Created: Fan_L130_H129 ---
+2026-02-28 01:36:21,542 [INFO]   Origin: Bar 2729, Time 1761723900, Price 26097.849609375
+2026-02-28 01:36:21,542 [INFO]   Target: Bar 2767, Time 1762487100, Price 25318.650390625
+2026-02-28 01:36:21,542 [INFO]   Delta: db=38, dp_origin=-779.20
+2026-02-28 01:36:21,542 [INFO]   Scale Params: Ratio=5.5, Radius=146.68 bars, Slope/Bar=-20.5052
+2026-02-28 01:36:21,542 [INFO]   Line 0.875: EndBar=1762926300 (approx), EndPrice=25363.09
+2026-02-28 01:36:21,542 [INFO]   Line 0.75: EndBar=1763358300 (approx), EndPrice=25427.15
+2026-02-28 01:36:21,542 [INFO]   Line 0.5: EndBar=1763959500 (approx), EndPrice=25606.82
+2026-02-28 01:36:21,543 [INFO]   Line 0.25: EndBar=1764225900 (approx), EndPrice=25838.58
+2026-02-28 01:36:21,543 [INFO]   Line 0.125: EndBar=1764308700 (approx), EndPrice=25966.46
+2026-02-28 01:36:21,543 [INFO] [Study] Creating fan: Fan_L130_H127 (P3 (L130-H127))
+2026-02-28 01:36:21,543 [INFO] [AngleEngine] scale_ratio=5.5, slope_per_bar=-11.7187, visual_slope=-2.1307, theta=-64.86°
+2026-02-28 01:36:21,543 [INFO] --- [AngleEngine] Fan Created: Fan_L130_H127 ---
+2026-02-28 01:36:21,543 [INFO]   Origin: Bar 2700, Time 1761201900, Price 26103.80078125
+2026-02-28 01:36:21,544 [INFO]   Target: Bar 2767, Time 1762487100, Price 25318.650390625
+2026-02-28 01:36:21,544 [INFO]   Delta: db=67, dp_origin=-785.15
+2026-02-28 01:36:21,544 [INFO]   Scale Params: Ratio=5.5, Radius=157.70 bars, Slope/Bar=-11.7187
+2026-02-28 01:36:21,544 [INFO]   Line 0.875: EndBar=1762850700 (approx), EndPrice=25378.47
+2026-02-28 01:36:21,544 [INFO]   Line 0.75: EndBar=1763099100 (approx), EndPrice=25452.78
+2026-02-28 01:36:21,544 [INFO]   Line 0.5: EndBar=1763621100 (approx), EndPrice=25638.70
+2026-02-28 01:36:21,544 [INFO]   Line 0.25: EndBar=1764042300 (approx), EndPrice=25861.62
+2026-02-28 01:36:21,544 [INFO]   Line 0.125: EndBar=1764060300 (approx), EndPrice=25981.49
+2026-02-28 01:36:21,544 [INFO] [Study] Promoting fan: Fan_H127_L126 from P1 (H127-L126) to P4 (H127-L126)
+2026-02-28 01:36:21,544 [INFO] [Study] Promoting fan: Fan_H127_L123 from P3 (H127-L123) to P6 (H127-L123)
+2026-02-28 01:36:21,545 [INFO] [Study] Promoting fan: Fan_H127_L124 from P2 (H127-L124) to P5 (H127-L124)
+2026-02-28 01:36:21,545 [INFO] [IntDet] Bar 2772 | 2025-11-07 14:15 | H=25540.50 L=25469.30 C=25486.85 | Fans=6 Lines=42
+2026-02-28 01:36:21,545 [INFO]   [P4 (H127-L126)] main: lineP=28132.55 | bars_from_origin=109.0 slope=28.1770 | ABOVE gap=2592.05
+2026-02-28 01:36:21,545 [INFO]   [P4 (H127-L126)] 0.875: lineP=26630.01 | bars_from_origin=109.0 slope=14.3923 | ABOVE gap=1089.51
+2026-02-28 01:36:21,545 [INFO]   [P4 (H127-L126)] 0.75: lineP=26067.57 | bars_from_origin=109.0 slope=9.2323 | ABOVE gap=527.07
+2026-02-28 01:36:21,545 [INFO]   [P4 (H127-L126)] 0.5: lineP=25555.04 | bars_from_origin=109.0 slope=4.5302 | ABOVE gap=14.54
+2026-02-28 01:36:21,545 [INFO]   [P4 (H127-L126)] 0.25: lineP=25276.36 | bars_from_origin=109.0 slope=1.9735 | BELOW gap=192.94
+2026-02-28 01:36:21,545 [INFO]   [P4 (H127-L126)] 0.125: lineP=25165.55 | bars_from_origin=109.0 slope=0.9569 | BELOW gap=303.75
+2026-02-28 01:36:21,545 [INFO]   [P4 (H127-L126)] main: lineP=25228.87 | bars_from_origin=72.0 slope=0.0000 | BELOW gap=240.43
+2026-02-28 01:36:21,546 [INFO]   [P6 (H127-L123)] main: lineP=27217.45 | bars_from_origin=170.0 slope=15.4674 | ABOVE gap=1676.95
+2026-02-28 01:36:21,546 [INFO]   [P6 (H127-L123)] 0.875: lineP=26318.84 | bars_from_origin=170.0 slope=10.1814 | ABOVE gap=778.34
+2026-02-28 01:36:21,546 [INFO]   [P6 (H127-L123)] 0.75: lineP=25820.66 | bars_from_origin=170.0 slope=7.2510 | ABOVE gap=280.16
+2026-02-28 01:36:21,546 [INFO]   [P6 (H127-L123)] 0.5: lineP=25247.88 | bars_from_origin=170.0 slope=3.8816 | BELOW gap=221.42
+2026-02-28 01:36:21,546 [INFO]   [P6 (H127-L123)] 0.25: lineP=24884.71 | bars_from_origin=170.0 slope=1.7454 | BELOW gap=584.59
+2026-02-28 01:36:21,546 [INFO]   [P6 (H127-L123)] 0.125: lineP=24732.80 | bars_from_origin=170.0 slope=0.8518 | BELOW gap=736.50
+2026-02-28 01:36:21,546 [INFO]   [P6 (H127-L123)] main: lineP=24968.40 | bars_from_origin=72.0 slope=0.0000 | BELOW gap=500.90
+2026-02-28 01:36:21,546 [INFO]   [P5 (H127-L124)] main: lineP=27317.00 | bars_from_origin=137.0 slope=16.8500 | ABOVE gap=1776.50
+2026-02-28 01:36:21,546 [INFO]   [P5 (H127-L124)] 0.875: lineP=26483.08 | bars_from_origin=137.0 slope=10.7630 | ABOVE gap=942.58
+2026-02-28 01:36:21,547 [INFO]   [P5 (H127-L124)] 0.75: lineP=26043.45 | bars_from_origin=137.0 slope=7.5540 | ABOVE gap=502.95
+2026-02-28 01:36:21,547 [INFO]   [P5 (H127-L124)] 0.5: lineP=25555.23 | bars_from_origin=137.0 slope=3.9903 | ABOVE gap=14.73
+2026-02-28 01:36:21,547 [INFO]   [P5 (H127-L124)] 0.25: lineP=25253.10 | bars_from_origin=137.0 slope=1.7850 | BELOW gap=216.20
+2026-02-28 01:36:21,547 [INFO]   [P5 (H127-L124)] 0.125: lineP=25127.76 | bars_from_origin=137.0 slope=0.8702 | BELOW gap=341.54
+2026-02-28 01:36:21,547 [INFO]   [P5 (H127-L124)] main: lineP=25267.92 | bars_from_origin=72.0 slope=0.0000 | BELOW gap=201.38
+2026-02-28 01:36:21,547 [INFO]   [P1 (L130-H130)] main: lineP=25167.45 | bars_from_origin=21.0 slope=-30.2406 | BELOW gap=301.85
+2026-02-28 01:36:21,547 [INFO]   [P1 (L130-H130)] 0.875: lineP=25489.75 | bars_from_origin=21.0 slope=-14.8928 | HIT gap=0.00
+2026-02-28 01:36:21,547 [INFO]     >>> HIT RECORDED: P1 (L130-H130) frac=0.875 @ 25489.75
+2026-02-28 01:36:21,547 [INFO]   [P1 (L130-H130)] 0.75: lineP=25604.30 | bars_from_origin=21.0 slope=-9.4382 | ABOVE gap=63.80
+2026-02-28 01:36:21,548 [INFO]   [P1 (L130-H130)] 0.5: lineP=25706.11 | bars_from_origin=21.0 slope=-4.5899 | ABOVE gap=165.61
+2026-02-28 01:36:21,548 [INFO]   [P1 (L130-H130)] 0.25: lineP=25760.64 | bars_from_origin=21.0 slope=-1.9935 | ABOVE gap=220.14
+2026-02-28 01:36:21,548 [INFO]   [P1 (L130-H130)] 0.125: lineP=25782.21 | bars_from_origin=21.0 slope=-0.9660 | ABOVE gap=241.71
+2026-02-28 01:36:21,548 [INFO]   [P1 (L130-H130)] main: lineP=25729.06 | bars_from_origin=5.0 slope=0.0000 | ABOVE gap=188.56
+2026-02-28 01:36:21,548 [INFO]   [P2 (L130-H129)] main: lineP=25216.12 | bars_from_origin=43.0 slope=-20.5052 | BELOW gap=253.18
+2026-02-28 01:36:21,548 [INFO]   [P2 (L130-H129)] 0.875: lineP=25576.19 | bars_from_origin=43.0 slope=-12.1315 | ABOVE gap=35.69
+2026-02-28 01:36:21,548 [INFO]   [P2 (L130-H129)] 0.75: lineP=25744.05 | bars_from_origin=43.0 slope=-8.2279 | ABOVE gap=203.55
+2026-02-28 01:36:21,548 [INFO]   [P2 (L130-H129)] 0.5: lineP=25916.42 | bars_from_origin=43.0 slope=-4.2192 | ABOVE gap=375.92
+2026-02-28 01:36:21,549 [INFO]   [P2 (L130-H129)] 0.25: lineP=26017.59 | bars_from_origin=43.0 slope=-1.8666 | ABOVE gap=477.09
+2026-02-28 01:36:21,549 [INFO]   [P2 (L130-H129)] 0.125: lineP=26058.81 | bars_from_origin=43.0 slope=-0.9079 | ABOVE gap=518.31
+2026-02-28 01:36:21,549 [INFO]   [P2 (L130-H129)] main: lineP=25937.52 | bars_from_origin=5.0 slope=0.0000 | ABOVE gap=397.02
+2026-02-28 01:36:21,549 [INFO]   [P3 (L130-H127)] main: lineP=25260.06 | bars_from_origin=72.0 slope=-11.7187 | BELOW gap=209.24
+2026-02-28 01:36:21,549 [INFO]   [P3 (L130-H127)] 0.875: lineP=25499.79 | bars_from_origin=72.0 slope=-8.3890 | HIT gap=0.00
+2026-02-28 01:36:21,549 [INFO]     >>> HIT RECORDED: P3 (L130-H127) frac=0.875 @ 25499.79
+2026-02-28 01:36:21,549 [INFO]   [P3 (L130-H127)] 0.75: lineP=25653.94 | bars_from_origin=72.0 slope=-6.2480 | ABOVE gap=113.44
+2026-02-28 01:36:21,549 [INFO]   [P3 (L130-H127)] 0.5: lineP=25852.21 | bars_from_origin=72.0 slope=-3.4943 | ABOVE gap=311.71
+2026-02-28 01:36:21,549 [INFO]   [P3 (L130-H127)] 0.25: lineP=25988.64 | bars_from_origin=72.0 slope=-1.5994 | ABOVE gap=448.14
+2026-02-28 01:36:21,549 [INFO]   [P3 (L130-H127)] 0.125: lineP=26047.39 | bars_from_origin=72.0 slope=-0.7835 | ABOVE gap=506.89
+2026-02-28 01:36:21,549 [INFO]   [P3 (L130-H127)] main: lineP=25869.68 | bars_from_origin=5.0 slope=0.0000 | ABOVE gap=329.18
+2026-02-28 01:36:21,550 [INFO]   [IntDet] Total hits this bar: 2
+2026-02-28 01:36:21,550 [INFO] [Study] Emitting intersection event (DIRECT): {'time': 1762505100, 'fan': 'P1 (L130-H130)', 'fanIdentity': 'L130-H130', 'fraction': '7/8', 'price': 25489.7510971756, 'type': 'TOUCH', 'details': 'Angle Test'}
+2026-02-28 01:36:21,554 [INFO] [Study] Emitting intersection event (DIRECT): {'time': 1762505100, 'fan': 'P3 (L130-H127)', 'fanIdentity': 'L130-H127', 'fraction': '7/8', 'price': 25499.791103915864, 'type': 'TOUCH', 'details': 'Angle Test'}
+2026-02-28 01:36:21,558 [INFO] [Tracking] Fan validated: Fan_L130_H130 via reversal at bar 2772
+2026-02-28 01:36:21,558 [INFO] [Tracking] Fan validated: Fan_L130_H127 via reversal at bar 2772
+2026-02-28 01:36:21,561 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
+2026-02-28 01:36:22,814 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
+2026-02-28 01:36:22,824 [INFO] Initialized AngularPriceCoverageStudy v4.0. Config: {'left_bars': 5, 'right_bars': 5, 'line_extension_bars': 100, 'fraction_colors': {0.125: '#FF5252', 0.25: '#FF5252', 0.375: '#FF5252', 0.5: '#2196F3', 0.625: '#4CAF50', 0.75: '#4CAF50', 0.875: '#4CAF50', 1.0: '#FFFFFF'}, 'main_color': '#FFFFFF', 'main_line_width': 1, 'fraction_line_width': 2, 'scale_ratio': 5.5, 'breach_mode': 'wick', 'show_intersection_labels': False, 'max_historical_fans': 3}
+2026-02-28 01:36:22,824 [INFO] [Study] Evaluating AngularPriceCoverageStudy (config: {'scale_ratio': 5.5, 'left_bars': 5, 'right_bars': 5, 'show_intersection_labels': False})
+2026-02-28 01:36:22,827 [INFO] [Study] First process_bar at index 2773. Running initialize_history.
+2026-02-28 01:36:22,827 [INFO] [Study] initialize_history called with 2774 candles
+2026-02-28 01:36:22,833 [INFO] [Study] Historical detection complete. Found 260 confirmed pivots.
+2026-02-28 01:36:22,987 [INFO] [IntDet] Bar 2773 | 2025-11-07 15:15 | H=25516.10 L=25485.75 C=25510.80 | Fans=6 Lines=42
+2026-02-28 01:36:22,987 [INFO]   [P4 (H127-L126)] main: lineP=28160.73 | bars_from_origin=110.0 slope=28.1770 | ABOVE gap=2644.63
+2026-02-28 01:36:22,987 [INFO]   [P4 (H127-L126)] 0.875: lineP=26644.40 | bars_from_origin=110.0 slope=14.3923 | ABOVE gap=1128.30
+2026-02-28 01:36:22,987 [INFO]   [P4 (H127-L126)] 0.75: lineP=26076.80 | bars_from_origin=110.0 slope=9.2323 | ABOVE gap=560.70
+2026-02-28 01:36:22,987 [INFO]   [P4 (H127-L126)] 0.5: lineP=25559.58 | bars_from_origin=110.0 slope=4.5302 | ABOVE gap=43.48
+2026-02-28 01:36:22,987 [INFO]   [P4 (H127-L126)] 0.25: lineP=25278.33 | bars_from_origin=110.0 slope=1.9735 | BELOW gap=207.42
+2026-02-28 01:36:22,987 [INFO]   [P4 (H127-L126)] 0.125: lineP=25166.51 | bars_from_origin=110.0 slope=0.9569 | BELOW gap=319.24
+2026-02-28 01:36:22,987 [INFO]   [P4 (H127-L126)] main: lineP=25228.87 | bars_from_origin=73.0 slope=0.0000 | BELOW gap=256.88
+2026-02-28 01:36:22,987 [INFO]   [P6 (H127-L123)] main: lineP=27232.92 | bars_from_origin=171.0 slope=15.4674 | ABOVE gap=1716.82
+2026-02-28 01:36:22,988 [INFO]   [P6 (H127-L123)] 0.875: lineP=26329.02 | bars_from_origin=171.0 slope=10.1814 | ABOVE gap=812.92
+2026-02-28 01:36:22,988 [INFO]   [P6 (H127-L123)] 0.75: lineP=25827.91 | bars_from_origin=171.0 slope=7.2510 | ABOVE gap=311.81
+2026-02-28 01:36:22,988 [INFO]   [P6 (H127-L123)] 0.5: lineP=25251.76 | bars_from_origin=171.0 slope=3.8816 | BELOW gap=233.99
+2026-02-28 01:36:22,988 [INFO]   [P6 (H127-L123)] 0.25: lineP=24886.46 | bars_from_origin=171.0 slope=1.7454 | BELOW gap=599.29
+2026-02-28 01:36:22,988 [INFO]   [P6 (H127-L123)] 0.125: lineP=24733.65 | bars_from_origin=171.0 slope=0.8518 | BELOW gap=752.10
+2026-02-28 01:36:22,988 [INFO]   [P6 (H127-L123)] main: lineP=24968.40 | bars_from_origin=73.0 slope=0.0000 | BELOW gap=517.35
+2026-02-28 01:36:22,988 [INFO]   [P5 (H127-L124)] main: lineP=27333.85 | bars_from_origin=138.0 slope=16.8500 | ABOVE gap=1817.75
+2026-02-28 01:36:22,988 [INFO]   [P5 (H127-L124)] 0.875: lineP=26493.84 | bars_from_origin=138.0 slope=10.7630 | ABOVE gap=977.74
+2026-02-28 01:36:22,988 [INFO]   [P5 (H127-L124)] 0.75: lineP=26051.01 | bars_from_origin=138.0 slope=7.5540 | ABOVE gap=534.91
+2026-02-28 01:36:22,988 [INFO]   [P5 (H127-L124)] 0.5: lineP=25559.22 | bars_from_origin=138.0 slope=3.9903 | ABOVE gap=43.12
+2026-02-28 01:36:22,988 [INFO]   [P5 (H127-L124)] 0.25: lineP=25254.88 | bars_from_origin=138.0 slope=1.7850 | BELOW gap=230.87
+2026-02-28 01:36:22,988 [INFO]   [P5 (H127-L124)] 0.125: lineP=25128.63 | bars_from_origin=138.0 slope=0.8702 | BELOW gap=357.12
+2026-02-28 01:36:22,989 [INFO]   [P5 (H127-L124)] main: lineP=25267.92 | bars_from_origin=73.0 slope=0.0000 | BELOW gap=217.83
+2026-02-28 01:36:22,989 [INFO]   [P1 (L130-H130)] main: lineP=25137.21 | bars_from_origin=22.0 slope=-30.2406 | BELOW gap=348.54
+2026-02-28 01:36:22,989 [INFO]   [P1 (L130-H130)] 0.875: lineP=25474.86 | bars_from_origin=22.0 slope=-14.8928 | BELOW gap=10.89
+2026-02-28 01:36:22,989 [INFO]   [P1 (L130-H130)] 0.75: lineP=25594.86 | bars_from_origin=22.0 slope=-9.4382 | ABOVE gap=78.76
+2026-02-28 01:36:22,989 [INFO]   [P1 (L130-H130)] 0.5: lineP=25701.52 | bars_from_origin=22.0 slope=-4.5899 | ABOVE gap=185.42
+2026-02-28 01:36:22,989 [INFO]   [P1 (L130-H130)] 0.25: lineP=25758.64 | bars_from_origin=22.0 slope=-1.9935 | ABOVE gap=242.54
+2026-02-28 01:36:22,989 [INFO]   [P1 (L130-H130)] 0.125: lineP=25781.25 | bars_from_origin=22.0 slope=-0.9660 | ABOVE gap=265.15
+2026-02-28 01:36:22,989 [INFO]   [P1 (L130-H130)] main: lineP=25729.06 | bars_from_origin=6.0 slope=0.0000 | ABOVE gap=212.96
+2026-02-28 01:36:22,989 [INFO]   [P2 (L130-H129)] main: lineP=25195.62 | bars_from_origin=44.0 slope=-20.5052 | BELOW gap=290.13
+2026-02-28 01:36:22,989 [INFO]   [P2 (L130-H129)] 0.875: lineP=25564.06 | bars_from_origin=44.0 slope=-12.1315 | ABOVE gap=47.96
+2026-02-28 01:36:22,989 [INFO]   [P2 (L130-H129)] 0.75: lineP=25735.82 | bars_from_origin=44.0 slope=-8.2279 | ABOVE gap=219.72
+2026-02-28 01:36:22,990 [INFO]   [P2 (L130-H129)] 0.5: lineP=25912.21 | bars_from_origin=44.0 slope=-4.2192 | ABOVE gap=396.11
+2026-02-28 01:36:22,990 [INFO]   [P2 (L130-H129)] 0.25: lineP=26015.72 | bars_from_origin=44.0 slope=-1.8666 | ABOVE gap=499.62
+2026-02-28 01:36:22,990 [INFO]   [P2 (L130-H129)] 0.125: lineP=26057.90 | bars_from_origin=44.0 slope=-0.9079 | ABOVE gap=541.80
+2026-02-28 01:36:22,990 [INFO]   [P2 (L130-H129)] main: lineP=25937.52 | bars_from_origin=6.0 slope=0.0000 | ABOVE gap=421.42
+2026-02-28 01:36:22,990 [INFO]   [P3 (L130-H127)] main: lineP=25248.34 | bars_from_origin=73.0 slope=-11.7187 | BELOW gap=237.41
+2026-02-28 01:36:22,990 [INFO]   [P3 (L130-H127)] 0.875: lineP=25491.40 | bars_from_origin=73.0 slope=-8.3890 | HIT gap=0.00
+2026-02-28 01:36:22,990 [INFO]     >>> HIT RECORDED: P3 (L130-H127) frac=0.875 @ 25491.40
+2026-02-28 01:36:22,990 [INFO]   [P3 (L130-H127)] 0.75: lineP=25647.70 | bars_from_origin=73.0 slope=-6.2480 | ABOVE gap=131.60
+2026-02-28 01:36:22,990 [INFO]   [P3 (L130-H127)] 0.5: lineP=25848.72 | bars_from_origin=73.0 slope=-3.4943 | ABOVE gap=332.62
+2026-02-28 01:36:22,990 [INFO]   [P3 (L130-H127)] 0.25: lineP=25987.04 | bars_from_origin=73.0 slope=-1.5994 | ABOVE gap=470.95
+2026-02-28 01:36:22,991 [INFO]   [P3 (L130-H127)] 0.125: lineP=26046.61 | bars_from_origin=73.0 slope=-0.7835 | ABOVE gap=530.51
+2026-02-28 01:36:22,991 [INFO]   [P3 (L130-H127)] main: lineP=25869.68 | bars_from_origin=6.0 slope=0.0000 | ABOVE gap=353.58
+2026-02-28 01:36:22,991 [INFO]   [IntDet] Total hits this bar: 1
+2026-02-28 01:36:22,991 [INFO] [Study] Emitting intersection event (DIRECT): {'time': 1762508700, 'fan': 'P3 (L130-H127)', 'fanIdentity': 'L130-H127', 'fraction': '7/8', 'price': 25491.40208061956, 'type': 'TOUCH', 'details': 'Angle Test'}
+2026-02-28 01:36:22,998 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
+2026-02-28 01:36:24,585 [INFO] Initialized AngularPriceCoverageStudy v4.0. Config: {'left_bars': 5, 'right_bars': 5, 'line_extension_bars': 100, 'fraction_colors': {0.125: '#FF5252', 0.25: '#FF5252', 0.375: '#FF5252', 0.5: '#2196F3', 0.625: '#4CAF50', 0.75: '#4CAF50', 0.875: '#4CAF50', 1.0: '#FFFFFF'}, 'main_color': '#FFFFFF', 'main_line_width': 1, 'fraction_line_width': 2, 'scale_ratio': 5.5, 'breach_mode': 'wick', 'show_intersection_labels': False, 'max_historical_fans': 3}
+2026-02-28 01:36:24,586 [INFO] [Study] Evaluating AngularPriceCoverageStudy (config: {'scale_ratio': 5.5, 'left_bars': 5, 'right_bars': 5, 'show_intersection_labels': False})
+2026-02-28 01:36:24,588 [INFO] [Study] First process_bar at index 2774. Running initialize_history.
+2026-02-28 01:36:24,590 [INFO] [Study] initialize_history called with 2775 candles
+2026-02-28 01:36:24,597 [INFO] [Study] Historical detection complete. Found 260 confirmed pivots.
+2026-02-28 01:36:24,768 [INFO] [IntDet] Bar 2774 | 2025-11-10 09:15 | H=25595.50 L=25515.30 C=25576.00 | Fans=6 Lines=42
+2026-02-28 01:36:24,768 [INFO]   [P4 (H127-L126)] main: lineP=28188.90 | bars_from_origin=111.0 slope=28.1770 | ABOVE gap=2593.40
+2026-02-28 01:36:24,768 [INFO]   [P4 (H127-L126)] 0.875: lineP=26658.79 | bars_from_origin=111.0 slope=14.3923 | ABOVE gap=1063.29
+2026-02-28 01:36:24,768 [INFO]   [P4 (H127-L126)] 0.75: lineP=26086.04 | bars_from_origin=111.0 slope=9.2323 | ABOVE gap=490.54
+2026-02-28 01:36:24,768 [INFO]   [P4 (H127-L126)] 0.5: lineP=25564.11 | bars_from_origin=111.0 slope=4.5302 | HIT gap=0.00
+2026-02-28 01:36:24,768 [INFO]     >>> HIT RECORDED: P4 (H127-L126) frac=0.5 @ 25564.11
+2026-02-28 01:36:24,768 [INFO]   [P4 (H127-L126)] 0.25: lineP=25280.31 | bars_from_origin=111.0 slope=1.9735 | BELOW gap=234.99
+2026-02-28 01:36:24,768 [INFO]   [P4 (H127-L126)] 0.125: lineP=25167.46 | bars_from_origin=111.0 slope=0.9569 | BELOW gap=347.84
+2026-02-28 01:36:24,768 [INFO]   [P4 (H127-L126)] main: lineP=25228.87 | bars_from_origin=74.0 slope=0.0000 | BELOW gap=286.43
+2026-02-28 01:36:24,769 [INFO]   [P6 (H127-L123)] main: lineP=27248.39 | bars_from_origin=172.0 slope=15.4674 | ABOVE gap=1652.89
+2026-02-28 01:36:24,769 [INFO]   [P6 (H127-L123)] 0.875: lineP=26339.20 | bars_from_origin=172.0 slope=10.1814 | ABOVE gap=743.70
+2026-02-28 01:36:24,769 [INFO]   [P6 (H127-L123)] 0.75: lineP=25835.16 | bars_from_origin=172.0 slope=7.2510 | ABOVE gap=239.66
+2026-02-28 01:36:24,769 [INFO]   [P6 (H127-L123)] 0.5: lineP=25255.64 | bars_from_origin=172.0 slope=3.8816 | BELOW gap=259.66
+2026-02-28 01:36:24,769 [INFO]   [P6 (H127-L123)] 0.25: lineP=24888.20 | bars_from_origin=172.0 slope=1.7454 | BELOW gap=627.10
+2026-02-28 01:36:24,769 [INFO]   [P6 (H127-L123)] 0.125: lineP=24734.50 | bars_from_origin=172.0 slope=0.8518 | BELOW gap=780.80
+2026-02-28 01:36:24,769 [INFO]   [P6 (H127-L123)] main: lineP=24968.40 | bars_from_origin=74.0 slope=0.0000 | BELOW gap=546.90
+2026-02-28 01:36:24,769 [INFO]   [P5 (H127-L124)] main: lineP=27350.70 | bars_from_origin=139.0 slope=16.8500 | ABOVE gap=1755.20
+2026-02-28 01:36:24,769 [INFO]   [P5 (H127-L124)] 0.875: lineP=26504.60 | bars_from_origin=139.0 slope=10.7630 | ABOVE gap=909.10
+2026-02-28 01:36:24,769 [INFO]   [P5 (H127-L124)] 0.75: lineP=26058.56 | bars_from_origin=139.0 slope=7.5540 | ABOVE gap=463.06
+2026-02-28 01:36:24,769 [INFO]   [P5 (H127-L124)] 0.5: lineP=25563.21 | bars_from_origin=139.0 slope=3.9903 | HIT gap=0.00
+2026-02-28 01:36:24,770 [INFO]     >>> HIT RECORDED: P5 (H127-L124) frac=0.5 @ 25563.21
+2026-02-28 01:36:24,770 [INFO]   [P5 (H127-L124)] 0.25: lineP=25256.67 | bars_from_origin=139.0 slope=1.7850 | BELOW gap=258.63
+2026-02-28 01:36:24,770 [INFO]   [P5 (H127-L124)] 0.125: lineP=25129.50 | bars_from_origin=139.0 slope=0.8702 | BELOW gap=385.80
+2026-02-28 01:36:24,770 [INFO]   [P5 (H127-L124)] main: lineP=25267.92 | bars_from_origin=74.0 slope=0.0000 | BELOW gap=247.38
+2026-02-28 01:36:24,770 [INFO]   [P1 (L130-H130)] main: lineP=25106.97 | bars_from_origin=23.0 slope=-30.2406 | BELOW gap=408.33
+2026-02-28 01:36:24,770 [INFO]   [P1 (L130-H130)] 0.875: lineP=25459.97 | bars_from_origin=23.0 slope=-14.8928 | BELOW gap=55.34
+2026-02-28 01:36:24,770 [INFO]   [P1 (L130-H130)] 0.75: lineP=25585.42 | bars_from_origin=23.0 slope=-9.4382 | HIT gap=0.00
+2026-02-28 01:36:24,770 [INFO]     >>> HIT RECORDED: P1 (L130-H130) frac=0.75 @ 25585.42
+2026-02-28 01:36:24,770 [INFO]   [P1 (L130-H130)] 0.5: lineP=25696.93 | bars_from_origin=23.0 slope=-4.5899 | ABOVE gap=101.43
+2026-02-28 01:36:24,770 [INFO]   [P1 (L130-H130)] 0.25: lineP=25756.65 | bars_from_origin=23.0 slope=-1.9935 | ABOVE gap=161.15
+2026-02-28 01:36:24,770 [INFO]   [P1 (L130-H130)] 0.125: lineP=25780.28 | bars_from_origin=23.0 slope=-0.9660 | ABOVE gap=184.78
+2026-02-28 01:36:24,770 [INFO]   [P1 (L130-H130)] main: lineP=25729.06 | bars_from_origin=7.0 slope=0.0000 | ABOVE gap=133.56
+2026-02-28 01:36:24,771 [INFO]   [P2 (L130-H129)] main: lineP=25175.11 | bars_from_origin=45.0 slope=-20.5052 | BELOW gap=340.19
+2026-02-28 01:36:24,771 [INFO]   [P2 (L130-H129)] 0.875: lineP=25551.93 | bars_from_origin=45.0 slope=-12.1315 | HIT gap=0.00
+2026-02-28 01:36:24,771 [INFO]     >>> HIT RECORDED: P2 (L130-H129) frac=0.875 @ 25551.93
+2026-02-28 01:36:24,771 [INFO]   [P2 (L130-H129)] 0.75: lineP=25727.59 | bars_from_origin=45.0 slope=-8.2279 | ABOVE gap=132.09
+2026-02-28 01:36:24,771 [INFO]   [P2 (L130-H129)] 0.5: lineP=25907.99 | bars_from_origin=45.0 slope=-4.2192 | ABOVE gap=312.49
+2026-02-28 01:36:24,771 [INFO]   [P2 (L130-H129)] 0.25: lineP=26013.85 | bars_from_origin=45.0 slope=-1.8666 | ABOVE gap=418.35
+2026-02-28 01:36:24,771 [INFO]   [P2 (L130-H129)] 0.125: lineP=26057.00 | bars_from_origin=45.0 slope=-0.9079 | ABOVE gap=461.50
+2026-02-28 01:36:24,771 [INFO]   [P2 (L130-H129)] main: lineP=25937.52 | bars_from_origin=7.0 slope=0.0000 | ABOVE gap=342.02
+2026-02-28 01:36:24,771 [INFO]   [P3 (L130-H127)] main: lineP=25236.62 | bars_from_origin=74.0 slope=-11.7187 | BELOW gap=278.68
+2026-02-28 01:36:24,771 [INFO]   [P3 (L130-H127)] 0.875: lineP=25483.01 | bars_from_origin=74.0 slope=-8.3890 | BELOW gap=32.29
+2026-02-28 01:36:24,771 [INFO]   [P3 (L130-H127)] 0.75: lineP=25641.45 | bars_from_origin=74.0 slope=-6.2480 | ABOVE gap=45.95
+2026-02-28 01:36:24,771 [INFO]   [P3 (L130-H127)] 0.5: lineP=25845.22 | bars_from_origin=74.0 slope=-3.4943 | ABOVE gap=249.72
+2026-02-28 01:36:24,771 [INFO]   [P3 (L130-H127)] 0.25: lineP=25985.45 | bars_from_origin=74.0 slope=-1.5994 | ABOVE gap=389.95
+2026-02-28 01:36:24,772 [INFO]   [P3 (L130-H127)] 0.125: lineP=26045.82 | bars_from_origin=74.0 slope=-0.7835 | ABOVE gap=450.32
+2026-02-28 01:36:24,772 [INFO]   [P3 (L130-H127)] main: lineP=25869.68 | bars_from_origin=7.0 slope=0.0000 | ABOVE gap=274.18
+2026-02-28 01:36:24,772 [INFO]   [IntDet] Total hits this bar: 4
+2026-02-28 01:36:24,772 [INFO] [Study] Emitting intersection event (DIRECT): {'time': 1762746300, 'fan': 'P4 (H127-L126)', 'fanIdentity': 'H127-L126', 'fraction': '1/2', 'price': 25564.105420072327, 'type': 'TOUCH', 'details': 'Angle Test'}
+2026-02-28 01:36:24,776 [INFO] [Study] Emitting intersection event (DIRECT): {'time': 1762746300, 'fan': 'P5 (H127-L124)', 'fanIdentity': 'H127-L124', 'fraction': '1/2', 'price': 25563.20627723684, 'type': 'TOUCH', 'details': 'Angle Test'}
+2026-02-28 01:36:24,781 [INFO] [Study] Emitting intersection event (DIRECT): {'time': 1762746300, 'fan': 'P1 (L130-H130)', 'fanIdentity': 'L130-H130', 'fraction': '3/4', 'price': 25585.42135660253, 'type': 'TOUCH', 'details': 'Angle Test'}
+2026-02-28 01:36:24,786 [INFO] [Study] Emitting intersection event (DIRECT): {'time': 1762746300, 'fan': 'P2 (L130-H129)', 'fanIdentity': 'L130-H129', 'fraction': '7/8', 'price': 25551.931388594152, 'type': 'TOUCH', 'details': 'Angle Test'}
+2026-02-28 01:36:24,790 [INFO] [Tracking] Fan validated: Fan_L130_H129 via breach at bar 2774
+2026-02-28 01:36:24,790 [INFO] [Tracking] Breach CONFIRMED: Fan_L130_H127 0.875 up (T+1 bars)
+2026-02-28 01:36:24,791 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
+2026-02-28 01:36:26,106 [INFO] Initialized AngularPriceCoverageStudy v4.0. Config: {'left_bars': 5, 'right_bars': 5, 'line_extension_bars': 100, 'fraction_colors': {0.125: '#FF5252', 0.25: '#FF5252', 0.375: '#FF5252', 0.5: '#2196F3', 0.625: '#4CAF50', 0.75: '#4CAF50', 0.875: '#4CAF50', 1.0: '#FFFFFF'}, 'main_color': '#FFFFFF', 'main_line_width': 1, 'fraction_line_width': 2, 'scale_ratio': 5.5, 'breach_mode': 'wick', 'show_intersection_labels': False, 'max_historical_fans': 3}
+2026-02-28 01:36:26,107 [INFO] [Study] Evaluating AngularPriceCoverageStudy (config: {'scale_ratio': 5.5, 'left_bars': 5, 'right_bars': 5, 'show_intersection_labels': False})
+2026-02-28 01:36:26,158 [INFO] [Study] First process_bar at index 2775. Running initialize_history.
+2026-02-28 01:36:26,158 [INFO] [Study] initialize_history called with 2776 candles
+2026-02-28 01:36:26,164 [INFO] [Study] Historical detection complete. Found 260 confirmed pivots.
+2026-02-28 01:36:26,331 [INFO] [IntDet] Bar 2775 | 2025-11-10 10:15 | H=25631.80 L=25575.20 C=25629.90 | Fans=6 Lines=42
+2026-02-28 01:36:26,332 [INFO]   [P4 (H127-L126)] main: lineP=28217.08 | bars_from_origin=112.0 slope=28.1770 | ABOVE gap=2585.28
+2026-02-28 01:36:26,332 [INFO]   [P4 (H127-L126)] 0.875: lineP=26673.19 | bars_from_origin=112.0 slope=14.3923 | ABOVE gap=1041.38
+2026-02-28 01:36:26,332 [INFO]   [P4 (H127-L126)] 0.75: lineP=26095.27 | bars_from_origin=112.0 slope=9.2323 | ABOVE gap=463.47
+2026-02-28 01:36:26,332 [INFO]   [P4 (H127-L126)] 0.5: lineP=25568.64 | bars_from_origin=112.0 slope=4.5302 | BELOW gap=6.56
+2026-02-28 01:36:26,332 [INFO]   [P4 (H127-L126)] 0.25: lineP=25282.28 | bars_from_origin=112.0 slope=1.9735 | BELOW gap=292.92
+2026-02-28 01:36:26,332 [INFO]   [P4 (H127-L126)] 0.125: lineP=25168.42 | bars_from_origin=112.0 slope=0.9569 | BELOW gap=406.78
+2026-02-28 01:36:26,332 [INFO]   [P4 (H127-L126)] main: lineP=25228.87 | bars_from_origin=75.0 slope=0.0000 | BELOW gap=346.33
+2026-02-28 01:36:26,332 [INFO]   [P6 (H127-L123)] main: lineP=27263.85 | bars_from_origin=173.0 slope=15.4674 | ABOVE gap=1632.05
+2026-02-28 01:36:26,332 [INFO]   [P6 (H127-L123)] 0.875: lineP=26349.39 | bars_from_origin=173.0 slope=10.1814 | ABOVE gap=717.58
+2026-02-28 01:36:26,332 [INFO]   [P6 (H127-L123)] 0.75: lineP=25842.42 | bars_from_origin=173.0 slope=7.2510 | ABOVE gap=210.61
+2026-02-28 01:36:26,333 [INFO]   [P6 (H127-L123)] 0.5: lineP=25259.52 | bars_from_origin=173.0 slope=3.8816 | BELOW gap=315.68
+2026-02-28 01:36:26,334 [INFO]   [P6 (H127-L123)] 0.25: lineP=24889.95 | bars_from_origin=173.0 slope=1.7454 | BELOW gap=685.25
+2026-02-28 01:36:26,334 [INFO]   [P6 (H127-L123)] 0.125: lineP=24735.35 | bars_from_origin=173.0 slope=0.8518 | BELOW gap=839.85
+2026-02-28 01:36:26,334 [INFO]   [P6 (H127-L123)] main: lineP=24968.40 | bars_from_origin=75.0 slope=0.0000 | BELOW gap=606.80
+2026-02-28 01:36:26,334 [INFO]   [P5 (H127-L124)] main: lineP=27367.55 | bars_from_origin=140.0 slope=16.8500 | ABOVE gap=1735.75
+2026-02-28 01:36:26,334 [INFO]   [P5 (H127-L124)] 0.875: lineP=26515.37 | bars_from_origin=140.0 slope=10.7630 | ABOVE gap=883.57
+2026-02-28 01:36:26,334 [INFO]   [P5 (H127-L124)] 0.75: lineP=26066.12 | bars_from_origin=140.0 slope=7.5540 | ABOVE gap=434.32
+2026-02-28 01:36:26,334 [INFO]   [P5 (H127-L124)] 0.5: lineP=25567.20 | bars_from_origin=140.0 slope=3.9903 | BELOW gap=8.00
+2026-02-28 01:36:26,334 [INFO]   [P5 (H127-L124)] 0.25: lineP=25258.45 | bars_from_origin=140.0 slope=1.7850 | BELOW gap=316.75
+2026-02-28 01:36:26,334 [INFO]   [P5 (H127-L124)] 0.125: lineP=25130.37 | bars_from_origin=140.0 slope=0.8702 | BELOW gap=444.83
+2026-02-28 01:36:26,334 [INFO]   [P5 (H127-L124)] main: lineP=25267.92 | bars_from_origin=75.0 slope=0.0000 | BELOW gap=307.28
+2026-02-28 01:36:26,335 [INFO]   [P1 (L130-H130)] main: lineP=25076.73 | bars_from_origin=24.0 slope=-30.2406 | BELOW gap=498.47
+2026-02-28 01:36:26,335 [INFO]   [P1 (L130-H130)] 0.875: lineP=25445.07 | bars_from_origin=24.0 slope=-14.8928 | BELOW gap=130.13
+2026-02-28 01:36:26,335 [INFO]   [P1 (L130-H130)] 0.75: lineP=25575.98 | bars_from_origin=24.0 slope=-9.4382 | HIT gap=0.00
+2026-02-28 01:36:26,335 [INFO]     >>> HIT RECORDED: P1 (L130-H130) frac=0.75 @ 25575.98
+2026-02-28 01:36:26,335 [INFO]   [P1 (L130-H130)] 0.5: lineP=25692.34 | bars_from_origin=24.0 slope=-4.5899 | ABOVE gap=60.54
+2026-02-28 01:36:26,335 [INFO]   [P1 (L130-H130)] 0.25: lineP=25754.66 | bars_from_origin=24.0 slope=-1.9935 | ABOVE gap=122.86
+2026-02-28 01:36:26,335 [INFO]   [P1 (L130-H130)] 0.125: lineP=25779.32 | bars_from_origin=24.0 slope=-0.9660 | ABOVE gap=147.52
+2026-02-28 01:36:26,335 [INFO]   [P1 (L130-H130)] main: lineP=25729.06 | bars_from_origin=8.0 slope=0.0000 | ABOVE gap=97.26
+2026-02-28 01:36:26,335 [INFO]   [P2 (L130-H129)] main: lineP=25154.61 | bars_from_origin=46.0 slope=-20.5052 | BELOW gap=420.59
+2026-02-28 01:36:26,335 [INFO]   [P2 (L130-H129)] 0.875: lineP=25539.80 | bars_from_origin=46.0 slope=-12.1315 | BELOW gap=35.40
+2026-02-28 01:36:26,335 [INFO]   [P2 (L130-H129)] 0.75: lineP=25719.37 | bars_from_origin=46.0 slope=-8.2279 | ABOVE gap=87.57
+2026-02-28 01:36:26,335 [INFO]   [P2 (L130-H129)] 0.5: lineP=25903.77 | bars_from_origin=46.0 slope=-4.2192 | ABOVE gap=271.97
+2026-02-28 01:36:26,335 [INFO]   [P2 (L130-H129)] 0.25: lineP=26011.99 | bars_from_origin=46.0 slope=-1.8666 | ABOVE gap=380.18
+2026-02-28 01:36:26,335 [INFO]   [P2 (L130-H129)] 0.125: lineP=26056.09 | bars_from_origin=46.0 slope=-0.9079 | ABOVE gap=424.29
+2026-02-28 01:36:26,335 [INFO]   [P2 (L130-H129)] main: lineP=25937.52 | bars_from_origin=8.0 slope=0.0000 | ABOVE gap=305.72
+2026-02-28 01:36:26,335 [INFO]   [P3 (L130-H127)] main: lineP=25224.90 | bars_from_origin=75.0 slope=-11.7187 | BELOW gap=350.30
+2026-02-28 01:36:26,336 [INFO]   [P3 (L130-H127)] 0.875: lineP=25474.62 | bars_from_origin=75.0 slope=-8.3890 | BELOW gap=100.58
+2026-02-28 01:36:26,336 [INFO]   [P3 (L130-H127)] 0.75: lineP=25635.20 | bars_from_origin=75.0 slope=-6.2480 | ABOVE gap=3.40
+2026-02-28 01:36:26,336 [INFO]   [P3 (L130-H127)] 0.5: lineP=25841.73 | bars_from_origin=75.0 slope=-3.4943 | ABOVE gap=209.93
+2026-02-28 01:36:26,336 [INFO]   [P3 (L130-H127)] 0.25: lineP=25983.85 | bars_from_origin=75.0 slope=-1.5994 | ABOVE gap=352.05
+2026-02-28 01:36:26,336 [INFO]   [P3 (L130-H127)] 0.125: lineP=26045.04 | bars_from_origin=75.0 slope=-0.7835 | ABOVE gap=413.24
+2026-02-28 01:36:26,336 [INFO]   [P3 (L130-H127)] main: lineP=25869.68 | bars_from_origin=8.0 slope=0.0000 | ABOVE gap=237.88
+2026-02-28 01:36:26,336 [INFO]   [IntDet] Total hits this bar: 1
+2026-02-28 01:36:26,336 [INFO] [Study] Emitting intersection event (DIRECT): {'time': 1762749900, 'fan': 'P1 (L130-H130)', 'fanIdentity': 'L130-H130', 'fraction': '3/4', 'price': 25575.98315471568, 'type': 'TOUCH', 'details': 'Angle Test'}
+2026-02-28 01:36:26,340 [INFO] [Tracking] Breach CONFIRMED: Fan_H127_L126 0.5 up (T+1 bars)
+2026-02-28 01:36:26,340 [INFO] [Tracking] Breach CONFIRMED: Fan_H127_L124 0.5 up (T+1 bars)
+2026-02-28 01:36:26,341 [INFO] [Tracking] Breach CONFIRMED: Fan_L130_H129 0.875 up (T+1 bars)
+2026-02-28 01:36:26,342 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
+2026-02-28 01:36:27,617 [INFO] Initialized AngularPriceCoverageStudy v4.0. Config: {'left_bars': 5, 'right_bars': 5, 'line_extension_bars': 100, 'fraction_colors': {0.125: '#FF5252', 0.25: '#FF5252', 0.375: '#FF5252', 0.5: '#2196F3', 0.625: '#4CAF50', 0.75: '#4CAF50', 0.875: '#4CAF50', 1.0: '#FFFFFF'}, 'main_color': '#FFFFFF', 'main_line_width': 1, 'fraction_line_width': 2, 'scale_ratio': 5.5, 'breach_mode': 'wick', 'show_intersection_labels': False, 'max_historical_fans': 3}
+2026-02-28 01:36:27,617 [INFO] [Study] Evaluating AngularPriceCoverageStudy (config: {'scale_ratio': 5.5, 'left_bars': 5, 'right_bars': 5, 'show_intersection_labels': False})
+2026-02-28 01:36:27,620 [INFO] [Study] First process_bar at index 2776. Running initialize_history.
+2026-02-28 01:36:27,620 [INFO] [Study] initialize_history called with 2777 candles
+2026-02-28 01:36:27,631 [INFO] [Study] Historical detection complete. Found 260 confirmed pivots.
+2026-02-28 01:36:27,794 [INFO] [IntDet] Bar 2776 | 2025-11-10 11:15 | H=25651.45 L=25618.75 C=25624.30 | Fans=6 Lines=42
+2026-02-28 01:36:27,794 [INFO]   [P4 (H127-L126)] main: lineP=28245.26 | bars_from_origin=113.0 slope=28.1770 | ABOVE gap=2593.81
+2026-02-28 01:36:27,795 [INFO]   [P4 (H127-L126)] 0.875: lineP=26687.58 | bars_from_origin=113.0 slope=14.3923 | ABOVE gap=1036.13
+2026-02-28 01:36:27,795 [INFO]   [P4 (H127-L126)] 0.75: lineP=26104.50 | bars_from_origin=113.0 slope=9.2323 | ABOVE gap=453.05
+2026-02-28 01:36:27,795 [INFO]   [P4 (H127-L126)] 0.5: lineP=25573.17 | bars_from_origin=113.0 slope=4.5302 | BELOW gap=45.58
+2026-02-28 01:36:27,795 [INFO]   [P4 (H127-L126)] 0.25: lineP=25284.25 | bars_from_origin=113.0 slope=1.9735 | BELOW gap=334.50
+2026-02-28 01:36:27,795 [INFO]   [P4 (H127-L126)] 0.125: lineP=25169.38 | bars_from_origin=113.0 slope=0.9569 | BELOW gap=449.37
+2026-02-28 01:36:27,795 [INFO]   [P4 (H127-L126)] main: lineP=25228.87 | bars_from_origin=76.0 slope=0.0000 | BELOW gap=389.88
+2026-02-28 01:36:27,795 [INFO]   [P6 (H127-L123)] main: lineP=27279.32 | bars_from_origin=174.0 slope=15.4674 | ABOVE gap=1627.87
+2026-02-28 01:36:27,796 [INFO]   [P6 (H127-L123)] 0.875: lineP=26359.57 | bars_from_origin=174.0 slope=10.1814 | ABOVE gap=708.12
+2026-02-28 01:36:27,796 [INFO]   [P6 (H127-L123)] 0.75: lineP=25849.67 | bars_from_origin=174.0 slope=7.2510 | ABOVE gap=198.22
+2026-02-28 01:36:27,796 [INFO]   [P6 (H127-L123)] 0.5: lineP=25263.41 | bars_from_origin=174.0 slope=3.8816 | BELOW gap=355.34
+2026-02-28 01:36:27,796 [INFO]   [P6 (H127-L123)] 0.25: lineP=24891.69 | bars_from_origin=174.0 slope=1.7454 | BELOW gap=727.06
+2026-02-28 01:36:27,797 [INFO]   [P6 (H127-L123)] 0.125: lineP=24736.21 | bars_from_origin=174.0 slope=0.8518 | BELOW gap=882.54
+2026-02-28 01:36:27,797 [INFO]   [P6 (H127-L123)] main: lineP=24968.40 | bars_from_origin=76.0 slope=0.0000 | BELOW gap=650.35
+2026-02-28 01:36:27,797 [INFO]   [P5 (H127-L124)] main: lineP=27384.40 | bars_from_origin=141.0 slope=16.8500 | ABOVE gap=1732.95
+2026-02-28 01:36:27,797 [INFO]   [P5 (H127-L124)] 0.875: lineP=26526.13 | bars_from_origin=141.0 slope=10.7630 | ABOVE gap=874.68
+2026-02-28 01:36:27,797 [INFO]   [P5 (H127-L124)] 0.75: lineP=26073.67 | bars_from_origin=141.0 slope=7.5540 | ABOVE gap=422.22
+2026-02-28 01:36:27,797 [INFO]   [P5 (H127-L124)] 0.5: lineP=25571.19 | bars_from_origin=141.0 slope=3.9903 | BELOW gap=47.56
+2026-02-28 01:36:27,797 [INFO]   [P5 (H127-L124)] 0.25: lineP=25260.24 | bars_from_origin=141.0 slope=1.7850 | BELOW gap=358.51
+2026-02-28 01:36:27,798 [INFO]   [P5 (H127-L124)] 0.125: lineP=25131.24 | bars_from_origin=141.0 slope=0.8702 | BELOW gap=487.51
+2026-02-28 01:36:27,798 [INFO]   [P5 (H127-L124)] main: lineP=25267.92 | bars_from_origin=76.0 slope=0.0000 | BELOW gap=350.83
+2026-02-28 01:36:27,798 [INFO]   [P1 (L130-H130)] main: lineP=25046.48 | bars_from_origin=25.0 slope=-30.2406 | BELOW gap=572.27
+2026-02-28 01:36:27,798 [INFO]   [P1 (L130-H130)] 0.875: lineP=25430.18 | bars_from_origin=25.0 slope=-14.8928 | BELOW gap=188.57
+2026-02-28 01:36:27,798 [INFO]   [P1 (L130-H130)] 0.75: lineP=25566.54 | bars_from_origin=25.0 slope=-9.4382 | BELOW gap=52.21
+2026-02-28 01:36:27,798 [INFO]   [P1 (L130-H130)] 0.5: lineP=25687.75 | bars_from_origin=25.0 slope=-4.5899 | ABOVE gap=36.30
+2026-02-28 01:36:27,798 [INFO]   [P1 (L130-H130)] 0.25: lineP=25752.66 | bars_from_origin=25.0 slope=-1.9935 | ABOVE gap=101.21
+2026-02-28 01:36:27,798 [INFO]   [P1 (L130-H130)] 0.125: lineP=25778.35 | bars_from_origin=25.0 slope=-0.9660 | ABOVE gap=126.90
+2026-02-28 01:36:27,798 [INFO]   [P1 (L130-H130)] main: lineP=25729.06 | bars_from_origin=9.0 slope=0.0000 | ABOVE gap=77.61
+2026-02-28 01:36:27,798 [INFO]   [P2 (L130-H129)] main: lineP=25134.10 | bars_from_origin=47.0 slope=-20.5052 | BELOW gap=484.65
+2026-02-28 01:36:27,798 [INFO]   [P2 (L130-H129)] 0.875: lineP=25527.67 | bars_from_origin=47.0 slope=-12.1315 | BELOW gap=91.08
+2026-02-28 01:36:27,798 [INFO]   [P2 (L130-H129)] 0.75: lineP=25711.14 | bars_from_origin=47.0 slope=-8.2279 | ABOVE gap=59.69
+2026-02-28 01:36:27,799 [INFO]   [P2 (L130-H129)] 0.5: lineP=25899.55 | bars_from_origin=47.0 slope=-4.2192 | ABOVE gap=248.10
+2026-02-28 01:36:27,799 [INFO]   [P2 (L130-H129)] 0.25: lineP=26010.12 | bars_from_origin=47.0 slope=-1.8666 | ABOVE gap=358.67
+2026-02-28 01:36:27,799 [INFO]   [P2 (L130-H129)] 0.125: lineP=26055.18 | bars_from_origin=47.0 slope=-0.9079 | ABOVE gap=403.73
+2026-02-28 01:36:27,799 [INFO]   [P2 (L130-H129)] main: lineP=25937.52 | bars_from_origin=9.0 slope=0.0000 | ABOVE gap=286.07
+2026-02-28 01:36:27,799 [INFO]   [P3 (L130-H127)] main: lineP=25213.18 | bars_from_origin=76.0 slope=-11.7187 | BELOW gap=405.57
+2026-02-28 01:36:27,799 [INFO]   [P3 (L130-H127)] 0.875: lineP=25466.24 | bars_from_origin=76.0 slope=-8.3890 | BELOW gap=152.51
+2026-02-28 01:36:27,799 [INFO]   [P3 (L130-H127)] 0.75: lineP=25628.95 | bars_from_origin=76.0 slope=-6.2480 | HIT gap=0.00
+2026-02-28 01:36:27,799 [INFO]     >>> HIT RECORDED: P3 (L130-H127) frac=0.75 @ 25628.95
+2026-02-28 01:36:27,799 [INFO]   [P3 (L130-H127)] 0.5: lineP=25838.24 | bars_from_origin=76.0 slope=-3.4943 | ABOVE gap=186.79
+2026-02-28 01:36:27,799 [INFO]   [P3 (L130-H127)] 0.25: lineP=25982.25 | bars_from_origin=76.0 slope=-1.5994 | ABOVE gap=330.80
+2026-02-28 01:36:27,799 [INFO]   [P3 (L130-H127)] 0.125: lineP=26044.26 | bars_from_origin=76.0 slope=-0.7835 | ABOVE gap=392.81
+2026-02-28 01:36:27,799 [INFO]   [P3 (L130-H127)] main: lineP=25869.68 | bars_from_origin=9.0 slope=0.0000 | ABOVE gap=218.23
+2026-02-28 01:36:27,800 [INFO]   [IntDet] Total hits this bar: 1
+2026-02-28 01:36:27,800 [INFO] [Study] Emitting intersection event (DIRECT): {'time': 1762753500, 'fan': 'P3 (L130-H127)', 'fanIdentity': 'L130-H127', 'fraction': '3/4', 'price': 25628.95151725135, 'type': 'TOUCH', 'details': 'Angle Test'}
+2026-02-28 01:36:27,805 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
+2026-02-28 01:36:29,191 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
+2026-02-28 01:36:29,210 [INFO] Initialized AngularPriceCoverageStudy v4.0. Config: {'left_bars': 5, 'right_bars': 5, 'line_extension_bars': 100, 'fraction_colors': {0.125: '#FF5252', 0.25: '#FF5252', 0.375: '#FF5252', 0.5: '#2196F3', 0.625: '#4CAF50', 0.75: '#4CAF50', 0.875: '#4CAF50', 1.0: '#FFFFFF'}, 'main_color': '#FFFFFF', 'main_line_width': 1, 'fraction_line_width': 2, 'scale_ratio': 5.5, 'breach_mode': 'wick', 'show_intersection_labels': False, 'max_historical_fans': 3}
+2026-02-28 01:36:29,210 [INFO] [Study] Evaluating AngularPriceCoverageStudy (config: {'scale_ratio': 5.5, 'left_bars': 5, 'right_bars': 5, 'show_intersection_labels': False})
+2026-02-28 01:36:29,214 [INFO] [Study] First process_bar at index 2777. Running initialize_history.
+2026-02-28 01:36:29,217 [INFO] [Study] initialize_history called with 2778 candles
+2026-02-28 01:36:29,225 [INFO] [Study] Historical detection complete. Found 260 confirmed pivots.
+2026-02-28 01:36:29,385 [INFO] [IntDet] Bar 2777 | 2025-11-10 12:15 | H=25653.20 L=25620.30 C=25630.25 | Fans=6 Lines=42
+2026-02-28 01:36:29,385 [INFO]   [P4 (H127-L126)] main: lineP=28273.43 | bars_from_origin=114.0 slope=28.1770 | ABOVE gap=2620.23
+2026-02-28 01:36:29,385 [INFO]   [P4 (H127-L126)] 0.875: lineP=26701.97 | bars_from_origin=114.0 slope=14.3923 | ABOVE gap=1048.77
+2026-02-28 01:36:29,385 [INFO]   [P4 (H127-L126)] 0.75: lineP=26113.73 | bars_from_origin=114.0 slope=9.2323 | ABOVE gap=460.53
+2026-02-28 01:36:29,385 [INFO]   [P4 (H127-L126)] 0.5: lineP=25577.70 | bars_from_origin=114.0 slope=4.5302 | BELOW gap=42.60
+2026-02-28 01:36:29,386 [INFO]   [P4 (H127-L126)] 0.25: lineP=25286.23 | bars_from_origin=114.0 slope=1.9735 | BELOW gap=334.07
+2026-02-28 01:36:29,386 [INFO]   [P4 (H127-L126)] 0.125: lineP=25170.33 | bars_from_origin=114.0 slope=0.9569 | BELOW gap=449.97
+2026-02-28 01:36:29,386 [INFO]   [P4 (H127-L126)] main: lineP=25228.87 | bars_from_origin=77.0 slope=0.0000 | BELOW gap=391.43
+2026-02-28 01:36:29,386 [INFO]   [P6 (H127-L123)] main: lineP=27294.79 | bars_from_origin=175.0 slope=15.4674 | ABOVE gap=1641.59
+2026-02-28 01:36:29,386 [INFO]   [P6 (H127-L123)] 0.875: lineP=26369.75 | bars_from_origin=175.0 slope=10.1814 | ABOVE gap=716.55
+2026-02-28 01:36:29,386 [INFO]   [P6 (H127-L123)] 0.75: lineP=25856.92 | bars_from_origin=175.0 slope=7.2510 | ABOVE gap=203.72
+2026-02-28 01:36:29,387 [INFO]   [P6 (H127-L123)] 0.5: lineP=25267.29 | bars_from_origin=175.0 slope=3.8816 | BELOW gap=353.01
+2026-02-28 01:36:29,387 [INFO]   [P6 (H127-L123)] 0.25: lineP=24893.44 | bars_from_origin=175.0 slope=1.7454 | BELOW gap=726.86
+2026-02-28 01:36:29,387 [INFO]   [P6 (H127-L123)] 0.125: lineP=24737.06 | bars_from_origin=175.0 slope=0.8518 | BELOW gap=883.24
+2026-02-28 01:36:29,387 [INFO]   [P6 (H127-L123)] main: lineP=24968.40 | bars_from_origin=77.0 slope=0.0000 | BELOW gap=651.90
+2026-02-28 01:36:29,387 [INFO]   [P5 (H127-L124)] main: lineP=27401.25 | bars_from_origin=142.0 slope=16.8500 | ABOVE gap=1748.05
+2026-02-28 01:36:29,387 [INFO]   [P5 (H127-L124)] 0.875: lineP=26536.89 | bars_from_origin=142.0 slope=10.7630 | ABOVE gap=883.69
+2026-02-28 01:36:29,387 [INFO]   [P5 (H127-L124)] 0.75: lineP=26081.22 | bars_from_origin=142.0 slope=7.5540 | ABOVE gap=428.03
+2026-02-28 01:36:29,387 [INFO]   [P5 (H127-L124)] 0.5: lineP=25575.18 | bars_from_origin=142.0 slope=3.9903 | BELOW gap=45.12
+2026-02-28 01:36:29,387 [INFO]   [P5 (H127-L124)] 0.25: lineP=25262.02 | bars_from_origin=142.0 slope=1.7850 | BELOW gap=358.28
+2026-02-28 01:36:29,388 [INFO]   [P5 (H127-L124)] 0.125: lineP=25132.11 | bars_from_origin=142.0 slope=0.8702 | BELOW gap=488.19
+2026-02-28 01:36:29,388 [INFO]   [P5 (H127-L124)] main: lineP=25267.92 | bars_from_origin=77.0 slope=0.0000 | BELOW gap=352.38
+2026-02-28 01:36:29,388 [INFO]   [P1 (L130-H130)] main: lineP=25016.24 | bars_from_origin=26.0 slope=-30.2406 | BELOW gap=604.06
+2026-02-28 01:36:29,388 [INFO]   [P1 (L130-H130)] 0.875: lineP=25415.29 | bars_from_origin=26.0 slope=-14.8928 | BELOW gap=205.01
+2026-02-28 01:36:29,388 [INFO]   [P1 (L130-H130)] 0.75: lineP=25557.11 | bars_from_origin=26.0 slope=-9.4382 | BELOW gap=63.19
+2026-02-28 01:36:29,388 [INFO]   [P1 (L130-H130)] 0.5: lineP=25683.16 | bars_from_origin=26.0 slope=-4.5899 | ABOVE gap=29.96
+2026-02-28 01:36:29,388 [INFO]   [P1 (L130-H130)] 0.25: lineP=25750.67 | bars_from_origin=26.0 slope=-1.9935 | ABOVE gap=97.47
+2026-02-28 01:36:29,388 [INFO]   [P1 (L130-H130)] 0.125: lineP=25777.38 | bars_from_origin=26.0 slope=-0.9660 | ABOVE gap=124.19
+2026-02-28 01:36:29,388 [INFO]   [P1 (L130-H130)] main: lineP=25729.06 | bars_from_origin=10.0 slope=0.0000 | ABOVE gap=75.86
+2026-02-28 01:36:29,388 [INFO]   [P2 (L130-H129)] main: lineP=25113.60 | bars_from_origin=48.0 slope=-20.5052 | BELOW gap=506.70
+2026-02-28 01:36:29,388 [INFO]   [P2 (L130-H129)] 0.875: lineP=25515.54 | bars_from_origin=48.0 slope=-12.1315 | BELOW gap=104.76
+2026-02-28 01:36:29,388 [INFO]   [P2 (L130-H129)] 0.75: lineP=25702.91 | bars_from_origin=48.0 slope=-8.2279 | ABOVE gap=49.71
+2026-02-28 01:36:29,389 [INFO]   [P2 (L130-H129)] 0.5: lineP=25895.33 | bars_from_origin=48.0 slope=-4.2192 | ABOVE gap=242.13
+2026-02-28 01:36:29,389 [INFO]   [P2 (L130-H129)] 0.25: lineP=26008.25 | bars_from_origin=48.0 slope=-1.8666 | ABOVE gap=355.05
+2026-02-28 01:36:29,389 [INFO]   [P2 (L130-H129)] 0.125: lineP=26054.27 | bars_from_origin=48.0 slope=-0.9079 | ABOVE gap=401.07
+2026-02-28 01:36:29,389 [INFO]   [P2 (L130-H129)] main: lineP=25937.52 | bars_from_origin=10.0 slope=0.0000 | ABOVE gap=284.32
+2026-02-28 01:36:29,389 [INFO]   [P3 (L130-H127)] main: lineP=25201.46 | bars_from_origin=77.0 slope=-11.7187 | BELOW gap=418.84
+2026-02-28 01:36:29,389 [INFO]   [P3 (L130-H127)] 0.875: lineP=25457.85 | bars_from_origin=77.0 slope=-8.3890 | BELOW gap=162.45
+2026-02-28 01:36:29,389 [INFO]   [P3 (L130-H127)] 0.75: lineP=25622.70 | bars_from_origin=77.0 slope=-6.2480 | HIT gap=0.00
+2026-02-28 01:36:29,389 [INFO]     >>> HIT RECORDED: P3 (L130-H127) frac=0.75 @ 25622.70
+2026-02-28 01:36:29,389 [INFO]   [P3 (L130-H127)] 0.5: lineP=25834.74 | bars_from_origin=77.0 slope=-3.4943 | ABOVE gap=181.54
+2026-02-28 01:36:29,390 [INFO]   [P3 (L130-H127)] 0.25: lineP=25980.65 | bars_from_origin=77.0 slope=-1.5994 | ABOVE gap=327.45
+2026-02-28 01:36:29,390 [INFO]   [P3 (L130-H127)] 0.125: lineP=26043.47 | bars_from_origin=77.0 slope=-0.7835 | ABOVE gap=390.27
+2026-02-28 01:36:29,390 [INFO]   [P3 (L130-H127)] main: lineP=25869.68 | bars_from_origin=10.0 slope=0.0000 | ABOVE gap=216.48
+2026-02-28 01:36:29,390 [INFO]   [IntDet] Total hits this bar: 1
+2026-02-28 01:36:29,390 [INFO] [Study] Emitting intersection event (DIRECT): {'time': 1762757100, 'fan': 'P3 (L130-H127)', 'fanIdentity': 'L130-H127', 'fraction': '3/4', 'price': 25622.70350061979, 'type': 'TOUCH', 'details': 'Angle Test'}
+2026-02-28 01:36:29,394 [INFO] [Tracking] Angle REVERSAL: Fan_L130_H127 0.75 (T+1 bars)
+2026-02-28 01:36:29,396 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
+2026-02-28 01:36:32,529 [INFO] Initialized AngularPriceCoverageStudy v4.0. Config: {'left_bars': 5, 'right_bars': 5, 'line_extension_bars': 100, 'fraction_colors': {0.125: '#FF5252', 0.25: '#FF5252', 0.375: '#FF5252', 0.5: '#2196F3', 0.625: '#4CAF50', 0.75: '#4CAF50', 0.875: '#4CAF50', 1.0: '#FFFFFF'}, 'main_color': '#FFFFFF', 'main_line_width': 1, 'fraction_line_width': 2, 'scale_ratio': 5.5, 'breach_mode': 'wick', 'show_intersection_labels': False, 'max_historical_fans': 3}
+2026-02-28 01:36:32,530 [INFO] [Study] Evaluating AngularPriceCoverageStudy (config: {'scale_ratio': 5.5, 'left_bars': 5, 'right_bars': 5, 'show_intersection_labels': False})
+2026-02-28 01:36:32,532 [INFO] [Study] First process_bar at index 2778. Running initialize_history.
+2026-02-28 01:36:32,533 [INFO] [Study] initialize_history called with 2779 candles
+2026-02-28 01:36:32,540 [INFO] [Study] Historical detection complete. Found 260 confirmed pivots.
+2026-02-28 01:36:32,704 [INFO] [IntDet] Bar 2778 | 2025-11-10 13:15 | H=25642.95 L=25579.50 C=25618.90 | Fans=6 Lines=42
+2026-02-28 01:36:32,704 [INFO]   [P4 (H127-L126)] main: lineP=28301.61 | bars_from_origin=115.0 slope=28.1770 | ABOVE gap=2658.66
+2026-02-28 01:36:32,704 [INFO]   [P4 (H127-L126)] 0.875: lineP=26716.36 | bars_from_origin=115.0 slope=14.3923 | ABOVE gap=1073.41
+2026-02-28 01:36:32,705 [INFO]   [P4 (H127-L126)] 0.75: lineP=26122.97 | bars_from_origin=115.0 slope=9.2323 | ABOVE gap=480.02
+2026-02-28 01:36:32,705 [INFO]   [P4 (H127-L126)] 0.5: lineP=25582.23 | bars_from_origin=115.0 slope=4.5302 | HIT gap=0.00
+2026-02-28 01:36:32,705 [INFO]     >>> HIT RECORDED: P4 (H127-L126) frac=0.5 @ 25582.23
+2026-02-28 01:36:32,706 [INFO]   [P4 (H127-L126)] 0.25: lineP=25288.20 | bars_from_origin=115.0 slope=1.9735 | BELOW gap=291.30
+2026-02-28 01:36:32,706 [INFO]   [P4 (H127-L126)] 0.125: lineP=25171.29 | bars_from_origin=115.0 slope=0.9569 | BELOW gap=408.21
+2026-02-28 01:36:32,706 [INFO]   [P4 (H127-L126)] main: lineP=25228.87 | bars_from_origin=78.0 slope=0.0000 | BELOW gap=350.63
+2026-02-28 01:36:32,707 [INFO]   [P6 (H127-L123)] main: lineP=27310.25 | bars_from_origin=176.0 slope=15.4674 | ABOVE gap=1667.31
+2026-02-28 01:36:32,707 [INFO]   [P6 (H127-L123)] 0.875: lineP=26379.93 | bars_from_origin=176.0 slope=10.1814 | ABOVE gap=736.98
+2026-02-28 01:36:32,707 [INFO]   [P6 (H127-L123)] 0.75: lineP=25864.17 | bars_from_origin=176.0 slope=7.2510 | ABOVE gap=221.22
+2026-02-28 01:36:32,707 [INFO]   [P6 (H127-L123)] 0.5: lineP=25271.17 | bars_from_origin=176.0 slope=3.8816 | BELOW gap=308.33
+2026-02-28 01:36:32,708 [INFO]   [P6 (H127-L123)] 0.25: lineP=24895.19 | bars_from_origin=176.0 slope=1.7454 | BELOW gap=684.31
+2026-02-28 01:36:32,708 [INFO]   [P6 (H127-L123)] 0.125: lineP=24737.91 | bars_from_origin=176.0 slope=0.8518 | BELOW gap=841.59
+2026-02-28 01:36:32,708 [INFO]   [P6 (H127-L123)] main: lineP=24968.40 | bars_from_origin=78.0 slope=0.0000 | BELOW gap=611.10
+2026-02-28 01:36:32,709 [INFO]   [P5 (H127-L124)] main: lineP=27418.10 | bars_from_origin=143.0 slope=16.8500 | ABOVE gap=1775.15
+2026-02-28 01:36:32,709 [INFO]   [P5 (H127-L124)] 0.875: lineP=26547.66 | bars_from_origin=143.0 slope=10.7630 | ABOVE gap=904.71
+2026-02-28 01:36:32,709 [INFO]   [P5 (H127-L124)] 0.75: lineP=26088.78 | bars_from_origin=143.0 slope=7.5540 | ABOVE gap=445.83
+2026-02-28 01:36:32,709 [INFO]   [P5 (H127-L124)] 0.5: lineP=25579.17 | bars_from_origin=143.0 slope=3.9903 | BELOW gap=0.33
+2026-02-28 01:36:32,710 [INFO]   [P5 (H127-L124)] 0.25: lineP=25263.81 | bars_from_origin=143.0 slope=1.7850 | BELOW gap=315.69
+2026-02-28 01:36:32,710 [INFO]   [P5 (H127-L124)] 0.125: lineP=25132.98 | bars_from_origin=143.0 slope=0.8702 | BELOW gap=446.52
+2026-02-28 01:36:32,710 [INFO]   [P5 (H127-L124)] main: lineP=25267.92 | bars_from_origin=78.0 slope=0.0000 | BELOW gap=311.58
+2026-02-28 01:36:32,711 [INFO]   [P1 (L130-H130)] main: lineP=24986.00 | bars_from_origin=27.0 slope=-30.2406 | BELOW gap=593.50
+2026-02-28 01:36:32,711 [INFO]   [P1 (L130-H130)] 0.875: lineP=25400.39 | bars_from_origin=27.0 slope=-14.8928 | BELOW gap=179.11
+2026-02-28 01:36:32,711 [INFO]   [P1 (L130-H130)] 0.75: lineP=25547.67 | bars_from_origin=27.0 slope=-9.4382 | BELOW gap=31.83
+2026-02-28 01:36:32,711 [INFO]   [P1 (L130-H130)] 0.5: lineP=25678.57 | bars_from_origin=27.0 slope=-4.5899 | ABOVE gap=35.62
+2026-02-28 01:36:32,712 [INFO]   [P1 (L130-H130)] 0.25: lineP=25748.68 | bars_from_origin=27.0 slope=-1.9935 | ABOVE gap=105.73
+2026-02-28 01:36:32,712 [INFO]   [P1 (L130-H130)] 0.125: lineP=25776.42 | bars_from_origin=27.0 slope=-0.9660 | ABOVE gap=133.47
+2026-02-28 01:36:32,712 [INFO]   [P1 (L130-H130)] main: lineP=25729.06 | bars_from_origin=11.0 slope=0.0000 | ABOVE gap=86.11
+2026-02-28 01:36:32,712 [INFO]   [P2 (L130-H129)] main: lineP=25093.09 | bars_from_origin=49.0 slope=-20.5052 | BELOW gap=486.41
+2026-02-28 01:36:32,712 [INFO]   [P2 (L130-H129)] 0.875: lineP=25503.41 | bars_from_origin=49.0 slope=-12.1315 | BELOW gap=76.09
+2026-02-28 01:36:32,712 [INFO]   [P2 (L130-H129)] 0.75: lineP=25694.68 | bars_from_origin=49.0 slope=-8.2279 | ABOVE gap=51.73
+2026-02-28 01:36:32,712 [INFO]   [P2 (L130-H129)] 0.5: lineP=25891.11 | bars_from_origin=49.0 slope=-4.2192 | ABOVE gap=248.16
+2026-02-28 01:36:32,712 [INFO]   [P2 (L130-H129)] 0.25: lineP=26006.39 | bars_from_origin=49.0 slope=-1.8666 | ABOVE gap=363.44
+2026-02-28 01:36:32,712 [INFO]   [P2 (L130-H129)] 0.125: lineP=26053.36 | bars_from_origin=49.0 slope=-0.9079 | ABOVE gap=410.41
+2026-02-28 01:36:32,712 [INFO]   [P2 (L130-H129)] main: lineP=25937.52 | bars_from_origin=11.0 slope=0.0000 | ABOVE gap=294.57
+2026-02-28 01:36:32,712 [INFO]   [P3 (L130-H127)] main: lineP=25189.75 | bars_from_origin=78.0 slope=-11.7187 | BELOW gap=389.75
+2026-02-28 01:36:32,713 [INFO]   [P3 (L130-H127)] 0.875: lineP=25449.46 | bars_from_origin=78.0 slope=-8.3890 | BELOW gap=130.04
+2026-02-28 01:36:32,713 [INFO]   [P3 (L130-H127)] 0.75: lineP=25616.46 | bars_from_origin=78.0 slope=-6.2480 | HIT gap=0.00
+2026-02-28 01:36:32,713 [INFO]     >>> HIT RECORDED: P3 (L130-H127) frac=0.75 @ 25616.46
+2026-02-28 01:36:32,713 [INFO]   [P3 (L130-H127)] 0.5: lineP=25831.25 | bars_from_origin=78.0 slope=-3.4943 | ABOVE gap=188.30
+2026-02-28 01:36:32,713 [INFO]   [P3 (L130-H127)] 0.25: lineP=25979.05 | bars_from_origin=78.0 slope=-1.5994 | ABOVE gap=336.10
+2026-02-28 01:36:32,713 [INFO]   [P3 (L130-H127)] 0.125: lineP=26042.69 | bars_from_origin=78.0 slope=-0.7835 | ABOVE gap=399.74
+2026-02-28 01:36:32,714 [INFO]   [P3 (L130-H127)] main: lineP=25869.68 | bars_from_origin=11.0 slope=0.0000 | ABOVE gap=226.73
+2026-02-28 01:36:32,714 [INFO]   [IntDet] Total hits this bar: 2
+2026-02-28 01:36:32,714 [INFO] [Study] Emitting intersection event (DIRECT): {'time': 1762760700, 'fan': 'P4 (H127-L126)', 'fanIdentity': 'H127-L126', 'fraction': '1/2', 'price': 25582.22633611097, 'type': 'TOUCH', 'details': 'Angle Test'}
+2026-02-28 01:36:32,720 [INFO] [Study] Emitting intersection event (DIRECT): {'time': 1762760700, 'fan': 'P3 (L130-H127)', 'fanIdentity': 'L130-H127', 'fraction': '3/4', 'price': 25616.45548398823, 'type': 'TOUCH', 'details': 'Angle Test'}
+2026-02-28 01:36:32,727 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'

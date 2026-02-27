@@ -4,6 +4,7 @@ import { TVChartContainer } from './TVChartContainer'
 
 function App() {
     const [strategy, setStrategy] = useState('mechanical_3day')
+    const [filterFan, setFilterFan] = useState('all') // Filter by fan in Price Interactions tab
 
     // Calculate default dates (Today and 3 days ago)
     const today = new Date();
@@ -421,6 +422,18 @@ function App() {
 
                             {strategy === 'angular_coverage' && availableFanLabels.length > 0 && (
                                 <div className="fan-toggles" style={{ display: 'flex', gap: '8px', marginLeft: '10px', fontSize: '11px', alignItems: 'center' }}>
+                                    <button 
+                                        onClick={() => setVisibleFanLabels(availableFanLabels.map(f => f.identity))}
+                                        style={{ padding: '2px 6px', fontSize: '10px', cursor: 'pointer' }}
+                                    >
+                                        Show All
+                                    </button>
+                                    <button 
+                                        onClick={() => setVisibleFanLabels([])}
+                                        style={{ padding: '2px 6px', fontSize: '10px', cursor: 'pointer' }}
+                                    >
+                                        Clear All
+                                    </button>
                                     {availableFanLabels.map(fan => (
                                         <label key={fan.identity} style={{ display: 'flex', alignItems: 'center' }}>
                                             <input type="checkbox"
@@ -536,28 +549,54 @@ function App() {
                                 {priceInteractions.length === 0 ? (
                                     <p>No price interactions recorded yet. Start a step-by-step simulation with Show Intersections enabled.</p>
                                 ) : (
-                                    <table className="interactions-table">
-                                        <thead>
-                                            <tr>
-                                                <th>#</th>
-                                                <th>Time</th>
-                                                <th>Fan</th>
-                                                <th>Fraction</th>
-                                                <th>Price</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {priceInteractions.map((hit, i) => (
-                                                <tr key={i}>
-                                                    <td>{i + 1}</td>
-                                                    <td>{new Date(hit.time * 1000).toLocaleString()}</td>
-                                                    <td style={{ color: '#90CAF9' }}>{hit.fan}</td>
-                                                    <td style={{ color: '#FFEB3B' }}>{hit.fraction}</td>
-                                                    <td>{hit.price != null ? hit.price.toFixed(2) : 'N/A'}</td>
+                                    <>
+                                        <div style={{ marginBottom: '10px', display: 'flex', gap: '10px', alignItems: 'center' }}>
+                                            <label style={{ fontSize: '12px' }}>
+                                                Filter by Fan:
+                                                <select 
+                                                    value={filterFan} 
+                                                    onChange={(e) => setFilterFan(e.target.value)}
+                                                    style={{ marginLeft: '5px', padding: '2px 5px', fontSize: '11px' }}
+                                                >
+                                                    <option value="all">All Fans</option>
+                                                    {[...new Set(priceInteractions.map(h => h.fan))].sort().map(fan => (
+                                                        <option key={fan} value={fan}>{fan}</option>
+                                                    ))}
+                                                </select>
+                                            </label>
+                                            <span style={{ fontSize: '11px', color: '#888' }}>
+                                                Showing {priceInteractions.filter(h => filterFan === 'all' || h.fan === filterFan).length} of {priceInteractions.length} events
+                                            </span>
+                                        </div>
+                                        <table className="interactions-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>#</th>
+                                                    <th>Time</th>
+                                                    <th>Fan</th>
+                                                    <th>Fraction</th>
+                                                    <th>Price</th>
+                                                    <th>Type</th>
+                                                    <th>Details</th>
                                                 </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
+                                            </thead>
+                                            <tbody>
+                                                {priceInteractions
+                                                    .filter(hit => filterFan === 'all' || hit.fan === filterFan)
+                                                    .map((hit, i) => (
+                                                    <tr key={i}>
+                                                        <td>{i + 1}</td>
+                                                        <td>{new Date(hit.time * 1000).toLocaleString()}</td>
+                                                        <td style={{ color: '#90CAF9' }}>{hit.fan}</td>
+                                                        <td style={{ color: '#FFEB3B' }}>{hit.fraction}</td>
+                                                        <td>{hit.price != null ? hit.price.toFixed(2) : 'N/A'}</td>
+                                                        <td>{hit.type || 'N/A'}</td>
+                                                        <td style={{ fontSize: '11px', color: '#AAA' }}>{hit.details || ''}</td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </>
                                 )}
                             </div>
                         )}

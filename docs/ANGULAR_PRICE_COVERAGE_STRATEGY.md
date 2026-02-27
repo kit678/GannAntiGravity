@@ -144,21 +144,20 @@ Example:
 
 ## Angle Calculation
 
-### Critical: Which Pivot Formed First?
-
+### Scenario: Direction and Points
 The geometric setup depends on the **temporal order** of pivots:
 
-| Scenario | First Pivot | Second Pivot | H Placement | Angles Radiate |
+| Scenario | Target (Pivot 1) | Anchor (Pivot 2) | H Placement | Angles Radiate |
 |----------|-------------|--------------|-------------|----------------|
-| **Rising from Low** | HIGH (A) | LOW (B) | Through A | DOWN from A |
-| **Falling from High** | LOW (B) | HIGH (A) | Through B | UP from B |
+| **Rising** | HIGH (A) | LOW (B) | Through A | DOWN from A |
+| **Falling** | LOW (B) | HIGH (A) | Through B | UP from B |
 
 ### Step 1: Draw Reference Horizontal (H)
 
-**H is ALWAYS drawn through the FIRST pivot** (the one that formed earlier in time):
+**H is ALWAYS drawn through the Target pivot** (the one that formed earlier in time):
 
-- **Scenario 1 (Rising)**: A formed first → H through A
-- **Scenario 2 (Falling)**: B formed first → H through B
+- **Scenario 1 (Rising)**: A (Target) formed first → H through A
+- **Scenario 2 (Falling)**: B (Target) formed first → H through B
 
 ### Step 2: Calculate Primary Angle (θ)
 
@@ -239,12 +238,13 @@ If price reacts at **1/16th angle** (half of 1/8):
 
 ### Rule 3: Breach Confirmation
 
-A single candle closing beyond an angle is **NOT** sufficient confirmation.
-
 **Required for confirmation**:
 - Minimum **2 successive closes** in the direction of the breach
 - Higher closes = bullish confirmation
 - Lower closes = bearish confirmation
+
+### Rule 3b: Division Line Reversal
+If price breaches an angle but fails to achieve the required 2 successive closes (the streak is broken by a close on the opposite side), it is logged as a **Division Line Reversal**. This indicates the angle division line is still acting as significant resistance or support.
 
 ### Rule 4: Angle Role Reversal
 
@@ -769,7 +769,7 @@ Reversal is confirmed when:
 
 **Problem**: Swing indicator needs X bars on each side, causing lag in pivot identification.
 
-**Workaround**: Use "potential" pivots before full confirmation, but with caution.
+**Workaround**: Use "potential" pivots for live tracking, but only log events once the **Anchor** is fully confirmed.
 
 ---
 

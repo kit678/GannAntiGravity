@@ -27,6 +27,13 @@ class EventType(Enum):
     MOMENTUM_CHANGE = "momentum_change"
     REVERSAL_SIGNAL = "reversal_signal"
     CANDLE_PATTERN = "candle_pattern"
+    # New event types for price movement tracking
+    BREACH_CONFIRMED = "breach_confirmed"    # N successive closes achieved
+    ANGLE_REVERSAL = "angle_reversal"        # Successive close streak broken — price reversed
+    REST_ON_ANGLE = "rest_on_angle"          # Price rests on angle after breach
+    TARGET_HIT = "target_hit"               # Target in progression sequence reached
+    FAN_VALIDATED = "fan_validated"           # Fan validated via 7/8 interaction
+    ZONE_CHANGE = "zone_change"              # Price moved to a new angle zone
 
 
 @dataclass
@@ -292,6 +299,53 @@ class EventLogger:
         Args:
             filepath: Path to output CSV file
         """
+        if not self.events:
+            return
+            
+        # Ensure directory exists
+        path = Path(filepath)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        
+        # Flatten events for CSV
+        rows = []
+        for event in self.events:
+            row = {
+                "timestamp": event.timestamp,
+                "datetime": datetime.fromtimestamp(event.timestamp).isoformat() if event.timestamp else None,
+                "event_type": event.event_type.value,
+                "angle_name": event.angle_name,
+                "price": event.price,
+                "direction": event.direction
+            }
+            
+            # Flatten details
+            if event.details:
+                for k, v in event.details.items():
+                    if isinstance(v, (dict, list)):
+                        row[f"detail_{k}"] = json.dumps(v)
+                    else:
+                        row[f"detail_{k}"] = v
+            
+            rows.append(row)
+            
+        # Get all possible headers
+        headers = set()
+        for row in rows:
+            headers.update(row.keys())
+            
+        # Sort headers for consistency (timestamp first)
+        header_list = sorted(list(headers))
+        if "timestamp" in header_list:
+            header_list.remove("timestamp")
+            header_list.insert(0, "timestamp")
+        if "datetime" in header_list:
+            header_list.remove("datetime")
+            header_list.insert(1, "datetime")
+            
+        with open(filepath, 'w', newline='') as f:
+            writer = csv.DictWriter(f, fieldnames=header_list)
+            writer.writeheader()
+            writer.writerows(rows)
         if not self.events:
             return
         

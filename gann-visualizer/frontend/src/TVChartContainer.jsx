@@ -855,8 +855,11 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
                                 props.onPriceInteraction({
                                     time: evt.time,
                                     fan: evt.fan,
+                                    fanIdentity: evt.fanIdentity,
                                     fraction: evt.fraction,
                                     price: evt.price,
+                                    type: evt.type,
+                                    details: evt.details,
                                 });
                             });
                         }

@@ -47,6 +47,7 @@ class AngleFan:
     lines: List[AngleLine]  # All lines in this fan
     is_completed: bool      # True if price has covered all angles
     priority_label: str = "Unknown" # Fan priority (Primary, Secondary, etc.)
+    anchor_type: str = ""   # "low" or "high" — determines breach direction
     config: Dict[str, Any] = field(default_factory=dict)  # Metadata
     intersections: List[Any] = field(default_factory=list) # Store IntersectionEvent objects
     label_ids: List[str] = field(default_factory=list)     # Store drawing IDs
@@ -522,6 +523,7 @@ class AngleEngine:
                     'to_pivot': fan.to_pivot,
                     'is_completed': fan.is_completed,
                     'priority_label': fan.priority_label,
+                    'anchor_type': fan.anchor_type,
                     'intersections': [event.to_dict() for event in fan.intersections] if hasattr(fan, 'intersections') else [],
                     'label_ids': fan.label_ids if hasattr(fan, 'label_ids') else [],
                     'lines': [
@@ -578,6 +580,7 @@ class AngleEngine:
                 lines=lines,
                 is_completed=fan_data.get('is_completed', False),
                 priority_label=fan_data.get('priority_label', 'Unknown'),
+                anchor_type=fan_data.get('anchor_type', ''),
                 intersections=intersections,
                 label_ids=fan_data.get('label_ids', [])
             )
