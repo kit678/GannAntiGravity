@@ -116,7 +116,7 @@ class BreachAnalyzer:
                     extreme_price = high_price if is_up_breach else low_price
                     
                     # Calculate ML metrics
-                    distance_from_origin = bar_index - fan_obj.anchor.bar_index
+                    distance_from_origin = bar_index - getattr(fan_obj, 'anchor_bar_index', 0)
                     angle_slope = 0.0 # Placeholder: Calculate actual slope from fan_obj.lines if needed
                     
                     self.active_breaches[state_key] = {

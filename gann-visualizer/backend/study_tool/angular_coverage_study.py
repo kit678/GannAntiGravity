@@ -545,6 +545,8 @@ class AngularPriceCoverageStudy:
 
             # Set anchor type for breach direction determination
             fan_obj.anchor_type = fan_data['anchor'].get('type', '')
+            # ADD THIS LINE to store the anchor's bar index
+            fan_obj.anchor_bar_index = fan_data['anchor'].get('bar_index', 0)
 
             # Store mapping
             self._active_fan_keys[key] = fan_obj.id
