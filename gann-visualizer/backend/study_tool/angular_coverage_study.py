@@ -16,6 +16,11 @@ from .pivot_detector import PivotDetector
 from .angle_engine import AngleEngine
 from .fan_manager import FanManager
 from .intersection_detector import IntersectionDetector
+from .angle_zone_tracker import AngleZoneTracker
+from .breach_analyzer import BreachAnalyzer
+from .fan_validator import FanValidator
+from .target_progression import TargetProgression
+from .event_logger import EventLogger, EventType
 
 
 # Default configuration
@@ -67,6 +72,16 @@ class AngularPriceCoverageStudy:
         )
         
         self.intersection_detector = IntersectionDetector()
+
+        # Price movement tracking modules
+        self.zone_tracker = AngleZoneTracker()
+        self.breach_analyzer = BreachAnalyzer({
+            'successive_closes_required': self.config.get('successive_closes_required', 2),
+            'rest_tolerance_percent': self.config.get('rest_tolerance_percent', 0.15),
+        })
+        self.fan_validator = FanValidator()
+        self.target_progression = TargetProgression()
+        self.event_logger = EventLogger()
 
         # Track active fan keys for diffing (old vs new set)
         self._active_fan_keys: Dict[str, str] = {}  # fan_key -> engine_fan_id
@@ -167,6 +182,35 @@ class AngularPriceCoverageStudy:
                     label_id = f"hit_{event.fan_id}_{event.line_id}_{event.time}_{event.price}"
                     fan_obj.label_ids.append(label_id)
 
+                    # --- POPULATE UI EVENT ---
+                    if 'intersection_events' not in result:
+                        result['intersection_events'] = []
+                    
+                    # Determine fraction name
+                    if event.fraction is None:
+                        frac_name = "Horizontal"
+                    else:
+                        # Simple lookup or format
+                        frac_map = {0.125: '1/8', 0.25: '1/4', 0.375: '3/8', 0.5: '1/2', 0.625: '5/8', 0.75: '3/4', 0.875: '7/8', 1.0: '1/1'}
+                        closest_frac = min(frac_map.keys(), key=lambda k: abs(k - event.fraction))
+                        if abs(closest_frac - event.fraction) < 0.01:
+                            frac_name = frac_map[closest_frac]
+                        else:
+                            frac_name = f"{event.fraction:.2f}"
+                            
+                    fan_display_name = event.fan_id.replace("Fan_", "").replace("_", "-")
+                    
+                    ui_event = {
+                        'time': event.time,
+                        'fan': event.priority_label,
+                        'fanIdentity': fan_display_name,
+                        'fraction': frac_name,
+                        'price': event.price
+                    }
+                    result['intersection_events'].append(ui_event)
+                    self.log(f"[Study] Emitting intersection event (DIRECT): {ui_event}")
+                    # -------------------------
+
                     try:
                         import os
                         log_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'logs')
@@ -184,55 +228,311 @@ class AngularPriceCoverageStudy:
                     except Exception as e:
                         print(f"Failed to log intersection: {e}")
 
-                    # Compute fraction display name and color
-                    if event.fraction is None:
-                        frac_name = "Horizontal"
-                        color = '#FFFFFF'
-                    else:
-                        frac_map = {0.125: '1/8', 0.25: '1/4', 0.375: '3/8', 0.5: '1/2', 0.625: '5/8', 0.75: '3/4', 0.875: '7/8', 1.0: '1/1'}
-                        closest_frac = min(frac_map.keys(), key=lambda k: abs(k - event.fraction))
-                        if abs(closest_frac - event.fraction) < 0.01:
-                            frac_name = frac_map[closest_frac]
-                        else:
-                            frac_name = f"{event.fraction:.2f}"
-                        color = '#FFEB3B'
+        # 4. Price movement tracking pipeline
+        self._process_tracking_modules(current_candle, bar_index, events or [], result)
 
-                    fan_display_name = event.fan_id.replace("Fan_", "").replace("_", "-")
-
-                    # ALWAYS emit intersection event data for the Price Interactions tab
-                    if 'intersection_events' not in result:
-                        result['intersection_events'] = []
-                    result['intersection_events'].append({
-                        'time': event.time,
-                        'fan': event.priority_label,
-                        'fanIdentity': fan_display_name,
-                        'fraction': frac_name,
-                        'price': event.price
-                    })
-
-                    # Optionally draw price_label on chart (cosmetic toggle)
-                    if self.config.get('show_intersection_labels', False):
-                        text = f"{event.priority_label} Hit {frac_name}"
-                        result['drawings'].append({
-                            'type': 'price_label',
-                            'id': label_id,
-                            'points': [{'time': event.time, 'price': event.price}],
-                            'options': {
-                                'text': text,
-                                'fanLabel': event.priority_label,
-                                'fanIdentity': fan_display_name,
-                                'color': color, 
-                                'textcolor': '#000000'
-                            }
-                        })
-
-        # 4. Save state
+        # 5. Save state
         result['state'] = self._get_state()
-        
-        if len(result['drawings']) > 0 or len(result['remove_drawings']) > 0:
-            self.log(f"[Study] process_bar sending {len(result['drawings'])} drawings, {len(result['remove_drawings'])} removes")
 
         return result
+
+    def _process_tracking_modules(
+        self,
+        current_candle: Dict[str, Any],
+        bar_index: int,
+        intersection_events: list,
+        result: Dict[str, Any]
+    ):
+        """
+        Run the price movement tracking pipeline:
+        1. BreachAnalyzer — start/update breach tracking
+        2. AngleZoneTracker — compute zone snapshots
+        3. TargetProgression — advance targets on confirmed breaches
+        All results feed into EventLogger for data collection.
+        """
+        timestamp = int(current_candle.get('time', 0))
+
+        # 4a. Breach analysis (successive close counting)
+        breach_results = self.breach_analyzer.process_bar(
+            current_candle, bar_index,
+            intersection_events, self.angle_engine.active_fans
+        )
+
+        for confirmation in breach_results['confirmations']:
+            self.event_logger.log_event(
+                timestamp=timestamp,
+                event_type=EventType.BREACH_CONFIRMED,
+                angle_name=confirmation.angle_name,
+                price=confirmation.confirmation_price,
+                direction=confirmation.breach_direction,
+                details=confirmation.to_dict()
+            )
+            self.log(f"[Tracking] Breach CONFIRMED: {confirmation.fan_id} {confirmation.angle_name} ({confirmation.breach_direction})")
+
+            # --- POPULATE UI EVENT (Breach) ---
+            if 'intersection_events' not in result:
+                result['intersection_events'] = []
+            
+            fan_display = confirmation.fan_id.replace("Fan_", "").replace("_", "-")
+            
+            breach_event = {
+                'time': timestamp,
+                'fan': fan_display,
+                'fanIdentity': fan_display,
+                'fraction': confirmation.angle_name,
+                'price': confirmation.confirmation_price,
+                'type': 'BREACH_CONFIRMED',
+                'details': f"{confirmation.breach_direction.upper()} (T+{confirmation.bars_elapsed} bars)"
+            }
+            result['intersection_events'].append(breach_event)
+            # ----------------------------------
+            
+            # Update target progression
+            self.target_progression.confirm_breach(confirmation)
+
+        for reversal in breach_results['reversals']:
+            self.event_logger.log_event(
+                timestamp=timestamp,
+                event_type=EventType.ANGLE_REVERSAL,
+                angle_name=reversal.angle_name,
+                price=float(current_candle['close']),
+                direction=reversal.attempted_direction,
+                details=reversal.to_dict()
+            )
+
+        for rest in breach_results['rest_events']:
+            self.event_logger.log_event(
+                timestamp=timestamp,
+                event_type=EventType.REST_ON_ANGLE,
+                angle_name=rest.angle_name,
+                price=rest.rest_price,
+                details=rest.to_dict()
+            )
+
+        # 4b. Zone tracking
+        for fan_id, fan in self.angle_engine.active_fans.items():
+            snapshot = self.zone_tracker.compute_snapshot(fan, current_candle, bar_index)
+            
+            if self.zone_tracker.has_zone_changed(fan_id, snapshot.zone):
+                self.event_logger.log_event(
+                    timestamp=timestamp,
+                    event_type=EventType.ZONE_CHANGE,
+                    angle_name=snapshot.nearest_angle_above, # Context
+                    price=snapshot.current_price,
+                    details=snapshot.to_dict()
+                )
+
+        # 4c. Process intersection events for UI display
+        for event in intersection_events:
+            if event.fan_id in self.angle_engine.active_fans:
+                # Compute fraction display name and color
+                if event.fraction is None:
+                    frac_name = "Horizontal"
+                    color = '#FFFFFF'
+                else:
+                    frac_map = {0.125: '1/8', 0.25: '1/4', 0.375: '3/8', 0.5: '1/2', 0.625: '5/8', 0.75: '3/4', 0.875: '7/8', 1.0: '1/1'}
+                    closest_frac = min(frac_map.keys(), key=lambda k: abs(k - event.fraction))
+                    if abs(closest_frac - event.fraction) < 0.01:
+                        frac_name = frac_map[closest_frac]
+                    else:
+                        frac_name = f"{event.fraction:.2f}"
+                    color = '#FFEB3B'
+
+                fan_display_name = event.fan_id.replace("Fan_", "").replace("_", "-")
+
+                # ALWAYS emit intersection event data for the Price Interactions tab
+                if 'intersection_events' not in result:
+                    result['intersection_events'] = []
+                
+                evt_data = {
+                    'time': event.time,
+                    'fan': event.priority_label,
+                    'fanIdentity': fan_display_name,
+                    'fraction': frac_name,
+                    'price': event.price
+                }
+                result['intersection_events'].append(evt_data)
+                self.log(f"[Study] Emitting intersection event: {evt_data}")
+
+                # Optionally draw price_label on chart (cosmetic toggle)
+                if self.config.get('show_intersection_labels', False):
+                    label_id = f"hit_{event.fan_id}_{event.line_id}_{event.time}_{event.price}"
+                    text = f"{event.priority_label} Hit {frac_name}"
+                    result['drawings'].append({
+                        'type': 'price_label',
+                        'id': label_id,
+                        'points': [{'time': event.time, 'price': event.price}],
+                        'options': {
+                            'text': text,
+                            'fanLabel': event.priority_label,
+                            'fanIdentity': fan_display_name,
+                            'color': color, 
+                            'textcolor': '#000000'
+                        }
+                    })
+
+        return result
+
+    def _process_tracking_modules(
+        self,
+        current_candle: Dict[str, Any],
+        bar_index: int,
+        intersection_events: list,
+        result: Dict[str, Any]
+    ):
+        """
+        Run the price movement tracking pipeline:
+        1. FanValidator — check for 7/8 interactions
+        2. BreachAnalyzer — start/update breach tracking
+        3. AngleZoneTracker — compute zone snapshots
+        4. TargetProgression — advance targets on confirmed breaches
+        All results feed into EventLogger for data collection.
+        """
+        timestamp = int(current_candle.get('time', 0))
+        close_price = float(current_candle.get('close', 0))
+
+        # 4a. Fan validation (7/8 interaction check)
+        new_validations = self.fan_validator.process_intersections(
+            intersection_events, current_candle, bar_index
+        )
+        for validation in new_validations:
+            self.target_progression.activate_fan(validation.fan_id)
+            self.event_logger.log_event(
+                timestamp=timestamp,
+                event_type=EventType.FAN_VALIDATED,
+                angle_name='7/8',
+                price=validation.validation_price,
+                details={
+                    'fan_id': validation.fan_id,
+                    'validation_type': validation.validation_type,
+                    'validation_bar': validation.validation_bar,
+                }
+            )
+            self.log(f"[Tracking] Fan validated: {validation.fan_id} via {validation.validation_type} at bar {bar_index}")
+
+        # 4b. Breach analysis (successive close counting)
+        breach_results = self.breach_analyzer.process_bar(
+            current_candle, bar_index,
+            intersection_events, self.angle_engine.active_fans
+        )
+
+        for confirmation in breach_results['confirmations']:
+            self.event_logger.log_event(
+                timestamp=timestamp,
+                event_type=EventType.BREACH_CONFIRMED,
+                angle_name=confirmation.angle_name,
+                price=confirmation.confirmation_price,
+                direction=confirmation.breach_direction,
+                details={
+                    'fan_id': confirmation.fan_id,
+                    'bars_elapsed': confirmation.bars_elapsed,
+                    'first_breach_bar': confirmation.first_breach_bar,
+                    'confirmation_bar': confirmation.confirmation_bar,
+                }
+            )
+            self.log(f"[Tracking] Breach CONFIRMED: {confirmation.fan_id} {confirmation.angle_name} {confirmation.breach_direction} (T+{confirmation.bars_elapsed} bars)")
+
+            # Advance target progression
+            target_hit = self.target_progression.on_breach_confirmed(
+                fan_id=confirmation.fan_id,
+                angle_name=confirmation.angle_name,
+                bar_index=bar_index,
+                price=confirmation.confirmation_price,
+            )
+            if target_hit:
+                self.event_logger.log_event(
+                    timestamp=timestamp,
+                    event_type=EventType.TARGET_HIT,
+                    angle_name=target_hit.target_name,
+                    price=target_hit.hit_price,
+                    details={
+                        'fan_id': target_hit.fan_id,
+                        'hit_bar': target_hit.hit_bar,
+                    }
+                )
+                self.log(f"[Tracking] Target HIT: {target_hit.fan_id} {target_hit.target_name}")
+
+        for reversal in breach_results['reversals']:
+            close_price = float(current_candle['close'])
+            self.event_logger.log_event(
+                timestamp=timestamp,
+                event_type=EventType.ANGLE_REVERSAL,
+                angle_name=reversal.angle_name,
+                price=close_price,
+                direction=reversal.attempted_direction,
+                details={
+                    'fan_id': reversal.fan_id,
+                    'bars_elapsed': reversal.bars_elapsed,
+                    'reversal_bar': reversal.reversal_bar,
+                }
+            )
+            self.log(f"[Tracking] Angle REVERSAL: {reversal.fan_id} {reversal.angle_name} (T+{reversal.bars_elapsed} bars)")
+
+            # --- POPULATE UI EVENT (Reversal) ---
+            if 'intersection_events' not in result:
+                result['intersection_events'] = []
+            
+            fan_display = reversal.fan_id.replace("Fan_", "").replace("_", "-")
+            
+            reversal_event = {
+                'time': timestamp,
+                'fan': fan_display,
+                'fanIdentity': fan_display,
+                'fraction': reversal.angle_name,
+                'price': close_price,
+                'type': 'ANGLE_REVERSAL',
+                'details': f"Failed {reversal.attempted_direction.upper()} (T+{reversal.bars_elapsed} bars)"
+            }
+            result['intersection_events'].append(reversal_event)
+            # ------------------------------------
+
+        for rest in breach_results['rest_events']:
+            self.event_logger.log_event(
+                timestamp=timestamp,
+                event_type=EventType.REST_ON_ANGLE,
+                angle_name=rest.angle_name,
+                price=rest.rest_price,
+                details={
+                    'fan_id': rest.fan_id,
+                    'bars_elapsed': rest.bars_elapsed,
+                    'rest_bar': rest.rest_bar,
+                }
+            )
+
+            # --- POPULATE UI EVENT (Resting) ---
+            if 'intersection_events' not in result:
+                result['intersection_events'] = []
+            
+            fan_display = rest.fan_id.replace("Fan_", "").replace("_", "-")
+            
+            rest_event = {
+                'time': timestamp,
+                'fan': fan_display,
+                'fanIdentity': fan_display,
+                'fraction': rest.angle_name,
+                'price': rest.rest_price,
+                'type': 'REST_ON_ANGLE',
+                'details': f"Resting (T+{rest.bars_elapsed} bars)"
+            }
+            result['intersection_events'].append(rest_event)
+            # -----------------------------------
+
+        # 4c. Zone tracking
+        for fan_id, fan_obj in self.angle_engine.active_fans.items():
+            snapshot = self.zone_tracker.compute_snapshot(
+                fan_obj, current_candle, bar_index
+            )
+            if self.zone_tracker.has_zone_changed(fan_id, snapshot.zone):
+                self.event_logger.log_event(
+                    timestamp=timestamp,
+                    event_type=EventType.ZONE_CHANGE,
+                    price=close_price,
+                    details={
+                        'fan_id': fan_id,
+                        'new_zone': snapshot.zone,
+                        'angle_prices': snapshot.angle_prices,
+                    }
+                )
 
     def _sync_fans(
         self,
@@ -315,6 +615,12 @@ class AngularPriceCoverageStudy:
                     result['remove_drawings'].append(label_id)
                 self.angle_engine.remove_fan(engine_fan_id)
 
+            # Clean up tracking modules for removed fan
+            self.zone_tracker.remove_fan(key)
+            self.breach_analyzer.remove_fan(key)
+            self.fan_validator.remove_fan(key)
+            self.target_progression.remove_fan(key)
+
             del self._active_fan_keys[key]
 
         # Create new fans (in new set but not in old)
@@ -330,8 +636,19 @@ class AngularPriceCoverageStudy:
                 priority_label=fan_data['priority_label']
             )
 
+            # Set anchor type for breach direction determination
+            fan_obj.anchor_type = fan_data['anchor'].get('type', '')
+
             # Store mapping
             self._active_fan_keys[key] = fan_obj.id
+
+            # Register new fan with tracking modules
+            self.fan_validator.register_fan(fan_obj.id)
+            self.target_progression.register_fan(
+                fan_id=fan_obj.id,
+                horizontal_target_price=self._get_horizontal_target_price(fan_obj),
+                full_coverage_target_price=float(fan_data['target'].get('price', 0)),
+            )
 
             # Generate drawing commands
             drawings = self.angle_engine.fan_to_drawing_commands(fan_obj)
@@ -436,6 +753,16 @@ class AngularPriceCoverageStudy:
                     'text': t.get('label', 'T')
                 })
 
+    def _get_horizontal_target_price(self, fan_obj) -> Optional[float]:
+        """
+        Extract the horizontal target price from a fan's lines.
+        The horizontal target line has fraction=None.
+        """
+        for line in fan_obj.lines:
+            if line.fraction is None and 'horizontal' in line.id.lower():
+                return line.end_price
+        return None
+
     def get_state(self) -> Dict[str, Any]:
         """Public interface for state serialization (called by main.py)."""
         return self._get_state()
@@ -450,6 +777,14 @@ class AngularPriceCoverageStudy:
             'pivot_detector': self.pivot_detector.get_state(),
             'angle_engine': self.angle_engine.get_state(),
             'intersection_detector': self.intersection_detector.get_state(),
+            'zone_tracker': self.zone_tracker.get_state(),
+            'breach_analyzer': self.breach_analyzer.get_state(),
+            'fan_validator': self.fan_validator.get_state(),
+            'target_progression': self.target_progression.get_state(),
+            'event_logger': {
+                'events': [e.to_dict() for e in self.event_logger.events],
+                'indicator_snapshots': self.event_logger.indicator_snapshots
+            },
             'active_fan_keys': dict(self._active_fan_keys),
             'persisted_fans': dict(self._persisted_fans),
             'is_initialized': self._is_initialized,
@@ -464,6 +799,41 @@ class AngularPriceCoverageStudy:
             self.angle_engine.restore_state(state['angle_engine'])
         if 'intersection_detector' in state:
             self.intersection_detector.restore_state(state['intersection_detector'])
+        if 'zone_tracker' in state:
+            self.zone_tracker.restore_state(state['zone_tracker'])
+        if 'breach_analyzer' in state:
+            self.breach_analyzer.restore_state(state['breach_analyzer'])
+        if 'fan_validator' in state:
+            self.fan_validator.restore_state(state['fan_validator'])
+        if 'target_progression' in state:
+            self.target_progression.restore_state(state['target_progression'])
+        if 'event_logger' in state:
+            # Restore event logger state
+            logger_state = state['event_logger']
+            self.event_logger.events = []
+            for evt_dict in logger_state.get('events', []):
+                # Reconstruct Event object
+                # Convert string event_type back to Enum
+                try:
+                    evt_type = EventType(evt_dict['event_type'])
+                    
+                    # Import Event explicitly here if needed or rely on module scope
+                    # Assuming Event is available in module scope or from event_logger import
+                    from .event_logger import Event
+                    
+                    self.event_logger.events.append(Event(
+                        timestamp=evt_dict['timestamp'],
+                        event_type=evt_type,
+                        angle_name=evt_dict.get('angle_name'),
+                        price=evt_dict.get('price'),
+                        direction=evt_dict.get('direction'),
+                        details=evt_dict.get('details')
+                    ))
+                except Exception as e:
+                    self.log(f"[Study] Failed to restore event: {e}")
+            
+            self.event_logger.indicator_snapshots = logger_state.get('indicator_snapshots', [])
+            
         if 'active_fan_keys' in state:
             self._active_fan_keys = state['active_fan_keys']
         if 'persisted_fans' in state:
