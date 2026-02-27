@@ -84,24 +84,6 @@ Current Price: H2 < Price < L7
 
 Active Fans: H4-L4 (Primary), H4-L2 (Secondary), H4-L1 (Tertiary)
 
-## Implementation Pseudocode
-```
-total_fans = 0
-for each pivot as Anchor (recent to old):
-    if total_fans >= max_fans (Rule 6): STOP
-    if Anchor is breached (Rule 1): skip
-    for each earlier pivot as Target (recent to old):
-        if total_fans >= max_fans (Rule 6): STOP
-        if wrong type (Rule 2): skip
-        if not geometrically valid (Rule 2): skip
-        if path blocked (Rule 3): skip
-        if target breached (Rule 4): skip (Waterfall)
-        if not successively extreme (Rule 5): skip
-        emit Fan(Anchor, Target, priority=total_fans)
-        total_fans += 1
-```
-
-
 ## Angle Division Lines
 Each fan radiates the following angle division lines from its origin pivot (the temporally earlier of the two pivots):
 - **7/8, 3/4, 1/2, 1/4, 1/8** — fractional sub-angles of the main angle θ
@@ -128,3 +110,37 @@ Price is expected to progress through targets in this order after a fan is valid
 
 ## Fan Validation Rule
 A fan is only considered active for trading after price first interacts with its **7/8 angle line**. This interaction validates that price is respecting the fan's geometry. The interaction type (touch, reversal, or breach) is recorded.
+
+## Advanced Price Interactions & Breach Mechanics
+To filter out market noise and "fake-outs," the strategy employs an **Extreme-Close Confirmation** state machine. Interactions with angle lines are categorized into five distinct event types, which are tracked and logged for both real-time signaling and Machine Learning (ML) data collection.
+
+### 1. Touch (Test / Rejection)
+Price intersects the angle line during the bar (wick or body) but does not necessarily close across it. This indicates the angle is acting as active support or resistance.
+
+### 2. Unconfirmed Breach (Breakout)
+Occurs when a candle *closes* across an angle line.
+- **Upward Breach:** Close > Line Price (Open <= Line Price).
+- **Downward Breach:** Close < Line Price (Open >= Line Price).
+- **Action:** The strategy records the **Extreme Price** of this breaching candle (the High for an upward breach, the Low for a downward breach) and enters a pending state.
+
+### 3. Confirmed Breach
+Occurs when a subsequent candle closes beyond the Extreme Price established by the Unconfirmed Breach candle.
+- **Upward Confirmation:** A later candle closes *above* the breaching candle's High.
+- **Downward Confirmation:** A later candle closes *below* the breaching candle's Low.
+- **Action:** The target progression advances to the next fractional angle or horizontal target.
+
+### 4. Reversal (Fake-out / Failed Breakout)
+Occurs if, while waiting for a Confirmed Breach, the price crosses back over the angle line in the opposite direction of the initial breakout.
+- **Action:** The pending breach is cancelled, and a Reversal event is logged.
+
+### 5. Rest (Consolidation)
+Occurs when the median price of a candle stays within a tight tolerance band (default: 0.15%) around an angle line for a sustained period (default: 3 consecutive bars).
+- **Action:** Indicates price is consolidating or "resting" on the angle, building energy for the next directional move.
+
+## Zone Tracking & ML Data Collection
+The strategy continuously monitors the spatial relationship between the current price and the active fan geometry to generate rich datasets for algorithmic modeling:
+
+- **Angle Zones:** The space between any two adjacent fractional lines (e.g., between 3/4 and 1/2) is defined as a "Zone." The strategy tracks when price transitions from one zone to another.
+- **Distance from Origin:** Every interaction logs the number of bars elapsed since the Fan's Anchor pivot, providing a temporal context to the breakout's strength.
+- **Time-to-Confirmation:** The system tracks the exact number of bars it takes for an Unconfirmed Breach to either Confirm or Reverse.
+- **Event Logging:** All interactions (Touches, Validations, Confirmations, Reversals, Rests, and Target Hits) are pushed to the frontend UI and logged to backend CSV/JSON files for historical backtesting and model training.
