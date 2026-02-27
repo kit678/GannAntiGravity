@@ -102,7 +102,7 @@ class AngularPriceCoverageStudy:
         self.logger.setLevel(logging.DEBUG)
 
         if not self.logger.handlers:
-            fh = logging.FileHandler(log_file)
+            fh = logging.FileHandler(log_file, encoding='utf-8')
             fh.setFormatter(logging.Formatter('%(asctime)s - %(message)s'))
             self.logger.addHandler(fh)
 
@@ -223,9 +223,9 @@ class AngularPriceCoverageStudy:
                         log_line = f"{event.time},{event.priority_label},{frac_str},{event.price}\n"
                         
                         if not os.path.exists(log_file):
-                            with open(log_file, 'w') as f:
+                            with open(log_file, 'w', encoding='utf-8') as f:
                                 f.write("Timestamp,FanIdentity,Fraction,Price\n")
-                        with open(log_file, 'a') as f:
+                        with open(log_file, 'a', encoding='utf-8') as f:
                             f.write(log_line)
                     except Exception as e:
                         print(f"Failed to log intersection: {e}")
