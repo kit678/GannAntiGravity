@@ -851,11 +851,12 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
 
                         // Emit price interaction events from backend intersection_events (always present)
                         if (props.onPriceInteraction && studyData.intersection_events && studyData.intersection_events.length > 0) {
+                            console.log(`[TVChart] Emitting ${studyData.intersection_events.length} price interactions to App.jsx`, studyData.intersection_events);
                             studyData.intersection_events.forEach(evt => {
                                 props.onPriceInteraction({
                                     time: evt.time,
                                     fan: evt.fan,
-                                    fanIdentity: evt.fanIdentity,
+                                    fanIdentity: evt.fanIdentity || evt.fan, // Fallback just in case
                                     fraction: evt.fraction,
                                     price: evt.price,
                                     type: evt.type,

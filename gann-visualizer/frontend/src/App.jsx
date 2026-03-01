@@ -476,7 +476,20 @@ function App() {
                         visibleFanLabels={visibleFanLabels}
                         onAvailableFansUpdated={setAvailableFanLabels}
                         onAutoEnableVisibility={(newIds) => setVisibleFanLabels(prev => [...new Set([...prev, ...newIds])])}
-                        onPriceInteraction={(hit) => setPriceInteractions(prev => [...prev, hit])}
+                        onPriceInteraction={(hit) => {
+                            console.log("[App] Received interaction:", hit);
+                            setPriceInteractions(prev => {
+                                // Prevent exact duplicates if backend sends them twice in the same bar
+                                const isDup = prev.some(p => 
+                                    p.time === hit.time && 
+                                    p.fanIdentity === hit.fanIdentity && 
+                                    p.type === hit.type && 
+                                    p.fraction === hit.fraction
+                                );
+                                if (isDup) return prev;
+                                return [...prev, hit];
+                            });
+                        }}
                     />
                 </div>
 
@@ -559,13 +572,13 @@ function App() {
                                                     style={{ marginLeft: '5px', padding: '2px 5px', fontSize: '11px' }}
                                                 >
                                                     <option value="all">All Fans</option>
-                                                    {[...new Set(priceInteractions.map(h => h.fan))].sort().map(fan => (
-                                                        <option key={fan} value={fan}>{fan}</option>
+                                                    {[...new Set(priceInteractions.map(h => h.fanIdentity || h.fan))].sort().map(identity => (
+                                                        <option key={identity} value={identity}>{identity}</option>
                                                     ))}
                                                 </select>
                                             </label>
                                             <span style={{ fontSize: '11px', color: '#888' }}>
-                                                Showing {priceInteractions.filter(h => filterFan === 'all' || h.fan === filterFan).length} of {priceInteractions.length} events
+                                                Showing {priceInteractions.filter(h => filterFan === 'all' || (h.fanIdentity || h.fan) === filterFan).length} of {priceInteractions.length} events
                                             </span>
                                         </div>
                                         <table className="interactions-table">
@@ -582,7 +595,7 @@ function App() {
                                             </thead>
                                             <tbody>
                                                 {priceInteractions
-                                                    .filter(hit => filterFan === 'all' || hit.fan === filterFan)
+                                                    .filter(hit => filterFan === 'all' || (hit.fanIdentity || hit.fan) === filterFan)
                                                     .map((hit, i) => (
                                                     <tr key={i}>
                                                         <td>{i + 1}</td>
