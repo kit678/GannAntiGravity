@@ -6,10 +6,8 @@ function App() {
     const [strategy, setStrategy] = useState('mechanical_3day')
     const [filterFan, setFilterFan] = useState('all') // Filter by fan in Price Interactions tab
 
-    // Calculate default dates (Today and 3 days ago)
+    // Calculate default dates
     const today = new Date();
-    const threeDaysAgo = new Date();
-    threeDaysAgo.setDate(today.getDate() - 3);
     const formatDate = (date) => date.toISOString().split('T')[0];
     const defaultEndDate = formatDate(today);
     const defaultStartDate = '2025-11-07'; // User requested default
@@ -49,10 +47,6 @@ function App() {
     const [isDraggingUI, setIsDraggingUI] = useState(false); // New state to disable chart interaction during drag
     const isDraggingReplay = useRef(false);
     const dragOffset = useRef({ x: 0, y: 0 });
-
-
-    // Store backtest results for replay
-    const backtestResultRef = useRef(null)
 
     // Lookback bars for pivot/strategy context (resolution-agnostic)
     // Increased to 5000 to ensure sufficient history for Angular/Gann analysis during replay
@@ -166,9 +160,6 @@ function App() {
             const result = await response.json();
             console.log("Backtest Result:", result);
 
-            // Store for potential replay
-            backtestResultRef.current = result;
-
             // Calculate summary
             const summary = calculateSummary(result.trades);
             setBacktestSummary(summary);
@@ -248,7 +239,7 @@ function App() {
                         errorMessage = errorData.detail;
                     }
                 } catch (e) {
-                    console.log("Could not parse error details");
+                    console.log("Could not parse error details", e);
                 }
 
                 alert("Failed to fetch candles: " + errorMessage);
@@ -367,6 +358,7 @@ function App() {
             document.removeEventListener('mousemove', handleResizeMove);
             document.removeEventListener('mouseup', handleResizeEnd);
         };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isResizing]); // Dependency doesn't matter much since we use refs for drag state
 
     return (
