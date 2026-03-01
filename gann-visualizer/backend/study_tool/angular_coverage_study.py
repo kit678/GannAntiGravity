@@ -279,9 +279,11 @@ class AngularPriceCoverageStudy:
             if 'intersection_events' not in result:
                 result['intersection_events'] = []
             fan_display = validation.fan_id.replace("Fan_", "").replace("_", "-")
+            fan_obj = self.angle_engine.active_fans.get(validation.fan_id)
+            priority_label = fan_obj.priority_label if fan_obj else fan_display
             result['intersection_events'].append({
                 'time': timestamp,
-                'fan': fan_display,
+                'fan': priority_label,
                 'fanIdentity': fan_display,
                 'fraction': '7/8',
                 'price': validation.validation_price,
@@ -316,9 +318,11 @@ class AngularPriceCoverageStudy:
             if 'intersection_events' not in result:
                 result['intersection_events'] = []
             fan_display = confirmation.fan_id.replace("Fan_", "").replace("_", "-")
+            fan_obj = self.angle_engine.active_fans.get(confirmation.fan_id)
+            priority_label = fan_obj.priority_label if fan_obj else fan_display
             result['intersection_events'].append({
                 'time': timestamp,
-                'fan': fan_display,
+                'fan': priority_label,
                 'fanIdentity': fan_display,
                 'fraction': confirmation.angle_name,
                 'price': confirmation.confirmation_price,
@@ -350,7 +354,7 @@ class AngularPriceCoverageStudy:
                 # --- ADD THIS UI EVENT PUSH ---
                 result['intersection_events'].append({
                     'time': timestamp,
-                    'fan': fan_display,
+                    'fan': priority_label,
                     'fanIdentity': fan_display,
                     'fraction': target_hit.target_name,
                     'price': target_hit.hit_price,
@@ -380,10 +384,12 @@ class AngularPriceCoverageStudy:
                 result['intersection_events'] = []
             
             fan_display = reversal.fan_id.replace("Fan_", "").replace("_", "-")
+            fan_obj = self.angle_engine.active_fans.get(reversal.fan_id)
+            priority_label = fan_obj.priority_label if fan_obj else fan_display
             
             reversal_event = {
                 'time': timestamp,
-                'fan': fan_display,
+                'fan': priority_label,
                 'fanIdentity': fan_display,
                 'fraction': reversal.angle_name,
                 'price': close_price,
@@ -411,10 +417,12 @@ class AngularPriceCoverageStudy:
                 result['intersection_events'] = []
             
             fan_display = rest.fan_id.replace("Fan_", "").replace("_", "-")
+            fan_obj = self.angle_engine.active_fans.get(rest.fan_id)
+            priority_label = fan_obj.priority_label if fan_obj else fan_display
             
             rest_event = {
                 'time': timestamp,
-                'fan': fan_display,
+                'fan': priority_label,
                 'fanIdentity': fan_display,
                 'fraction': rest.angle_name,
                 'price': rest.rest_price,
