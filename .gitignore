@@ -34,6 +34,7 @@ CommoditiesCourse/
 # Project Specific - Secrets & Scripts with potential secrets
 dhan_auth.py
 dhan-test-script.py
+gemini_test.py
 *.log
 **/logs/
 **/study_debug/

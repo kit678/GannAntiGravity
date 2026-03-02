@@ -206,6 +206,9 @@ class ChartDatafeed {
                 console.log("[Datafeed] Clearing chart data...");
 
                 // Force clear by resetting data immediately
+                if (window.tvWidget) {
+                    window.tvWidget.resetCache();
+                }
                 chart.resetData();
 
                 // Then set resolution (in case it differs)
@@ -248,6 +251,9 @@ class ChartDatafeed {
             try {
                 const chart = window.tvWidget.activeChart();
                 console.log("[Datafeed] Widget ready - forcing final data reset for replay");
+                if (window.tvWidget) {
+                    window.tvWidget.resetCache();
+                }
                 chart.resetData();
             } catch (e) {
                 console.warn("[Datafeed] Failed to reset data in setReplayStrategy:", e);
@@ -273,7 +279,7 @@ class ChartDatafeed {
             this._originalSubscriberUIDs.forEach(uid => {
                 try {
                     this.originalDatafeed.unsubscribeBars(uid);
-                } catch (e) {
+                } catch (_e) {
                     // Ignore errors
                 }
             });
@@ -327,8 +333,6 @@ class ChartDatafeed {
             if (bars.length > 0) {
                 // Check if we have exhausted our data on the left side
                 // If the earliest bar in this batch is the earliest bar we have overall, then noData=true next time
-                const globalEarliest = this.customData[0].time;
-                const batchEarliest = bars[0].time;
 
                 // If the request range covers start of data, signal end
                 // But TradingView logic is strict. If we return *some* data, it might ask for more.
@@ -697,11 +701,11 @@ class ChartDatafeed {
                 chart.setVisibleRange({
                     from: currentTime - halfDuration,
                     to: currentTime + halfDuration
-                }).catch(err => {
+                }).catch(() => {
                     // Silently ignore - user might be manually scrolling
                 });
             }
-        } catch (err) {
+        } catch (_err) {
             // Silently ignore errors to not spam console
         }
     }

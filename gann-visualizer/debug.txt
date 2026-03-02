@@ -1,0 +1,23 @@
+2026-03-01 15:30:01,786 [INFO] [YFinance] Client initialized
+2026-03-01 15:30:01,792 [INFO] [YFinance] Fetching ^NSEI | interval=1 -> 1m | 2026-02-28 18:27:40 to 2026-03-01 15:31:01
+2026-03-01 15:30:01,794 [INFO] [YFinance] Requesting dates: start=2026-02-28, end=2026-03-02 for ^NSEI
+2026-03-01 15:30:02,599 [INFO] [YFinance] No data returned for ^NSEI
+2026-03-01 15:30:02,603 [INFO] [YFinance] Fetching ^NSEI | interval=1 -> 1m | 2026-02-25 15:31:01 to 2026-03-01 15:31:01
+2026-03-01 15:30:02,603 [INFO] [YFinance] Requesting dates: start=2026-02-25, end=2026-03-02 for ^NSEI
+2026-03-01 15:30:02,785 [INFO] [YFinance] Received 1125 bars
+2026-03-01 15:30:02,793 [INFO] [YFinance] Returning 1125 bars, range: 2026-02-25 09:15:00 to 2026-02-27 15:29:00
+2026-03-01 15:30:07,255 [INFO] [YFinance] Client initialized
+2026-03-01 15:30:07,259 [INFO] [YFinance] Fetching ^NSEI | interval=60 -> 1h | 2025-12-17 22:48:52 to 2026-03-01 15:31:07
+2026-03-01 15:30:07,259 [INFO] [YFinance] Requesting dates: start=2025-12-17, end=2026-03-02 for ^NSEI
+2026-03-01 15:30:07,419 [INFO] [YFinance] Received 342 bars
+2026-03-01 15:30:07,422 [INFO] [YFinance] Returning 342 bars, range: 2025-12-17 09:15:00 to 2026-02-27 15:15:00
+2026-03-01 15:30:08,882 [INFO] [Step-by-Step] Fetching candles: ^NSEI [yfinance] from 2025-11-07 to 2026-03-01, resolution: 60
+2026-03-01 15:30:08,883 [INFO] [Step-by-Step] Lookback bars requested: 5000
+2026-03-01 15:30:08,884 [INFO] [YFinance] Client initialized
+2026-03-01 15:30:08,885 [INFO] [Step-by-Step] Adjusted from_date: 2025-11-07 -> 2016-08-24 (expanded lookback: 3362 days)
+2026-03-01 15:30:08,886 [INFO] [YFinance] Fetching ^NSEI | interval=60 -> 1h | 2016-08-24 to 2026-03-01
+2026-03-01 15:30:08,887 [INFO] [YFinance] WARNING: Requested 3476 days but 1h limit is 700 days
+2026-03-01 15:30:08,888 [INFO] [YFinance] Adjusted start date to 2024-03-31
+2026-03-01 15:30:08,889 [INFO] [YFinance] Requesting dates: start=2024-03-31, end=2026-03-02 for ^NSEI
+2026-03-01 15:30:09,480 [INFO] [YFinance] Received 3305 bars
+2026-03-01 15:30:09,495 [INFO] [YFinance] Returning 3305 bars, range: 2024-04-01 09:15:00 to 2026-02-27 15:15:00

@@ -210,7 +210,7 @@ export function drawPolyline(chart, drawing, shapeTracking = {}) {
                         if (id) chart.removeEntity(id);
                     }).catch(() => { });
                 }
-            } catch (e) {
+            } catch (_e) {
                 // Ignore removal errors
             }
         });
@@ -436,7 +436,7 @@ export function clearAllStudyDrawings(chart, shapeTracking) {
                     if (id) chart.removeEntity(id);
                 }).catch(() => { });
             }
-        } catch (e) {
+        } catch (_e) {
             // Ignore removal errors
         }
     });

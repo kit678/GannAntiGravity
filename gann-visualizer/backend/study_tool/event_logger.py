@@ -30,6 +30,7 @@ class EventType(Enum):
     # New event types for price movement tracking
     BREACH_CONFIRMED = "breach_confirmed"    # N successive closes achieved
     ANGLE_REVERSAL = "angle_reversal"        # Successive close streak broken — price reversed
+    FAKE_OUT = "fake_out"                    # Price crossed the line but immediately failed
     REST_ON_ANGLE = "rest_on_angle"          # Price rests on angle after breach
     TARGET_HIT = "target_hit"               # Target in progression sequence reached
     FAN_VALIDATED = "fan_validated"           # Fan validated via 7/8 interaction

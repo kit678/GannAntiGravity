@@ -197,8 +197,32 @@ class AngularPriceCoverageStudy:
                             frac_name = frac_map[closest_frac]
                         else:
                             frac_name = f"{event.fraction:.2f}"
-                            
                     fan_display_name = event.fan_id.replace("Fan_", "").replace("_", "-")
+                    
+                    c_open = float(current_candle.get('open', 0))
+                    c_close = float(current_candle.get('close', 0))
+                    c_low = float(current_candle.get('low', 0))
+                    c_high = float(current_candle.get('high', 0))
+                    
+                    prev_close = c_open
+                    if bar_index > 0:
+                        prev_close = float(candles[bar_index - 1].get('close', 0))
+                    
+                    hit_type = 'TOUCH'
+                    details = 'Angle Test'
+                    
+                    if c_open < event.price and c_close > event.price:
+                        hit_type = 'CROSS_UP'
+                        details = 'Breakout Attempt'
+                    elif c_open > event.price and c_close < event.price:
+                        hit_type = 'CROSS_DOWN'
+                        details = 'Breakdown Attempt'
+                    elif prev_close > event.price and c_low <= event.price and c_close > event.price:
+                        hit_type = 'SUPPORT_TEST'
+                        details = 'Resting / Throwback'
+                    elif prev_close < event.price and c_high >= event.price and c_close < event.price:
+                        hit_type = 'RESISTANCE_TEST'
+                        details = 'Rejection / Pullback'
                     
                     ui_event = {
                         'time': event.time,
@@ -206,8 +230,8 @@ class AngularPriceCoverageStudy:
                         'fanIdentity': fan_display_name,
                         'fraction': frac_name,
                         'price': event.price,
-                        'type': 'TOUCH',
-                        'details': 'Angle Test'
+                        'type': hit_type,
+                        'details': details
                     }
                     result['intersection_events'].append(ui_event)
                     self.log(f"[Study] Emitting intersection event (DIRECT): {ui_event}")
@@ -363,40 +387,40 @@ class AngularPriceCoverageStudy:
                 })
                 # ------------------------------
 
-        for reversal in breach_results['reversals']:
+        for fake_out in breach_results['fake_outs']:
             close_price = float(current_candle['close'])
             self.event_logger.log_event(
                 timestamp=timestamp,
-                event_type=EventType.ANGLE_REVERSAL,
-                angle_name=reversal.angle_name,
+                event_type=EventType.FAKE_OUT,
+                angle_name=fake_out.angle_name,
                 price=close_price,
-                direction=reversal.attempted_direction,
+                direction=fake_out.attempted_direction,
                 details={
-                    'fan_id': reversal.fan_id,
-                    'bars_elapsed': reversal.bars_elapsed,
-                    'reversal_bar': reversal.reversal_bar,
+                    'fan_id': fake_out.fan_id,
+                    'bars_elapsed': fake_out.bars_elapsed,
+                    'fake_out_bar': fake_out.reversal_bar,
                 }
             )
-            self.log(f"[Tracking] Angle REVERSAL: {reversal.fan_id} {reversal.angle_name} (T+{reversal.bars_elapsed} bars)")
+            self.log(f"[Tracking] FAKE OUT: {fake_out.fan_id} {fake_out.angle_name} (T+{fake_out.bars_elapsed} bars)")
 
-            # --- POPULATE UI EVENT (Reversal) ---
+            # --- POPULATE UI EVENT (Fake-out) ---
             if 'intersection_events' not in result:
                 result['intersection_events'] = []
             
-            fan_display = reversal.fan_id.replace("Fan_", "").replace("_", "-")
-            fan_obj = self.angle_engine.active_fans.get(reversal.fan_id)
+            fan_display = fake_out.fan_id.replace("Fan_", "").replace("_", "-")
+            fan_obj = self.angle_engine.active_fans.get(fake_out.fan_id)
             priority_label = fan_obj.priority_label if fan_obj else fan_display
             
-            reversal_event = {
+            fake_out_event = {
                 'time': timestamp,
                 'fan': priority_label,
                 'fanIdentity': fan_display,
-                'fraction': reversal.angle_name,
+                'fraction': fake_out.angle_name,
                 'price': close_price,
-                'type': 'ANGLE_REVERSAL',
-                'details': f"Failed {reversal.attempted_direction.upper()} (T+{reversal.bars_elapsed} bars)"
+                'type': 'FAKE_OUT',
+                'details': f"Failed {fake_out.attempted_direction.upper()} (T+{fake_out.bars_elapsed} bars)"
             }
-            result['intersection_events'].append(reversal_event)
+            result['intersection_events'].append(fake_out_event)
             # ------------------------------------
 
         for rest in breach_results['rest_events']:

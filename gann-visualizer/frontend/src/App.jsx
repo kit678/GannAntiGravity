@@ -1,16 +1,43 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import './App.css'
 import { TVChartContainer } from './TVChartContainer'
+
+// Constants and utility functions
+const TODAY = new Date();
+const formatDate = (date) => date.toISOString().split('T')[0];
+const DEFAULT_END_DATE = formatDate(TODAY);
+const DEFAULT_START_DATE = '2025-11-07'; // User requested default
+const LOOKBACK_BARS = 5000;
+const DATAFEED_URL = "http://localhost:8005";
+
+// Calculate P&L summary - moved outside to stay pure and stable
+const calculateSummary = (trades) => {
+    let totalPnL = 0;
+    let wins = 0;
+    let losses = 0;
+
+    trades.forEach(t => {
+        if (t.type === 'sell' && t.pnl != null) {
+            totalPnL += t.pnl;
+            if (t.pnl > 0) wins++;
+            else losses++;
+        }
+    });
+
+    return {
+        totalTrades: trades.length,
+        completedTrades: wins + losses,
+        wins,
+        losses,
+        totalPnL: totalPnL.toFixed(2),
+        winRate: (wins + losses > 0) ? ((wins / (wins + losses)) * 100).toFixed(1) : 0
+    };
+};
 
 function App() {
     const [strategy, setStrategy] = useState('mechanical_3day')
     const [filterFan, setFilterFan] = useState('all') // Filter by fan in Price Interactions tab
 
-    // Calculate default dates
-    const today = new Date();
-    const formatDate = (date) => date.toISOString().split('T')[0];
-    const defaultEndDate = formatDate(today);
-    const defaultStartDate = '2025-11-07'; // User requested default
     const [instrumentType, setInstrumentType] = useState('spot') // User requested default
     const [dataSource, setDataSource] = useState('yfinance') // User requested default
 
@@ -41,6 +68,7 @@ function App() {
     const [isResizing, setIsResizing] = useState(false)
     const [bottomPanelTab, setBottomPanelTab] = useState('backtest') // 'backtest' | 'interactions'
     const [priceInteractions, setPriceInteractions] = useState([]) // Live interaction log
+    const [isChartPlaying, setIsChartPlaying] = useState(false)
 
     // Replay Toolbar Position State
     const [replayPos, setReplayPos] = useState({ x: window.innerWidth / 2 - 300, y: window.innerHeight - 200 });
@@ -48,24 +76,20 @@ function App() {
     const isDraggingReplay = useRef(false);
     const dragOffset = useRef({ x: 0, y: 0 });
 
-    // Lookback bars for pivot/strategy context (resolution-agnostic)
-    // Increased to 5000 to ensure sufficient history for Angular/Gann analysis during replay
-    const LOOKBACK_BARS = 5000
 
-    const datafeedUrl = "http://localhost:8005"
 
     const chartRef = useRef(null);
     const startDateRef = useRef(null);
     const endDateRef = useRef(null);
 
     // Sync Active Symbol from Chart
-    const handleSymbolChange = (newSymbol) => {
+    const handleSymbolChange = useCallback((newSymbol) => {
         // Strip suffixes if present for clean backtest usage? 
         // TradingView might return "RELIANCE" or "^NSEI:YF" depending on feed.
         // We store it as is for now, the backend handles cleaning.
         activeSymbolRef.current = newSymbol;
         console.log("Active Symbol Updated:", activeSymbolRef.current);
-    };
+    }, []);
 
     // Handle Data Source Switch
     const handleDataSourceChange = (newSource) => {
@@ -80,34 +104,11 @@ function App() {
         }
     };
 
-    // Calculate P&L summary
-    const calculateSummary = (trades) => {
-        let totalPnL = 0;
-        let wins = 0;
-        let losses = 0;
-
-        trades.forEach(t => {
-            if (t.type === 'sell' && t.pnl != null) {
-                totalPnL += t.pnl;
-                if (t.pnl > 0) wins++;
-                else losses++;
-            }
-        });
-
-        return {
-            totalTrades: trades.length,
-            completedTrades: wins + losses,
-            wins,
-            losses,
-            totalPnL: totalPnL.toFixed(2),
-            winRate: (wins + losses > 0) ? ((wins / (wins + losses)) * 100).toFixed(1) : 0
-        };
-    };
 
     // Handle trade logged callback
-    const handleTradeLogged = (trade) => {
+    const handleTradeLogged = useCallback((trade) => {
         setTradeLog(prev => [...prev, trade]);
-    };
+    }, []);
 
     // Run Backtest (Instant Mode)
     const handleRunBacktest = async () => {
@@ -133,7 +134,7 @@ function App() {
 
             console.log("Backtesting Symbol:", currentSymbol);
 
-            const response = await fetch(`${datafeedUrl}/run_backtest`, {
+            const response = await fetch(`${DATAFEED_URL}/run_backtest`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -192,7 +193,8 @@ function App() {
         // Use bar-based lookback - backend will fetch extra bars for context
         const fetchFrom = fromDate;
         const fetchTo = toDate;
-        const replayStartTimestamp = new Date(fromDate + ' 00:00:00').getTime() / 1000;
+        // Use ISO format to ensure consistent parsing across browsers
+        const replayStartTimestamp = new Date(fromDate + 'T00:00:00').getTime() / 1000;
         console.log('[Step-by-Step] Simulation start:', fromDate, 'timestamp:', replayStartTimestamp);
 
         setTradeLog([]);
@@ -211,7 +213,7 @@ function App() {
 
             console.log(`[Step-by-Step] Fetching candles: ${fetchFrom} to ${fetchTo}, resolution: ${currentResolution}, strategy: ${strategy}`);
 
-            const response = await fetch(`${datafeedUrl}/fetch_candles`, {
+            const response = await fetch(`${DATAFEED_URL}/fetch_candles`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -261,7 +263,7 @@ function App() {
                     strategy,
                     currentResolution,
                     replayStartTimestamp,
-                    datafeedUrl,
+                    DATAFEED_URL,
                     instrumentType,
                     (progress, currentTime) => {
                         setReplayProgress(progress);
@@ -309,7 +311,7 @@ function App() {
         e.preventDefault();
     };
 
-    const handleResizeMove = (e) => {
+    const handleResizeMove = useCallback((e) => {
         // Handle Panel Resize
         if (isResizing) {
             const windowHeight = window.innerHeight;
@@ -326,15 +328,15 @@ function App() {
                 y: e.clientY - dragOffset.current.y
             });
         }
-    };
+    }, [isResizing]);
 
-    const handleResizeEnd = () => {
+    const handleResizeEnd = useCallback(() => {
         setIsResizing(false);
         if (isDraggingReplay.current || isResizing) {
             setIsDraggingUI(false); // Re-enable chart interaction
         }
         isDraggingReplay.current = false;
-    };
+    }, [isResizing]);
 
     // Replay Drag Handlers
     const handleReplayMouseDown = (e) => {
@@ -358,8 +360,7 @@ function App() {
             document.removeEventListener('mousemove', handleResizeMove);
             document.removeEventListener('mouseup', handleResizeEnd);
         };
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [isResizing]); // Dependency doesn't matter much since we use refs for drag state
+    }, [handleResizeMove, handleResizeEnd]); // Dependency updated to handle stable callbacks
 
     return (
         <div className="app-container">
@@ -385,8 +386,8 @@ function App() {
                     </select>
 
                     <div className="date-range-picker">
-                        <label>Start: <input type="date" defaultValue={defaultStartDate} ref={startDateRef} /></label>
-                        <label>End: <input type="date" defaultValue={defaultEndDate} ref={endDateRef} /></label>
+                        <label>Start: <input type="date" defaultValue={DEFAULT_START_DATE} ref={startDateRef} /></label>
+                        <label>End: <input type="date" defaultValue={DEFAULT_END_DATE} ref={endDateRef} /></label>
                     </div>
 
                     {/* Pivot settings - only show for Angular Coverage study and Pivot Points Only */}
@@ -394,12 +395,12 @@ function App() {
                         <div className="pivot-settings">
                             <label title="Bars to the left of candidate candle for pivot detection">
                                 L: <input type="number" min="1" max="50" value={pivotLeftBars}
-                                    onChange={(e) => setPivotLeftBars(Math.max(1, parseInt(e.target.value) || 5))}
+                                    onChange={(e) => setPivotLeftBars(Math.max(1, parseInt(e.target.value, 10) || 5))}
                                     style={{ width: '40px' }} />
                             </label>
                             <label title="Bars to the right of candidate candle for pivot detection">
                                 R: <input type="number" min="1" max="50" value={pivotRightBars}
-                                    onChange={(e) => setPivotRightBars(Math.max(1, parseInt(e.target.value) || 5))}
+                                    onChange={(e) => setPivotRightBars(Math.max(1, parseInt(e.target.value, 10) || 5))}
                                     style={{ width: '40px' }} />
                             </label>
 
@@ -414,13 +415,13 @@ function App() {
 
                             {strategy === 'angular_coverage' && availableFanLabels.length > 0 && (
                                 <div className="fan-toggles" style={{ display: 'flex', gap: '8px', marginLeft: '10px', fontSize: '11px', alignItems: 'center' }}>
-                                    <button 
+                                    <button
                                         onClick={() => setVisibleFanLabels(availableFanLabels.map(f => f.identity))}
                                         style={{ padding: '2px 6px', fontSize: '10px', cursor: 'pointer' }}
                                     >
                                         Show All
                                     </button>
-                                    <button 
+                                    <button
                                         onClick={() => setVisibleFanLabels([])}
                                         style={{ padding: '2px 6px', fontSize: '10px', cursor: 'pointer' }}
                                     >
@@ -459,23 +460,24 @@ function App() {
                     <TVChartContainer
                         ref={chartRef}
                         symbol={chartMountSymbol}
-                        datafeedUrl={datafeedUrl}
+                        datafeedUrl={DATAFEED_URL}
                         dataSource={dataSource}
                         onTradeLogged={handleTradeLogged}
                         onSymbolChange={handleSymbolChange}
                         instrumentType={instrumentType}
-                        interval={chartRef.current?.getResolution() || '1'}
+                        interval="1"
                         visibleFanLabels={visibleFanLabels}
                         onAvailableFansUpdated={setAvailableFanLabels}
+                        onPlayingStateChange={setIsChartPlaying}
                         onAutoEnableVisibility={(newIds) => setVisibleFanLabels(prev => [...new Set([...prev, ...newIds])])}
                         onPriceInteraction={(hit) => {
                             console.log("[App] Received interaction:", hit);
                             setPriceInteractions(prev => {
                                 // Prevent exact duplicates if backend sends them twice in the same bar
-                                const isDup = prev.some(p => 
-                                    p.time === hit.time && 
-                                    p.fanIdentity === hit.fanIdentity && 
-                                    p.type === hit.type && 
+                                const isDup = prev.some(p =>
+                                    p.time === hit.time &&
+                                    p.fanIdentity === hit.fanIdentity &&
+                                    p.type === hit.type &&
                                     p.fraction === hit.fraction
                                 );
                                 if (isDup) return prev;
@@ -558,8 +560,8 @@ function App() {
                                         <div style={{ marginBottom: '10px', display: 'flex', gap: '10px', alignItems: 'center' }}>
                                             <label style={{ fontSize: '12px' }}>
                                                 Filter by Fan:
-                                                <select 
-                                                    value={filterFan} 
+                                                <select
+                                                    value={filterFan}
                                                     onChange={(e) => setFilterFan(e.target.value)}
                                                     style={{ marginLeft: '5px', padding: '2px 5px', fontSize: '11px' }}
                                                 >
@@ -589,16 +591,16 @@ function App() {
                                                 {priceInteractions
                                                     .filter(hit => filterFan === 'all' || (hit.fanIdentity || hit.fan) === filterFan)
                                                     .map((hit, i) => (
-                                                    <tr key={i}>
-                                                        <td>{i + 1}</td>
-                                                        <td>{new Date(hit.time * 1000).toLocaleString()}</td>
-                                                        <td style={{ color: '#90CAF9' }}>{hit.fan}</td>
-                                                        <td style={{ color: '#FFEB3B' }}>{hit.fraction}</td>
-                                                        <td>{hit.price != null ? hit.price.toFixed(2) : 'N/A'}</td>
-                                                        <td>{hit.type || 'N/A'}</td>
-                                                        <td style={{ fontSize: '11px', color: '#AAA' }}>{hit.details || ''}</td>
-                                                    </tr>
-                                                ))}
+                                                        <tr key={i}>
+                                                            <td>{i + 1}</td>
+                                                            <td>{new Date(hit.time * 1000).toLocaleString()}</td>
+                                                            <td style={{ color: '#90CAF9' }}>{hit.fan}</td>
+                                                            <td style={{ color: '#FFEB3B' }}>{hit.fraction}</td>
+                                                            <td>{hit.price != null ? hit.price.toFixed(2) : 'N/A'}</td>
+                                                            <td>{hit.type || 'N/A'}</td>
+                                                            <td style={{ fontSize: '11px', color: '#AAA' }}>{hit.details || ''}</td>
+                                                        </tr>
+                                                    ))}
                                             </tbody>
                                         </table>
                                     </>
@@ -632,7 +634,7 @@ function App() {
                             ⏮
                         </button>
                         <button onClick={() => handleReplayAction('play')} title="Play/Pause">
-                            {chartRef.current?.isPlaying?.() ? '⏸' : '▶'} Play
+                            {isChartPlaying ? '⏸' : '▶'} Play
                         </button>
                         <button className="step-btn" onClick={() => handleReplayAction('step')} title="Step Forward">
                             ⏭
@@ -646,7 +648,7 @@ function App() {
                         <div className="progress-text">{Math.round(replayProgress)}% Complete</div>
                     </div>
 
-                    <select onChange={(e) => chartRef.current?.setSpeed(parseInt(e.target.value))} defaultValue="1000">
+                    <select onChange={(e) => chartRef.current?.setSpeed(parseInt(e.target.value, 10))} defaultValue="1000">
                         <option value="2000">0.5x</option>
                         <option value="1000">1x</option>
                         <option value="500">2x</option>

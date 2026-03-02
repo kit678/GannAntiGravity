@@ -28,7 +28,7 @@ class BreachConfirmation:
         return self.__dict__
 
 @dataclass
-class AngleReversal:
+class FakeOutEvent:
     fan_id: str
     angle_name: str
     attempted_direction: str
@@ -69,7 +69,7 @@ class BreachAnalyzer:
         
         results = {
             'confirmations': [], 
-            'reversals': [], 
+            'fake_outs': [], 
             'rest_events': []
         }
         
@@ -90,9 +90,14 @@ class BreachAnalyzer:
             # Calculate line price at current bar
             line_price = event.price
             
-            # Check for Rest (Consolidation)
-            price_range_mid = (open_price + close_price) / 2
-            if abs(price_range_mid - line_price) / line_price <= self.rest_tolerance:
+            # Check for Rest (Consolidation) dynamically based on body size
+            body_size = abs(open_price - close_price)
+            candle_range = high_price - low_price
+            
+            is_small_body = body_size <= (candle_range * 0.4) if candle_range > 0 else True
+            is_near_line = abs(close_price - line_price) / line_price <= self.rest_tolerance
+            
+            if is_small_body and is_near_line:
                 self.rest_counters[state_key] = self.rest_counters.get(state_key, 0) + 1
                 if self.rest_counters[state_key] == self.rest_required_bars:
                     results['rest_events'].append(RestEvent(
@@ -172,7 +177,7 @@ class BreachAnalyzer:
                     keys_to_remove.append(state_key)
                 elif close_price < current_line_price:
                     # Reversal (Fake-out)
-                    results['reversals'].append(AngleReversal(
+                    results['fake_outs'].append(FakeOutEvent(
                         fan_id=fan_id,
                         angle_name=str(state['fraction']) if state['fraction'] else "Horizontal",
                         attempted_direction='up',
@@ -198,7 +203,7 @@ class BreachAnalyzer:
                     keys_to_remove.append(state_key)
                 elif close_price > current_line_price:
                     # Reversal (Fake-out)
-                    results['reversals'].append(AngleReversal(
+                    results['fake_outs'].append(FakeOutEvent(
                         fan_id=fan_id,
                         angle_name=str(state['fraction']) if state['fraction'] else "Horizontal",
                         attempted_direction='down',
