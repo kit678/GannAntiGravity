@@ -1,0 +1,109 @@
+diff --git a/gann-visualizer/backend/study_tool/angle_engine.py b/gann-visualizer/backend/study_tool/angle_engine.py
+index cc83e02..eb76b12 100644
+--- a/gann-visualizer/backend/study_tool/angle_engine.py
++++ b/gann-visualizer/backend/study_tool/angle_engine.py
+@@ -72,7 +72,8 @@ class AngleEngine:
+         line_extension_bars: int = 50,
+         main_line_width: int = 3,
+         fraction_line_width: int = 2,
+-        scale_ratio: float = 1.0  # Added scale ratio parameter
++        scale_ratio: float = 1.0,  # Added scale ratio parameter
++        resolution: str = None
+     ):
+         """
+         Initialize the angle engine.
+@@ -92,6 +93,7 @@ class AngleEngine:
+         self.main_line_width = main_line_width
+         self.fraction_line_width = fraction_line_width
+         self.scale_ratio = scale_ratio
++        self.resolution = resolution
+         
+         # Active fans for tracking completion
+         self.active_fans: Dict[str, AngleFan] = {}
+@@ -167,22 +169,27 @@ class AngleEngine:
+         
+         db = max(1, abs(target_bar - origin_bar))
+         
++        # --- EFFECTIVE SCALE RATIO ---
++        # The frontend sends candles to the backend at the displayed resolution (e.g., 4H).
++        # So db is already in 4H bar units. The user-locked ratio (e.g., 22 for 4H NSEI)
++        # is applied directly — no division needed.
++        effective_ratio = scale_ratio
++        visual_multiplier = 1.0  # kept for logging
++        
+         # Calculate Slope in "Price per Bar"
+-        # dp is always p1-p0 (to_price - from_price)
+-        # For slope, we need (target_price - origin_price) / bars
+         target_price = p1 if t0 <= t1 else p0
+         dp_from_origin = target_price - origin_price
+         slope_per_bar = dp_from_origin / db
+         
+         # Apply Scale Ratio
+-        visual_slope = slope_per_bar / (scale_ratio if scale_ratio else 1.0)
++        visual_slope = slope_per_bar / (effective_ratio if effective_ratio else 1.0)
+         
+         # Calculate Theta (Visual Angle at 1:1)
+         theta_radians = math.atan(visual_slope)
+         theta_deg = math.degrees(theta_radians)
+         
+         # DEBUG: Log scale ratio and angle calculation
+-        print(f"[AngleEngine] scale_ratio={scale_ratio}, slope_per_bar={slope_per_bar:.4f}, visual_slope={visual_slope:.4f}, theta={theta_deg:.2f}°")
++        print(f"[AngleEngine] scale_ratio={scale_ratio}, effective_ratio={effective_ratio:.4f}, visual_multiplier={visual_multiplier}, slope_per_bar={slope_per_bar:.4f}, visual_slope={visual_slope:.4f}, theta={theta_deg:.2f}°")
+         
+         # Helper to ensure finite float values for JSON
+         def _safe_float(val, default=0.0):
+@@ -191,11 +198,14 @@ class AngleEngine:
+             # Clip extreme values to prevent overflow in frontend
+             return max(-1e9, min(1e9, val))
+ 
+-        # Calculate Radius in Visual Units (Bars) based on PA segment
+-        # visual_height = price_change / scale_ratio
+-        # radius = sqrt(bars^2 + visual_height^2)
+-        visual_height_total = dp_from_origin / (scale_ratio if scale_ratio else 1.0)
+-        radius = math.hypot(db, visual_height_total)
++        # Calculate Radius in Raw Bar Units based on PA segment
++        # visual_height = price_change / effective_ratio
++        # radius = sqrt(raw_bars^2 + visual_height^2)
++        visual_height_total = dp_from_origin / (effective_ratio if effective_ratio else 1.0)
++        
++        # EXTENSION FIX: Multiply base radius to ensure lines cross the entire screen 
++        # on aggregated charts (which compress horizontal space).
++        radius = math.hypot(db, visual_height_total) * 20.0 
+ 
+         import datetime
+         from collections import Counter
+@@ -266,13 +276,13 @@ class AngleEngine:
+             return first_time - (delta_bars * interval_seconds)
+ 
+         # --- EQUIDISTANT RADIUS EXTENSION ---
+-        # The user requested that ALL angle lines (including main) are equidistant,
+-        # perfectly touching the circumference of a circle anchored at origin (radius PA).
++        # ALL angle lines use the same radius, endpoints in RAW bar space.
++        # effective_ratio ensures angles match TradingView's visual rendering.
+         
+         # 1. Main Angle Line
+         main_dx_bars = radius * math.cos(theta_radians)
+         main_dy_visual = radius * math.sin(theta_radians)
+-        main_end_price = origin_price + (main_dy_visual * scale_ratio)
++        main_end_price = origin_price + (main_dy_visual * effective_ratio)
+         main_end_time = get_time_for_bar_index(origin_bar + main_dx_bars)
+ 
+         main_line = AngleLine(
+@@ -302,7 +312,7 @@ class AngleEngine:
+             dx_bars = radius * math.cos(frac_theta)
+             dy_visual = radius * math.sin(frac_theta)
+             
+-            frac_end_price = origin_price + (dy_visual * scale_ratio)
++            frac_end_price = origin_price + (dy_visual * effective_ratio)
+             frac_end_time = get_time_for_bar_index(origin_bar + dx_bars)
+             
+             color = angle_colors[i] if i < len(angle_colors) else '#888888'
+@@ -335,7 +345,7 @@ class AngleEngine:
+         
+         # Calculate visual height at anchor intersection
+         y_visual_intercept = db_anchor * math.tan(frac_theta_half)
+-        intercept_price = origin_price + (y_visual_intercept * scale_ratio)
++        intercept_price = origin_price + (y_visual_intercept * effective_ratio)
+         intercept_time = get_time_for_bar_index(origin_bar + db_anchor) # This is strictly the Anchor's Time
+         
+         # 2. Determine end coordinates (Circle Edge)

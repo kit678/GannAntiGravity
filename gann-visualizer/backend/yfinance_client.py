@@ -64,6 +64,7 @@ class YFinanceClient:
         "30": "30m",
         "60": "1h",
         "1H": "1h",
+        "240": "1h",
         "D": "1d",
         "1D": "1d",
         "W": "1wk",
@@ -138,6 +139,10 @@ class YFinanceClient:
         """
         Get symbol information for TradingView resolveSymbol.
         """
+        # Strip internal suffix if present
+        if symbol.endswith(":YF"):
+            symbol = symbol.replace(":YF", "")
+            
         # Check predefined symbols first
         if symbol in self.POPULAR_SYMBOLS:
             info = self.POPULAR_SYMBOLS[symbol]
@@ -151,9 +156,10 @@ class YFinanceClient:
                 "timezone": "Asia/Kolkata" if ".NS" in symbol or symbol.startswith("^NSE") else "America/New_York",
                 "session": "0915-1530" if ".NS" in symbol or symbol.startswith("^NSE") else "0930-1600",
                 "has_intraday": True,
+                "intraday_multipliers": ["1", "5", "15", "30", "60", "240"],
                 "has_daily": True,
                 "has_weekly_and_monthly": True,
-                "supported_resolutions": ["1", "5", "15", "30", "60", "D", "W", "M"],
+                "supported_resolutions": ["1", "5", "15", "30", "60", "240", "D", "W", "M"],
                 "pricescale": 100,
                 "minmov": 1,
             }
@@ -180,9 +186,10 @@ class YFinanceClient:
                 "timezone": "Asia/Kolkata" if is_indian else "America/New_York",
                 "session": "0915-1530" if is_indian else "0930-1600",
                 "has_intraday": True,
+                "intraday_multipliers": ["1", "5", "15", "30", "60", "240"],
                 "has_daily": True,
                 "has_weekly_and_monthly": True,
-                "supported_resolutions": ["1", "5", "15", "30", "60", "D", "W", "M"],
+                "supported_resolutions": ["1", "5", "15", "30", "60", "240", "D", "W", "M"],
                 "pricescale": 100,
                 "minmov": 1,
             }
@@ -203,6 +210,10 @@ class YFinanceClient:
         Returns:
             DataFrame with columns: timestamp, open, high, low, close, volume
         """
+        # Strip internal suffix if present
+        if symbol.endswith(":YF"):
+            symbol = symbol.replace(":YF", "")
+            
         # Map interval
         yf_interval = self.INTERVAL_MAP.get(interval, "1d")
         
@@ -259,11 +270,9 @@ class YFinanceClient:
             # or the frontend sent the wrong resolution ('1' default).
             if interval == "1" and age_days > 7:
                 print(f"[YFinance] Auto-promoting '1m' resolution to '1h' to fetch historical data ({age_days} days ago).")
-                print(f"[YFinance] Original request was 1m, which is limited to 7 days.")
-                interval = "60"
-                yf_interval = "1h"
-                # Re-check limit for new interval
-                limit_from_now = 700
+            elif interval == "240":
+                interval = "240"
+                yf_interval = "1h" # Request 1H, TradingView will aggregate to 4H natively
                 
                 # If still too old for hourly, clamp or warn
                 if age_days > limit_from_now:
@@ -347,6 +356,49 @@ class YFinanceClient:
             result_df = df[required_cols].copy()
             result_df = result_df.sort_values('timestamp')
             result_df = result_df.drop_duplicates(subset=['timestamp'])
+            
+            # --- BACKEND 4H AGGREGATION ---
+            # When interval is "240", we fetched 1H bars from Yahoo. Now aggregate
+            # them into 4H candles by grouping consecutive 1H bars within each
+            # trading day into chunks of 4. This ensures AngleEngine receives
+            # proper 4H bar indices matching the visual TradingView chart.
+            if interval == "240" and len(result_df) > 0:
+                print(f"[YFinance] Aggregating {len(result_df)} 1H bars into 4H candles...")
+                
+                # Determine market timezone for this symbol
+                is_indian = ".NS" in symbol or ".BO" in symbol or symbol.startswith("^NSE")
+                market_tz = pytz.timezone("Asia/Kolkata" if is_indian else "America/New_York")
+                
+                # Convert timestamps to timezone-aware datetimes for grouping
+                result_df = result_df.copy()
+                result_df['dt'] = result_df['timestamp'].apply(
+                    lambda ts: datetime.fromtimestamp(ts, tz=market_tz)
+                )
+                result_df['date'] = result_df['dt'].apply(lambda d: d.date())
+                
+                # Group by date, then chunk every 4 consecutive bars within each day
+                aggregated_rows = []
+                for date, day_group in result_df.groupby('date'):
+                    day_bars = day_group.sort_values('timestamp')
+                    
+                    # Chunk into groups of 4
+                    for chunk_start in range(0, len(day_bars), 4):
+                        chunk = day_bars.iloc[chunk_start:chunk_start + 4]
+                        if len(chunk) == 0:
+                            continue
+                        
+                        aggregated_rows.append({
+                            'timestamp': int(chunk['timestamp'].iloc[0]),  # First bar's timestamp
+                            'open': float(chunk['open'].iloc[0]),
+                            'high': float(chunk['high'].max()),
+                            'low': float(chunk['low'].min()),
+                            'close': float(chunk['close'].iloc[-1]),
+                            'volume': int(chunk['volume'].sum()),
+                        })
+                
+                result_df = pd.DataFrame(aggregated_rows)
+                result_df = result_df.sort_values('timestamp').reset_index(drop=True)
+                print(f"[YFinance] Aggregated to {len(result_df)} 4H candles")
             
             print(f"[YFinance] Returning {len(result_df)} bars, range: "
                   f"{datetime.fromtimestamp(result_df['timestamp'].iloc[0])} to "

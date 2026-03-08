@@ -36,21 +36,50 @@ class ChartDatafeed {
     // Required: TradingView calls this first to get configuration
     onReady(callback) {
         console.log("[ChartDatafeed] onReady called, dataSource:", this.dataSource);
-        this.originalDatafeed.onReady(callback);
+        this.originalDatafeed.onReady((config) => {
+            // Force inject 240 to bypass aggressive TV caching
+            if (config.supported_resolutions && !config.supported_resolutions.includes("240")) {
+                config.supported_resolutions.push("240");
+            }
+            callback(config);
+        });
     }
 
     // Required: Resolve symbol info - handle :YF suffix for Yahoo Finance
     resolveSymbol(symbolName, onSymbolResolvedCallback, onResolveErrorCallback) {
         console.log("[ChartDatafeed] resolveSymbol:", symbolName, "dataSource:", this.dataSource);
 
-        // For YFinance symbols, handle the :YF suffix
+        let finalSymbol = symbolName;
+
+        // Track the clean symbol name (without :YF) for backend identify context
         let cleanSymbol = symbolName;
-        if (symbolName.endsWith(':YF')) {
-            cleanSymbol = symbolName.replace(':YF', '');
-            console.log("[ChartDatafeed] Cleaned YFinance symbol:", cleanSymbol);
+        if (cleanSymbol.endsWith(':YF')) {
+            cleanSymbol = cleanSymbol.replace(':YF', '');
+        }
+        this.currentSymbol = cleanSymbol;
+
+        // Ensure Yahoo Finance symbols have the :YF suffix before asking the backend for /symbols
+        // This allows backend to set the correct timezone, session (e.g. 0930-1600 EST), and minmov
+        if (this.dataSource === 'yfinance' && !finalSymbol.endsWith(':YF')) {
+            finalSymbol = finalSymbol + ':YF';
+            console.log("[ChartDatafeed] Appended YFinance suffix:", finalSymbol);
         }
 
-        this.originalDatafeed.resolveSymbol(cleanSymbol, onSymbolResolvedCallback, onResolveErrorCallback);
+        this.originalDatafeed.resolveSymbol(finalSymbol, (symbolInfo) => {
+            // Support 4H (240) by telling TradingView it has intraday data and the base multiplier is 60m
+            if (symbolInfo.supported_resolutions && !symbolInfo.supported_resolutions.includes("240")) {
+                symbolInfo.supported_resolutions.push("240");
+            }
+
+            // Enable TradingView's native client-side aggregation
+            symbolInfo.has_intraday = true;
+            if (!symbolInfo.intraday_multipliers) {
+                // Typical base multipliers we support
+                symbolInfo.intraday_multipliers = ["1", "5", "15", "60"];
+            }
+
+            onSymbolResolvedCallback(symbolInfo);
+        }, onResolveErrorCallback);
     }
 
     searchSymbols(userInput, exchange, symbolType, onResult) {
@@ -182,6 +211,7 @@ class ChartDatafeed {
         this.datafeedUrl = datafeedUrl;
         this.instrumentType = instrumentType;
         this.scaleRatio = scaleRatio;
+        this.currentResolution = resolution;  // Track resolution for backend symbol-based scaling
         this.pivotSettings = pivotSettings;  // NEW: store pivot settings for study configuration
         this.progressCallback = onProgressCallback;
         this.tradeCallback = onTradeCallback;
@@ -598,6 +628,14 @@ class ChartDatafeed {
                 if (this.pivotSettings.showIntersectionLabels !== undefined) {
                     requestBody.show_intersection_labels = this.pivotSettings.showIntersectionLabels;
                 }
+            }
+
+            // Allow the backend to identify context for specific scale constraints
+            if (this.currentSymbol) {
+                requestBody.symbol = this.currentSymbol;
+            }
+            if (this.currentResolution) {
+                requestBody.resolution = this.currentResolution;
             }
 
             fetch(`${this.datafeedUrl}/evaluate_strategy_step`, {

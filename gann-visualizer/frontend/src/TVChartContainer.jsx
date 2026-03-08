@@ -73,6 +73,14 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
                     right_offset: 5,
                     visible_range: {}
                 },
+                time_frames: [
+                    { text: "1y", resolution: "D", description: "1 Year" },
+                    { text: "6m", resolution: "D", description: "6 Months" },
+                    { text: "3m", resolution: "D", description: "3 Months" },
+                    { text: "1m", resolution: "240", description: "1 Month" },
+                    { text: "5d", resolution: "60", description: "5 Days" },
+                    { text: "1d", resolution: "15", description: "1 Day" },
+                ],
                 overrides: {
                     "scalesProperties.showSymbolLabels": true,
                     "mainSeriesProperties.candleStyle.drawBorder": true,
@@ -87,13 +95,35 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
             widget.onChartReady(() => {
                 console.log("[Chart] Ready");
 
-                // Apply default Price-to-Bar Ratio
-                try {
-                    widget.activeChart().setPriceToBarRatio(5.5);
-                    console.log("[Chart] Applied default PriceToBarRatio: 5.5");
-                } catch (e) {
-                    console.warn("[Chart] Failed to set default PriceToBarRatio:", e);
+                // Apply dynamic Price-to-Bar Ratio via backend mapping
+                const chart = widget.activeChart();
+                const currentResolution = chart.resolution();
+                // Clean the symbol if it contains YF
+                let cleanSymbol = symbol;
+                if (cleanSymbol && cleanSymbol.endsWith(':YF')) {
+                    cleanSymbol = cleanSymbol.replace(':YF', '');
                 }
+
+                fetch(`http://localhost:8005/api/scale_ratio?symbol=${encodeURIComponent(cleanSymbol)}&resolution=${encodeURIComponent(currentResolution)}`)
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data && data.scale_ratio) {
+                            try {
+                                chart.setPriceToBarRatio(data.scale_ratio);
+                                try {
+                                    chart.getPriceScale().setMode({ autoScale: false });
+                                    chart.executeActionById("priceScaleLockRatio");
+                                } catch (_e) { }
+                                console.log(`[Chart] Applied and Locked backend PriceToBarRatio: ${data.scale_ratio}`);
+                            } catch (e) {
+                                console.warn("[Chart] Failed to set backend PriceToBarRatio:", e);
+                            }
+                        }
+                    })
+                    .catch(err => {
+                        console.warn("[Chart] Failed to fetch scale ratio from backend, defaulting:", err);
+                        try { chart.setPriceToBarRatio(5.5); } catch (e) { }
+                    });
 
                 // Actively remove any Bollinger Bands that might have been loaded from a saved layout
                 try {
@@ -111,13 +141,39 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
                 // Subscribe to Symbol Changes to keep parent in sync
                 try {
                     widget.activeChart().onSymbolChanged().subscribe(null, (symbolInfo) => {
-                        console.log("[Chart] Symbol Changed to:", symbolInfo.name);
-                        // Extract cleanly if it has suffix
-                        let cleanName = symbolInfo.name;
-                        // If we are in Yahoo mode and have suffix, maybe strip it for parent state? 
-                        // Actually, parent state usually drives this. But if user changes it via search...
-                        // Let's pass the raw name back.
+                        console.log("[Chart] Symbol Changed to:", symbolInfo);
+
+                        // Extract cleanly if it has suffix. Always prefer ticker.
+                        let cleanName = symbolInfo.ticker || symbolInfo.name;
+
+                        if (cleanName && cleanName.endsWith(':YF')) {
+                            cleanName = cleanName.replace(':YF', '');
+                        }
+
                         if (onSymbolChange) onSymbolChange(cleanName);
+
+                        // Automatically sync backend aspect ratio mapping for newly searched symbol
+                        const currentResolution = widget.activeChart().resolution();
+                        fetch(`http://localhost:8005/api/scale_ratio?symbol=${encodeURIComponent(cleanName)}&resolution=${encodeURIComponent(currentResolution)}`)
+                            .then(res => res.json())
+                            .then(data => {
+                                if (data && data.scale_ratio) {
+                                    try {
+                                        widget.activeChart().setPriceToBarRatio(data.scale_ratio);
+                                        try {
+                                            widget.activeChart().getPriceScale().setMode({ autoScale: false });
+                                            widget.activeChart().executeActionById("priceScaleLockRatio");
+                                        } catch (_e) { }
+                                        console.log(`[Chart] Updated and Locked PriceToBarRatio to ${data.scale_ratio} for new symbol: ${cleanName}`);
+                                    } catch (e) {
+                                        console.warn("[Chart] Failed to dynamically set backend PriceToBarRatio:", e);
+                                    }
+                                }
+                            })
+                            .catch(err => {
+                                console.warn("[Chart] Failed to fetch scale ratio from backend, locked on old map:", err);
+                            });
+
                     });
                 } catch (e) {
                     console.warn("[Chart] Failed to subscribe to symbol changes:", e);
@@ -831,7 +887,7 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
                 pivotSettings
             );
 
-            widgetRef.current.onChartReady(() => {
+            widgetRef.current.onChartReady(async () => {
                 if (!widgetRef.current) {
                     console.warn("[Progressive Replay] Widget lost during init, skipping setup");
                     return;
@@ -843,16 +899,41 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
                 studyShapesRef.current = {};    // Reset study shape tracking
                 console.log("[Progressive Replay] Chart ready - cleared existing shapes");
 
-                // Get scale ratio for angle calculations
+                // Fetch authoritative scale ratio for angle calculations from backend
+                const currentResolution = chart.resolution();
+                // Get the ACTIVE symbol directly from the chart instance (accounts for user UI changes)
+                let currentChartSymbol = chart.symbolExt ? chart.symbolExt().symbol : chart.symbol();
+                let cleanSymbol = currentChartSymbol || symbol;
+                if (cleanSymbol && cleanSymbol.endsWith(':YF')) {
+                    cleanSymbol = cleanSymbol.replace(':YF', '');
+                }
+
                 try {
-                    scaleRatio = chart.getPriceToBarRatio();
-                    console.log("[Progressive Replay] Captured Price-to-Bar Ratio:", scaleRatio);
-                    // Re-apply 5.5 to counteract any distortion from fan toggle DOM rendering
-                    chart.setPriceToBarRatio(5.5);
+                    const res = await fetch(`http://localhost:8005/api/scale_ratio?symbol=${encodeURIComponent(cleanSymbol)}&resolution=${encodeURIComponent(currentResolution)}`);
+                    const data = await res.json();
+                    if (data && data.scale_ratio) {
+                        scaleRatio = data.scale_ratio;
+                        chart.setPriceToBarRatio(scaleRatio);
+                        console.log(`[Progressive Replay] Fetched and locked authoritative Price-to-Bar Ratio to ${scaleRatio}`);
+                    } else {
+                        scaleRatio = 5.5;
+                        chart.setPriceToBarRatio(scaleRatio);
+                        console.log(`[Progressive Replay] Fetched backend missing scale_ratio property, locked default 5.5`);
+                    }
+                } catch (err) {
                     scaleRatio = 5.5;
-                    console.log("[Progressive Replay] Re-locked Price-to-Bar Ratio to 5.5");
+                    try { chart.setPriceToBarRatio(scaleRatio); } catch (e) { }
+                    console.warn("[Progressive Replay] Failed to fetch backend scale ratio for replay, locked default 5.5:", err);
+                }
+
+                // Explicitly lock the price-to-bar ratio so UI resizer doesn't distort it
+                try {
+                    // Try to disable autoScale to physically freeze the Y-axis padding
+                    chart.getPriceScale().setMode({ autoScale: false });
+                    chart.executeActionById("priceScaleLockRatio");
+                    console.log("[Progressive Replay] Explicitly locked price axis scale");
                 } catch (e) {
-                    console.warn("Could not get price-to-bar ratio:", e);
+                    // Silent fail if TV library version doesn't support these exact lock methods
                 }
 
                 // Plot Initial Markers AND Initial Drawings (Fans) if provided

@@ -68,7 +68,9 @@ class AngularPriceCoverageStudy:
             line_extension_bars=self.config['line_extension_bars'],
             main_line_width=self.config['main_line_width'],
             fraction_line_width=self.config['fraction_line_width'],
-            scale_ratio=self.config['scale_ratio']
+            scale_ratio=self.config['scale_ratio'],
+            resolution=self.config.get('resolution'),
+            symbol=self.config.get('symbol')
         )
         
         self.intersection_detector = IntersectionDetector()

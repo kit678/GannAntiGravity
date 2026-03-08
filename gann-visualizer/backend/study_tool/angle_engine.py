@@ -72,7 +72,9 @@ class AngleEngine:
         line_extension_bars: int = 50,
         main_line_width: int = 3,
         fraction_line_width: int = 2,
-        scale_ratio: float = 1.0  # Added scale ratio parameter
+        scale_ratio: float = 1.0,  # Added scale ratio parameter
+        resolution: str = None,
+        symbol: str = None
     ):
         """
         Initialize the angle engine.
@@ -84,6 +86,7 @@ class AngleEngine:
             line_extension_bars: How many bars to extend lines beyond pivot
             main_line_width: Width of main angle line
             fraction_line_width: Width of fraction lines
+            symbol: Ticker symbol, used to determine market timezone
         """
         self.fractions = fractions or DEFAULT_FRACTIONS
         self.fraction_colors = fraction_colors or DEFAULT_FRACTION_COLORS
@@ -92,6 +95,16 @@ class AngleEngine:
         self.main_line_width = main_line_width
         self.fraction_line_width = fraction_line_width
         self.scale_ratio = scale_ratio
+        self.resolution = resolution
+        self.symbol = symbol or ''
+        
+        # Determine market timezone from symbol
+        import pytz
+        sym_upper = self.symbol.upper()
+        if '.NS' in sym_upper or '.BO' in sym_upper or sym_upper.startswith('^NSE') or 'NIFTY' in sym_upper or 'NSEI' in sym_upper:
+            self.market_tz = pytz.timezone('Asia/Kolkata')
+        else:
+            self.market_tz = pytz.timezone('America/New_York')
         
         # Active fans for tracking completion
         self.active_fans: Dict[str, AngleFan] = {}
@@ -167,9 +180,13 @@ class AngleEngine:
         
         db = max(1, abs(target_bar - origin_bar))
         
+        # --- FIXED SCALE RATIO LOGIC ---
+        # To match the Manual Trend Angle tool, we must account for the 
+        # "Price to Bar Ratio" (points per bar).
+        # Default Ratio = 1.0 (User must lock chart scale to 1.0 to match)
+        # For NSEI 4H: pass scale_ratio=22. For AAPL: pass scale_ratio=0.22.
+        
         # Calculate Slope in "Price per Bar"
-        # dp is always p1-p0 (to_price - from_price)
-        # For slope, we need (target_price - origin_price) / bars
         target_price = p1 if t0 <= t1 else p0
         dp_from_origin = target_price - origin_price
         slope_per_bar = dp_from_origin / db
@@ -200,13 +217,19 @@ class AngleEngine:
         import datetime
         from collections import Counter
 
+        # Use the correct market timezone for this symbol.
+        # This is critical: without it, datetime.fromtimestamp() uses the
+        # server's local timezone (e.g. IST), which corrupts slot detection
+        # and future bar projection for US stocks like AAPL.
+        market_tz = self.market_tz
+
         # Extract modal daily schedule from recent history to map perfect 1:1 visual bars
         # This prevents TradingView from squishing overnight gaps (e.g., treating 18 hrs as 18 bars)
         sample_candles = current_candles[-200:] if len(current_candles) > 200 else current_candles
         
         time_slots_counter = Counter()
         for c in sample_candles:
-            dt = datetime.datetime.fromtimestamp(int(c['time']))
+            dt = datetime.datetime.fromtimestamp(int(c['time']), tz=market_tz)
             time_slots_counter[(dt.hour, dt.minute)] += 1
             
         # Filter out rare one-off pre/post market trades to find the bulk active session
@@ -218,6 +241,8 @@ class AngleEngine:
         else:
             valid_slots = [(9, 15), (10, 15), (11, 15), (12, 15), (13, 15), (14, 15), (15, 15)]
         
+        print(f"[AngleEngine] market_tz={market_tz}, valid_slots={valid_slots}")
+
         # Helper to get time for a specific bar index (handling future)
         def get_time_for_bar_index(bar_idx):
             bar_idx = int(round(bar_idx))
@@ -231,7 +256,8 @@ class AngleEngine:
             
             if bar_idx > last_idx:
                 delta_bars = bar_idx - last_idx
-                current_dt = datetime.datetime.fromtimestamp(last_time)
+                # Convert to market-timezone-aware datetime
+                current_dt = datetime.datetime.fromtimestamp(last_time, tz=market_tz)
                 
                 # We step exactly 'delta_bars' through our discovered real-world market schedule.
                 # This guarantees 1 programmatic bar = 1 visual TradingView bar.
@@ -266,8 +292,8 @@ class AngleEngine:
             return first_time - (delta_bars * interval_seconds)
 
         # --- EQUIDISTANT RADIUS EXTENSION ---
-        # The user requested that ALL angle lines (including main) are equidistant,
-        # perfectly touching the circumference of a circle anchored at origin (radius PA).
+        # ALL angle lines use the same radius, endpoints in RAW bar space.
+        # effective_ratio ensures angles match TradingView's visual rendering.
         
         # 1. Main Angle Line
         main_dx_bars = radius * math.cos(theta_radians)

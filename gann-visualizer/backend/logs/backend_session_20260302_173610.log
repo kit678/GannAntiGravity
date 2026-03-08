@@ -1,3 +1,0 @@
-2026-03-02 17:36:10,282 [INFO] Logging initialized. Output writing to C:\Dev\GannTesting\gann-visualizer\backend\logs\backend_session_20260302_173610.log
-2026-03-02 17:36:10,283 [INFO] --- BACKEND RESTART v4 - PNL TRACKING ---
-2026-03-02 17:36:10,283 [INFO] Middleware Stack: [Middleware(BaseHTTPMiddleware, dispatch=<function cors_middleware at 0x000001A682FC22A0>)]

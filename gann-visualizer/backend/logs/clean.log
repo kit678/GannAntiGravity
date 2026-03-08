@@ -1,0 +1,8 @@
+2026-03-06 02:41:34,572 [INFO] Initialized AngularPriceCoverageStudy v4.0. Config: {'left_bars': 5, 'right_bars': 5, 'line_extension_bars': 100, 'fraction_colors': {0.125: '#FF5252', 0.25: '#FF5252', 0.375: '#FF5252', 0.5: '#2196F3', 0.625: '#4CAF50', 0.75: '#4CAF50', 0.875: '#4CAF50', 1.0: '#FFFFFF'}, 'main_color': '#FFFFFF', 'main_line_width': 1, 'fraction_line_width': 2, 'scale_ratio': 0.22, 'breach_mode': 'wick', 'show_intersection_labels': False, 'max_historical_fans': 3}
+2026-03-06 02:41:34,573 [INFO] [Study] Evaluating AngularPriceCoverageStudy (config: {'scale_ratio': 0.22, 'left_bars': 5, 'right_bars': 5, 'show_intersection_labels': False})
+2026-03-06 02:41:34,581 [INFO] [AngleEngine] scale_ratio=0.22, slope_per_bar=-1.5814, visual_slope=-7.1883, theta=-82.08�
+2026-03-06 02:41:34,583 [INFO]   Scale Params: Ratio=0.22, Radius=50.80 bars, Slope/Bar=-1.5814
+2026-03-06 02:41:34,586 [INFO] [AngleEngine] scale_ratio=0.22, slope_per_bar=0.4864, visual_slope=2.2111, theta=65.66�
+2026-03-06 02:41:34,588 [INFO]   Scale Params: Ratio=0.22, Radius=109.20 bars, Slope/Bar=0.4864
+2026-03-06 02:41:34,590 [INFO] [AngleEngine] scale_ratio=0.22, slope_per_bar=0.4471, visual_slope=2.0322, theta=63.80�
+2026-03-06 02:41:34,593 [INFO]   Scale Params: Ratio=0.22, Radius=163.07 bars, Slope/Bar=0.4471

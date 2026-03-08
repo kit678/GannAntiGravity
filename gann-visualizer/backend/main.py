@@ -154,17 +154,51 @@ class EvaluateStrategyRequest(BaseModel):
     left_bars: int | None = None  # Configurable pivot detection
     right_bars: int | None = None  # Configurable pivot detection
     show_intersection_labels: bool = False  # Toggle for drawing price labels on intersection
+    symbol: str | None = None
+    resolution: str | None = None
 
 @app.get("/")
 def read_root():
     return {"status": "Gann Backend Online"}
+
+# Centralized logic for Ticker + Timeframe geometric ratios
+def get_dynamic_scale_ratio(symbol: str, resolution: str) -> float:
+    """
+    Given a ticker symbol and a timeframe (resolution),
+    return the correct hardcoded Price-to-Bar ratio to use for geometry scaling.
+    """
+    if not symbol:
+        return 5.5
+        
+    symbol_upper = symbol.upper()
+    
+    # User Request: Default ALL time frames to 0.55 specifically for AAPL, 
+    # except 4-hour (240m) which is requested to be 0.22
+    if 'AAPL' in symbol_upper:
+        if resolution == '240' or resolution == '4H':
+            return 0.22
+        return 0.55
+    
+    if 'NSEI' in symbol_upper or 'NIFTY' in symbol_upper:
+        if resolution == '240' or resolution == '4H':
+            return 22.0
+        if resolution == '60' or resolution == '1H':
+            return 5.5
+            
+    # Default fallback
+    return 5.5
+
+@app.get("/api/scale_ratio")
+def api_scale_ratio(symbol: str, resolution: str):
+    ratio = get_dynamic_scale_ratio(symbol, resolution)
+    return {"scale_ratio": ratio}
 
 # --- UDF (Universal Data Feed) Endpoints for TradingView Advanced Charts ---
 
 @app.get("/config")
 def udf_config():
     return {
-        "supported_resolutions": ["1", "5", "15", "30", "60", "D", "W", "M"],
+        "supported_resolutions": ["1", "5", "15", "30", "60", "240", "D", "W", "M"],
         "supports_group_request": False,
         "supports_marks": True,
         "supports_search": True,
@@ -280,12 +314,12 @@ def udf_symbols(symbol: str):
         "pointvalue": 1,
         "session": "0915-1530",
         "has_intraday": True,
-        "intraday_multipliers": ["1", "5", "15", "60"],
+        "intraday_multipliers": ["1", "5", "15", "60", "240"],
         "has_daily": True,
         "has_weekly_and_monthly": False, 
         "description": symbol,
         "type": "index" if "INDEX" in symbol or "NIFTY" in symbol else "stock",
-        "supported_resolutions": ["1", "5", "15", "60", "D"],
+        "supported_resolutions": ["1", "5", "15", "60", "240", "D"],
         "pricescale": 100, 
         "ticker": symbol,
     }
@@ -665,6 +699,11 @@ async def fetch_candles(req: FetchCandlesRequest):
         
         client = get_data_client(req.data_source)
         
+        # Prepare valid symbol for fetching (strip YF tag)
+        clean_symbol = req.symbol
+        if clean_symbol.endswith(":YF"):
+            clean_symbol = clean_symbol.replace(":YF", "")
+        
         # Calculate lookback date adjustment based on resolution and lookback_bars
         # This provides pivot/strategy context without fetching unnecessary data
         from_dt = datetime.strptime(req.from_date, '%Y-%m-%d')
@@ -700,7 +739,7 @@ async def fetch_candles(req: FetchCandlesRequest):
         else:
             adjusted_from_date = req.from_date
         
-        df = client.fetch_data(req.symbol, adjusted_from_date, req.to_date, interval=req.resolution)
+        df = client.fetch_data(clean_symbol, adjusted_from_date, req.to_date, interval=req.resolution)
         
         if df is None or df.empty:
             raise HTTPException(
@@ -812,11 +851,19 @@ async def _process_study_bar(req: EvaluateStrategyRequest):
     2. Slow Path (Reset/Jump): Replay history to build state, then return snapshot of ACTIVE fans only.
     """
     try:
-        # Pass scale_ratio from frontend if provided, otherwise default
+        # Resolve the definitive ratio to use
         study_config = {}
-        if req.scale_ratio is not None and req.scale_ratio > 0:
+        study_config['resolution'] = getattr(req, 'resolution', None)
+        study_config['symbol'] = getattr(req, 'symbol', None)
+        
+        # We attempt to auto-resolve dynamically purely on the backend if available
+        # from the provided symbol and resolution, acting as the absolute source of truth.
+        if hasattr(req, 'symbol') and req.symbol and hasattr(req, 'resolution') and req.resolution:
+            study_config['scale_ratio'] = get_dynamic_scale_ratio(req.symbol, req.resolution)
+        elif req.scale_ratio is not None and req.scale_ratio > 0:
             study_config['scale_ratio'] = req.scale_ratio
-            # print(f"[Study] Using scale_ratio from chart: {req.scale_ratio}")
+        else:
+            study_config['scale_ratio'] = 5.5
         
         # Pass configurable pivot settings if provided
         if req.left_bars is not None:
@@ -1223,7 +1270,8 @@ def run_backtest(req: BacktestRequest):
             # Instantiate Study
             study_config = {
                 'left_bars': 5, # Default
-                'right_bars': 5
+                'right_bars': 5,
+                'resolution': getattr(req, 'resolution', None)
             }
             
             if getattr(req, 'pivotSettings', None):
@@ -1412,6 +1460,11 @@ def fetch_candles(req: FetchCandlesRequest):
         data_source = req.data_source
         client = get_data_client(data_source)
         
+        # Prepare valid symbol for fetching (strip YF tag)
+        clean_symbol = req.symbol
+        if clean_symbol.endswith(":YF"):
+            clean_symbol = clean_symbol.replace(":YF", "")
+            
         # Calculate extended range for lookback context
         to_dt = datetime.strptime(req.to_date, '%Y-%m-%d')
         from_dt = datetime.strptime(req.from_date, '%Y-%m-%d')
@@ -1425,7 +1478,7 @@ def fetch_candles(req: FetchCandlesRequest):
         
         # Fetch Data
         print(f"[FetchCandles] Requesting range: {start_dt} to {req.to_date} for resolution {req.resolution}")
-        df = client.fetch_data(req.symbol, start_dt.strftime('%Y-%m-%d'), req.to_date, interval=req.resolution)
+        df = client.fetch_data(clean_symbol, start_dt.strftime('%Y-%m-%d'), req.to_date, interval=req.resolution)
         
         if df is None or df.empty:
              print(f"[FetchCandles] No data returned from client")
@@ -1472,6 +1525,7 @@ def fetch_candles(req: FetchCandlesRequest):
             
             # Map request pivotSettings to study config format
             study_config = {}
+            study_config['resolution'] = getattr(req, 'resolution', None)
             if req.pivotSettings:
                 if 'leftBars' in req.pivotSettings: study_config['left_bars'] = req.pivotSettings['leftBars']
                 if 'rightBars' in req.pivotSettings: study_config['right_bars'] = req.pivotSettings['rightBars']
