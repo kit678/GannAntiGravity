@@ -198,7 +198,7 @@ def api_scale_ratio(symbol: str, resolution: str):
 @app.get("/config")
 def udf_config():
     return {
-        "supported_resolutions": ["1", "5", "15", "30", "60", "240", "D", "W", "M"],
+        "supported_resolutions": ["1", "4", "5", "15", "30", "60", "240", "D", "W", "M"],
         "supports_group_request": False,
         "supports_marks": True,
         "supports_search": True,
@@ -314,12 +314,12 @@ def udf_symbols(symbol: str):
         "pointvalue": 1,
         "session": "0915-1530",
         "has_intraday": True,
-        "intraday_multipliers": ["1", "5", "15", "60", "240"],
+        "intraday_multipliers": ["1", "4", "5", "15", "60", "240"],
         "has_daily": True,
         "has_weekly_and_monthly": False, 
         "description": symbol,
         "type": "index" if "INDEX" in symbol or "NIFTY" in symbol else "stock",
-        "supported_resolutions": ["1", "5", "15", "60", "240", "D"],
+        "supported_resolutions": ["1", "4", "5", "15", "60", "240", "D"],
         "pricescale": 100, 
         "ticker": symbol,
     }
