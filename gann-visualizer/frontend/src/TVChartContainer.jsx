@@ -69,6 +69,7 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
                 user_id: 'public_user_id',
                 theme: 'Dark',
                 autosize: true,
+                supported_resolutions: ["1", "4", "5", "15", "30", "60", "240", "D", "W", "M"],
                 favorites: {
                     intervals: ["1", "4", "5", "15", "30", "60", "240", "D"]
                 },
