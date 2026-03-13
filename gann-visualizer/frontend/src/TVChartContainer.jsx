@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState, useImperativeHandle, forwardRef } f
 import createChartDatafeed from './chart/ChartDatafeed';
 import { processStudyResponse } from './study_tool/StudyDrawingUtils';
 
-export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, interval = '60', onTradeLogged, dataSource = 'dhan', onSymbolChange, onPlayingStateChange, ...props }, ref) => {
+export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, interval = '60', onTradeLogged, dataSource = 'dhan', cycleType = '24_hour', sessionDuration = 'standard', onSymbolChange, onPlayingStateChange, ...props }, ref) => {
     const chartContainerRef = useRef(null);
     const datafeedRef = useRef(null);
     const widgetRef = useRef(null);
@@ -108,7 +108,7 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
                     cleanSymbol = cleanSymbol.replace(':YF', '');
                 }
 
-                fetch(`http://localhost:8005/api/scale_ratio?symbol=${encodeURIComponent(cleanSymbol)}&resolution=${encodeURIComponent(currentResolution)}`)
+                fetch(`http://localhost:8005/api/scale_ratio?symbol=${encodeURIComponent(cleanSymbol)}&resolution=${encodeURIComponent(currentResolution)}&cycle_type=${encodeURIComponent(cycleType)}&session_duration=${encodeURIComponent(sessionDuration)}`)
                     .then(res => res.json())
                     .then(data => {
                         if (data && data.scale_ratio) {
@@ -158,7 +158,7 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
 
                         // Automatically sync backend aspect ratio mapping for newly searched symbol
                         const currentResolution = widget.activeChart().resolution();
-                        fetch(`http://localhost:8005/api/scale_ratio?symbol=${encodeURIComponent(cleanName)}&resolution=${encodeURIComponent(currentResolution)}`)
+                        fetch(`http://localhost:8005/api/scale_ratio?symbol=${encodeURIComponent(cleanName)}&resolution=${encodeURIComponent(currentResolution)}&cycle_type=${encodeURIComponent(cycleType)}&session_duration=${encodeURIComponent(sessionDuration)}`)
                             .then(res => res.json())
                             .then(data => {
                                 if (data && data.scale_ratio) {
@@ -226,6 +226,31 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
             }
         };
     }, [symbol, datafeedUrl, interval, dataSource, onSymbolChange]);
+
+    // Listen for changes to cycleType or sessionDuration and update the chart dynamically
+    useEffect(() => {
+        if (!widgetRef.current) return;
+        try {
+            const chart = widgetRef.current.activeChart();
+            const currentResolution = chart.resolution();
+            let cleanSymbol = chart.symbolExt ? chart.symbolExt().symbol : chart.symbol();
+            if (cleanSymbol && cleanSymbol.endsWith(':YF')) {
+                cleanSymbol = cleanSymbol.replace(':YF', '');
+            }
+
+            fetch(`http://localhost:8005/api/scale_ratio?symbol=${encodeURIComponent(cleanSymbol)}&resolution=${encodeURIComponent(currentResolution)}&cycle_type=${encodeURIComponent(cycleType)}&session_duration=${encodeURIComponent(sessionDuration)}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data && data.scale_ratio) {
+                        chart.setPriceToBarRatio(data.scale_ratio);
+                        console.log(`[Chart] Updated PriceToBarRatio to ${data.scale_ratio} due to session config change`);
+                    }
+                })
+                .catch(err => console.warn("[Chart] Failed to update ratio on config change", err));
+        } catch (e) {
+            // Chart might not be ready yet, which is fine (handled by initial load)
+        }
+    }, [cycleType, sessionDuration]);
 
     // Handle Visibility Toggles
     useEffect(() => {
@@ -913,7 +938,7 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
                 }
 
                 try {
-                    const res = await fetch(`http://localhost:8005/api/scale_ratio?symbol=${encodeURIComponent(cleanSymbol)}&resolution=${encodeURIComponent(currentResolution)}`);
+                    const res = await fetch(`http://localhost:8005/api/scale_ratio?symbol=${encodeURIComponent(cleanSymbol)}&resolution=${encodeURIComponent(currentResolution)}&cycle_type=${encodeURIComponent(cycleType)}&session_duration=${encodeURIComponent(sessionDuration)}`);
                     const data = await res.json();
                     if (data && data.scale_ratio) {
                         scaleRatio = data.scale_ratio;

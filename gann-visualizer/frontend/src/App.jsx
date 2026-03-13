@@ -40,6 +40,10 @@ function App() {
 
     const [instrumentType, setInstrumentType] = useState('spot') // User requested default
     const [dataSource, setDataSource] = useState('yfinance') // User requested default
+    
+    // Session Configuration
+    const [cycleType, setCycleType] = useState('24_hour')
+    const [sessionDuration, setSessionDuration] = useState('standard')
 
     // Pivot settings for Angular Coverage study
     const [pivotLeftBars, setPivotLeftBars] = useState(5)
@@ -384,6 +388,17 @@ function App() {
                         <option value="dhan">Dhan API</option>
                         <option value="yfinance">Yahoo Finance (Free)</option>
                     </select>
+                    
+                    <select value={cycleType} onChange={(e) => setCycleType(e.target.value)} className="cycle-type-select">
+                        <option value="24_hour">24-Hour Cycle</option>
+                        <option value="trading_day">Trading Day Cycle</option>
+                    </select>
+                    
+                    <select value={sessionDuration} onChange={(e) => setSessionDuration(e.target.value)} className="session-duration-select">
+                        <option value="standard">Standard</option>
+                        <option value="390_minute">6.5 Hours (390 min)</option>
+                        <option value="360_minute">6 Hours (360 min)</option>
+                    </select>
 
                     <div className="date-range-picker">
                         <label>Start: <input type="date" defaultValue={DEFAULT_START_DATE} ref={startDateRef} /></label>
@@ -462,6 +477,8 @@ function App() {
                         symbol={chartMountSymbol}
                         datafeedUrl={DATAFEED_URL}
                         dataSource={dataSource}
+                        cycleType={cycleType}
+                        sessionDuration={sessionDuration}
                         onTradeLogged={handleTradeLogged}
                         onSymbolChange={handleSymbolChange}
                         instrumentType={instrumentType}

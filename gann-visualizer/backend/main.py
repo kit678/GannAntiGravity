@@ -94,8 +94,6 @@ print("--- BACKEND RESTART v4 - PNL TRACKING ---")
 
 # Position tracking for progressive replay PnL calculation
 # Key: strategy name, Value: { position_type, entry_price, entry_time, entry_label, option_price }
-# Position tracking for progressive replay PnL calculation
-# Key: strategy name, Value: { position_type, entry_price, entry_time, entry_label, option_price }
 _replay_positions = {}
 _study_cache = {'index': -1, 'strategy': None, 'state': None}
 
@@ -127,8 +125,6 @@ async def cors_middleware(request: Request, call_next):
         
     return response
 
-# app.add_middleware(CORSMiddleware...) - Disabled
-
 print(f"Middleware Stack: {app.user_middleware}")
 
 class BacktestRequest(BaseModel):
@@ -150,6 +146,7 @@ class FetchCandlesRequest(BaseModel):
     data_source: str = "dhan"  # "dhan" or "yfinance"
     lookback_bars: int = 50  # Number of bars to fetch before from_date for pivot context
     pivotSettings: Optional[Dict[str, Any]] = None  # Settings like leftBars, rightBars, showIntersectionLabels
+
 def get_data_client(data_source: str = "dhan"):
     """Factory function to get appropriate data client."""
     if data_source == "yfinance":
@@ -168,15 +165,17 @@ class EvaluateStrategyRequest(BaseModel):
     show_intersection_labels: bool = False  # Toggle for drawing price labels on intersection
     symbol: str | None = None
     resolution: str | None = None
+    cycle_type: str = "24_hour"
+    session_duration: str = "standard"
 
 @app.get("/")
 def read_root():
     return {"status": "Gann Backend Online"}
 
 # Centralized logic for Ticker + Timeframe geometric ratios
-def get_dynamic_scale_ratio(symbol: str, resolution: str, session_type: str = "standard") -> float:
+def get_dynamic_scale_ratio(symbol: str, resolution: str, cycle_type: str = "24_hour", session_duration: str = "standard") -> float:
     """
-    Given a ticker symbol, timeframe (resolution), and session type,
+    Given a ticker symbol, timeframe (resolution), cycle type, and session duration,
     return the correct Price-to-Bar ratio from the configuration.
     """
     if not symbol:
@@ -206,18 +205,21 @@ def get_dynamic_scale_ratio(symbol: str, resolution: str, session_type: str = "s
     if mapped_symbol not in TICKER_CONFIG:
         raise ValueError(f"Increment configuration not found for ticker {symbol} ({mapped_symbol})")
         
-    if session_type not in TICKER_CONFIG[mapped_symbol]:
-        raise ValueError(f"Session type '{session_type}' not found for ticker {mapped_symbol}")
+    if cycle_type not in TICKER_CONFIG[mapped_symbol]:
+        raise ValueError(f"Cycle type '{cycle_type}' not found for ticker {mapped_symbol}")
         
-    if mapped_res not in TICKER_CONFIG[mapped_symbol][session_type]:
-        raise ValueError(f"Increment configuration not found for ticker {mapped_symbol} on {mapped_res} timeframe")
+    if session_duration not in TICKER_CONFIG[mapped_symbol][cycle_type]:
+        raise ValueError(f"Session duration '{session_duration}' not found for ticker {mapped_symbol} under cycle '{cycle_type}'")
         
-    return TICKER_CONFIG[mapped_symbol][session_type][mapped_res]
+    if mapped_res not in TICKER_CONFIG[mapped_symbol][cycle_type][session_duration]:
+        raise ValueError(f"Increment configuration not found for ticker {mapped_symbol} on {mapped_res} timeframe ({cycle_type}/{session_duration})")
+        
+    return TICKER_CONFIG[mapped_symbol][cycle_type][session_duration][mapped_res]
 
 @app.get("/api/scale_ratio")
-def api_scale_ratio(symbol: str, resolution: str, session_type: str = "standard"):
+def api_scale_ratio(symbol: str, resolution: str, cycle_type: str = "24_hour", session_duration: str = "standard"):
     try:
-        ratio = get_dynamic_scale_ratio(symbol, resolution, session_type)
+        ratio = get_dynamic_scale_ratio(symbol, resolution, cycle_type, session_duration)
         return {"scale_ratio": ratio}
     except ValueError as e:
         # Return 404 so the frontend knows it failed and can handle it gracefully
@@ -890,7 +892,7 @@ async def _process_study_bar(req: EvaluateStrategyRequest):
         # from the provided symbol and resolution, acting as the absolute source of truth.
         if hasattr(req, 'symbol') and req.symbol and hasattr(req, 'resolution') and req.resolution:
             try:
-                study_config['scale_ratio'] = get_dynamic_scale_ratio(req.symbol, req.resolution)
+                study_config['scale_ratio'] = get_dynamic_scale_ratio(req.symbol, req.resolution, req.cycle_type, req.session_duration)
             except ValueError as e:
                 print(f"[Study] Config error: {e}. Falling back to default.")
                 study_config['scale_ratio'] = req.scale_ratio if req.scale_ratio and req.scale_ratio > 0 else 5.5
