@@ -45,6 +45,17 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
                 return;
             }
 
+            // Force clear TradingView's aggressive local storage caching so new timeframes (like 4m) appear
+            try {
+                Object.keys(localStorage).forEach(key => {
+                    if (key.toLowerCase().includes('tradingview') || key.toLowerCase().includes('udf')) {
+                        localStorage.removeItem(key);
+                    }
+                });
+            } catch (e) {
+                console.warn("Could not clear localStorage", e);
+            }
+
             console.log('[TVChart] Initializing chart with dataSource:', dataSource);
 
             const udfDatafeed = new window.Datafeeds.UDFCompatibleDatafeed(datafeedUrl);
