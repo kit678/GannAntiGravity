@@ -29,8 +29,8 @@ const calculateSummary = (trades) => {
         completedTrades: wins + losses,
         wins,
         losses,
-        totalPnL: totalPnL.toFixed(2),
-        winRate: (wins + losses > 0) ? ((wins / (wins + losses)) * 100).toFixed(1) : 0
+        totalPnL: Number(totalPnL.toFixed(2)),
+        winRate: (wins + losses > 0) ? Number(((wins / (wins + losses)) * 100).toFixed(1)) : 0
     };
 };
 
