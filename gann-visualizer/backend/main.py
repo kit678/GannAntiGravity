@@ -15,6 +15,7 @@ import pytz
 import logging
 import sys
 import os
+import json
 
 # --- LOGGING CONFIGURATION ---
 LOG_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "logs")
@@ -75,6 +76,17 @@ sys.stdout = StreamToLogger(logger, logging.INFO)
 sys.stderr = StreamToLogger(logger, logging.ERROR)
 
 print(f"Logging initialized. Output writing to {os.path.abspath(LOG_FILE)}")
+# -----------------------------
+
+# --- CONFIGURATION LOADER ---
+CONFIG_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ticker_config.json")
+try:
+    with open(CONFIG_FILE, 'r') as f:
+        TICKER_CONFIG = json.load(f)
+    print(f"Successfully loaded ticker configuration from {CONFIG_FILE}")
+except Exception as e:
+    print(f"Warning: Could not load ticker_config.json: {e}")
+    TICKER_CONFIG = {}
 # -----------------------------
 
 app = FastAPI()
@@ -162,36 +174,54 @@ def read_root():
     return {"status": "Gann Backend Online"}
 
 # Centralized logic for Ticker + Timeframe geometric ratios
-def get_dynamic_scale_ratio(symbol: str, resolution: str) -> float:
+def get_dynamic_scale_ratio(symbol: str, resolution: str, session_type: str = "standard") -> float:
     """
-    Given a ticker symbol and a timeframe (resolution),
-    return the correct hardcoded Price-to-Bar ratio to use for geometry scaling.
+    Given a ticker symbol, timeframe (resolution), and session type,
+    return the correct Price-to-Bar ratio from the configuration.
     """
     if not symbol:
-        return 5.5
+        raise ValueError("Symbol cannot be empty")
         
     symbol_upper = symbol.upper()
     
-    # User Request: Default ALL time frames to 0.55 specifically for AAPL, 
-    # except 4-hour (240m) which is requested to be 0.22
+    # Map common symbols to config keys
+    mapped_symbol = symbol_upper
     if 'AAPL' in symbol_upper:
-        if resolution == '240' or resolution == '4H':
-            return 0.22
-        return 0.55
+        mapped_symbol = 'AAPL'
+    elif 'NSEI' in symbol_upper or 'NIFTY' in symbol_upper:
+        mapped_symbol = 'NIFTY 50'
+        
+    # Map TradingView resolutions to config keys
+    res_map = {
+        "1": "1-Minute",
+        "4": "4-Minute",
+        "15": "15-Minute",
+        "60": "60-Minute",
+        "1H": "60-Minute",
+        "240": "240-Minute",
+        "4H": "240-Minute"
+    }
+    mapped_res = res_map.get(resolution, f"{resolution}-Minute")
     
-    if 'NSEI' in symbol_upper or 'NIFTY' in symbol_upper:
-        if resolution == '240' or resolution == '4H':
-            return 22.0
-        if resolution == '60' or resolution == '1H':
-            return 5.5
-            
-    # Default fallback
-    return 5.5
+    if mapped_symbol not in TICKER_CONFIG:
+        raise ValueError(f"Increment configuration not found for ticker {symbol} ({mapped_symbol})")
+        
+    if session_type not in TICKER_CONFIG[mapped_symbol]:
+        raise ValueError(f"Session type '{session_type}' not found for ticker {mapped_symbol}")
+        
+    if mapped_res not in TICKER_CONFIG[mapped_symbol][session_type]:
+        raise ValueError(f"Increment configuration not found for ticker {mapped_symbol} on {mapped_res} timeframe")
+        
+    return TICKER_CONFIG[mapped_symbol][session_type][mapped_res]
 
 @app.get("/api/scale_ratio")
-def api_scale_ratio(symbol: str, resolution: str):
-    ratio = get_dynamic_scale_ratio(symbol, resolution)
-    return {"scale_ratio": ratio}
+def api_scale_ratio(symbol: str, resolution: str, session_type: str = "standard"):
+    try:
+        ratio = get_dynamic_scale_ratio(symbol, resolution, session_type)
+        return {"scale_ratio": ratio}
+    except ValueError as e:
+        # Return 404 so the frontend knows it failed and can handle it gracefully
+        raise HTTPException(status_code=404, detail=str(e))
 
 # --- UDF (Universal Data Feed) Endpoints for TradingView Advanced Charts ---
 
@@ -859,7 +889,11 @@ async def _process_study_bar(req: EvaluateStrategyRequest):
         # We attempt to auto-resolve dynamically purely on the backend if available
         # from the provided symbol and resolution, acting as the absolute source of truth.
         if hasattr(req, 'symbol') and req.symbol and hasattr(req, 'resolution') and req.resolution:
-            study_config['scale_ratio'] = get_dynamic_scale_ratio(req.symbol, req.resolution)
+            try:
+                study_config['scale_ratio'] = get_dynamic_scale_ratio(req.symbol, req.resolution)
+            except ValueError as e:
+                print(f"[Study] Config error: {e}. Falling back to default.")
+                study_config['scale_ratio'] = req.scale_ratio if req.scale_ratio and req.scale_ratio > 0 else 5.5
         elif req.scale_ratio is not None and req.scale_ratio > 0:
             study_config['scale_ratio'] = req.scale_ratio
         else:
