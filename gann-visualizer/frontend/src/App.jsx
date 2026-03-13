@@ -536,7 +536,7 @@ function App() {
                                         <p><strong>Total Signals:</strong> {backtestSummary.totalTrades}</p>
                                         <p><strong>Completed Trades:</strong> {backtestSummary.completedTrades}</p>
                                         <p><strong>Win Rate:</strong> {backtestSummary.winRate}%</p>
-                                        <p><strong>Total P&L:</strong> <span style={{ color: parseFloat(backtestSummary.totalPnL) >= 0 ? '#00E676' : '#FF5252' }}>{backtestSummary.totalPnL}</span></p>
+                                        <p><strong>Total P&L:</strong> <span style={{ color: Number.parseFloat(backtestSummary.totalPnL) >= 0 ? '#00E676' : '#FF5252' }}>{backtestSummary.totalPnL}</span></p>
                                     </div>
                                 ) : (
                                     <p>Select a strategy and run backtest to see results here.</p>
