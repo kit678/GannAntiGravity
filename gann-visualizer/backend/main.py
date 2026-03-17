@@ -747,22 +747,39 @@ async def fetch_candles(req: FetchCandlesRequest):
             # We strictly calculate minimum needed, then multiply by HUGE factor to ensure "everything" is loaded organically
             # within reasonable fetch limits.
             
-            if req.resolution in ['1D', 'D']:
+            # Resolution-specific bars-per-day estimates (approximate)
+            if req.resolution in ['1D', 'D', 'W', 'M']:
                 lookback_days = req.lookback_bars  # 1 bar = 1 day
+            elif req.resolution == '240': # 4 Hour
+                lookback_days = max(1, req.lookback_bars // 1.5) # ~1.5 bars per day
             elif req.resolution == '60':
                 lookback_days = max(1, req.lookback_bars // 6)
+            elif req.resolution == '30':
+                lookback_days = max(1, req.lookback_bars // 12)
             elif req.resolution == '15':
                 lookback_days = max(1, req.lookback_bars // 25)
             elif req.resolution == '5':
                 lookback_days = max(1, req.lookback_bars // 75)
-            else:  # resolution == '1' (1-minute)
+            elif req.resolution == '4':
+                lookback_days = max(1, req.lookback_bars // 90) # ~90 bars per day
+            else:  # resolution == '1' (1-minute) or fallback
                 lookback_days = max(1, req.lookback_bars // 375)
             
             # Apply massive buffer (4x) to simulate "load everything" while keeping req.lookback_bars as a base
-            # This ensures we get years of data for hourly, and months for minutes.
             lookback_days = int(lookback_days * 4.0) + 30
             
-            # CAP lookback to avoid API timeouts (e.g. 10 years max)
+            # ENFORCE DATA SOURCE LIMITS (especially YFinance)
+            # This prevents requesting data from 3 years ago when only 7 days are available,
+            # which causes YFinance to return empty or error.
+            if req.data_source == 'yfinance':
+                if req.resolution in ['1', '4']:
+                    lookback_days = min(lookback_days, 60) # Relaxed limit to trigger auto-promote in client
+                elif req.resolution in ['2', '5', '15', '30']:
+                    lookback_days = min(lookback_days, 60) # Limit to 60 days
+                elif req.resolution in ['60', '240']:
+                    lookback_days = min(lookback_days, 700) # Limit to 700 days (safe under 730)
+            
+            # CAP lookback generally to avoid API timeouts (e.g. 10 years max)
             lookback_days = min(lookback_days, 3650)
             
             adjusted_from_dt = from_dt - timedelta(days=lookback_days)
@@ -773,10 +790,29 @@ async def fetch_candles(req: FetchCandlesRequest):
         
         df = client.fetch_data(clean_symbol, adjusted_from_date, req.to_date, interval=req.resolution)
         
+        # FALLBACK LOGIC: If explicit fetch returned empty (likely due to invalid/old date range),
+        # automatically fetch the *latest* available data so the user sees something.
+        if (df is None or df.empty) and req.data_source == 'yfinance':
+            print(f"[Replay] Data empty for range {adjusted_from_date} to {req.to_date}. Attempting fallback to latest available data...")
+            
+            # Define safe fallback duration based on resolution
+            fallback_days = 5 # Default for 1m/4m
+            if req.resolution in ['2', '5', '15', '30']: fallback_days = 55
+            elif req.resolution in ['60', '240']: fallback_days = 700
+            elif req.resolution in ['1D', 'D', 'W', 'M']: fallback_days = 365
+            
+            fallback_from = datetime.now() - timedelta(days=fallback_days)
+            fallback_from_str = fallback_from.strftime('%Y-%m-%d')
+            # Use current time as end date to ensure we get data
+            fallback_to_str = datetime.now().strftime('%Y-%m-%d')
+            
+            print(f"[Replay] Fallback fetch: {fallback_from_str} to {fallback_to_str}")
+            df = client.fetch_data(clean_symbol, fallback_from_str, fallback_to_str, interval=req.resolution)
+
         if df is None or df.empty:
             raise HTTPException(
                 status_code=404, 
-                detail=f"No data found for {req.symbol} ({req.from_date} to {req.to_date}). Resolution '{req.resolution}' on '{req.data_source}' might be limited (e.g. YFinance 1m is last 7 days only)."
+                detail=f"No data found for {req.symbol}. Resolution '{req.resolution}' on '{req.data_source}' might be limited (e.g. YFinance 1m is last 7 days only)."
             )
         
         # Convert to candlestick format
@@ -829,17 +865,93 @@ async def fetch_candles(req: FetchCandlesRequest):
                 print(f"[OptionCache] Error during prefetch: {cache_error}")
                 import traceback
                 traceback.print_exc()
+
+        # PROCESS STUDY for INITIAL MARKERS AND DRAWINGS
+        initial_markers = []
+        initial_drawings = []
         
-        print(f"[Replay] Returning {len(candles_list)} candles, option_cache_ready: {option_cache_ready}")
+        from strategies import is_study
+        if is_study(req.strategy):
+            print(f"[FetchCandles] Pre-calculating historical state for {req.strategy}")
+            
+            # Map request pivotSettings to study config format
+            study_config = {}
+            study_config['resolution'] = getattr(req, 'resolution', None)
+            if req.pivotSettings:
+                if 'leftBars' in req.pivotSettings: study_config['left_bars'] = req.pivotSettings['leftBars']
+                if 'rightBars' in req.pivotSettings: study_config['right_bars'] = req.pivotSettings['rightBars']
+                if 'showIntersectionLabels' in req.pivotSettings: study_config['show_intersection_labels'] = req.pivotSettings['showIntersectionLabels']
+            
+            if req.strategy == 'pivot_points_only':
+                from study_tool.pivot_points_study import PivotPointsStudy
+                study = PivotPointsStudy(config=study_config)
+            elif req.strategy == 'angular_coverage':
+                from study_tool.angular_coverage_study import AngularPriceCoverageStudy
+                study = AngularPriceCoverageStudy(config=study_config)
+            else:
+                study = None
+                
+            if study and len(candles_list) > 0:
+                try:
+                    print(f"[FetchCandles] Initializing study state on {len(candles_list)} bars...")
+                    
+                    # Calculate the index corresponding to the "start" of the replay (end of lookback)
+                    # We want the state just BEFORE the requested from_date
+                    cutoff_index = -1
+                    
+                    # Ensure target_start_ts is available (it's calculated earlier in fetch_candles)
+                    # If for some reason it's not, recalculate it
+                    if 'target_start_ts' not in locals():
+                         from_dt_temp = datetime.strptime(req.from_date, '%Y-%m-%d')
+                         target_start_ts = int(from_dt_temp.timestamp())
+
+                    for i, c in enumerate(candles_list):
+                        if c['time'] < target_start_ts:
+                            cutoff_index = i
+                        else:
+                            # We found the first candle that is >= from_date
+                            # So the previous one (cutoff_index) is the last lookback candle
+                            break
+                    
+                    print(f"[FetchCandles] Replay Start: {req.from_date} ({target_start_ts}). Cutoff Index: {cutoff_index} (Last Lookback Bar)")
+                    
+                    # Only process if we have lookback data
+                    if cutoff_index >= 0:
+                         # Run the slow-path initialization for the lookback period only
+                         final_result = study.process_bar(
+                             candles=candles_list,
+                             bar_index=cutoff_index,
+                             state=None
+                         )
+                         
+                         if final_result:
+                             initial_markers = final_result.get('pivot_markers', [])
+                             initial_drawings = final_result.get('drawings', [])
+                             print(f"[FetchCandles] Generated {len(initial_markers)} initial markers and {len(initial_drawings)} initial drawings from lookback context")
+                    else:
+                        print("[FetchCandles] No lookback context found (cutoff_index=-1). Starting with empty state.")
+                        initial_markers = []
+                        initial_drawings = []
+
+                except Exception as e:
+                    print(f"[FetchCandles] Error precalculating history: {e}")
+                    import traceback
+                    traceback.print_exc()
         
-        return {"candles": candles_list, "option_cache_ready": option_cache_ready, "markers": []}
+        print(f"[Replay] Returning {len(candles_list)} candles, option_cache_ready: {option_cache_ready}, Initial Markers: {len(initial_markers)}")
+        
+        return {
+            "candles": candles_list, 
+            "option_cache_ready": option_cache_ready, 
+            "markers": initial_markers,
+            "drawings": initial_drawings
+        }
     except HTTPException:
         raise 
     except Exception as e:
         import traceback
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Error fetching candles: {str(e)}")
-
 
 @app.post("/evaluate_strategy_step")
 async def evaluate_strategy_step(req: EvaluateStrategyRequest):
@@ -1484,132 +1596,6 @@ def run_backtest(req: BacktestRequest):
         import traceback
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Backend Error: {str(e)}")
-
-@app.post("/fetch_candles")
-def fetch_candles(req: FetchCandlesRequest):
-    """
-    Fetch candles for progressive replay/simulation.
-    This fetches historical data + lookback bars.
-    NEW: Also returns INITIAL MARKERS if a study is active, so they appear immediately.
-    """
-    try:
-        data_source = req.data_source
-        client = get_data_client(data_source)
-        
-        # Prepare valid symbol for fetching (strip YF tag)
-        clean_symbol = req.symbol
-        if clean_symbol.endswith(":YF"):
-            clean_symbol = clean_symbol.replace(":YF", "")
-            
-        # Calculate extended range for lookback context
-        to_dt = datetime.strptime(req.to_date, '%Y-%m-%d')
-        from_dt = datetime.strptime(req.from_date, '%Y-%m-%d')
-        # Ensure we have enough history for lookback_bars
-        # For High Timeframe (1D, 1W), 5 days is NOT enough.
-        # For intraday (1m), 5 days is 1875 bars.
-        # If lookback_bars is 5000, we need more.
-        # Safest is to fetch significantly more history.
-        buffer_days = 365 # Fetch 1 year of context to be safe
-        start_dt = from_dt - timedelta(days=buffer_days)
-        
-        # Fetch Data
-        print(f"[FetchCandles] Requesting range: {start_dt} to {req.to_date} for resolution {req.resolution}")
-        df = client.fetch_data(clean_symbol, start_dt.strftime('%Y-%m-%d'), req.to_date, interval=req.resolution)
-        
-        if df is None or df.empty:
-             print(f"[FetchCandles] No data returned from client")
-             raise HTTPException(status_code=404, detail="No data found for symbol/range")
-
-        print(f"[FetchCandles] Client returned {len(df)} rows. First timestamp: {df['timestamp'].iloc[0] if not df.empty else 'None'}")
-        
-        # Determine Cutoff
-        target_start_ts = int(from_dt.timestamp())
-        
-        # Filter (keeping lookback bars)
-        df_sorted = df.sort_values('timestamp')
-        
-        # Find index of start date
-        start_indices = df_sorted[df_sorted['timestamp'] >= target_start_ts].index
-        
-        final_df = df_sorted
-        if not start_indices.empty:
-            start_idx = start_indices[0]
-            # Include lookback_bars before the start
-            slice_start = max(0, start_idx - req.lookback_bars)
-            final_df = df_sorted.iloc[slice_start:]
-        
-        # Convert to list
-        candles = []
-        records = final_df.to_dict('records')
-        for r in records:
-            candles.append({
-                'time': int(r['timestamp']), # UNIX timestamp
-                'open': float(r['open']),
-                'high': float(r['high']),
-                'low': float(r['low']),
-                'close': float(r['close']),
-                'volume': float(r.get('volume', 0))
-            })
-            
-        # PROCESS STUDY for INITIAL MARKERS AND DRAWINGS
-        initial_markers = []
-        initial_drawings = []
-        
-        from strategies import is_study
-        if is_study(req.strategy):
-            print(f"[FetchCandles] Pre-calculating historical state for {req.strategy}")
-            
-            # Map request pivotSettings to study config format
-            study_config = {}
-            study_config['resolution'] = getattr(req, 'resolution', None)
-            if req.pivotSettings:
-                if 'leftBars' in req.pivotSettings: study_config['left_bars'] = req.pivotSettings['leftBars']
-                if 'rightBars' in req.pivotSettings: study_config['right_bars'] = req.pivotSettings['rightBars']
-                if 'showIntersectionLabels' in req.pivotSettings: study_config['show_intersection_labels'] = req.pivotSettings['showIntersectionLabels']
-            
-            if req.strategy == 'pivot_points_only':
-                from study_tool.pivot_points_study import PivotPointsStudy
-                study = PivotPointsStudy(config=study_config)
-            elif req.strategy == 'angular_coverage':
-                from study_tool.angular_coverage_study import AngularPriceCoverageStudy
-                study = AngularPriceCoverageStudy(config=study_config)
-            else:
-                study = None
-                
-            if study and len(candles) > 0:
-                try:
-                    print(f"[FetchCandles] Initializing study state on {len(candles)} bars...")
-                    # Run the slow-path initialization for the exact start state
-                    # Bar index is len(candles) - 1 to represent the state at the cutoff
-                    final_result = study.process_bar(
-                        candles=candles,
-                        bar_index=len(candles) - 1,
-                        state=None
-                    )
-                    
-                    if final_result:
-                        initial_markers = final_result.get('pivot_markers', [])
-                        initial_drawings = final_result.get('drawings', [])
-                        print(f"[FetchCandles] Generated {len(initial_markers)} initial markers and {len(initial_drawings)} initial drawings")
-                except Exception as e:
-                    print(f"[FetchCandles] Error precalculating history: {e}")
-                    import traceback
-                    traceback.print_exc()
-
-        print(f"Fetched {len(candles)} candles for replay. Initial Markers: {len(initial_markers)}, Initial Drawings: {len(initial_drawings)}")
-
-        return {
-            "candles": candles,
-            "symbol": req.symbol,
-            "markers": initial_markers,
-            "drawings": initial_drawings
-        }
-
-    except Exception as e:
-        print(f"Error in fetch_candles: {e}")
-        import traceback
-        traceback.print_exc()
-        raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=8005, reload=True)

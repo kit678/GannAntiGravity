@@ -1,16 +1,19 @@
-"""
-Pivot Detection Module
-
-Detects pivot highs and lows using left/right bar validation.
-Implements successive pivot filtering (keeps highest high / lowest low when
-consecutive pivots are of the same type).
-
-Based on reference implementation from PivotHighLowAngles.js
-"""
-
-from typing import Dict, List, Optional, Any
 from dataclasses import dataclass
+from typing import List, Dict, Any, Optional
 
+# Global registry to persist pivot counts and labels across instances/rebuilds
+# Key: f"{symbol}_{left}_{right}_{resolution}"
+# Value: {'high_count': 0, 'low_count': 0, 'pivots': {time: label}}
+_PIVOT_REGISTRY = {}
+
+def clear_pivot_registry(key: str = None):
+    """Clear the global pivot registry for a specific key or all keys"""
+    global _PIVOT_REGISTRY
+    if key:
+        if key in _PIVOT_REGISTRY:
+            del _PIVOT_REGISTRY[key]
+    else:
+        _PIVOT_REGISTRY = {}
 
 @dataclass
 class Pivot:
@@ -36,16 +39,24 @@ class PivotDetector:
     same type, only the most extreme is kept (highest high / lowest low).
     """
     
-    def __init__(self, left_bars: int = 5, right_bars: int = 5):
+    def __init__(self, left_bars: int = 5, right_bars: int = 5, symbol: str = None, resolution: str = None):
         """
         Initialize the pivot detector.
         
         Args:
             left_bars: Number of bars to the left for pivot confirmation
             right_bars: Number of bars to the right for pivot confirmation
+            symbol: Ticker symbol (for registry key)
+            resolution: Timeframe resolution (for registry key)
         """
         self.left_bars = left_bars
         self.right_bars = right_bars
+        
+        # Registry key for persistence
+        self.registry_key = None
+        if symbol:
+            res = resolution if resolution else "default"
+            self.registry_key = f"{symbol}_{left_bars}_{right_bars}_{res}"
         
         # State for successive pivot filtering
         self.last_high_pivot: Optional[Pivot] = None
@@ -54,17 +65,85 @@ class PivotDetector:
         self.confirmed_pivots: List[Pivot] = []
         
         # Absolute counters for permanent identity mapping
+        # Initialize from registry if available
         self.high_count: int = 0
         self.low_count: int = 0
+        
+        if self.registry_key:
+             self._sync_from_registry()
     
-    def reset(self):
-        """Reset detector state (call on new symbol/interval)"""
+    def _sync_from_registry(self):
+        """Load counts from global registry"""
+        if not self.registry_key:
+            return
+            
+        if self.registry_key not in _PIVOT_REGISTRY:
+            _PIVOT_REGISTRY[self.registry_key] = {
+                'high_count': 0, 
+                'low_count': 0, 
+                'pivots': {} # time -> label
+            }
+            
+        reg = _PIVOT_REGISTRY[self.registry_key]
+        self.high_count = reg['high_count']
+        self.low_count = reg['low_count']
+        
+    def _update_registry_counts(self):
+        """Update global registry with current counts"""
+        if not self.registry_key:
+            return
+        if self.registry_key not in _PIVOT_REGISTRY:
+            _PIVOT_REGISTRY[self.registry_key] = {'high_count': 0, 'low_count': 0, 'pivots': {}}
+        _PIVOT_REGISTRY[self.registry_key]['high_count'] = self.high_count
+        _PIVOT_REGISTRY[self.registry_key]['low_count'] = self.low_count
+
+    def _get_registry_label(self, time: int, pivot_type: str) -> Optional[str]:
+        """Get existing label for a timestamp and type if it exists"""
+        if not self.registry_key or self.registry_key not in _PIVOT_REGISTRY:
+            return None
+        key = f"{time}_{pivot_type}"
+        return _PIVOT_REGISTRY[self.registry_key]['pivots'].get(key)
+
+    def _set_registry_label(self, time: int, pivot_type: str, label: str):
+        """Save label for a timestamp and type"""
+        if not self.registry_key:
+            return
+        if self.registry_key not in _PIVOT_REGISTRY:
+            _PIVOT_REGISTRY[self.registry_key] = {'high_count': 0, 'low_count': 0, 'pivots': {}}
+        key = f"{time}_{pivot_type}"
+        _PIVOT_REGISTRY[self.registry_key]['pivots'][key] = label
+
+    def _remove_registry_label(self, time: int, pivot_type: str):
+        """Remove label for a timestamp (used during replacement)"""
+        if not self.registry_key or not time or self.registry_key not in _PIVOT_REGISTRY:
+            return
+        key = f"{time}_{pivot_type}"
+        if key in _PIVOT_REGISTRY[self.registry_key]['pivots']:
+            del _PIVOT_REGISTRY[self.registry_key]['pivots'][key]
+    
+    def reset(self, clear_registry: bool = False):
+        """
+        Reset detector state (call on new symbol/interval).
+        Args:
+            clear_registry: If True, wipes the global registry for this key (hard reset).
+                          If False, attempts to sync from registry (soft reset/rebuild).
+        """
         self.last_high_pivot = None
         self.last_low_pivot = None
         self.last_pivot_type = None
         self.confirmed_pivots = []
-        self.high_count = 0
-        self.low_count = 0
+        
+        if clear_registry and self.registry_key:
+            if self.registry_key in _PIVOT_REGISTRY:
+                del _PIVOT_REGISTRY[self.registry_key]
+        
+        # If we have a registry, re-sync counts (don't reset to 0)
+        # If no registry, reset to 0
+        if self.registry_key and not clear_registry:
+            self._sync_from_registry()
+        else:
+            self.high_count = 0
+            self.low_count = 0
     
     def detect_pivots(self, candles: List[Dict[str, Any]], current_index: int) -> Dict[str, Any]:
         """
@@ -160,14 +239,30 @@ class PivotDetector:
                 if new_pivot.price > self.last_high_pivot.price:
                     # New high is higher - REPLACE the last one in confirmed_pivots. Inherit previous label.
                     new_pivot.label = self.last_high_pivot.label
+                    
+                    # Update Registry: Move label to new timestamp
+                    self._remove_registry_label(self.last_high_pivot.time, 'high')
+                    self._set_registry_label(new_pivot.time, 'high', new_pivot.label)
+                    
                     if self.confirmed_pivots and self.confirmed_pivots[-1].pivot_type == 'high':
                         self.confirmed_pivots[-1] = new_pivot
                     self.last_high_pivot = new_pivot
                 # else: ignore this lower high
             else:
                 # Different type or first pivot - add immediately
-                self.high_count += 1
-                new_pivot.label = f"H{self.high_count}"
+                
+                # Check global registry for existing label (Rebuild Persistence)
+                existing_label = self._get_registry_label(new_pivot.time, 'high')
+                
+                if existing_label:
+                    new_pivot.label = existing_label
+                    # Do not increment high_count, as we are reusing an existing ID
+                else:
+                    self.high_count += 1
+                    new_pivot.label = f"H{self.high_count}"
+                    self._set_registry_label(new_pivot.time, 'high', new_pivot.label)
+                    self._update_registry_counts()
+                
                 self.confirmed_pivots.append(new_pivot)
                 self.last_high_pivot = new_pivot
                 self.last_pivot_type = 'high'
@@ -209,14 +304,30 @@ class PivotDetector:
                 if new_pivot.price < self.last_low_pivot.price:
                     # New low is lower - REPLACE the last one in confirmed_pivots. Inherit previous label.
                     new_pivot.label = self.last_low_pivot.label
+                    
+                    # Update Registry: Move label to new timestamp
+                    self._remove_registry_label(self.last_low_pivot.time, 'low')
+                    self._set_registry_label(new_pivot.time, 'low', new_pivot.label)
+                    
                     if self.confirmed_pivots and self.confirmed_pivots[-1].pivot_type == 'low':
                         self.confirmed_pivots[-1] = new_pivot
                     self.last_low_pivot = new_pivot
                 # else: ignore this higher low
             else:
                 # Different type or first pivot - add immediately
-                self.low_count += 1
-                new_pivot.label = f"L{self.low_count}"
+                
+                # Check global registry for existing label (Rebuild Persistence)
+                existing_label = self._get_registry_label(new_pivot.time, 'low')
+                
+                if existing_label:
+                    new_pivot.label = existing_label
+                    # Do not increment low_count
+                else:
+                    self.low_count += 1
+                    new_pivot.label = f"L{self.low_count}"
+                    self._set_registry_label(new_pivot.time, 'low', new_pivot.label)
+                    self._update_registry_counts()
+                
                 self.confirmed_pivots.append(new_pivot)
                 self.last_low_pivot = new_pivot
                 self.last_pivot_type = 'low'
@@ -277,6 +388,8 @@ class PivotDetector:
     
     def restore_state(self, state: Dict[str, Any]):
         """Restore detector state from serialized form"""
+        # print(f"[PivotDetector] Restoring state. Counts in state: H={state.get('high_count')} L={state.get('low_count')}")
+        
         if state.get('last_high_pivot'):
             hp = state['last_high_pivot']
             self.last_high_pivot = Pivot(
@@ -302,8 +415,12 @@ class PivotDetector:
             self.last_low_pivot = None
         
         self.last_pivot_type = state.get('last_pivot_type')
+        
+        # Restore counters - CRITICAL for maintaining label continuity
         self.high_count = state.get('high_count', 0)
         self.low_count = state.get('low_count', 0)
+        
+        # print(f"[PivotDetector] Restored counters: H={self.high_count} L={self.low_count}")
         
         self.confirmed_pivots = []
         if state.get('confirmed_pivots'):

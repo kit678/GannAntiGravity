@@ -271,7 +271,23 @@ class YFinanceClient:
             # If the user actually wanted history, they probably meant Hourly or Daily, 
             # or the frontend sent the wrong resolution ('1' default).
             if interval in ["1", "4"] and age_days > 7:
-                print(f"[YFinance] Auto-promoting '{interval}m' resolution to '1h' to fetch historical data ({age_days} days ago).")
+                if age_days <= 60:
+                    print(f"[YFinance] Auto-promoting '{interval}m' resolution to '5m' to fetch historical data ({age_days} days ago).")
+                    yf_interval = "5m"
+                    # Reset start_dt to original request since 5m allows 60 days
+                    start_dt = end_dt - timedelta(days=requested_days)
+                    # Clamp to 60 days max for 5m
+                    if (datetime.now() - start_dt).days > 60:
+                        start_dt = datetime.now() - timedelta(days=59)
+                else:
+                    print(f"[YFinance] Auto-promoting '{interval}m' resolution to '1h' to fetch historical data ({age_days} days ago).")
+                    yf_interval = "1h"
+                    # Reset start_dt to original request since 1h allows 700 days
+                    start_dt = end_dt - timedelta(days=requested_days)
+                    # Clamp to 700 days max for 1h
+                    if (datetime.now() - start_dt).days > 700:
+                        start_dt = datetime.now() - timedelta(days=699)
+
             elif interval == "240":
                 interval = "240"
                 yf_interval = "1h" # Request 1H, TradingView will aggregate to 4H natively
@@ -364,7 +380,15 @@ class YFinanceClient:
             # them into 4H/4m candles by grouping consecutive bars within each
             # trading day into chunks of 4. This ensures AngleEngine receives
             # proper bar indices matching the visual TradingView chart.
-            if interval in ["240", "4"] and len(result_df) > 0:
+            
+            # Only aggregate if we fetched the base resolution intended for aggregation
+            should_aggregate = False
+            if interval == "240" and yf_interval == "1h":
+                 should_aggregate = True
+            elif interval == "4" and yf_interval == "1m":
+                 should_aggregate = True
+            
+            if should_aggregate and len(result_df) > 0:
                 source_tf = "1H" if interval == "240" else "1m"
                 target_tf = "4H" if interval == "240" else "4m"
                 print(f"[YFinance] Aggregating {len(result_df)} {source_tf} bars into {target_tf} candles...")

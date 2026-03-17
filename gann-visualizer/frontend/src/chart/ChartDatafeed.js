@@ -275,20 +275,9 @@ class ChartDatafeed {
         if (scaleRatio) this.scaleRatio = scaleRatio;
         if (pivotSettings) this.pivotSettings = pivotSettings;
 
-        // CRITICAL FIX: Ensure chart data is reset now that widget is definitely ready
-        // This handles cases where setProgressiveReplayData failed to reset because widget wasn't ready
-        if (window.tvWidget) {
-            try {
-                const chart = window.tvWidget.activeChart();
-                console.log("[Datafeed] Widget ready - forcing final data reset for replay");
-                if (window.tvWidget) {
-                    window.tvWidget.resetCache();
-                }
-                chart.resetData();
-            } catch (e) {
-                console.warn("[Datafeed] Failed to reset data in setReplayStrategy:", e);
-            }
-        }
+        // REMOVED: Redundant resetData() which was causing race conditions with setVisibleRange
+        // The chart is already reset in setProgressiveReplayData
+        console.log("[Datafeed] Replay strategy updated");
 
         // Always re-evaluate the initial step here, because:
         // 1. onChartReady calls removeAllShapes() before this runs
@@ -710,16 +699,6 @@ class ChartDatafeed {
 
             if (!this.customData || this.currentStep >= this.customData.length) return;
 
-            // Since TradingView's Bar Replay Tool is officially UNSUPPORTED in Advanced Charts,
-            // and subscribeBars is designed for live streaming (not simulated playback),
-            // we must force chart refresh on each step using resetData().
-            // Critical: Use resetCache() first to clear TradingView's internal cache
-            // This is the documented pattern for forcing data re-fetch (see docs lines 4920-4924)
-            if (window.tvWidget) {
-                window.tvWidget.resetCache();
-            }
-            chart.resetData();
-
             // Get current candle time for auto-scroll
             const currentTime = this.customData[this.currentStep].time / 1000;
 
@@ -733,12 +712,12 @@ class ChartDatafeed {
             const bufferPercent = 0.1; // 10% buffer at edges
             const bufferTime = visibleDuration * bufferPercent;
 
-            if (currentTime < visibleRange.from + bufferTime || currentTime > visibleRange.to - bufferTime) {
-                // Candle is near edge or outside view - auto-scroll to keep it centered
-                const halfDuration = visibleDuration / 2;
+            if (currentTime > visibleRange.to - bufferTime) {
+                // Candle is near right edge or outside view - gently pan right
+                // Do not shrink the duration, just shift the window
                 chart.setVisibleRange({
-                    from: currentTime - halfDuration,
-                    to: currentTime + halfDuration
+                    from: visibleRange.from + (currentTime - (visibleRange.to - bufferTime)),
+                    to: visibleRange.to + (currentTime - (visibleRange.to - bufferTime))
                 }).catch(() => {
                     // Silently ignore - user might be manually scrolling
                 });

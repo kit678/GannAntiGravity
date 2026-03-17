@@ -109,6 +109,87 @@ class AngleEngine:
         # Active fans for tracking completion
         self.active_fans: Dict[str, AngleFan] = {}
     
+    def _get_time_for_bar_index(self, bar_idx: float, current_candles: List[Dict[str, Any]]) -> int:
+        """Helper to project time for a given bar index based on market schedule."""
+        import datetime
+        from collections import Counter
+
+        bar_idx = int(round(bar_idx))
+        if not current_candles:
+            return 0
+            
+        # 1. If index exists in history, use exact timestamp
+        if 0 <= bar_idx < len(current_candles):
+             return int(current_candles[bar_idx]['time'])
+        
+        # Determine valid slots
+        sample_candles = current_candles[-200:] if len(current_candles) > 200 else current_candles
+        time_slots_counter = Counter()
+        for c in sample_candles:
+            dt = datetime.datetime.fromtimestamp(int(c['time']), tz=self.market_tz)
+            time_slots_counter[(dt.hour, dt.minute)] += 1
+            
+        if time_slots_counter:
+            max_count = time_slots_counter.most_common(1)[0][1]
+            threshold = max_count * 0.3
+            valid_slots = [slot for slot, count in time_slots_counter.items() if count >= threshold]
+            valid_slots.sort()
+        else:
+            valid_slots = [(9, 15), (10, 15), (11, 15), (12, 15), (13, 15), (14, 15), (15, 15)]
+
+        # 2. If index is in future, project
+        last_idx = len(current_candles) - 1
+        last_time = int(current_candles[-1]['time'])
+        
+        if bar_idx > last_idx:
+            delta_bars = bar_idx - last_idx
+            
+            # Simple linear time projection: Add (delta * interval)
+            # This is cleaner for short-term projections and avoids the complex slot/holiday logic 
+            # which can drift significantly when projecting from Bar 0 into empty space.
+            interval_seconds = 900 if self.resolution == '15' else 3600
+            if self.resolution == '1': interval_seconds = 60
+            elif self.resolution == '4': interval_seconds = 240
+            elif self.resolution == '5': interval_seconds = 300
+            elif self.resolution == '30': interval_seconds = 1800
+            elif self.resolution == '240': interval_seconds = 14400
+            elif self.resolution == 'D': interval_seconds = 86400
+            
+            return last_time + (int(delta_bars) * interval_seconds)
+        
+        # 3. Before history
+        first_time = int(current_candles[0]['time'])
+        delta_bars = 0 - bar_idx
+        interval_seconds = 900 if self.resolution == '15' else 3600
+        return first_time - (delta_bars * interval_seconds)
+
+    def extend_fan(self, fan: AngleFan, target_bar_index: float, current_candles: List[Dict[str, Any]]):
+        """
+        Dynamically extend the lines of a fan to a new target bar index.
+        Calculates the new end_time and end_price using linear projection.
+        """
+        for line in fan.lines:
+            # Skip if line already extends beyond target
+            if line.end_bar_index >= target_bar_index:
+                continue
+                
+            db = line.end_bar_index - line.start_bar_index
+            if db <= 0:
+                continue
+                
+            # Calculate slope per bar
+            slope_per_bar = (line.end_price - line.start_price) / db
+            
+            # Project to new bar index
+            new_db = target_bar_index - line.start_bar_index
+            new_end_price = line.start_price + (slope_per_bar * new_db)
+            new_end_time = int(self._get_time_for_bar_index(target_bar_index, current_candles))
+            
+            # Update line properties
+            line.end_bar_index = float(target_bar_index)
+            line.end_price = new_end_price
+            line.end_time = new_end_time
+
     def create_fan(
         self,
         from_pivot: Dict[str, Any],
@@ -170,12 +251,14 @@ class AngleEngine:
             origin_time = t0
             origin_price = p0
             origin_bar = from_pivot.get('bar_index', 0)
+            target_time = t1
             target_bar = to_pivot.get('bar_index', 0)
         else:
             # to_pivot is temporally first -> angles radiate FROM to_pivot
             origin_time = t1
             origin_price = p1
             origin_bar = to_pivot.get('bar_index', 0)
+            target_time = t0
             target_bar = from_pivot.get('bar_index', 0)
         
         db = max(1, abs(target_bar - origin_bar))
@@ -199,7 +282,7 @@ class AngleEngine:
         theta_deg = math.degrees(theta_radians)
         
         # DEBUG: Log scale ratio and angle calculation
-        print(f"[AngleEngine] scale_ratio={scale_ratio}, slope_per_bar={slope_per_bar:.4f}, visual_slope={visual_slope:.4f}, theta={theta_deg:.2f}°")
+        print(f"[AngleEngine] scale_ratio={scale_ratio}, slope_per_bar={slope_per_bar:.4f}, visual_slope={visual_slope:.4f}, theta={theta_deg:.2f} deg")
         
         # Helper to ensure finite float values for JSON
         def _safe_float(val, default=0.0):
@@ -225,81 +308,17 @@ class AngleEngine:
 
         # Extract modal daily schedule from recent history to map perfect 1:1 visual bars
         # This prevents TradingView from squishing overnight gaps (e.g., treating 18 hrs as 18 bars)
-        sample_candles = current_candles[-200:] if len(current_candles) > 200 else current_candles
         
-        time_slots_counter = Counter()
-        for c in sample_candles:
-            dt = datetime.datetime.fromtimestamp(int(c['time']), tz=market_tz)
-            time_slots_counter[(dt.hour, dt.minute)] += 1
-            
-        # Filter out rare one-off pre/post market trades to find the bulk active session
-        if time_slots_counter:
-            max_count = time_slots_counter.most_common(1)[0][1]
-            threshold = max_count * 0.3
-            valid_slots = [slot for slot, count in time_slots_counter.items() if count >= threshold]
-            valid_slots.sort() # Sort chronologically (HH, MM)
-        else:
-            valid_slots = [(9, 15), (10, 15), (11, 15), (12, 15), (13, 15), (14, 15), (15, 15)]
-        
-        print(f"[AngleEngine] market_tz={market_tz}, valid_slots={valid_slots}")
-
-        # Helper to get time for a specific bar index (handling future)
-        def get_time_for_bar_index(bar_idx):
-            bar_idx = int(round(bar_idx))
-            # 1. If index exists in history, use exact timestamp
-            if 0 <= bar_idx < len(current_candles):
-                 return int(current_candles[bar_idx]['time'])
-            
-            # 2. If index is in future, project using the extracted schedule
-            last_idx = len(current_candles) - 1
-            last_time = int(current_candles[-1]['time'])
-            
-            if bar_idx > last_idx:
-                delta_bars = bar_idx - last_idx
-                # Convert to market-timezone-aware datetime
-                current_dt = datetime.datetime.fromtimestamp(last_time, tz=market_tz)
-                
-                # We step exactly 'delta_bars' through our discovered real-world market schedule.
-                # This guarantees 1 programmatic bar = 1 visual TradingView bar.
-                for _ in range(delta_bars):
-                    current_slot_idx = -1
-                    curr_hb = (current_dt.hour, current_dt.minute)
-                    
-                    for i, slot in enumerate(valid_slots):
-                        if curr_hb < slot:
-                            current_slot_idx = i
-                            break
-                            
-                    if current_slot_idx != -1:
-                        # Move to next slot today
-                        next_slot = valid_slots[current_slot_idx]
-                        current_dt = current_dt.replace(hour=next_slot[0], minute=next_slot[1])
-                    else:
-                        # Wrap around to next day's first slot
-                        next_slot = valid_slots[0]
-                        current_dt += datetime.timedelta(days=1)
-                        current_dt = current_dt.replace(hour=next_slot[0], minute=next_slot[1])
-                        
-                        # Skip weekends
-                        while current_dt.isoweekday() > 5:
-                            current_dt += datetime.timedelta(days=1)
-                            
-                return int(current_dt.timestamp())
-            
-            # 3. If index is before history (unlikely), project backwards
-            first_time = int(current_candles[0]['time'])
-            delta_bars = 0 - bar_idx
-            return first_time - (delta_bars * interval_seconds)
-
-        # --- EQUIDISTANT RADIUS EXTENSION ---
-        # ALL angle lines use the same radius, endpoints in RAW bar space.
-        # effective_ratio ensures angles match TradingView's visual rendering.
+        # --- EQUAL BAR SPAN (NO RADIUS) ---
+        # Evaluate all lines at exactly x = db (target_bar).
+        # This guarantees both start_time and end_time fall on real historical bars,
+        # preventing TradingView from warping the slope due to weekend/overnight gaps.
+        # We will use 'extendRight: True' in the frontend to infinitely project the rays.
         
         # 1. Main Angle Line
-        main_dx_bars = radius * math.cos(theta_radians)
-        main_dy_visual = radius * math.sin(theta_radians)
-        main_end_price = origin_price + (main_dy_visual * scale_ratio)
-        main_end_time = get_time_for_bar_index(origin_bar + main_dx_bars)
+        main_dx_bars = db
+        main_end_price = target_price
+        main_end_time = target_time
 
         main_line = AngleLine(
             id=f"{fan_id}_main",
@@ -324,12 +343,12 @@ class AngleEngine:
             # Calculate Fractional Theta (Angle of the line in visual space)
             frac_theta = theta_radians * fraction
             
-            # Use identical radius for exact equidistant lengths
-            dx_bars = radius * math.cos(frac_theta)
-            dy_visual = radius * math.sin(frac_theta)
+            # Evaluate exactly at x = db
+            dx_bars = db
+            dy_visual = db * math.tan(frac_theta)
             
             frac_end_price = origin_price + (dy_visual * scale_ratio)
-            frac_end_time = get_time_for_bar_index(origin_bar + dx_bars)
+            frac_end_time = target_time
             
             color = angle_colors[i] if i < len(angle_colors) else '#888888'
             
@@ -362,7 +381,7 @@ class AngleEngine:
         # Calculate visual height at anchor intersection
         y_visual_intercept = db_anchor * math.tan(frac_theta_half)
         intercept_price = origin_price + (y_visual_intercept * scale_ratio)
-        intercept_time = get_time_for_bar_index(origin_bar + db_anchor) # This is strictly the Anchor's Time
+        intercept_time = self._get_time_for_bar_index(origin_bar + db_anchor, current_candles) # This is strictly the Anchor's Time
         
         # 2. Determine end coordinates (Circle Edge)
         # Using Pythagoras: x^2 + y^2 = r^2 -> x = sqrt(r^2 - y^2)
@@ -371,7 +390,7 @@ class AngleEngine:
         
         # Calculate horizontal distance from origin to circle edge at this Y height
         x_visual_edge = math.sqrt(max(0, radius**2 - clamped_y_visual**2))
-        end_edge_time = get_time_for_bar_index(origin_bar + x_visual_edge)
+        end_edge_time = self._get_time_for_bar_index(origin_bar + x_visual_edge, current_candles)
         
         # Only draw if the intersection point is actually BEFORE the circle edge,
         # otherwise the horizontal line would have negative/zero length.
@@ -528,11 +547,11 @@ class AngleEngine:
                 'options': {
                     'linecolor': line.color,
                     'linewidth': line.width,
-                    'linestyle': 1 if line.id.endswith('_main') else 1,  # 1 = Dotted. All lines dotted per screenshot.
+                    'linestyle': 1,  # 1 = Dotted. All lines dotted per screenshot.
                     'fanLabel': fan.priority_label,
                     'fanIdentity': fan.id.replace("Fan_", "").replace("_", "-"),
                     'extendLeft': False,
-                    'extendRight': False
+                    'extendRight': True  # Let TradingView handle the infinite visual extension
                 }
             }
             commands.append(cmd)

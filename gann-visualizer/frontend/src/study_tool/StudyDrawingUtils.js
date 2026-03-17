@@ -42,6 +42,24 @@ export function processStudyResponse(chart, data, shapeTracking = {}) {
     // Draw angle lines or polylines (EMA, indicators)
     if (data.drawings && data.drawings.length > 0) {
         data.drawings.forEach(drawing => {
+            // Implicit replacement: If we are drawing a shape that we are already tracking,
+            // remove the old one first to prevent duplicates/ghosts.
+            // Polyline handles this internally, but others don't.
+            if (drawing.id && shapeTracking[drawing.id] && drawing.type !== 'polyline') {
+                const oldShapeId = shapeTracking[drawing.id];
+                try {
+                    if (oldShapeId && typeof oldShapeId !== 'object') {
+                        chart.removeEntity(oldShapeId);
+                    } else if (oldShapeId && typeof oldShapeId.then === 'function') {
+                        oldShapeId.then(id => {
+                            if (id) chart.removeEntity(id);
+                        }).catch(() => { });
+                    }
+                } catch (e) {
+                    console.warn('[StudyDrawing] Failed to remove existing shape for implicit replacement:', drawing.id, e);
+                }
+            }
+
             let shapeId;
 
             if (drawing.type === 'polyline') {
@@ -124,6 +142,10 @@ export function drawAngleLine(chart, drawing) {
         };
 
         const result = chart.createMultipointShape(points, options);
+
+        if (!result) {
+            console.warn('[StudyDrawing] createMultipointShape returned null for:', drawing.id, 'points:', points);
+        }
 
         if (result && typeof result.then === 'function') {
             return result;  // Returns promise that resolves to shape ID

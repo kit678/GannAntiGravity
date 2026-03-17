@@ -1,0 +1,1219 @@
+2026-03-17 15:59:33,567 [INFO] Logging initialized. Output writing to C:\Dev\GannTesting\gann-visualizer\backend\logs\backend_session_20260317_155933.log
+2026-03-17 15:59:33,567 [INFO] Successfully loaded ticker configuration from C:\Dev\GannTesting\gann-visualizer\backend\ticker_config.json
+2026-03-17 15:59:33,568 [INFO] --- BACKEND RESTART v4 - PNL TRACKING ---
+2026-03-17 15:59:33,568 [INFO] Middleware Stack: [Middleware(BaseHTTPMiddleware, dispatch=<function cors_middleware at 0x00000185B83C6340>)]
+2026-03-17 16:01:04,125 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
+2026-03-17 16:01:04,131 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
+2026-03-17 16:01:04,247 [INFO] [YFinance] Client initialized
+2026-03-17 16:01:04,249 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
+2026-03-17 16:01:04,455 [INFO] 
+2026-03-17 16:01:04,455 [INFO] ============================================================
+2026-03-17 16:01:04,455 [INFO] [UDF_HISTORY] === NEW REQUEST ===
+2026-03-17 16:01:04,456 [INFO] [UDF_HISTORY] symbol=^NSEI:YF, resolution=1
+2026-03-17 16:01:04,456 [INFO] [UDF_HISTORY] from_=1773674404, to=1773743524, data_source=yfinance
+2026-03-17 16:01:04,456 [INFO] ============================================================
+2026-03-17 16:01:04,457 [INFO] [YFinance] Client initialized
+2026-03-17 16:01:04,459 [INFO] 
+2026-03-17 16:01:04,459 [INFO] ============================================================
+2026-03-17 16:01:04,459 [INFO] [UDF_HISTORY] INCOMING REQUEST
+2026-03-17 16:01:04,460 [INFO]   Symbol: ^NSEI
+2026-03-17 16:01:04,460 [INFO]   Data Source: yfinance
+2026-03-17 16:01:04,460 [INFO]   Resolution: 1
+2026-03-17 16:01:04,461 [INFO]   From (Unix): 1773674404 -> 2026-03-16 20:50:04
+2026-03-17 16:01:04,461 [INFO]   To (Unix): 1773743524 -> 2026-03-17 16:02:04
+2026-03-17 16:01:04,461 [INFO] ============================================================
+2026-03-17 16:01:04,462 [INFO] [UDF_HISTORY] Calling client.fetch_data(^NSEI, 2026-03-16 20:50:04, 2026-03-17 16:02:04, interval=1)
+2026-03-17 16:01:04,462 [INFO] Cache MISS: ^NSEI:1:2026-03-16 20:50:04:2026-03-17 16:02:04
+2026-03-17 16:01:04,462 [INFO] [YFinance] Fetching ^NSEI | interval=1 -> 1m | 2026-03-16 20:50:04 to 2026-03-17 16:02:04
+2026-03-17 16:01:04,464 [INFO] [YFinance] Requesting dates: start=2026-03-16, end=2026-03-18 for ^NSEI
+2026-03-17 16:01:05,930 [INFO] [YFinance] Received 750 bars
+2026-03-17 16:01:05,940 [INFO] [YFinance] Returning 750 bars, range: 2026-03-16 09:15:00 to 2026-03-17 15:29:00
+2026-03-17 16:01:05,941 [INFO] Cache PUT: ^NSEI:1:2026-03-16 20:50:04:2026-03-17 16:02:04 (TTL: 300.0s, 750 rows)
+2026-03-17 16:01:05,942 [INFO] [UDF_HISTORY] fetch_data returned: type=<class 'pandas.core.frame.DataFrame'>, empty=False
+2026-03-17 16:01:05,942 [INFO] [UDF_HISTORY] Raw data shape: (750, 6), columns: ['timestamp', 'open', 'high', 'low', 'close', 'volume']
+2026-03-17 16:01:05,943 [INFO] [UDF_HISTORY] Raw timestamp range: 1773632700 - 1773741540
+2026-03-17 16:01:05,943 [INFO] [UDF_HISTORY] Raw date range: 2026-03-16 09:15:00 - 2026-03-17 15:29:00
+2026-03-17 16:01:05,944 [INFO] DEBUG: fetch_data result type: <class 'pandas.core.frame.DataFrame'>
+2026-03-17 16:01:05,944 [INFO] DEBUG: fetch_data result shape: (750, 6)
+2026-03-17 16:01:05,952 [INFO] DEBUG: Data Head:
+2026-03-17 16:01:05,953 [INFO]     timestamp          open  ...         close  volume
+2026-03-17 16:01:05,954 [INFO] 0  1773632700  23125.650391  ...  23155.349609       0
+2026-03-17 16:01:05,954 [INFO] 1  1773632760  23166.900391  ...  23133.000000       0
+2026-03-17 16:01:05,954 [INFO] 
+2026-03-17 16:01:05,955 [INFO] [2 rows x 6 columns]
+2026-03-17 16:01:05,955 [INFO] DEBUG: from_=1773674404 (2026-03-16 20:50:04)
+2026-03-17 16:01:05,956 [INFO] DEBUG: to=1773743524 (2026-03-17 16:02:04)
+2026-03-17 16:01:05,956 [INFO] DEBUG: df['timestamp'] dtype=int64
+2026-03-17 16:01:05,957 [INFO] DEBUG: df timestamp range: 1773632700 - 1773741540
+2026-03-17 16:01:05,958 [INFO] DEBUG: df timestamp as dates: 2026-03-16T09:15:00 - 2026-03-17T15:29:00
+2026-03-17 16:01:05,959 [INFO] Filtered data from 750 to 375 bars (filter_from=1773674404, to=1773743524)
+2026-03-17 16:01:05,959 [INFO] PAGINATION: Returning 375 bars for ^NSEI (1)
+2026-03-17 16:01:05,962 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
+2026-03-17 16:01:05,988 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
+2026-03-17 16:01:13,827 [INFO] 
+2026-03-17 16:01:13,828 [INFO] ============================================================
+2026-03-17 16:01:13,828 [INFO] [UDF_HISTORY] === NEW REQUEST ===
+2026-03-17 16:01:13,829 [INFO] [UDF_HISTORY] symbol=^NSEI:YF, resolution=1
+2026-03-17 16:01:13,829 [INFO] [UDF_HISTORY] from_=1773742873, to=1773743473, data_source=dhan
+2026-03-17 16:01:13,829 [INFO] ============================================================
+2026-03-17 16:01:13,829 [INFO] [YFinance] Client initialized
+2026-03-17 16:01:13,830 [INFO] 
+2026-03-17 16:01:13,830 [INFO] ============================================================
+2026-03-17 16:01:13,830 [INFO] [UDF_HISTORY] INCOMING REQUEST
+2026-03-17 16:01:13,831 [INFO]   Symbol: ^NSEI
+2026-03-17 16:01:13,831 [INFO]   Data Source: yfinance
+2026-03-17 16:01:13,831 [INFO]   Resolution: 1
+2026-03-17 16:01:13,831 [INFO]   From (Unix): 1773742873 -> 2026-03-17 15:51:13
+2026-03-17 16:01:13,832 [INFO]   To (Unix): 1773743473 -> 2026-03-17 16:01:13
+2026-03-17 16:01:13,832 [INFO] ============================================================
+2026-03-17 16:01:13,832 [INFO] [UDF_HISTORY] Calling client.fetch_data(^NSEI, 2026-03-17 15:51:13, 2026-03-17 16:01:13, interval=1)
+2026-03-17 16:01:13,833 [INFO] Cache MISS: ^NSEI:1:2026-03-17 15:51:13:2026-03-17 16:01:13
+2026-03-17 16:01:13,833 [INFO] [YFinance] Fetching ^NSEI | interval=1 -> 1m | 2026-03-17 15:51:13 to 2026-03-17 16:01:13
+2026-03-17 16:01:13,833 [INFO] [YFinance] Requesting dates: start=2026-03-17, end=2026-03-18 for ^NSEI
+2026-03-17 16:01:14,017 [INFO] [YFinance] Received 375 bars
+2026-03-17 16:01:14,020 [INFO] [YFinance] Returning 375 bars, range: 2026-03-17 09:15:00 to 2026-03-17 15:29:00
+2026-03-17 16:01:14,021 [INFO] Cache PUT: ^NSEI:1:2026-03-17 15:51:13:2026-03-17 16:01:13 (TTL: 300.0s, 375 rows)
+2026-03-17 16:01:14,022 [INFO] [UDF_HISTORY] fetch_data returned: type=<class 'pandas.core.frame.DataFrame'>, empty=False
+2026-03-17 16:01:14,022 [INFO] [UDF_HISTORY] Raw data shape: (375, 6), columns: ['timestamp', 'open', 'high', 'low', 'close', 'volume']
+2026-03-17 16:01:14,023 [INFO] [UDF_HISTORY] Raw timestamp range: 1773719100 - 1773741540
+2026-03-17 16:01:14,024 [INFO] [UDF_HISTORY] Raw date range: 2026-03-17 09:15:00 - 2026-03-17 15:29:00
+2026-03-17 16:01:14,024 [INFO] DEBUG: fetch_data result type: <class 'pandas.core.frame.DataFrame'>
+2026-03-17 16:01:14,024 [INFO] DEBUG: fetch_data result shape: (375, 6)
+2026-03-17 16:01:14,029 [INFO] DEBUG: Data Head:
+2026-03-17 16:01:14,029 [INFO]     timestamp          open  ...         close  volume
+2026-03-17 16:01:14,029 [INFO] 0  1773719100  23493.199219  ...  23400.099609       0
+2026-03-17 16:01:14,030 [INFO] 1  1773719160  23400.750000  ...  23401.550781       0
+2026-03-17 16:01:14,030 [INFO] 
+2026-03-17 16:01:14,030 [INFO] [2 rows x 6 columns]
+2026-03-17 16:01:14,031 [INFO] DEBUG: from_=1773742873 (2026-03-17 15:51:13)
+2026-03-17 16:01:14,031 [INFO] DEBUG: to=1773743473 (2026-03-17 16:01:13)
+2026-03-17 16:01:14,031 [INFO] DEBUG: df['timestamp'] dtype=int64
+2026-03-17 16:01:14,032 [INFO] DEBUG: df timestamp range: 1773719100 - 1773741540
+2026-03-17 16:01:14,033 [INFO] DEBUG: df timestamp as dates: 2026-03-17T09:15:00 - 2026-03-17T15:29:00
+2026-03-17 16:01:14,034 [INFO] Filtered data from 375 to 0 bars (filter_from=1773742873, to=1773743473)
+2026-03-17 16:01:14,035 [INFO]   [DEBUG] Data was filtered out! Data range: 1773719100 - 1773741540
+2026-03-17 16:01:14,035 [INFO]   [DEBUG] Filter range: 1773742873 - 1773743473
+2026-03-17 16:01:14,036 [INFO] [SmartFilter] Request 'from' (1773742873) is after all available data (max: 1773741540)
+2026-03-17 16:01:14,037 [INFO] [SmartFilter] Returning all 375 bars since they fall before 'from' but are the best available data
+2026-03-17 16:01:14,037 [INFO] [SmartFilter] Recovered 375 bars by relaxing 'from' filter
+2026-03-17 16:01:14,038 [INFO] PAGINATION: Returning 375 bars for ^NSEI (1)
+2026-03-17 16:01:14,043 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
+2026-03-17 16:01:14,369 [INFO] 
+2026-03-17 16:01:14,370 [INFO] ============================================================
+2026-03-17 16:01:14,370 [INFO] [UDF_HISTORY] === NEW REQUEST ===
+2026-03-17 16:01:14,371 [INFO] [UDF_HISTORY] symbol=^NSEI:YF, resolution=4
+2026-03-17 16:01:14,372 [INFO] [UDF_HISTORY] from_=1773467054, to=1773743534, data_source=yfinance
+2026-03-17 16:01:14,372 [INFO] ============================================================
+2026-03-17 16:01:14,372 [INFO] [YFinance] Client initialized
+2026-03-17 16:01:14,373 [INFO] 
+2026-03-17 16:01:14,374 [INFO] ============================================================
+2026-03-17 16:01:14,375 [INFO] [UDF_HISTORY] INCOMING REQUEST
+2026-03-17 16:01:14,375 [INFO]   Symbol: ^NSEI
+2026-03-17 16:01:14,376 [INFO]   Data Source: yfinance
+2026-03-17 16:01:14,376 [INFO]   Resolution: 4
+2026-03-17 16:01:14,376 [INFO]   From (Unix): 1773467054 -> 2026-03-14 11:14:14
+2026-03-17 16:01:14,376 [INFO]   To (Unix): 1773743534 -> 2026-03-17 16:02:14
+2026-03-17 16:01:14,377 [INFO] ============================================================
+2026-03-17 16:01:14,377 [INFO] [UDF_HISTORY] Calling client.fetch_data(^NSEI, 2026-03-14 11:14:14, 2026-03-17 16:02:14, interval=4)
+2026-03-17 16:01:14,377 [INFO] Cache MISS: ^NSEI:4:2026-03-14 11:14:14:2026-03-17 16:02:14
+2026-03-17 16:01:14,378 [INFO] [YFinance] Fetching ^NSEI | interval=4 -> 1m | 2026-03-14 11:14:14 to 2026-03-17 16:02:14
+2026-03-17 16:01:14,378 [INFO] [YFinance] Requesting dates: start=2026-03-14, end=2026-03-18 for ^NSEI
+2026-03-17 16:01:14,566 [INFO] [YFinance] Received 750 bars
+2026-03-17 16:01:14,573 [INFO] [YFinance] Aggregating 750 1m bars into 4m candles...
+2026-03-17 16:01:14,637 [INFO] [YFinance] Aggregated to 188 4m candles
+2026-03-17 16:01:14,638 [INFO] [YFinance] Returning 188 bars, range: 2026-03-16 09:15:00 to 2026-03-17 15:27:00
+2026-03-17 16:01:14,639 [INFO] Cache PUT: ^NSEI:4:2026-03-14 11:14:14:2026-03-17 16:02:14 (TTL: 300.0s, 188 rows)
+2026-03-17 16:01:14,639 [INFO] [UDF_HISTORY] fetch_data returned: type=<class 'pandas.core.frame.DataFrame'>, empty=False
+2026-03-17 16:01:14,640 [INFO] [UDF_HISTORY] Raw data shape: (188, 6), columns: ['timestamp', 'open', 'high', 'low', 'close', 'volume']
+2026-03-17 16:01:14,640 [INFO] [UDF_HISTORY] Raw timestamp range: 1773632700 - 1773741420
+2026-03-17 16:01:14,641 [INFO] [UDF_HISTORY] Raw date range: 2026-03-16 09:15:00 - 2026-03-17 15:27:00
+2026-03-17 16:01:14,641 [INFO] DEBUG: fetch_data result type: <class 'pandas.core.frame.DataFrame'>
+2026-03-17 16:01:14,641 [INFO] DEBUG: fetch_data result shape: (188, 6)
+2026-03-17 16:01:14,645 [INFO] DEBUG: Data Head:
+2026-03-17 16:01:14,646 [INFO]     timestamp          open  ...         close  volume
+2026-03-17 16:01:14,646 [INFO] 0  1773632700  23125.650391  ...  23169.449219       0
+2026-03-17 16:01:14,647 [INFO] 1  1773632940  23168.400391  ...  23166.300781       0
+2026-03-17 16:01:14,647 [INFO] 
+2026-03-17 16:01:14,648 [INFO] [2 rows x 6 columns]
+2026-03-17 16:01:14,648 [INFO] DEBUG: from_=1773467054 (2026-03-14 11:14:14)
+2026-03-17 16:01:14,649 [INFO] DEBUG: to=1773743534 (2026-03-17 16:02:14)
+2026-03-17 16:01:14,649 [INFO] DEBUG: df['timestamp'] dtype=int64
+2026-03-17 16:01:14,650 [INFO] DEBUG: df timestamp range: 1773632700 - 1773741420
+2026-03-17 16:01:14,651 [INFO] DEBUG: df timestamp as dates: 2026-03-16T09:15:00 - 2026-03-17T15:27:00
+2026-03-17 16:01:14,652 [INFO] Filtered data from 188 to 188 bars (filter_from=1773467054, to=1773743534)
+2026-03-17 16:01:14,652 [INFO] PAGINATION: Returning 188 bars for ^NSEI (4)
+2026-03-17 16:01:14,655 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
+2026-03-17 16:01:14,663 [INFO] 
+2026-03-17 16:01:14,663 [INFO] ============================================================
+2026-03-17 16:01:14,664 [INFO] [UDF_HISTORY] === NEW REQUEST ===
+2026-03-17 16:01:14,664 [INFO] [UDF_HISTORY] symbol=^NSEI:YF, resolution=4
+2026-03-17 16:01:14,665 [INFO] [UDF_HISTORY] from_=1773363835, to=1773467054, data_source=yfinance
+2026-03-17 16:01:14,665 [INFO] ============================================================
+2026-03-17 16:01:14,665 [INFO] [YFinance] Client initialized
+2026-03-17 16:01:14,666 [INFO] 
+2026-03-17 16:01:14,666 [INFO] ============================================================
+2026-03-17 16:01:14,666 [INFO] [UDF_HISTORY] INCOMING REQUEST
+2026-03-17 16:01:14,667 [INFO]   Symbol: ^NSEI
+2026-03-17 16:01:14,667 [INFO]   Data Source: yfinance
+2026-03-17 16:01:14,667 [INFO]   Resolution: 4
+2026-03-17 16:01:14,667 [INFO]   From (Unix): 1773363835 -> 2026-03-13 06:33:55
+2026-03-17 16:01:14,668 [INFO]   To (Unix): 1773467054 -> 2026-03-14 11:14:14
+2026-03-17 16:01:14,668 [INFO] ============================================================
+2026-03-17 16:01:14,668 [INFO] [UDF_HISTORY] Calling client.fetch_data(^NSEI, 2026-03-13 06:33:55, 2026-03-14 11:14:14, interval=4)
+2026-03-17 16:01:14,668 [INFO] Cache MISS: ^NSEI:4:2026-03-13 06:33:55:2026-03-14 11:14:14
+2026-03-17 16:01:14,669 [INFO] [YFinance] Fetching ^NSEI | interval=4 -> 1m | 2026-03-13 06:33:55 to 2026-03-14 11:14:14
+2026-03-17 16:01:14,669 [INFO] [YFinance] Requesting dates: start=2026-03-13, end=2026-03-15 for ^NSEI
+2026-03-17 16:01:14,978 [INFO] [YFinance] Received 375 bars
+2026-03-17 16:01:14,981 [INFO] [YFinance] Aggregating 375 1m bars into 4m candles...
+2026-03-17 16:01:15,008 [INFO] [YFinance] Aggregated to 94 4m candles
+2026-03-17 16:01:15,008 [INFO] [YFinance] Returning 94 bars, range: 2026-03-13 09:15:00 to 2026-03-13 15:27:00
+2026-03-17 16:01:15,009 [INFO] Cache PUT: ^NSEI:4:2026-03-13 06:33:55:2026-03-14 11:14:14 (TTL: 300.0s, 94 rows)
+2026-03-17 16:01:15,009 [INFO] [UDF_HISTORY] fetch_data returned: type=<class 'pandas.core.frame.DataFrame'>, empty=False
+2026-03-17 16:01:15,010 [INFO] [UDF_HISTORY] Raw data shape: (94, 6), columns: ['timestamp', 'open', 'high', 'low', 'close', 'volume']
+2026-03-17 16:01:15,011 [INFO] [UDF_HISTORY] Raw timestamp range: 1773373500 - 1773395820
+2026-03-17 16:01:15,011 [INFO] [UDF_HISTORY] Raw date range: 2026-03-13 09:15:00 - 2026-03-13 15:27:00
+2026-03-17 16:01:15,012 [INFO] DEBUG: fetch_data result type: <class 'pandas.core.frame.DataFrame'>
+2026-03-17 16:01:15,012 [INFO] DEBUG: fetch_data result shape: (94, 6)
+2026-03-17 16:01:15,019 [INFO] DEBUG: Data Head:
+2026-03-17 16:01:15,019 [INFO]     timestamp          open  ...         close  volume
+2026-03-17 16:01:15,020 [INFO] 0  1773373500  23472.800781  ...  23455.699219       0
+2026-03-17 16:01:15,020 [INFO] 1  1773373740  23456.300781  ...  23428.949219       0
+2026-03-17 16:01:15,020 [INFO] 
+2026-03-17 16:01:15,021 [INFO] [2 rows x 6 columns]
+2026-03-17 16:01:15,021 [INFO] DEBUG: from_=1773363835 (2026-03-13 06:33:55)
+2026-03-17 16:01:15,021 [INFO] DEBUG: to=1773467054 (2026-03-14 11:14:14)
+2026-03-17 16:01:15,022 [INFO] DEBUG: df['timestamp'] dtype=int64
+2026-03-17 16:01:15,022 [INFO] DEBUG: df timestamp range: 1773373500 - 1773395820
+2026-03-17 16:01:15,022 [INFO] DEBUG: df timestamp as dates: 2026-03-13T09:15:00 - 2026-03-13T15:27:00
+2026-03-17 16:01:15,023 [INFO] Filtered data from 94 to 94 bars (filter_from=1773363835, to=1773467054)
+2026-03-17 16:01:15,023 [INFO] PAGINATION: Returning 94 bars for ^NSEI (4)
+2026-03-17 16:01:15,025 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
+2026-03-17 16:01:15,031 [INFO] 
+2026-03-17 16:01:15,032 [INFO] ============================================================
+2026-03-17 16:01:15,032 [INFO] [UDF_HISTORY] === NEW REQUEST ===
+2026-03-17 16:01:15,033 [INFO] [UDF_HISTORY] symbol=^NSEI:YF, resolution=4
+2026-03-17 16:01:15,033 [INFO] [UDF_HISTORY] from_=1773347246, to=1773363835, data_source=yfinance
+2026-03-17 16:01:15,033 [INFO] ============================================================
+2026-03-17 16:01:15,034 [INFO] [YFinance] Client initialized
+2026-03-17 16:01:15,034 [INFO] 
+2026-03-17 16:01:15,035 [INFO] ============================================================
+2026-03-17 16:01:15,035 [INFO] [UDF_HISTORY] INCOMING REQUEST
+2026-03-17 16:01:15,035 [INFO]   Symbol: ^NSEI
+2026-03-17 16:01:15,035 [INFO]   Data Source: yfinance
+2026-03-17 16:01:15,036 [INFO]   Resolution: 4
+2026-03-17 16:01:15,036 [INFO]   From (Unix): 1773347246 -> 2026-03-13 01:57:26
+2026-03-17 16:01:15,036 [INFO]   To (Unix): 1773363835 -> 2026-03-13 06:33:55
+2026-03-17 16:01:15,036 [INFO] ============================================================
+2026-03-17 16:01:15,037 [INFO] [UDF_HISTORY] Calling client.fetch_data(^NSEI, 2026-03-13 01:57:26, 2026-03-13 06:33:55, interval=4)
+2026-03-17 16:01:15,037 [INFO] Cache MISS: ^NSEI:4:2026-03-13 01:57:26:2026-03-13 06:33:55
+2026-03-17 16:01:15,037 [INFO] [YFinance] Fetching ^NSEI | interval=4 -> 1m | 2026-03-13 01:57:26 to 2026-03-13 06:33:55
+2026-03-17 16:01:15,038 [INFO] [YFinance] Requesting dates: start=2026-03-13, end=2026-03-14 for ^NSEI
+2026-03-17 16:01:15,176 [INFO] [YFinance] Received 375 bars
+2026-03-17 16:01:15,180 [INFO] [YFinance] Aggregating 375 1m bars into 4m candles...
+2026-03-17 16:01:15,205 [INFO] [YFinance] Aggregated to 94 4m candles
+2026-03-17 16:01:15,205 [INFO] [YFinance] Returning 94 bars, range: 2026-03-13 09:15:00 to 2026-03-13 15:27:00
+2026-03-17 16:01:15,207 [INFO] Cache PUT: ^NSEI:4:2026-03-13 01:57:26:2026-03-13 06:33:55 (TTL: 300.0s, 94 rows)
+2026-03-17 16:01:15,207 [INFO] [UDF_HISTORY] fetch_data returned: type=<class 'pandas.core.frame.DataFrame'>, empty=False
+2026-03-17 16:01:15,208 [INFO] [UDF_HISTORY] Raw data shape: (94, 6), columns: ['timestamp', 'open', 'high', 'low', 'close', 'volume']
+2026-03-17 16:01:15,209 [INFO] [UDF_HISTORY] Raw timestamp range: 1773373500 - 1773395820
+2026-03-17 16:01:15,210 [INFO] [UDF_HISTORY] Raw date range: 2026-03-13 09:15:00 - 2026-03-13 15:27:00
+2026-03-17 16:01:15,211 [INFO] [SmartFix] Data start (1773373500) is > requested end (1773363835). Checking for year offset...
+2026-03-17 16:01:15,212 [INFO] DEBUG: fetch_data result type: <class 'pandas.core.frame.DataFrame'>
+2026-03-17 16:01:15,212 [INFO] DEBUG: fetch_data result shape: (94, 6)
+2026-03-17 16:01:15,218 [INFO] DEBUG: Data Head:
+2026-03-17 16:01:15,218 [INFO]     timestamp          open  ...         close  volume
+2026-03-17 16:01:15,219 [INFO] 0  1773373500  23472.800781  ...  23455.699219       0
+2026-03-17 16:01:15,219 [INFO] 1  1773373740  23456.300781  ...  23428.949219       0
+2026-03-17 16:01:15,220 [INFO] 
+2026-03-17 16:01:15,220 [INFO] [2 rows x 6 columns]
+2026-03-17 16:01:15,220 [INFO] DEBUG: from_=1773347246 (2026-03-13 01:57:26)
+2026-03-17 16:01:15,221 [INFO] DEBUG: to=1773363835 (2026-03-13 06:33:55)
+2026-03-17 16:01:15,221 [INFO] DEBUG: df['timestamp'] dtype=int64
+2026-03-17 16:01:15,221 [INFO] DEBUG: df timestamp range: 1773373500 - 1773395820
+2026-03-17 16:01:15,222 [INFO] DEBUG: df timestamp as dates: 2026-03-13T09:15:00 - 2026-03-13T15:27:00
+2026-03-17 16:01:15,223 [INFO] Filtered data from 94 to 0 bars (filter_from=1773347246, to=1773363835)
+2026-03-17 16:01:15,223 [INFO]   [DEBUG] Data was filtered out! Data range: 1773373500 - 1773395820
+2026-03-17 16:01:15,223 [INFO]   [DEBUG] Filter range: 1773347246 - 1773363835
+2026-03-17 16:01:15,224 [INFO] [SmartFilter] Request 'to' (1773363835) is before all available data (min: 1773373500)
+2026-03-17 16:01:15,224 [INFO] No data in requested range after filtering.
+2026-03-17 16:01:15,225 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
+2026-03-17 16:01:16,551 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
+2026-03-17 16:01:16,558 [INFO] [Step-by-Step] Fetching candles: ^NSEI [yfinance] from 2025-11-07 to 2026-03-17, resolution: 4
+2026-03-17 16:01:16,559 [INFO] [Step-by-Step] Lookback bars requested: 5000
+2026-03-17 16:01:16,559 [INFO] [YFinance] Client initialized
+2026-03-17 16:01:16,559 [INFO] [Step-by-Step] Adjusted from_date: 2025-11-07 -> 2025-09-08 (expanded lookback: 60 days)
+2026-03-17 16:01:16,560 [INFO] Cache MISS: ^NSEI:4:2025-09-08:2026-03-17
+2026-03-17 16:01:16,560 [INFO] [YFinance] Fetching ^NSEI | interval=4 -> 1m | 2025-09-08 to 2026-03-17
+2026-03-17 16:01:16,560 [INFO] [YFinance] WARNING: Requested 190 days but 1m limit is 7 days
+2026-03-17 16:01:16,561 [INFO] [YFinance] Adjusted start date to 2026-03-10
+2026-03-17 16:01:16,561 [INFO] [YFinance] Requesting dates: start=2026-03-10, end=2026-03-18 for ^NSEI
+2026-03-17 16:01:17,057 [INFO] [YFinance] Received 2250 bars
+2026-03-17 16:01:17,073 [INFO] [YFinance] Aggregating 2250 1m bars into 4m candles...
+2026-03-17 16:01:17,247 [INFO] [YFinance] Aggregated to 564 4m candles
+2026-03-17 16:01:17,248 [INFO] [YFinance] Returning 564 bars, range: 2026-03-10 09:15:00 to 2026-03-17 15:27:00
+2026-03-17 16:01:17,249 [INFO] Cache PUT: ^NSEI:4:2025-09-08:2026-03-17 (TTL: 300.0s, 564 rows)
+2026-03-17 16:01:17,252 [INFO] [FetchCandles] Pre-calculating historical state for angular_coverage
+2026-03-17 16:01:17,285 [INFO] Initialized AngularPriceCoverageStudy v4.0. Config: {'left_bars': 5, 'right_bars': 5, 'line_extension_bars': 100, 'fraction_colors': {0.125: '#FF5252', 0.25: '#FF5252', 0.375: '#FF5252', 0.5: '#2196F3', 0.625: '#4CAF50', 0.75: '#4CAF50', 0.875: '#4CAF50', 1.0: '#FFFFFF'}, 'main_color': '#FFFFFF', 'main_line_width': 1, 'fraction_line_width': 2, 'scale_ratio': 1.0, 'breach_mode': 'wick', 'show_intersection_labels': False, 'max_historical_fans': 3, 'resolution': '4'}
+2026-03-17 16:01:17,286 [INFO] [FetchCandles] Initializing study state on 564 bars...
+2026-03-17 16:01:17,287 [INFO] [FetchCandles] Replay Start: 2025-11-07 (1762453800). Cutoff Index: -1 (Last Lookback Bar)
+2026-03-17 16:01:17,287 [INFO] [FetchCandles] No lookback context found (cutoff_index=-1). Starting with empty state.
+2026-03-17 16:01:17,288 [INFO] [Replay] Returning 564 candles, option_cache_ready: False, Initial Markers: 0
+2026-03-17 16:01:17,299 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
+2026-03-17 16:01:17,310 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
+2026-03-17 16:01:17,312 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
+2026-03-17 16:01:17,669 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
+2026-03-17 16:01:17,672 [INFO] Initialized AngularPriceCoverageStudy v4.0. Config: {'left_bars': 5, 'right_bars': 5, 'line_extension_bars': 100, 'fraction_colors': {0.125: '#FF5252', 0.25: '#FF5252', 0.375: '#FF5252', 0.5: '#2196F3', 0.625: '#4CAF50', 0.75: '#4CAF50', 0.875: '#4CAF50', 1.0: '#FFFFFF'}, 'main_color': '#FFFFFF', 'main_line_width': 1, 'fraction_line_width': 2, 'scale_ratio': 3.6603, 'breach_mode': 'wick', 'show_intersection_labels': False, 'max_historical_fans': 3, 'resolution': '4', 'symbol': '^NSEI'}
+2026-03-17 16:01:17,675 [INFO] [Study] Evaluating AngularPriceCoverageStudy (config: {'resolution': '4', 'symbol': '^NSEI', 'scale_ratio': 3.6603, 'left_bars': 5, 'right_bars': 5, 'show_intersection_labels': False})
+2026-03-17 16:01:17,676 [INFO] [Study] Slow path: Rebuilding from 0 to 0
+2026-03-17 16:01:17,676 [INFO] [IntDet] Bar 0 | 2026-03-10 09:15 | H=24296.90 L=24161.20 C=24161.20 | Fans=0 Lines=0
+2026-03-17 16:01:17,677 [INFO] [Study] Index 0: Added 0 pivot markers from study
+2026-03-17 16:01:17,677 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
+2026-03-17 16:01:20,973 [INFO] Initialized AngularPriceCoverageStudy v4.0. Config: {'left_bars': 5, 'right_bars': 5, 'line_extension_bars': 100, 'fraction_colors': {0.125: '#FF5252', 0.25: '#FF5252', 0.375: '#FF5252', 0.5: '#2196F3', 0.625: '#4CAF50', 0.75: '#4CAF50', 0.875: '#4CAF50', 1.0: '#FFFFFF'}, 'main_color': '#FFFFFF', 'main_line_width': 1, 'fraction_line_width': 2, 'scale_ratio': 3.6603, 'breach_mode': 'wick', 'show_intersection_labels': False, 'max_historical_fans': 3, 'resolution': '4', 'symbol': '^NSEI'}
+2026-03-17 16:01:20,974 [INFO] [Study] Evaluating AngularPriceCoverageStudy (config: {'resolution': '4', 'symbol': '^NSEI', 'scale_ratio': 3.6603, 'left_bars': 5, 'right_bars': 5, 'show_intersection_labels': False})
+2026-03-17 16:01:20,974 [INFO] [IntDet] Bar 1 | 2026-03-10 09:19 | H=24174.65 L=24138.60 C=24163.40 | Fans=0 Lines=0
+2026-03-17 16:01:20,974 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
+2026-03-17 16:01:21,396 [INFO] Initialized AngularPriceCoverageStudy v4.0. Config: {'left_bars': 5, 'right_bars': 5, 'line_extension_bars': 100, 'fraction_colors': {0.125: '#FF5252', 0.25: '#FF5252', 0.375: '#FF5252', 0.5: '#2196F3', 0.625: '#4CAF50', 0.75: '#4CAF50', 0.875: '#4CAF50', 1.0: '#FFFFFF'}, 'main_color': '#FFFFFF', 'main_line_width': 1, 'fraction_line_width': 2, 'scale_ratio': 3.6603, 'breach_mode': 'wick', 'show_intersection_labels': False, 'max_historical_fans': 3, 'resolution': '4', 'symbol': '^NSEI'}
+2026-03-17 16:01:21,396 [INFO] [Study] Evaluating AngularPriceCoverageStudy (config: {'resolution': '4', 'symbol': '^NSEI', 'scale_ratio': 3.6603, 'left_bars': 5, 'right_bars': 5, 'show_intersection_labels': False})
+2026-03-17 16:01:21,397 [INFO] [IntDet] Bar 2 | 2026-03-10 09:23 | H=24174.10 L=24126.60 C=24129.65 | Fans=0 Lines=0
+2026-03-17 16:01:21,398 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
+2026-03-17 16:01:21,856 [INFO] Initialized AngularPriceCoverageStudy v4.0. Config: {'left_bars': 5, 'right_bars': 5, 'line_extension_bars': 100, 'fraction_colors': {0.125: '#FF5252', 0.25: '#FF5252', 0.375: '#FF5252', 0.5: '#2196F3', 0.625: '#4CAF50', 0.75: '#4CAF50', 0.875: '#4CAF50', 1.0: '#FFFFFF'}, 'main_color': '#FFFFFF', 'main_line_width': 1, 'fraction_line_width': 2, 'scale_ratio': 3.6603, 'breach_mode': 'wick', 'show_intersection_labels': False, 'max_historical_fans': 3, 'resolution': '4', 'symbol': '^NSEI'}
+2026-03-17 16:01:21,856 [INFO] [Study] Evaluating AngularPriceCoverageStudy (config: {'resolution': '4', 'symbol': '^NSEI', 'scale_ratio': 3.6603, 'left_bars': 5, 'right_bars': 5, 'show_intersection_labels': False})
+2026-03-17 16:01:21,857 [INFO] [IntDet] Bar 3 | 2026-03-10 09:27 | H=24171.20 L=24126.05 C=24133.10 | Fans=0 Lines=0
+2026-03-17 16:01:21,857 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
+2026-03-17 16:01:22,302 [INFO] Initialized AngularPriceCoverageStudy v4.0. Config: {'left_bars': 5, 'right_bars': 5, 'line_extension_bars': 100, 'fraction_colors': {0.125: '#FF5252', 0.25: '#FF5252', 0.375: '#FF5252', 0.5: '#2196F3', 0.625: '#4CAF50', 0.75: '#4CAF50', 0.875: '#4CAF50', 1.0: '#FFFFFF'}, 'main_color': '#FFFFFF', 'main_line_width': 1, 'fraction_line_width': 2, 'scale_ratio': 3.6603, 'breach_mode': 'wick', 'show_intersection_labels': False, 'max_historical_fans': 3, 'resolution': '4', 'symbol': '^NSEI'}
+2026-03-17 16:01:22,303 [INFO] [Study] Evaluating AngularPriceCoverageStudy (config: {'resolution': '4', 'symbol': '^NSEI', 'scale_ratio': 3.6603, 'left_bars': 5, 'right_bars': 5, 'show_intersection_labels': False})
+2026-03-17 16:01:22,305 [INFO] [IntDet] Bar 4 | 2026-03-10 09:31 | H=24155.50 L=24121.30 C=24124.45 | Fans=0 Lines=0
+2026-03-17 16:01:22,306 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
+2026-03-17 16:01:22,769 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
+2026-03-17 16:01:22,774 [INFO] Initialized AngularPriceCoverageStudy v4.0. Config: {'left_bars': 5, 'right_bars': 5, 'line_extension_bars': 100, 'fraction_colors': {0.125: '#FF5252', 0.25: '#FF5252', 0.375: '#FF5252', 0.5: '#2196F3', 0.625: '#4CAF50', 0.75: '#4CAF50', 0.875: '#4CAF50', 1.0: '#FFFFFF'}, 'main_color': '#FFFFFF', 'main_line_width': 1, 'fraction_line_width': 2, 'scale_ratio': 3.6603, 'breach_mode': 'wick', 'show_intersection_labels': False, 'max_historical_fans': 3, 'resolution': '4', 'symbol': '^NSEI'}
+2026-03-17 16:01:22,774 [INFO] [Study] Evaluating AngularPriceCoverageStudy (config: {'resolution': '4', 'symbol': '^NSEI', 'scale_ratio': 3.6603, 'left_bars': 5, 'right_bars': 5, 'show_intersection_labels': False})
+2026-03-17 16:01:22,775 [INFO] [IntDet] Bar 5 | 2026-03-10 09:35 | H=24124.25 L=24086.40 C=24107.95 | Fans=0 Lines=0
+2026-03-17 16:01:22,776 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
+2026-03-17 16:01:23,283 [INFO] Initialized AngularPriceCoverageStudy v4.0. Config: {'left_bars': 5, 'right_bars': 5, 'line_extension_bars': 100, 'fraction_colors': {0.125: '#FF5252', 0.25: '#FF5252', 0.375: '#FF5252', 0.5: '#2196F3', 0.625: '#4CAF50', 0.75: '#4CAF50', 0.875: '#4CAF50', 1.0: '#FFFFFF'}, 'main_color': '#FFFFFF', 'main_line_width': 1, 'fraction_line_width': 2, 'scale_ratio': 3.6603, 'breach_mode': 'wick', 'show_intersection_labels': False, 'max_historical_fans': 3, 'resolution': '4', 'symbol': '^NSEI'}
+2026-03-17 16:01:23,284 [INFO] [Study] Evaluating AngularPriceCoverageStudy (config: {'resolution': '4', 'symbol': '^NSEI', 'scale_ratio': 3.6603, 'left_bars': 5, 'right_bars': 5, 'show_intersection_labels': False})
+2026-03-17 16:01:23,284 [INFO] [IntDet] Bar 6 | 2026-03-10 09:39 | H=24117.40 L=24089.35 C=24117.40 | Fans=0 Lines=0
+2026-03-17 16:01:23,285 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
+2026-03-17 16:01:23,774 [INFO] Initialized AngularPriceCoverageStudy v4.0. Config: {'left_bars': 5, 'right_bars': 5, 'line_extension_bars': 100, 'fraction_colors': {0.125: '#FF5252', 0.25: '#FF5252', 0.375: '#FF5252', 0.5: '#2196F3', 0.625: '#4CAF50', 0.75: '#4CAF50', 0.875: '#4CAF50', 1.0: '#FFFFFF'}, 'main_color': '#FFFFFF', 'main_line_width': 1, 'fraction_line_width': 2, 'scale_ratio': 3.6603, 'breach_mode': 'wick', 'show_intersection_labels': False, 'max_historical_fans': 3, 'resolution': '4', 'symbol': '^NSEI'}
+2026-03-17 16:01:23,774 [INFO] [Study] Evaluating AngularPriceCoverageStudy (config: {'resolution': '4', 'symbol': '^NSEI', 'scale_ratio': 3.6603, 'left_bars': 5, 'right_bars': 5, 'show_intersection_labels': False})
+2026-03-17 16:01:23,775 [INFO] [IntDet] Bar 7 | 2026-03-10 09:43 | H=24157.20 L=24114.45 C=24149.30 | Fans=0 Lines=0
+2026-03-17 16:01:23,775 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
+2026-03-17 16:01:24,205 [INFO] Initialized AngularPriceCoverageStudy v4.0. Config: {'left_bars': 5, 'right_bars': 5, 'line_extension_bars': 100, 'fraction_colors': {0.125: '#FF5252', 0.25: '#FF5252', 0.375: '#FF5252', 0.5: '#2196F3', 0.625: '#4CAF50', 0.75: '#4CAF50', 0.875: '#4CAF50', 1.0: '#FFFFFF'}, 'main_color': '#FFFFFF', 'main_line_width': 1, 'fraction_line_width': 2, 'scale_ratio': 3.6603, 'breach_mode': 'wick', 'show_intersection_labels': False, 'max_historical_fans': 3, 'resolution': '4', 'symbol': '^NSEI'}
+2026-03-17 16:01:24,206 [INFO] [Study] Evaluating AngularPriceCoverageStudy (config: {'resolution': '4', 'symbol': '^NSEI', 'scale_ratio': 3.6603, 'left_bars': 5, 'right_bars': 5, 'show_intersection_labels': False})
+2026-03-17 16:01:24,207 [INFO] [IntDet] Bar 8 | 2026-03-10 09:47 | H=24150.60 L=24115.05 C=24138.60 | Fans=0 Lines=0
+2026-03-17 16:01:24,208 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
+2026-03-17 16:01:24,671 [INFO] Initialized AngularPriceCoverageStudy v4.0. Config: {'left_bars': 5, 'right_bars': 5, 'line_extension_bars': 100, 'fraction_colors': {0.125: '#FF5252', 0.25: '#FF5252', 0.375: '#FF5252', 0.5: '#2196F3', 0.625: '#4CAF50', 0.75: '#4CAF50', 0.875: '#4CAF50', 1.0: '#FFFFFF'}, 'main_color': '#FFFFFF', 'main_line_width': 1, 'fraction_line_width': 2, 'scale_ratio': 3.6603, 'breach_mode': 'wick', 'show_intersection_labels': False, 'max_historical_fans': 3, 'resolution': '4', 'symbol': '^NSEI'}
+2026-03-17 16:01:24,672 [INFO] [Study] Evaluating AngularPriceCoverageStudy (config: {'resolution': '4', 'symbol': '^NSEI', 'scale_ratio': 3.6603, 'left_bars': 5, 'right_bars': 5, 'show_intersection_labels': False})
+2026-03-17 16:01:24,673 [INFO] [IntDet] Bar 9 | 2026-03-10 09:51 | H=24139.20 L=24121.80 C=24131.40 | Fans=0 Lines=0
+2026-03-17 16:01:24,674 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
+2026-03-17 16:01:25,139 [INFO] Initialized AngularPriceCoverageStudy v4.0. Config: {'left_bars': 5, 'right_bars': 5, 'line_extension_bars': 100, 'fraction_colors': {0.125: '#FF5252', 0.25: '#FF5252', 0.375: '#FF5252', 0.5: '#2196F3', 0.625: '#4CAF50', 0.75: '#4CAF50', 0.875: '#4CAF50', 1.0: '#FFFFFF'}, 'main_color': '#FFFFFF', 'main_line_width': 1, 'fraction_line_width': 2, 'scale_ratio': 3.6603, 'breach_mode': 'wick', 'show_intersection_labels': False, 'max_historical_fans': 3, 'resolution': '4', 'symbol': '^NSEI'}
+2026-03-17 16:01:25,141 [INFO] [Study] Evaluating AngularPriceCoverageStudy (config: {'resolution': '4', 'symbol': '^NSEI', 'scale_ratio': 3.6603, 'left_bars': 5, 'right_bars': 5, 'show_intersection_labels': False})
+2026-03-17 16:01:25,142 [INFO] [Study] First process_bar at index 10. Running initialize_history.
+2026-03-17 16:01:25,143 [INFO] [Study] initialize_history called with 10 candles
+2026-03-17 16:01:25,143 [INFO] [Study] Not enough candles for pivot detection
+2026-03-17 16:01:25,144 [INFO] [IntDet] Bar 10 | 2026-03-10 09:55 | H=24131.95 L=24085.40 C=24085.70 | Fans=0 Lines=0
+2026-03-17 16:01:25,144 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
+2026-03-17 16:01:25,655 [INFO] Initialized AngularPriceCoverageStudy v4.0. Config: {'left_bars': 5, 'right_bars': 5, 'line_extension_bars': 100, 'fraction_colors': {0.125: '#FF5252', 0.25: '#FF5252', 0.375: '#FF5252', 0.5: '#2196F3', 0.625: '#4CAF50', 0.75: '#4CAF50', 0.875: '#4CAF50', 1.0: '#FFFFFF'}, 'main_color': '#FFFFFF', 'main_line_width': 1, 'fraction_line_width': 2, 'scale_ratio': 3.6603, 'breach_mode': 'wick', 'show_intersection_labels': False, 'max_historical_fans': 3, 'resolution': '4', 'symbol': '^NSEI'}
+2026-03-17 16:01:25,656 [INFO] [Study] Evaluating AngularPriceCoverageStudy (config: {'resolution': '4', 'symbol': '^NSEI', 'scale_ratio': 3.6603, 'left_bars': 5, 'right_bars': 5, 'show_intersection_labels': False})
+2026-03-17 16:01:25,657 [INFO] [IntDet] Bar 11 | 2026-03-10 09:59 | H=24132.75 L=24079.95 C=24131.00 | Fans=0 Lines=0
+2026-03-17 16:01:25,658 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
+2026-03-17 16:01:26,140 [INFO] Initialized AngularPriceCoverageStudy v4.0. Config: {'left_bars': 5, 'right_bars': 5, 'line_extension_bars': 100, 'fraction_colors': {0.125: '#FF5252', 0.25: '#FF5252', 0.375: '#FF5252', 0.5: '#2196F3', 0.625: '#4CAF50', 0.75: '#4CAF50', 0.875: '#4CAF50', 1.0: '#FFFFFF'}, 'main_color': '#FFFFFF', 'main_line_width': 1, 'fraction_line_width': 2, 'scale_ratio': 3.6603, 'breach_mode': 'wick', 'show_intersection_labels': False, 'max_historical_fans': 3, 'resolution': '4', 'symbol': '^NSEI'}
+2026-03-17 16:01:26,141 [INFO] [Study] Evaluating AngularPriceCoverageStudy (config: {'resolution': '4', 'symbol': '^NSEI', 'scale_ratio': 3.6603, 'left_bars': 5, 'right_bars': 5, 'show_intersection_labels': False})
+2026-03-17 16:01:26,142 [INFO] [IntDet] Bar 12 | 2026-03-10 10:03 | H=24138.65 L=24121.40 C=24127.65 | Fans=0 Lines=0
+2026-03-17 16:01:26,142 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
+2026-03-17 16:01:26,551 [INFO] Initialized AngularPriceCoverageStudy v4.0. Config: {'left_bars': 5, 'right_bars': 5, 'line_extension_bars': 100, 'fraction_colors': {0.125: '#FF5252', 0.25: '#FF5252', 0.375: '#FF5252', 0.5: '#2196F3', 0.625: '#4CAF50', 0.75: '#4CAF50', 0.875: '#4CAF50', 1.0: '#FFFFFF'}, 'main_color': '#FFFFFF', 'main_line_width': 1, 'fraction_line_width': 2, 'scale_ratio': 3.6603, 'breach_mode': 'wick', 'show_intersection_labels': False, 'max_historical_fans': 3, 'resolution': '4', 'symbol': '^NSEI'}
+2026-03-17 16:01:26,552 [INFO] [Study] Evaluating AngularPriceCoverageStudy (config: {'resolution': '4', 'symbol': '^NSEI', 'scale_ratio': 3.6603, 'left_bars': 5, 'right_bars': 5, 'show_intersection_labels': False})
+2026-03-17 16:01:26,552 [INFO] [IntDet] Bar 13 | 2026-03-10 10:07 | H=24147.50 L=24127.95 C=24140.00 | Fans=0 Lines=0
+2026-03-17 16:01:26,553 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
+2026-03-17 16:01:26,956 [INFO] Initialized AngularPriceCoverageStudy v4.0. Config: {'left_bars': 5, 'right_bars': 5, 'line_extension_bars': 100, 'fraction_colors': {0.125: '#FF5252', 0.25: '#FF5252', 0.375: '#FF5252', 0.5: '#2196F3', 0.625: '#4CAF50', 0.75: '#4CAF50', 0.875: '#4CAF50', 1.0: '#FFFFFF'}, 'main_color': '#FFFFFF', 'main_line_width': 1, 'fraction_line_width': 2, 'scale_ratio': 3.6603, 'breach_mode': 'wick', 'show_intersection_labels': False, 'max_historical_fans': 3, 'resolution': '4', 'symbol': '^NSEI'}
+2026-03-17 16:01:26,957 [INFO] [Study] Evaluating AngularPriceCoverageStudy (config: {'resolution': '4', 'symbol': '^NSEI', 'scale_ratio': 3.6603, 'left_bars': 5, 'right_bars': 5, 'show_intersection_labels': False})
+2026-03-17 16:01:26,958 [INFO] [IntDet] Bar 14 | 2026-03-10 10:11 | H=24160.95 L=24131.10 C=24151.05 | Fans=0 Lines=0
+2026-03-17 16:01:26,959 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
+2026-03-17 16:01:27,411 [INFO] Initialized AngularPriceCoverageStudy v4.0. Config: {'left_bars': 5, 'right_bars': 5, 'line_extension_bars': 100, 'fraction_colors': {0.125: '#FF5252', 0.25: '#FF5252', 0.375: '#FF5252', 0.5: '#2196F3', 0.625: '#4CAF50', 0.75: '#4CAF50', 0.875: '#4CAF50', 1.0: '#FFFFFF'}, 'main_color': '#FFFFFF', 'main_line_width': 1, 'fraction_line_width': 2, 'scale_ratio': 3.6603, 'breach_mode': 'wick', 'show_intersection_labels': False, 'max_historical_fans': 3, 'resolution': '4', 'symbol': '^NSEI'}
+2026-03-17 16:01:27,412 [INFO] [Study] Evaluating AngularPriceCoverageStudy (config: {'resolution': '4', 'symbol': '^NSEI', 'scale_ratio': 3.6603, 'left_bars': 5, 'right_bars': 5, 'show_intersection_labels': False})
+2026-03-17 16:01:27,412 [INFO] [IntDet] Bar 15 | 2026-03-10 10:15 | H=24213.70 L=24149.30 C=24203.75 | Fans=0 Lines=0
+2026-03-17 16:01:27,413 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
+2026-03-17 16:01:27,855 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
+2026-03-17 16:01:27,861 [INFO] Initialized AngularPriceCoverageStudy v4.0. Config: {'left_bars': 5, 'right_bars': 5, 'line_extension_bars': 100, 'fraction_colors': {0.125: '#FF5252', 0.25: '#FF5252', 0.375: '#FF5252', 0.5: '#2196F3', 0.625: '#4CAF50', 0.75: '#4CAF50', 0.875: '#4CAF50', 1.0: '#FFFFFF'}, 'main_color': '#FFFFFF', 'main_line_width': 1, 'fraction_line_width': 2, 'scale_ratio': 3.6603, 'breach_mode': 'wick', 'show_intersection_labels': False, 'max_historical_fans': 3, 'resolution': '4', 'symbol': '^NSEI'}
+2026-03-17 16:01:27,862 [INFO] [Study] Evaluating AngularPriceCoverageStudy (config: {'resolution': '4', 'symbol': '^NSEI', 'scale_ratio': 3.6603, 'left_bars': 5, 'right_bars': 5, 'show_intersection_labels': False})
+2026-03-17 16:01:27,863 [INFO] [IntDet] Bar 16 | 2026-03-10 10:19 | H=24208.20 L=24159.70 C=24164.00 | Fans=0 Lines=0
+2026-03-17 16:01:27,864 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
+2026-03-17 16:01:28,276 [INFO] Initialized AngularPriceCoverageStudy v4.0. Config: {'left_bars': 5, 'right_bars': 5, 'line_extension_bars': 100, 'fraction_colors': {0.125: '#FF5252', 0.25: '#FF5252', 0.375: '#FF5252', 0.5: '#2196F3', 0.625: '#4CAF50', 0.75: '#4CAF50', 0.875: '#4CAF50', 1.0: '#FFFFFF'}, 'main_color': '#FFFFFF', 'main_line_width': 1, 'fraction_line_width': 2, 'scale_ratio': 3.6603, 'breach_mode': 'wick', 'show_intersection_labels': False, 'max_historical_fans': 3, 'resolution': '4', 'symbol': '^NSEI'}
+2026-03-17 16:01:28,277 [INFO] [Study] Evaluating AngularPriceCoverageStudy (config: {'resolution': '4', 'symbol': '^NSEI', 'scale_ratio': 3.6603, 'left_bars': 5, 'right_bars': 5, 'show_intersection_labels': False})
+2026-03-17 16:01:28,279 [INFO] [IntDet] Bar 17 | 2026-03-10 10:23 | H=24175.95 L=24151.90 C=24160.00 | Fans=0 Lines=0
+2026-03-17 16:01:28,280 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
+2026-03-17 16:01:28,704 [INFO] Initialized AngularPriceCoverageStudy v4.0. Config: {'left_bars': 5, 'right_bars': 5, 'line_extension_bars': 100, 'fraction_colors': {0.125: '#FF5252', 0.25: '#FF5252', 0.375: '#FF5252', 0.5: '#2196F3', 0.625: '#4CAF50', 0.75: '#4CAF50', 0.875: '#4CAF50', 1.0: '#FFFFFF'}, 'main_color': '#FFFFFF', 'main_line_width': 1, 'fraction_line_width': 2, 'scale_ratio': 3.6603, 'breach_mode': 'wick', 'show_intersection_labels': False, 'max_historical_fans': 3, 'resolution': '4', 'symbol': '^NSEI'}
+2026-03-17 16:01:28,706 [INFO] [Study] Evaluating AngularPriceCoverageStudy (config: {'resolution': '4', 'symbol': '^NSEI', 'scale_ratio': 3.6603, 'left_bars': 5, 'right_bars': 5, 'show_intersection_labels': False})
+2026-03-17 16:01:28,707 [INFO] [IntDet] Bar 18 | 2026-03-10 10:27 | H=24175.95 L=24153.20 C=24166.25 | Fans=0 Lines=0
+2026-03-17 16:01:28,708 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
+2026-03-17 16:01:29,153 [INFO] Initialized AngularPriceCoverageStudy v4.0. Config: {'left_bars': 5, 'right_bars': 5, 'line_extension_bars': 100, 'fraction_colors': {0.125: '#FF5252', 0.25: '#FF5252', 0.375: '#FF5252', 0.5: '#2196F3', 0.625: '#4CAF50', 0.75: '#4CAF50', 0.875: '#4CAF50', 1.0: '#FFFFFF'}, 'main_color': '#FFFFFF', 'main_line_width': 1, 'fraction_line_width': 2, 'scale_ratio': 3.6603, 'breach_mode': 'wick', 'show_intersection_labels': False, 'max_historical_fans': 3, 'resolution': '4', 'symbol': '^NSEI'}
+2026-03-17 16:01:29,154 [INFO] [Study] Evaluating AngularPriceCoverageStudy (config: {'resolution': '4', 'symbol': '^NSEI', 'scale_ratio': 3.6603, 'left_bars': 5, 'right_bars': 5, 'show_intersection_labels': False})
+2026-03-17 16:01:29,155 [INFO] [IntDet] Bar 19 | 2026-03-10 10:31 | H=24207.30 L=24163.00 C=24200.30 | Fans=0 Lines=0
+2026-03-17 16:01:29,157 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
+2026-03-17 16:01:29,529 [INFO] Initialized AngularPriceCoverageStudy v4.0. Config: {'left_bars': 5, 'right_bars': 5, 'line_extension_bars': 100, 'fraction_colors': {0.125: '#FF5252', 0.25: '#FF5252', 0.375: '#FF5252', 0.5: '#2196F3', 0.625: '#4CAF50', 0.75: '#4CAF50', 0.875: '#4CAF50', 1.0: '#FFFFFF'}, 'main_color': '#FFFFFF', 'main_line_width': 1, 'fraction_line_width': 2, 'scale_ratio': 3.6603, 'breach_mode': 'wick', 'show_intersection_labels': False, 'max_historical_fans': 3, 'resolution': '4', 'symbol': '^NSEI'}
+2026-03-17 16:01:29,530 [INFO] [Study] Evaluating AngularPriceCoverageStudy (config: {'resolution': '4', 'symbol': '^NSEI', 'scale_ratio': 3.6603, 'left_bars': 5, 'right_bars': 5, 'show_intersection_labels': False})
+2026-03-17 16:01:29,532 [INFO] [Study] Creating new fan: Fan_H1_L1 (P1 (H1-L1))
+2026-03-17 16:01:29,533 [INFO] [AngleEngine] scale_ratio=3.6603, slope_per_bar=33.4375, visual_slope=9.1352, theta=83.75 deg
+2026-03-17 16:01:29,534 [INFO] --- [AngleEngine] Fan Created: Fan_H1_L1 ---
+2026-03-17 16:01:29,535 [INFO]   Origin: Bar 11, Time 1773116940, Price 24079.94921875
+2026-03-17 16:01:29,536 [INFO]   Target: Bar 15, Time 1773117900, Price 24213.69921875
+2026-03-17 16:01:29,536 [INFO]   Delta: db=4, dp_origin=133.75
+2026-03-17 16:01:29,537 [INFO]   Scale Params: Ratio=3.6603, Radius=36.76 bars, Slope/Bar=33.4375
+2026-03-17 16:01:29,537 [INFO]   Line 0.875: EndBar=1773117900 (approx), EndPrice=24128.70
+2026-03-17 16:01:29,538 [INFO]   Line 0.75: EndBar=1773117900 (approx), EndPrice=24108.46
+2026-03-17 16:01:29,538 [INFO]   Line 0.5: EndBar=1773117900 (approx), EndPrice=24093.08
+2026-03-17 16:01:29,539 [INFO]   Line 0.25: EndBar=1773117900 (approx), EndPrice=24085.55
+2026-03-17 16:01:29,540 [INFO]   Line 0.125: EndBar=1773117900 (approx), EndPrice=24082.65
+2026-03-17 16:01:29,540 [INFO] [IntDet] Bar 20 | 2026-03-10 10:35 | H=24209.15 L=24185.45 C=24193.00 | Fans=1 Lines=7
+2026-03-17 16:01:29,540 [INFO]   [P1 (H1-L1)] main: lineP=24380.89 | bars_from_origin=9.0 slope=33.4375 | ABOVE gap=171.74
+2026-03-17 16:01:29,541 [INFO]   [P1 (H1-L1)] 0.875: lineP=24189.64 | bars_from_origin=9.0 slope=12.1879 | HIT gap=0.00
+2026-03-17 16:01:29,541 [INFO]     >>> HIT RECORDED: P1 (H1-L1) frac=0.875 @ 24189.64
+2026-03-17 16:01:29,542 [INFO]   [P1 (H1-L1)] 0.75: lineP=24144.09 | bars_from_origin=9.0 slope=7.1267 | BELOW gap=41.36
+2026-03-17 16:01:29,542 [INFO]   [P1 (H1-L1)] 0.5: lineP=24109.48 | bars_from_origin=9.0 slope=3.2815 | BELOW gap=75.97
+2026-03-17 16:01:29,542 [INFO]   [P1 (H1-L1)] 0.25: lineP=24092.55 | bars_from_origin=9.0 slope=1.4005 | BELOW gap=92.90
+2026-03-17 16:01:29,542 [INFO]   [P1 (H1-L1)] 0.125: lineP=24086.04 | bars_from_origin=9.0 slope=0.6764 | BELOW gap=99.41
+2026-03-17 16:01:29,543 [INFO]   [P1 (H1-L1)] main: lineP=24093.08 | bars_from_origin=5.0 slope=0.0000 | BELOW gap=92.37
+2026-03-17 16:01:29,543 [INFO]   [IntDet] Total hits this bar: 1
+2026-03-17 16:01:29,543 [INFO] [Study] Emitting intersection event (DIRECT): {'time': 1773119100, 'fan': 'P1 (H1-L1)', 'fanIdentity': 'H1-L1', 'fraction': '7/8', 'price': 24189.640066583815, 'type': 'SUPPORT_TEST', 'details': 'Resting / Throwback'}
+2026-03-17 16:01:29,547 [INFO] [Tracking] Fan validated: Fan_H1_L1 via reversal at bar 20
+2026-03-17 16:01:29,548 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
+2026-03-17 16:01:29,956 [INFO] Initialized AngularPriceCoverageStudy v4.0. Config: {'left_bars': 5, 'right_bars': 5, 'line_extension_bars': 100, 'fraction_colors': {0.125: '#FF5252', 0.25: '#FF5252', 0.375: '#FF5252', 0.5: '#2196F3', 0.625: '#4CAF50', 0.75: '#4CAF50', 0.875: '#4CAF50', 1.0: '#FFFFFF'}, 'main_color': '#FFFFFF', 'main_line_width': 1, 'fraction_line_width': 2, 'scale_ratio': 3.6603, 'breach_mode': 'wick', 'show_intersection_labels': False, 'max_historical_fans': 3, 'resolution': '4', 'symbol': '^NSEI'}
+2026-03-17 16:01:29,957 [INFO] [Study] Evaluating AngularPriceCoverageStudy (config: {'resolution': '4', 'symbol': '^NSEI', 'scale_ratio': 3.6603, 'left_bars': 5, 'right_bars': 5, 'show_intersection_labels': False})
+2026-03-17 16:01:29,958 [INFO] [Study] Removing invalidated/excess fan: Fan_H1_L1
+2026-03-17 16:01:29,958 [INFO] [IntDet] Bar 21 | 2026-03-10 10:39 | H=24221.45 L=24189.05 C=24216.50 | Fans=0 Lines=0
+2026-03-17 16:01:29,959 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
+2026-03-17 16:01:31,928 [INFO] Initialized AngularPriceCoverageStudy v4.0. Config: {'left_bars': 5, 'right_bars': 5, 'line_extension_bars': 100, 'fraction_colors': {0.125: '#FF5252', 0.25: '#FF5252', 0.375: '#FF5252', 0.5: '#2196F3', 0.625: '#4CAF50', 0.75: '#4CAF50', 0.875: '#4CAF50', 1.0: '#FFFFFF'}, 'main_color': '#FFFFFF', 'main_line_width': 1, 'fraction_line_width': 2, 'scale_ratio': 3.6603, 'breach_mode': 'wick', 'show_intersection_labels': False, 'max_historical_fans': 3, 'resolution': '4', 'symbol': '^NSEI'}
+2026-03-17 16:01:31,929 [INFO] [Study] Evaluating AngularPriceCoverageStudy (config: {'resolution': '4', 'symbol': '^NSEI', 'scale_ratio': 3.6603, 'left_bars': 5, 'right_bars': 5, 'show_intersection_labels': False})
+2026-03-17 16:01:31,929 [INFO] [IntDet] Bar 22 | 2026-03-10 10:43 | H=24229.05 L=24210.80 C=24218.80 | Fans=0 Lines=0
+2026-03-17 16:01:31,930 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
+2026-03-17 16:01:32,695 [INFO] Initialized AngularPriceCoverageStudy v4.0. Config: {'left_bars': 5, 'right_bars': 5, 'line_extension_bars': 100, 'fraction_colors': {0.125: '#FF5252', 0.25: '#FF5252', 0.375: '#FF5252', 0.5: '#2196F3', 0.625: '#4CAF50', 0.75: '#4CAF50', 0.875: '#4CAF50', 1.0: '#FFFFFF'}, 'main_color': '#FFFFFF', 'main_line_width': 1, 'fraction_line_width': 2, 'scale_ratio': 3.6603, 'breach_mode': 'wick', 'show_intersection_labels': False, 'max_historical_fans': 3, 'resolution': '4', 'symbol': '^NSEI'}
+2026-03-17 16:01:32,696 [INFO] [Study] Evaluating AngularPriceCoverageStudy (config: {'resolution': '4', 'symbol': '^NSEI', 'scale_ratio': 3.6603, 'left_bars': 5, 'right_bars': 5, 'show_intersection_labels': False})
+2026-03-17 16:01:32,697 [INFO] [IntDet] Bar 23 | 2026-03-10 10:47 | H=24233.20 L=24216.00 C=24224.10 | Fans=0 Lines=0
+2026-03-17 16:01:32,698 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
+2026-03-17 16:01:33,096 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
+2026-03-17 16:01:33,101 [INFO] Initialized AngularPriceCoverageStudy v4.0. Config: {'left_bars': 5, 'right_bars': 5, 'line_extension_bars': 100, 'fraction_colors': {0.125: '#FF5252', 0.25: '#FF5252', 0.375: '#FF5252', 0.5: '#2196F3', 0.625: '#4CAF50', 0.75: '#4CAF50', 0.875: '#4CAF50', 1.0: '#FFFFFF'}, 'main_color': '#FFFFFF', 'main_line_width': 1, 'fraction_line_width': 2, 'scale_ratio': 3.6603, 'breach_mode': 'wick', 'show_intersection_labels': False, 'max_historical_fans': 3, 'resolution': '4', 'symbol': '^NSEI'}
+2026-03-17 16:01:33,102 [INFO] [Study] Evaluating AngularPriceCoverageStudy (config: {'resolution': '4', 'symbol': '^NSEI', 'scale_ratio': 3.6603, 'left_bars': 5, 'right_bars': 5, 'show_intersection_labels': False})
+2026-03-17 16:01:33,102 [INFO] [IntDet] Bar 24 | 2026-03-10 10:51 | H=24225.80 L=24184.95 C=24192.05 | Fans=0 Lines=0
+2026-03-17 16:01:33,104 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
+2026-03-17 16:01:33,472 [INFO] Initialized AngularPriceCoverageStudy v4.0. Config: {'left_bars': 5, 'right_bars': 5, 'line_extension_bars': 100, 'fraction_colors': {0.125: '#FF5252', 0.25: '#FF5252', 0.375: '#FF5252', 0.5: '#2196F3', 0.625: '#4CAF50', 0.75: '#4CAF50', 0.875: '#4CAF50', 1.0: '#FFFFFF'}, 'main_color': '#FFFFFF', 'main_line_width': 1, 'fraction_line_width': 2, 'scale_ratio': 3.6603, 'breach_mode': 'wick', 'show_intersection_labels': False, 'max_historical_fans': 3, 'resolution': '4', 'symbol': '^NSEI'}
+2026-03-17 16:01:33,473 [INFO] [Study] Evaluating AngularPriceCoverageStudy (config: {'resolution': '4', 'symbol': '^NSEI', 'scale_ratio': 3.6603, 'left_bars': 5, 'right_bars': 5, 'show_intersection_labels': False})
+2026-03-17 16:01:33,474 [INFO] [IntDet] Bar 25 | 2026-03-10 10:55 | H=24197.25 L=24173.95 C=24197.15 | Fans=0 Lines=0
+2026-03-17 16:01:33,476 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
+2026-03-17 16:01:33,838 [INFO] Initialized AngularPriceCoverageStudy v4.0. Config: {'left_bars': 5, 'right_bars': 5, 'line_extension_bars': 100, 'fraction_colors': {0.125: '#FF5252', 0.25: '#FF5252', 0.375: '#FF5252', 0.5: '#2196F3', 0.625: '#4CAF50', 0.75: '#4CAF50', 0.875: '#4CAF50', 1.0: '#FFFFFF'}, 'main_color': '#FFFFFF', 'main_line_width': 1, 'fraction_line_width': 2, 'scale_ratio': 3.6603, 'breach_mode': 'wick', 'show_intersection_labels': False, 'max_historical_fans': 3, 'resolution': '4', 'symbol': '^NSEI'}
+2026-03-17 16:01:33,838 [INFO] [Study] Evaluating AngularPriceCoverageStudy (config: {'resolution': '4', 'symbol': '^NSEI', 'scale_ratio': 3.6603, 'left_bars': 5, 'right_bars': 5, 'show_intersection_labels': False})
+2026-03-17 16:01:33,839 [INFO] [IntDet] Bar 26 | 2026-03-10 10:59 | H=24207.30 L=24189.45 C=24189.45 | Fans=0 Lines=0
+2026-03-17 16:01:33,839 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
+2026-03-17 16:01:34,203 [INFO] Initialized AngularPriceCoverageStudy v4.0. Config: {'left_bars': 5, 'right_bars': 5, 'line_extension_bars': 100, 'fraction_colors': {0.125: '#FF5252', 0.25: '#FF5252', 0.375: '#FF5252', 0.5: '#2196F3', 0.625: '#4CAF50', 0.75: '#4CAF50', 0.875: '#4CAF50', 1.0: '#FFFFFF'}, 'main_color': '#FFFFFF', 'main_line_width': 1, 'fraction_line_width': 2, 'scale_ratio': 3.6603, 'breach_mode': 'wick', 'show_intersection_labels': False, 'max_historical_fans': 3, 'resolution': '4', 'symbol': '^NSEI'}
+2026-03-17 16:01:34,204 [INFO] [Study] Evaluating AngularPriceCoverageStudy (config: {'resolution': '4', 'symbol': '^NSEI', 'scale_ratio': 3.6603, 'left_bars': 5, 'right_bars': 5, 'show_intersection_labels': False})
+2026-03-17 16:01:34,204 [INFO] [IntDet] Bar 27 | 2026-03-10 11:03 | H=24215.75 L=24186.60 C=24210.65 | Fans=0 Lines=0
+2026-03-17 16:01:34,205 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
+2026-03-17 16:01:34,566 [INFO] Initialized AngularPriceCoverageStudy v4.0. Config: {'left_bars': 5, 'right_bars': 5, 'line_extension_bars': 100, 'fraction_colors': {0.125: '#FF5252', 0.25: '#FF5252', 0.375: '#FF5252', 0.5: '#2196F3', 0.625: '#4CAF50', 0.75: '#4CAF50', 0.875: '#4CAF50', 1.0: '#FFFFFF'}, 'main_color': '#FFFFFF', 'main_line_width': 1, 'fraction_line_width': 2, 'scale_ratio': 3.6603, 'breach_mode': 'wick', 'show_intersection_labels': False, 'max_historical_fans': 3, 'resolution': '4', 'symbol': '^NSEI'}
+2026-03-17 16:01:34,567 [INFO] [Study] Evaluating AngularPriceCoverageStudy (config: {'resolution': '4', 'symbol': '^NSEI', 'scale_ratio': 3.6603, 'left_bars': 5, 'right_bars': 5, 'show_intersection_labels': False})
+2026-03-17 16:01:34,569 [INFO] [Study] Creating new fan: Fan_H1_L1 (P1 (H1-L1))
+2026-03-17 16:01:34,570 [INFO] [AngleEngine] scale_ratio=3.6603, slope_per_bar=12.7708, visual_slope=3.4890, theta=74.01 deg
+2026-03-17 16:01:34,571 [INFO] --- [AngleEngine] Fan Created: Fan_H1_L1 ---
+2026-03-17 16:01:34,572 [INFO]   Origin: Bar 11, Time 1773116940, Price 24079.94921875
+2026-03-17 16:01:34,572 [INFO]   Target: Bar 23, Time 1773119820, Price 24233.19921875
+2026-03-17 16:01:34,573 [INFO]   Delta: db=12, dp_origin=153.25
+2026-03-17 16:01:34,573 [INFO]   Scale Params: Ratio=3.6603, Radius=43.55 bars, Slope/Bar=12.7708
+2026-03-17 16:01:34,573 [INFO]   Line 0.875: EndBar=1773119820 (approx), EndPrice=24173.11
+2026-03-17 16:01:34,574 [INFO]   Line 0.75: EndBar=1773119820 (approx), EndPrice=24143.87
+2026-03-17 16:01:34,574 [INFO]   Line 0.5: EndBar=1773119820 (approx), EndPrice=24113.05
+2026-03-17 16:01:34,574 [INFO]   Line 0.25: EndBar=1773119820 (approx), EndPrice=24094.65
+2026-03-17 16:01:34,575 [INFO]   Line 0.125: EndBar=1773119820 (approx), EndPrice=24087.10
+2026-03-17 16:01:34,575 [INFO] [IntDet] Bar 28 | 2026-03-10 11:07 | H=24222.00 L=24196.75 C=24219.70 | Fans=1 Lines=7
+2026-03-17 16:01:34,575 [INFO]   [P1 (H1-L1)] main: lineP=24297.05 | bars_from_origin=17.0 slope=12.7708 | ABOVE gap=75.05
+2026-03-17 16:01:34,576 [INFO]   [P1 (H1-L1)] 0.875: lineP=24211.92 | bars_from_origin=17.0 slope=7.7631 | HIT gap=0.00
+2026-03-17 16:01:34,576 [INFO]     >>> HIT RECORDED: P1 (H1-L1) frac=0.875 @ 24211.92
+2026-03-17 16:01:34,577 [INFO]   [P1 (H1-L1)] 0.75: lineP=24170.50 | bars_from_origin=17.0 slope=5.3268 | BELOW gap=26.25
+2026-03-17 16:01:34,577 [INFO]   [P1 (H1-L1)] 0.5: lineP=24126.85 | bars_from_origin=17.0 slope=2.7586 | BELOW gap=69.90
+2026-03-17 16:01:34,577 [INFO]   [P1 (H1-L1)] 0.25: lineP=24100.77 | bars_from_origin=17.0 slope=1.2248 | BELOW gap=95.98
+2026-03-17 16:01:34,578 [INFO]   [P1 (H1-L1)] 0.125: lineP=24090.08 | bars_from_origin=17.0 slope=0.5962 | BELOW gap=106.67
+2026-03-17 16:01:34,578 [INFO]   [P1 (H1-L1)] main: lineP=24113.05 | bars_from_origin=5.0 slope=0.0000 | BELOW gap=83.70
+2026-03-17 16:01:34,578 [INFO]   [IntDet] Total hits this bar: 1
+2026-03-17 16:01:34,579 [INFO] [Study] Emitting intersection event (DIRECT): {'time': 1773121020, 'fan': 'P1 (H1-L1)', 'fanIdentity': 'H1-L1', 'fraction': '7/8', 'price': 24211.92163737691, 'type': 'CROSS_UP', 'details': 'Breakout Attempt'}
+2026-03-17 16:01:34,582 [INFO] [Tracking] Fan validated: Fan_H1_L1 via breach at bar 28
+2026-03-17 16:01:34,584 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
+2026-03-17 16:01:34,987 [INFO] Initialized AngularPriceCoverageStudy v4.0. Config: {'left_bars': 5, 'right_bars': 5, 'line_extension_bars': 100, 'fraction_colors': {0.125: '#FF5252', 0.25: '#FF5252', 0.375: '#FF5252', 0.5: '#2196F3', 0.625: '#4CAF50', 0.75: '#4CAF50', 0.875: '#4CAF50', 1.0: '#FFFFFF'}, 'main_color': '#FFFFFF', 'main_line_width': 1, 'fraction_line_width': 2, 'scale_ratio': 3.6603, 'breach_mode': 'wick', 'show_intersection_labels': False, 'max_historical_fans': 3, 'resolution': '4', 'symbol': '^NSEI'}
+2026-03-17 16:01:34,988 [INFO] [Study] Evaluating AngularPriceCoverageStudy (config: {'resolution': '4', 'symbol': '^NSEI', 'scale_ratio': 3.6603, 'left_bars': 5, 'right_bars': 5, 'show_intersection_labels': False})
+2026-03-17 16:01:34,988 [INFO] [IntDet] Bar 29 | 2026-03-10 11:11 | H=24224.95 L=24217.55 C=24222.40 | Fans=1 Lines=7
+2026-03-17 16:01:34,989 [INFO]   [P1 (H1-L1)] main: lineP=24309.82 | bars_from_origin=18.0 slope=12.7708 | ABOVE gap=84.88
+2026-03-17 16:01:34,989 [INFO]   [P1 (H1-L1)] 0.875: lineP=24219.68 | bars_from_origin=18.0 slope=7.7631 | HIT gap=0.00
+2026-03-17 16:01:34,990 [INFO]     >>> HIT RECORDED: P1 (H1-L1) frac=0.875 @ 24219.68
+2026-03-17 16:01:34,990 [INFO]   [P1 (H1-L1)] 0.75: lineP=24175.83 | bars_from_origin=18.0 slope=5.3268 | BELOW gap=41.72
+2026-03-17 16:01:34,991 [INFO]   [P1 (H1-L1)] 0.5: lineP=24129.60 | bars_from_origin=18.0 slope=2.7586 | BELOW gap=87.95
+2026-03-17 16:01:34,991 [INFO]   [P1 (H1-L1)] 0.25: lineP=24102.00 | bars_from_origin=18.0 slope=1.2248 | BELOW gap=115.55
+2026-03-17 16:01:34,991 [INFO]   [P1 (H1-L1)] 0.125: lineP=24090.68 | bars_from_origin=18.0 slope=0.5962 | BELOW gap=126.87
+2026-03-17 16:01:34,992 [INFO]   [P1 (H1-L1)] main: lineP=24113.05 | bars_from_origin=6.0 slope=0.0000 | BELOW gap=104.50
+2026-03-17 16:01:34,992 [INFO]   [IntDet] Total hits this bar: 1
+2026-03-17 16:01:34,992 [INFO] [Study] Emitting intersection event (DIRECT): {'time': 1773121260, 'fan': 'P1 (H1-L1)', 'fanIdentity': 'H1-L1', 'fraction': '7/8', 'price': 24219.68472082555, 'type': 'CROSS_UP', 'details': 'Breakout Attempt'}
+2026-03-17 16:01:34,996 [INFO] [Tracking] Breach CONFIRMED: Fan_H1_L1 0.875 up (T+1 bars)
+2026-03-17 16:01:34,997 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
+2026-03-17 16:01:37,595 [INFO] Initialized AngularPriceCoverageStudy v4.0. Config: {'left_bars': 5, 'right_bars': 5, 'line_extension_bars': 100, 'fraction_colors': {0.125: '#FF5252', 0.25: '#FF5252', 0.375: '#FF5252', 0.5: '#2196F3', 0.625: '#4CAF50', 0.75: '#4CAF50', 0.875: '#4CAF50', 1.0: '#FFFFFF'}, 'main_color': '#FFFFFF', 'main_line_width': 1, 'fraction_line_width': 2, 'scale_ratio': 3.6603, 'breach_mode': 'wick', 'show_intersection_labels': False, 'max_historical_fans': 3, 'resolution': '4', 'symbol': '^NSEI'}
+2026-03-17 16:01:37,596 [INFO] [Study] Evaluating AngularPriceCoverageStudy (config: {'resolution': '4', 'symbol': '^NSEI', 'scale_ratio': 3.6603, 'left_bars': 5, 'right_bars': 5, 'show_intersection_labels': False})
+2026-03-17 16:01:37,597 [INFO] [Study] Removing invalidated/excess fan: Fan_H1_L1
+2026-03-17 16:01:37,597 [INFO] [IntDet] Bar 30 | 2026-03-10 11:15 | H=24243.50 L=24220.05 C=24221.45 | Fans=0 Lines=0
+2026-03-17 16:01:37,598 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
+2026-03-17 16:01:37,928 [INFO] Initialized AngularPriceCoverageStudy v4.0. Config: {'left_bars': 5, 'right_bars': 5, 'line_extension_bars': 100, 'fraction_colors': {0.125: '#FF5252', 0.25: '#FF5252', 0.375: '#FF5252', 0.5: '#2196F3', 0.625: '#4CAF50', 0.75: '#4CAF50', 0.875: '#4CAF50', 1.0: '#FFFFFF'}, 'main_color': '#FFFFFF', 'main_line_width': 1, 'fraction_line_width': 2, 'scale_ratio': 3.6603, 'breach_mode': 'wick', 'show_intersection_labels': False, 'max_historical_fans': 3, 'resolution': '4', 'symbol': '^NSEI'}
+2026-03-17 16:01:37,929 [INFO] [Study] Evaluating AngularPriceCoverageStudy (config: {'resolution': '4', 'symbol': '^NSEI', 'scale_ratio': 3.6603, 'left_bars': 5, 'right_bars': 5, 'show_intersection_labels': False})
+2026-03-17 16:01:37,931 [INFO] [IntDet] Bar 31 | 2026-03-10 11:19 | H=24233.05 L=24206.10 C=24232.75 | Fans=0 Lines=0
+2026-03-17 16:01:37,932 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
+2026-03-17 16:01:38,298 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
+2026-03-17 16:01:38,303 [INFO] Initialized AngularPriceCoverageStudy v4.0. Config: {'left_bars': 5, 'right_bars': 5, 'line_extension_bars': 100, 'fraction_colors': {0.125: '#FF5252', 0.25: '#FF5252', 0.375: '#FF5252', 0.5: '#2196F3', 0.625: '#4CAF50', 0.75: '#4CAF50', 0.875: '#4CAF50', 1.0: '#FFFFFF'}, 'main_color': '#FFFFFF', 'main_line_width': 1, 'fraction_line_width': 2, 'scale_ratio': 3.6603, 'breach_mode': 'wick', 'show_intersection_labels': False, 'max_historical_fans': 3, 'resolution': '4', 'symbol': '^NSEI'}
+2026-03-17 16:01:38,303 [INFO] [Study] Evaluating AngularPriceCoverageStudy (config: {'resolution': '4', 'symbol': '^NSEI', 'scale_ratio': 3.6603, 'left_bars': 5, 'right_bars': 5, 'show_intersection_labels': False})
+2026-03-17 16:01:38,304 [INFO] [IntDet] Bar 32 | 2026-03-10 11:23 | H=24237.70 L=24221.45 C=24223.30 | Fans=0 Lines=0
+2026-03-17 16:01:38,304 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
+2026-03-17 16:01:38,684 [INFO] Initialized AngularPriceCoverageStudy v4.0. Config: {'left_bars': 5, 'right_bars': 5, 'line_extension_bars': 100, 'fraction_colors': {0.125: '#FF5252', 0.25: '#FF5252', 0.375: '#FF5252', 0.5: '#2196F3', 0.625: '#4CAF50', 0.75: '#4CAF50', 0.875: '#4CAF50', 1.0: '#FFFFFF'}, 'main_color': '#FFFFFF', 'main_line_width': 1, 'fraction_line_width': 2, 'scale_ratio': 3.6603, 'breach_mode': 'wick', 'show_intersection_labels': False, 'max_historical_fans': 3, 'resolution': '4', 'symbol': '^NSEI'}
+2026-03-17 16:01:38,685 [INFO] [Study] Evaluating AngularPriceCoverageStudy (config: {'resolution': '4', 'symbol': '^NSEI', 'scale_ratio': 3.6603, 'left_bars': 5, 'right_bars': 5, 'show_intersection_labels': False})
+2026-03-17 16:01:38,686 [INFO] [IntDet] Bar 33 | 2026-03-10 11:27 | H=24240.15 L=24216.95 C=24228.55 | Fans=0 Lines=0
+2026-03-17 16:01:38,687 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
+2026-03-17 16:01:39,075 [INFO] Initialized AngularPriceCoverageStudy v4.0. Config: {'left_bars': 5, 'right_bars': 5, 'line_extension_bars': 100, 'fraction_colors': {0.125: '#FF5252', 0.25: '#FF5252', 0.375: '#FF5252', 0.5: '#2196F3', 0.625: '#4CAF50', 0.75: '#4CAF50', 0.875: '#4CAF50', 1.0: '#FFFFFF'}, 'main_color': '#FFFFFF', 'main_line_width': 1, 'fraction_line_width': 2, 'scale_ratio': 3.6603, 'breach_mode': 'wick', 'show_intersection_labels': False, 'max_historical_fans': 3, 'resolution': '4', 'symbol': '^NSEI'}
+2026-03-17 16:01:39,076 [INFO] [Study] Evaluating AngularPriceCoverageStudy (config: {'resolution': '4', 'symbol': '^NSEI', 'scale_ratio': 3.6603, 'left_bars': 5, 'right_bars': 5, 'show_intersection_labels': False})
+2026-03-17 16:01:39,078 [INFO] [IntDet] Bar 34 | 2026-03-10 11:31 | H=24246.85 L=24228.45 C=24244.65 | Fans=0 Lines=0
+2026-03-17 16:01:39,078 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
+2026-03-17 16:01:39,478 [INFO] Initialized AngularPriceCoverageStudy v4.0. Config: {'left_bars': 5, 'right_bars': 5, 'line_extension_bars': 100, 'fraction_colors': {0.125: '#FF5252', 0.25: '#FF5252', 0.375: '#FF5252', 0.5: '#2196F3', 0.625: '#4CAF50', 0.75: '#4CAF50', 0.875: '#4CAF50', 1.0: '#FFFFFF'}, 'main_color': '#FFFFFF', 'main_line_width': 1, 'fraction_line_width': 2, 'scale_ratio': 3.6603, 'breach_mode': 'wick', 'show_intersection_labels': False, 'max_historical_fans': 3, 'resolution': '4', 'symbol': '^NSEI'}
+2026-03-17 16:01:39,479 [INFO] [Study] Evaluating AngularPriceCoverageStudy (config: {'resolution': '4', 'symbol': '^NSEI', 'scale_ratio': 3.6603, 'left_bars': 5, 'right_bars': 5, 'show_intersection_labels': False})
+2026-03-17 16:01:39,480 [INFO] [IntDet] Bar 35 | 2026-03-10 11:35 | H=24250.75 L=24242.35 C=24248.20 | Fans=0 Lines=0
+2026-03-17 16:01:39,481 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
+2026-03-17 16:01:39,843 [INFO] Initialized AngularPriceCoverageStudy v4.0. Config: {'left_bars': 5, 'right_bars': 5, 'line_extension_bars': 100, 'fraction_colors': {0.125: '#FF5252', 0.25: '#FF5252', 0.375: '#FF5252', 0.5: '#2196F3', 0.625: '#4CAF50', 0.75: '#4CAF50', 0.875: '#4CAF50', 1.0: '#FFFFFF'}, 'main_color': '#FFFFFF', 'main_line_width': 1, 'fraction_line_width': 2, 'scale_ratio': 3.6603, 'breach_mode': 'wick', 'show_intersection_labels': False, 'max_historical_fans': 3, 'resolution': '4', 'symbol': '^NSEI'}
+2026-03-17 16:01:39,844 [INFO] [Study] Evaluating AngularPriceCoverageStudy (config: {'resolution': '4', 'symbol': '^NSEI', 'scale_ratio': 3.6603, 'left_bars': 5, 'right_bars': 5, 'show_intersection_labels': False})
+2026-03-17 16:01:39,845 [INFO] [IntDet] Bar 36 | 2026-03-10 11:39 | H=24255.30 L=24246.30 C=24253.55 | Fans=0 Lines=0
+2026-03-17 16:01:39,845 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
+2026-03-17 16:01:40,289 [INFO] Initialized AngularPriceCoverageStudy v4.0. Config: {'left_bars': 5, 'right_bars': 5, 'line_extension_bars': 100, 'fraction_colors': {0.125: '#FF5252', 0.25: '#FF5252', 0.375: '#FF5252', 0.5: '#2196F3', 0.625: '#4CAF50', 0.75: '#4CAF50', 0.875: '#4CAF50', 1.0: '#FFFFFF'}, 'main_color': '#FFFFFF', 'main_line_width': 1, 'fraction_line_width': 2, 'scale_ratio': 3.6603, 'breach_mode': 'wick', 'show_intersection_labels': False, 'max_historical_fans': 3, 'resolution': '4', 'symbol': '^NSEI'}
+2026-03-17 16:01:40,290 [INFO] [Study] Evaluating AngularPriceCoverageStudy (config: {'resolution': '4', 'symbol': '^NSEI', 'scale_ratio': 3.6603, 'left_bars': 5, 'right_bars': 5, 'show_intersection_labels': False})
+2026-03-17 16:01:40,290 [INFO] [IntDet] Bar 37 | 2026-03-10 11:43 | H=24254.90 L=24238.25 C=24239.55 | Fans=0 Lines=0
+2026-03-17 16:01:40,291 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
+2026-03-17 16:01:40,653 [INFO] Initialized AngularPriceCoverageStudy v4.0. Config: {'left_bars': 5, 'right_bars': 5, 'line_extension_bars': 100, 'fraction_colors': {0.125: '#FF5252', 0.25: '#FF5252', 0.375: '#FF5252', 0.5: '#2196F3', 0.625: '#4CAF50', 0.75: '#4CAF50', 0.875: '#4CAF50', 1.0: '#FFFFFF'}, 'main_color': '#FFFFFF', 'main_line_width': 1, 'fraction_line_width': 2, 'scale_ratio': 3.6603, 'breach_mode': 'wick', 'show_intersection_labels': False, 'max_historical_fans': 3, 'resolution': '4', 'symbol': '^NSEI'}
+2026-03-17 16:01:40,655 [INFO] [Study] Evaluating AngularPriceCoverageStudy (config: {'resolution': '4', 'symbol': '^NSEI', 'scale_ratio': 3.6603, 'left_bars': 5, 'right_bars': 5, 'show_intersection_labels': False})
+2026-03-17 16:01:40,656 [INFO] [IntDet] Bar 38 | 2026-03-10 11:47 | H=24239.80 L=24201.95 C=24203.50 | Fans=0 Lines=0
+2026-03-17 16:01:40,658 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
+2026-03-17 16:01:41,090 [INFO] Initialized AngularPriceCoverageStudy v4.0. Config: {'left_bars': 5, 'right_bars': 5, 'line_extension_bars': 100, 'fraction_colors': {0.125: '#FF5252', 0.25: '#FF5252', 0.375: '#FF5252', 0.5: '#2196F3', 0.625: '#4CAF50', 0.75: '#4CAF50', 0.875: '#4CAF50', 1.0: '#FFFFFF'}, 'main_color': '#FFFFFF', 'main_line_width': 1, 'fraction_line_width': 2, 'scale_ratio': 3.6603, 'breach_mode': 'wick', 'show_intersection_labels': False, 'max_historical_fans': 3, 'resolution': '4', 'symbol': '^NSEI'}
+2026-03-17 16:01:41,091 [INFO] [Study] Evaluating AngularPriceCoverageStudy (config: {'resolution': '4', 'symbol': '^NSEI', 'scale_ratio': 3.6603, 'left_bars': 5, 'right_bars': 5, 'show_intersection_labels': False})
+2026-03-17 16:01:41,092 [INFO] [IntDet] Bar 39 | 2026-03-10 11:51 | H=24214.60 L=24195.70 C=24213.15 | Fans=0 Lines=0
+2026-03-17 16:01:41,092 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
+2026-03-17 16:01:41,477 [INFO] Initialized AngularPriceCoverageStudy v4.0. Config: {'left_bars': 5, 'right_bars': 5, 'line_extension_bars': 100, 'fraction_colors': {0.125: '#FF5252', 0.25: '#FF5252', 0.375: '#FF5252', 0.5: '#2196F3', 0.625: '#4CAF50', 0.75: '#4CAF50', 0.875: '#4CAF50', 1.0: '#FFFFFF'}, 'main_color': '#FFFFFF', 'main_line_width': 1, 'fraction_line_width': 2, 'scale_ratio': 3.6603, 'breach_mode': 'wick', 'show_intersection_labels': False, 'max_historical_fans': 3, 'resolution': '4', 'symbol': '^NSEI'}
+2026-03-17 16:01:41,478 [INFO] [Study] Evaluating AngularPriceCoverageStudy (config: {'resolution': '4', 'symbol': '^NSEI', 'scale_ratio': 3.6603, 'left_bars': 5, 'right_bars': 5, 'show_intersection_labels': False})
+2026-03-17 16:01:41,479 [INFO] [IntDet] Bar 40 | 2026-03-10 11:55 | H=24225.25 L=24193.90 C=24207.45 | Fans=0 Lines=0
+2026-03-17 16:01:41,480 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
+2026-03-17 16:01:41,849 [INFO] Initialized AngularPriceCoverageStudy v4.0. Config: {'left_bars': 5, 'right_bars': 5, 'line_extension_bars': 100, 'fraction_colors': {0.125: '#FF5252', 0.25: '#FF5252', 0.375: '#FF5252', 0.5: '#2196F3', 0.625: '#4CAF50', 0.75: '#4CAF50', 0.875: '#4CAF50', 1.0: '#FFFFFF'}, 'main_color': '#FFFFFF', 'main_line_width': 1, 'fraction_line_width': 2, 'scale_ratio': 3.6603, 'breach_mode': 'wick', 'show_intersection_labels': False, 'max_historical_fans': 3, 'resolution': '4', 'symbol': '^NSEI'}
+2026-03-17 16:01:41,850 [INFO] [Study] Evaluating AngularPriceCoverageStudy (config: {'resolution': '4', 'symbol': '^NSEI', 'scale_ratio': 3.6603, 'left_bars': 5, 'right_bars': 5, 'show_intersection_labels': False})
+2026-03-17 16:01:41,851 [INFO] [Study] Creating new fan: Fan_H2_L2 (P1 (H2-L2))
+2026-03-17 16:01:41,851 [INFO] [AngleEngine] scale_ratio=3.6603, slope_per_bar=7.3956, visual_slope=2.0205, theta=63.67 deg
+2026-03-17 16:01:41,852 [INFO] --- [AngleEngine] Fan Created: Fan_H2_L2 ---
+2026-03-17 16:01:41,852 [INFO]   Origin: Bar 25, Time 1773120300, Price 24173.94921875
+2026-03-17 16:01:41,853 [INFO]   Target: Bar 36, Time 1773122940, Price 24255.30078125
+2026-03-17 16:01:41,854 [INFO]   Delta: db=11, dp_origin=81.35
+2026-03-17 16:01:41,854 [INFO]   Scale Params: Ratio=3.6603, Radius=24.80 bars, Slope/Bar=7.3956
+2026-03-17 16:01:41,855 [INFO]   Line 0.875: EndBar=1773122940 (approx), EndPrice=24232.99
+2026-03-17 16:01:41,855 [INFO]   Line 0.75: EndBar=1773122940 (approx), EndPrice=24218.28
+2026-03-17 16:01:41,856 [INFO]   Line 0.5: EndBar=1773122940 (approx), EndPrice=24198.95
+2026-03-17 16:01:41,856 [INFO]   Line 0.25: EndBar=1773122940 (approx), EndPrice=24185.43
+2026-03-17 16:01:41,856 [INFO]   Line 0.125: EndBar=1773122940 (approx), EndPrice=24179.58
+2026-03-17 16:01:41,857 [INFO] [Study] Creating new fan: Fan_H2_L1 (P2 (H2-L1))
+2026-03-17 16:01:41,857 [INFO] [AngleEngine] scale_ratio=3.6603, slope_per_bar=7.0141, visual_slope=1.9163, theta=62.44 deg
+2026-03-17 16:01:41,858 [INFO] --- [AngleEngine] Fan Created: Fan_H2_L1 ---
+2026-03-17 16:01:41,858 [INFO]   Origin: Bar 11, Time 1773116940, Price 24079.94921875
+2026-03-17 16:01:41,858 [INFO]   Target: Bar 36, Time 1773122940, Price 24255.30078125
+2026-03-17 16:01:41,859 [INFO]   Delta: db=25, dp_origin=175.35
+2026-03-17 16:01:41,859 [INFO]   Scale Params: Ratio=3.6603, Radius=54.04 bars, Slope/Bar=7.0141
+2026-03-17 16:01:41,859 [INFO]   Line 0.875: EndBar=1773122940 (approx), EndPrice=24208.89
+2026-03-17 16:01:41,859 [INFO]   Line 0.75: EndBar=1773122940 (approx), EndPrice=24177.50
+2026-03-17 16:01:41,860 [INFO]   Line 0.5: EndBar=1773122940 (approx), EndPrice=24135.41
+2026-03-17 16:01:41,860 [INFO]   Line 0.25: EndBar=1773122940 (approx), EndPrice=24105.52
+2026-03-17 16:01:41,860 [INFO]   Line 0.125: EndBar=1773122940 (approx), EndPrice=24092.49
+2026-03-17 16:01:41,860 [INFO] [IntDet] Bar 41 | 2026-03-10 11:59 | H=24222.75 L=24207.65 C=24218.45 | Fans=2 Lines=14
+2026-03-17 16:01:41,861 [INFO]   [P1 (H2-L2)] main: lineP=24292.28 | bars_from_origin=16.0 slope=7.3956 | ABOVE gap=69.53
+2026-03-17 16:01:41,861 [INFO]   [P1 (H2-L2)] 0.875: lineP=24259.83 | bars_from_origin=16.0 slope=5.3677 | ABOVE gap=37.08
+2026-03-17 16:01:41,862 [INFO]   [P1 (H2-L2)] 0.75: lineP=24238.43 | bars_from_origin=16.0 slope=4.0298 | ABOVE gap=15.68
+2026-03-17 16:01:41,862 [INFO]   [P1 (H2-L2)] 0.5: lineP=24210.31 | bars_from_origin=16.0 slope=2.2725 | HIT gap=0.00
+2026-03-17 16:01:41,862 [INFO]     >>> HIT RECORDED: P1 (H2-L2) frac=0.5 @ 24210.31
+2026-03-17 16:01:41,862 [INFO]   [P1 (H2-L2)] 0.25: lineP=24190.65 | bars_from_origin=16.0 slope=1.0438 | BELOW gap=17.00
+2026-03-17 16:01:41,862 [INFO]   [P1 (H2-L2)] 0.125: lineP=24182.14 | bars_from_origin=16.0 slope=0.5117 | BELOW gap=25.51
+2026-03-17 16:01:41,863 [INFO]   [P1 (H2-L2)] main: lineP=24198.95 | bars_from_origin=5.0 slope=0.0000 | BELOW gap=8.70
+2026-03-17 16:01:41,863 [INFO]   [P2 (H2-L1)] main: lineP=24290.37 | bars_from_origin=30.0 slope=7.0141 | ABOVE gap=67.62
+2026-03-17 16:01:41,864 [INFO]   [P2 (H2-L1)] 0.875: lineP=24234.68 | bars_from_origin=30.0 slope=5.1576 | ABOVE gap=11.93
+2026-03-17 16:01:41,864 [INFO]   [P2 (H2-L1)] 0.75: lineP=24197.01 | bars_from_origin=30.0 slope=3.9021 | BELOW gap=10.64
+2026-03-17 16:01:41,864 [INFO]   [P2 (H2-L1)] 0.5: lineP=24146.51 | bars_from_origin=30.0 slope=2.2186 | BELOW gap=61.14
+2026-03-17 16:01:41,865 [INFO]   [P2 (H2-L1)] 0.25: lineP=24110.63 | bars_from_origin=30.0 slope=1.0227 | BELOW gap=97.02
+2026-03-17 16:01:41,865 [INFO]   [P2 (H2-L1)] 0.125: lineP=24095.00 | bars_from_origin=30.0 slope=0.5017 | BELOW gap=112.65
+2026-03-17 16:01:41,865 [INFO]   [P2 (H2-L1)] main: lineP=24135.41 | bars_from_origin=5.0 slope=0.0000 | BELOW gap=72.24
+2026-03-17 16:01:41,866 [INFO]   [IntDet] Total hits this bar: 1
+2026-03-17 16:01:41,866 [INFO] [Study] Emitting intersection event (DIRECT): {'time': 1773124140, 'fan': 'P1 (H2-L2)', 'fanIdentity': 'H2-L2', 'fraction': '1/2', 'price': 24210.308942217238, 'type': 'CROSS_UP', 'details': 'Breakout Attempt'}
+2026-03-17 16:01:41,870 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
+2026-03-17 16:01:48,332 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
+2026-03-17 16:01:48,339 [INFO] Initialized AngularPriceCoverageStudy v4.0. Config: {'left_bars': 5, 'right_bars': 5, 'line_extension_bars': 100, 'fraction_colors': {0.125: '#FF5252', 0.25: '#FF5252', 0.375: '#FF5252', 0.5: '#2196F3', 0.625: '#4CAF50', 0.75: '#4CAF50', 0.875: '#4CAF50', 1.0: '#FFFFFF'}, 'main_color': '#FFFFFF', 'main_line_width': 1, 'fraction_line_width': 2, 'scale_ratio': 3.6603, 'breach_mode': 'wick', 'show_intersection_labels': False, 'max_historical_fans': 3, 'resolution': '4', 'symbol': '^NSEI'}
+2026-03-17 16:01:48,340 [INFO] [Study] Evaluating AngularPriceCoverageStudy (config: {'resolution': '4', 'symbol': '^NSEI', 'scale_ratio': 3.6603, 'left_bars': 5, 'right_bars': 5, 'show_intersection_labels': False})
+2026-03-17 16:01:48,341 [INFO] [IntDet] Bar 42 | 2026-03-10 12:03 | H=24223.25 L=24212.50 C=24217.95 | Fans=2 Lines=14
+2026-03-17 16:01:48,341 [INFO]   [P1 (H2-L2)] main: lineP=24299.67 | bars_from_origin=17.0 slope=7.3956 | ABOVE gap=76.42
+2026-03-17 16:01:48,342 [INFO]   [P1 (H2-L2)] 0.875: lineP=24265.20 | bars_from_origin=17.0 slope=5.3677 | ABOVE gap=41.95
+2026-03-17 16:01:48,342 [INFO]   [P1 (H2-L2)] 0.75: lineP=24242.46 | bars_from_origin=17.0 slope=4.0298 | ABOVE gap=19.21
+2026-03-17 16:01:48,342 [INFO]   [P1 (H2-L2)] 0.5: lineP=24212.58 | bars_from_origin=17.0 slope=2.2725 | HIT gap=0.00
+2026-03-17 16:01:48,343 [INFO]     >>> HIT RECORDED: P1 (H2-L2) frac=0.5 @ 24212.58
+2026-03-17 16:01:48,344 [INFO]   [P1 (H2-L2)] 0.25: lineP=24191.69 | bars_from_origin=17.0 slope=1.0438 | BELOW gap=20.81
+2026-03-17 16:01:48,345 [INFO]   [P1 (H2-L2)] 0.125: lineP=24182.65 | bars_from_origin=17.0 slope=0.5117 | BELOW gap=29.85
+2026-03-17 16:01:48,346 [INFO]   [P1 (H2-L2)] main: lineP=24198.95 | bars_from_origin=6.0 slope=0.0000 | BELOW gap=13.55
+2026-03-17 16:01:48,346 [INFO]   [P2 (H2-L1)] main: lineP=24297.39 | bars_from_origin=31.0 slope=7.0141 | ABOVE gap=74.14
+2026-03-17 16:01:48,347 [INFO]   [P2 (H2-L1)] 0.875: lineP=24239.83 | bars_from_origin=31.0 slope=5.1576 | ABOVE gap=16.58
+2026-03-17 16:01:48,348 [INFO]   [P2 (H2-L1)] 0.75: lineP=24200.92 | bars_from_origin=31.0 slope=3.9021 | BELOW gap=11.58
+2026-03-17 16:01:48,349 [INFO]   [P2 (H2-L1)] 0.5: lineP=24148.73 | bars_from_origin=31.0 slope=2.2186 | BELOW gap=63.77
+2026-03-17 16:01:48,349 [INFO]   [P2 (H2-L1)] 0.25: lineP=24111.65 | bars_from_origin=31.0 slope=1.0227 | BELOW gap=100.85
+2026-03-17 16:01:48,350 [INFO]   [P2 (H2-L1)] 0.125: lineP=24095.50 | bars_from_origin=31.0 slope=0.5017 | BELOW gap=117.00
+2026-03-17 16:01:48,351 [INFO]   [P2 (H2-L1)] main: lineP=24135.41 | bars_from_origin=6.0 slope=0.0000 | BELOW gap=77.09
+2026-03-17 16:01:48,351 [INFO]   [IntDet] Total hits this bar: 1
+2026-03-17 16:01:48,352 [INFO] [Study] Emitting intersection event (DIRECT): {'time': 1773124380, 'fan': 'P1 (H2-L2)', 'fanIdentity': 'H2-L2', 'fraction': '1/2', 'price': 24212.58142493394, 'type': 'SUPPORT_TEST', 'details': 'Resting / Throwback'}
+2026-03-17 16:01:48,355 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
+2026-03-17 16:01:48,428 [INFO] Initialized AngularPriceCoverageStudy v4.0. Config: {'left_bars': 5, 'right_bars': 5, 'line_extension_bars': 100, 'fraction_colors': {0.125: '#FF5252', 0.25: '#FF5252', 0.375: '#FF5252', 0.5: '#2196F3', 0.625: '#4CAF50', 0.75: '#4CAF50', 0.875: '#4CAF50', 1.0: '#FFFFFF'}, 'main_color': '#FFFFFF', 'main_line_width': 1, 'fraction_line_width': 2, 'scale_ratio': 3.6603, 'breach_mode': 'wick', 'show_intersection_labels': False, 'max_historical_fans': 3, 'resolution': '4', 'symbol': '^NSEI'}
+2026-03-17 16:01:48,429 [INFO] [Study] Evaluating AngularPriceCoverageStudy (config: {'resolution': '4', 'symbol': '^NSEI', 'scale_ratio': 3.6603, 'left_bars': 5, 'right_bars': 5, 'show_intersection_labels': False})
+2026-03-17 16:01:48,429 [INFO] [IntDet] Bar 43 | 2026-03-10 12:07 | H=24229.45 L=24199.20 C=24208.80 | Fans=2 Lines=14
+2026-03-17 16:01:48,429 [INFO]   [P1 (H2-L2)] main: lineP=24307.07 | bars_from_origin=18.0 slope=7.3956 | ABOVE gap=77.62
+2026-03-17 16:01:48,430 [INFO]   [P1 (H2-L2)] 0.875: lineP=24270.57 | bars_from_origin=18.0 slope=5.3677 | ABOVE gap=41.12
+2026-03-17 16:01:48,430 [INFO]   [P1 (H2-L2)] 0.75: lineP=24246.49 | bars_from_origin=18.0 slope=4.0298 | ABOVE gap=17.04
+2026-03-17 16:01:48,430 [INFO]   [P1 (H2-L2)] 0.5: lineP=24214.85 | bars_from_origin=18.0 slope=2.2725 | HIT gap=0.00
+2026-03-17 16:01:48,431 [INFO]     >>> HIT RECORDED: P1 (H2-L2) frac=0.5 @ 24214.85
+2026-03-17 16:01:48,431 [INFO]   [P1 (H2-L2)] 0.25: lineP=24192.74 | bars_from_origin=18.0 slope=1.0438 | BELOW gap=6.46
+2026-03-17 16:01:48,432 [INFO]   [P1 (H2-L2)] 0.125: lineP=24183.16 | bars_from_origin=18.0 slope=0.5117 | BELOW gap=16.04
+2026-03-17 16:01:48,432 [INFO]   [P1 (H2-L2)] main: lineP=24198.95 | bars_from_origin=7.0 slope=0.0000 | BELOW gap=0.25
+2026-03-17 16:01:48,433 [INFO]   [P2 (H2-L1)] main: lineP=24304.40 | bars_from_origin=32.0 slope=7.0141 | ABOVE gap=74.95
+2026-03-17 16:01:48,433 [INFO]   [P2 (H2-L1)] 0.875: lineP=24244.99 | bars_from_origin=32.0 slope=5.1576 | ABOVE gap=15.54
+2026-03-17 16:01:48,433 [INFO]   [P2 (H2-L1)] 0.75: lineP=24204.82 | bars_from_origin=32.0 slope=3.9021 | HIT gap=0.00
+2026-03-17 16:01:48,434 [INFO]     >>> HIT RECORDED: P2 (H2-L1) frac=0.75 @ 24204.82
+2026-03-17 16:01:48,434 [INFO]   [P2 (H2-L1)] 0.5: lineP=24150.94 | bars_from_origin=32.0 slope=2.2186 | BELOW gap=48.25
+2026-03-17 16:01:48,435 [INFO]   [P2 (H2-L1)] 0.25: lineP=24112.68 | bars_from_origin=32.0 slope=1.0227 | BELOW gap=86.52
+2026-03-17 16:01:48,435 [INFO]   [P2 (H2-L1)] 0.125: lineP=24096.00 | bars_from_origin=32.0 slope=0.5017 | BELOW gap=103.19
+2026-03-17 16:01:48,435 [INFO]   [P2 (H2-L1)] main: lineP=24135.41 | bars_from_origin=7.0 slope=0.0000 | BELOW gap=63.79
+2026-03-17 16:01:48,436 [INFO]   [IntDet] Total hits this bar: 2
+2026-03-17 16:01:48,436 [INFO] [Study] Emitting intersection event (DIRECT): {'time': 1773124620, 'fan': 'P1 (H2-L2)', 'fanIdentity': 'H2-L2', 'fraction': '1/2', 'price': 24214.853907650642, 'type': 'CROSS_DOWN', 'details': 'Breakdown Attempt'}
+2026-03-17 16:01:48,439 [INFO] [Study] Emitting intersection event (DIRECT): {'time': 1773124620, 'fan': 'P2 (H2-L1)', 'fanIdentity': 'H2-L1', 'fraction': '3/4', 'price': 24204.81747275949, 'type': 'SUPPORT_TEST', 'details': 'Resting / Throwback'}
+2026-03-17 16:01:48,442 [INFO] [Tracking] FAKE OUT: Fan_H2_L2 0.5 (T+2 bars)
+2026-03-17 16:01:48,443 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
+2026-03-17 16:01:48,864 [INFO] Initialized AngularPriceCoverageStudy v4.0. Config: {'left_bars': 5, 'right_bars': 5, 'line_extension_bars': 100, 'fraction_colors': {0.125: '#FF5252', 0.25: '#FF5252', 0.375: '#FF5252', 0.5: '#2196F3', 0.625: '#4CAF50', 0.75: '#4CAF50', 0.875: '#4CAF50', 1.0: '#FFFFFF'}, 'main_color': '#FFFFFF', 'main_line_width': 1, 'fraction_line_width': 2, 'scale_ratio': 3.6603, 'breach_mode': 'wick', 'show_intersection_labels': False, 'max_historical_fans': 3, 'resolution': '4', 'symbol': '^NSEI'}
+2026-03-17 16:01:48,865 [INFO] [Study] Evaluating AngularPriceCoverageStudy (config: {'resolution': '4', 'symbol': '^NSEI', 'scale_ratio': 3.6603, 'left_bars': 5, 'right_bars': 5, 'show_intersection_labels': False})
+2026-03-17 16:01:48,865 [INFO] [Study] Removing invalidated/excess fan: Fan_H2_L2
+2026-03-17 16:01:48,866 [INFO] [Study] Updating fan priority: Fan_H2_L1 -> P1 (H2-L1)
+2026-03-17 16:01:48,866 [INFO] [IntDet] Bar 44 | 2026-03-10 12:11 | H=24215.90 L=24172.50 C=24172.50 | Fans=1 Lines=7
+2026-03-17 16:01:48,867 [INFO]   [P1 (H2-L1)] main: lineP=24311.41 | bars_from_origin=33.0 slope=7.0141 | ABOVE gap=95.51
+2026-03-17 16:01:48,867 [INFO]   [P1 (H2-L1)] 0.875: lineP=24250.15 | bars_from_origin=33.0 slope=5.1576 | ABOVE gap=34.25
+2026-03-17 16:01:48,867 [INFO]   [P1 (H2-L1)] 0.75: lineP=24208.72 | bars_from_origin=33.0 slope=3.9021 | HIT gap=0.00
+2026-03-17 16:01:48,867 [INFO]     >>> HIT RECORDED: P1 (H2-L1) frac=0.75 @ 24208.72
+2026-03-17 16:01:48,868 [INFO]   [P1 (H2-L1)] 0.5: lineP=24153.16 | bars_from_origin=33.0 slope=2.2186 | BELOW gap=19.34
+2026-03-17 16:01:48,868 [INFO]   [P1 (H2-L1)] 0.25: lineP=24113.70 | bars_from_origin=33.0 slope=1.0227 | BELOW gap=58.80
+2026-03-17 16:01:48,868 [INFO]   [P1 (H2-L1)] 0.125: lineP=24096.51 | bars_from_origin=33.0 slope=0.5017 | BELOW gap=75.99
+2026-03-17 16:01:48,868 [INFO]   [P1 (H2-L1)] main: lineP=24135.41 | bars_from_origin=8.0 slope=0.0000 | BELOW gap=37.09
+2026-03-17 16:01:48,869 [INFO]   [IntDet] Total hits this bar: 1
+2026-03-17 16:01:48,869 [INFO] [Study] Emitting intersection event (DIRECT): {'time': 1773124860, 'fan': 'P1 (H2-L1)', 'fanIdentity': 'H2-L1', 'fraction': '3/4', 'price': 24208.719605697286, 'type': 'TOUCH', 'details': 'Angle Test'}
+2026-03-17 16:01:48,874 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
+2026-03-17 16:01:49,275 [INFO] Initialized AngularPriceCoverageStudy v4.0. Config: {'left_bars': 5, 'right_bars': 5, 'line_extension_bars': 100, 'fraction_colors': {0.125: '#FF5252', 0.25: '#FF5252', 0.375: '#FF5252', 0.5: '#2196F3', 0.625: '#4CAF50', 0.75: '#4CAF50', 0.875: '#4CAF50', 1.0: '#FFFFFF'}, 'main_color': '#FFFFFF', 'main_line_width': 1, 'fraction_line_width': 2, 'scale_ratio': 3.6603, 'breach_mode': 'wick', 'show_intersection_labels': False, 'max_historical_fans': 3, 'resolution': '4', 'symbol': '^NSEI'}
+2026-03-17 16:01:49,276 [INFO] [Study] Evaluating AngularPriceCoverageStudy (config: {'resolution': '4', 'symbol': '^NSEI', 'scale_ratio': 3.6603, 'left_bars': 5, 'right_bars': 5, 'show_intersection_labels': False})
+2026-03-17 16:01:49,277 [INFO] [IntDet] Bar 45 | 2026-03-10 12:15 | H=24189.45 L=24149.95 C=24182.80 | Fans=1 Lines=7
+2026-03-17 16:01:49,277 [INFO]   [P1 (H2-L1)] main: lineP=24318.43 | bars_from_origin=34.0 slope=7.0141 | ABOVE gap=128.98
+2026-03-17 16:01:49,278 [INFO]   [P1 (H2-L1)] 0.875: lineP=24255.31 | bars_from_origin=34.0 slope=5.1576 | ABOVE gap=65.86
+2026-03-17 16:01:49,278 [INFO]   [P1 (H2-L1)] 0.75: lineP=24212.62 | bars_from_origin=34.0 slope=3.9021 | ABOVE gap=23.17
+2026-03-17 16:01:49,279 [INFO]   [P1 (H2-L1)] 0.5: lineP=24155.38 | bars_from_origin=34.0 slope=2.2186 | HIT gap=0.00
+2026-03-17 16:01:49,279 [INFO]     >>> HIT RECORDED: P1 (H2-L1) frac=0.5 @ 24155.38
+2026-03-17 16:01:49,279 [INFO]   [P1 (H2-L1)] 0.25: lineP=24114.72 | bars_from_origin=34.0 slope=1.0227 | BELOW gap=35.23
+2026-03-17 16:01:49,280 [INFO]   [P1 (H2-L1)] 0.125: lineP=24097.01 | bars_from_origin=34.0 slope=0.5017 | BELOW gap=52.94
+2026-03-17 16:01:49,280 [INFO]   [P1 (H2-L1)] main: lineP=24135.41 | bars_from_origin=9.0 slope=0.0000 | BELOW gap=14.54
+2026-03-17 16:01:49,280 [INFO]   [IntDet] Total hits this bar: 1
+2026-03-17 16:01:49,281 [INFO] [Study] Emitting intersection event (DIRECT): {'time': 1773125100, 'fan': 'P1 (H2-L1)', 'fanIdentity': 'H2-L1', 'fraction': '1/2', 'price': 24155.381476903356, 'type': 'SUPPORT_TEST', 'details': 'Resting / Throwback'}
+2026-03-17 16:01:49,284 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
+2026-03-17 16:01:49,702 [INFO] Initialized AngularPriceCoverageStudy v4.0. Config: {'left_bars': 5, 'right_bars': 5, 'line_extension_bars': 100, 'fraction_colors': {0.125: '#FF5252', 0.25: '#FF5252', 0.375: '#FF5252', 0.5: '#2196F3', 0.625: '#4CAF50', 0.75: '#4CAF50', 0.875: '#4CAF50', 1.0: '#FFFFFF'}, 'main_color': '#FFFFFF', 'main_line_width': 1, 'fraction_line_width': 2, 'scale_ratio': 3.6603, 'breach_mode': 'wick', 'show_intersection_labels': False, 'max_historical_fans': 3, 'resolution': '4', 'symbol': '^NSEI'}
+2026-03-17 16:01:49,703 [INFO] [Study] Evaluating AngularPriceCoverageStudy (config: {'resolution': '4', 'symbol': '^NSEI', 'scale_ratio': 3.6603, 'left_bars': 5, 'right_bars': 5, 'show_intersection_labels': False})
+2026-03-17 16:01:49,703 [INFO] [IntDet] Bar 46 | 2026-03-10 12:19 | H=24187.40 L=24144.40 C=24144.40 | Fans=1 Lines=7
+2026-03-17 16:01:49,704 [INFO]   [P1 (H2-L1)] main: lineP=24325.44 | bars_from_origin=35.0 slope=7.0141 | ABOVE gap=138.04
+2026-03-17 16:01:49,704 [INFO]   [P1 (H2-L1)] 0.875: lineP=24260.46 | bars_from_origin=35.0 slope=5.1576 | ABOVE gap=73.06
+2026-03-17 16:01:49,705 [INFO]   [P1 (H2-L1)] 0.75: lineP=24216.52 | bars_from_origin=35.0 slope=3.9021 | ABOVE gap=29.12
+2026-03-17 16:01:49,705 [INFO]   [P1 (H2-L1)] 0.5: lineP=24157.60 | bars_from_origin=35.0 slope=2.2186 | HIT gap=0.00
+2026-03-17 16:01:49,706 [INFO]     >>> HIT RECORDED: P1 (H2-L1) frac=0.5 @ 24157.60
+2026-03-17 16:01:49,706 [INFO]   [P1 (H2-L1)] 0.25: lineP=24115.74 | bars_from_origin=35.0 slope=1.0227 | BELOW gap=28.66
+2026-03-17 16:01:49,706 [INFO]   [P1 (H2-L1)] 0.125: lineP=24097.51 | bars_from_origin=35.0 slope=0.5017 | BELOW gap=46.89
+2026-03-17 16:01:49,707 [INFO]   [P1 (H2-L1)] main: lineP=24135.41 | bars_from_origin=10.0 slope=0.0000 | BELOW gap=8.99
+2026-03-17 16:01:49,707 [INFO]   [IntDet] Total hits this bar: 1
+2026-03-17 16:01:49,708 [INFO] [Study] Emitting intersection event (DIRECT): {'time': 1773125340, 'fan': 'P1 (H2-L1)', 'fanIdentity': 'H2-L1', 'fraction': '1/2', 'price': 24157.600072731395, 'type': 'CROSS_DOWN', 'details': 'Breakdown Attempt'}
+2026-03-17 16:01:49,713 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
+2026-03-17 16:01:50,035 [INFO] Initialized AngularPriceCoverageStudy v4.0. Config: {'left_bars': 5, 'right_bars': 5, 'line_extension_bars': 100, 'fraction_colors': {0.125: '#FF5252', 0.25: '#FF5252', 0.375: '#FF5252', 0.5: '#2196F3', 0.625: '#4CAF50', 0.75: '#4CAF50', 0.875: '#4CAF50', 1.0: '#FFFFFF'}, 'main_color': '#FFFFFF', 'main_line_width': 1, 'fraction_line_width': 2, 'scale_ratio': 3.6603, 'breach_mode': 'wick', 'show_intersection_labels': False, 'max_historical_fans': 3, 'resolution': '4', 'symbol': '^NSEI'}
+2026-03-17 16:01:50,036 [INFO] [Study] Evaluating AngularPriceCoverageStudy (config: {'resolution': '4', 'symbol': '^NSEI', 'scale_ratio': 3.6603, 'left_bars': 5, 'right_bars': 5, 'show_intersection_labels': False})
+2026-03-17 16:01:50,038 [INFO] [IntDet] Bar 47 | 2026-03-10 12:23 | H=24166.05 L=24143.05 C=24157.05 | Fans=1 Lines=7
+2026-03-17 16:01:50,039 [INFO]   [P1 (H2-L1)] main: lineP=24332.46 | bars_from_origin=36.0 slope=7.0141 | ABOVE gap=166.40
+2026-03-17 16:01:50,040 [INFO]   [P1 (H2-L1)] 0.875: lineP=24265.62 | bars_from_origin=36.0 slope=5.1576 | ABOVE gap=99.57
+2026-03-17 16:01:50,041 [INFO]   [P1 (H2-L1)] 0.75: lineP=24220.43 | bars_from_origin=36.0 slope=3.9021 | ABOVE gap=54.38
+2026-03-17 16:01:50,042 [INFO]   [P1 (H2-L1)] 0.5: lineP=24159.82 | bars_from_origin=36.0 slope=2.2186 | HIT gap=0.00
+2026-03-17 16:01:50,043 [INFO]     >>> HIT RECORDED: P1 (H2-L1) frac=0.5 @ 24159.82
+2026-03-17 16:01:50,043 [INFO]   [P1 (H2-L1)] 0.25: lineP=24116.77 | bars_from_origin=36.0 slope=1.0227 | BELOW gap=26.28
+2026-03-17 16:01:50,044 [INFO]   [P1 (H2-L1)] 0.125: lineP=24098.01 | bars_from_origin=36.0 slope=0.5017 | BELOW gap=45.04
+2026-03-17 16:01:50,045 [INFO]   [P1 (H2-L1)] main: lineP=24135.41 | bars_from_origin=11.0 slope=0.0000 | BELOW gap=7.64
+2026-03-17 16:01:50,045 [INFO]   [IntDet] Total hits this bar: 1
+2026-03-17 16:01:50,045 [INFO] [Study] Emitting intersection event (DIRECT): {'time': 1773125580, 'fan': 'P1 (H2-L1)', 'fanIdentity': 'H2-L1', 'fraction': '1/2', 'price': 24159.818668559434, 'type': 'RESISTANCE_TEST', 'details': 'Rejection / Pullback'}
+2026-03-17 16:01:50,051 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
+2026-03-17 16:01:50,412 [INFO] Initialized AngularPriceCoverageStudy v4.0. Config: {'left_bars': 5, 'right_bars': 5, 'line_extension_bars': 100, 'fraction_colors': {0.125: '#FF5252', 0.25: '#FF5252', 0.375: '#FF5252', 0.5: '#2196F3', 0.625: '#4CAF50', 0.75: '#4CAF50', 0.875: '#4CAF50', 1.0: '#FFFFFF'}, 'main_color': '#FFFFFF', 'main_line_width': 1, 'fraction_line_width': 2, 'scale_ratio': 3.6603, 'breach_mode': 'wick', 'show_intersection_labels': False, 'max_historical_fans': 3, 'resolution': '4', 'symbol': '^NSEI'}
+2026-03-17 16:01:50,413 [INFO] [Study] Evaluating AngularPriceCoverageStudy (config: {'resolution': '4', 'symbol': '^NSEI', 'scale_ratio': 3.6603, 'left_bars': 5, 'right_bars': 5, 'show_intersection_labels': False})
+2026-03-17 16:01:50,415 [INFO] [IntDet] Bar 48 | 2026-03-10 12:27 | H=24165.25 L=24147.60 C=24159.30 | Fans=1 Lines=7
+2026-03-17 16:01:50,415 [INFO]   [P1 (H2-L1)] main: lineP=24339.47 | bars_from_origin=37.0 slope=7.0141 | ABOVE gap=174.22
+2026-03-17 16:01:50,416 [INFO]   [P1 (H2-L1)] 0.875: lineP=24270.78 | bars_from_origin=37.0 slope=5.1576 | ABOVE gap=105.53
+2026-03-17 16:01:50,416 [INFO]   [P1 (H2-L1)] 0.75: lineP=24224.33 | bars_from_origin=37.0 slope=3.9021 | ABOVE gap=59.08
+2026-03-17 16:01:50,417 [INFO]   [P1 (H2-L1)] 0.5: lineP=24162.04 | bars_from_origin=37.0 slope=2.2186 | HIT gap=0.00
+2026-03-17 16:01:50,417 [INFO]     >>> HIT RECORDED: P1 (H2-L1) frac=0.5 @ 24162.04
+2026-03-17 16:01:50,418 [INFO]   [P1 (H2-L1)] 0.25: lineP=24117.79 | bars_from_origin=37.0 slope=1.0227 | BELOW gap=29.81
+2026-03-17 16:01:50,418 [INFO]   [P1 (H2-L1)] 0.125: lineP=24098.51 | bars_from_origin=37.0 slope=0.5017 | BELOW gap=49.09
+2026-03-17 16:01:50,419 [INFO]   [P1 (H2-L1)] main: lineP=24135.41 | bars_from_origin=12.0 slope=0.0000 | BELOW gap=12.19
+2026-03-17 16:01:50,419 [INFO]   [IntDet] Total hits this bar: 1
+2026-03-17 16:01:50,419 [INFO] [Study] Emitting intersection event (DIRECT): {'time': 1773125820, 'fan': 'P1 (H2-L1)', 'fanIdentity': 'H2-L1', 'fraction': '1/2', 'price': 24162.037264387473, 'type': 'RESISTANCE_TEST', 'details': 'Rejection / Pullback'}
+2026-03-17 16:01:50,426 [INFO] [Tracking] FAKE OUT: Fan_H2_L1 0.5 (T+2 bars)
+2026-03-17 16:01:50,427 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
+2026-03-17 16:01:50,832 [INFO] Initialized AngularPriceCoverageStudy v4.0. Config: {'left_bars': 5, 'right_bars': 5, 'line_extension_bars': 100, 'fraction_colors': {0.125: '#FF5252', 0.25: '#FF5252', 0.375: '#FF5252', 0.5: '#2196F3', 0.625: '#4CAF50', 0.75: '#4CAF50', 0.875: '#4CAF50', 1.0: '#FFFFFF'}, 'main_color': '#FFFFFF', 'main_line_width': 1, 'fraction_line_width': 2, 'scale_ratio': 3.6603, 'breach_mode': 'wick', 'show_intersection_labels': False, 'max_historical_fans': 3, 'resolution': '4', 'symbol': '^NSEI'}
+2026-03-17 16:01:50,833 [INFO] [Study] Evaluating AngularPriceCoverageStudy (config: {'resolution': '4', 'symbol': '^NSEI', 'scale_ratio': 3.6603, 'left_bars': 5, 'right_bars': 5, 'show_intersection_labels': False})
+2026-03-17 16:01:50,834 [INFO] [IntDet] Bar 49 | 2026-03-10 12:31 | H=24165.90 L=24156.75 C=24160.90 | Fans=1 Lines=7
+2026-03-17 16:01:50,834 [INFO]   [P1 (H2-L1)] main: lineP=24346.48 | bars_from_origin=38.0 slope=7.0141 | ABOVE gap=180.58
+2026-03-17 16:01:50,835 [INFO]   [P1 (H2-L1)] 0.875: lineP=24275.94 | bars_from_origin=38.0 slope=5.1576 | ABOVE gap=110.04
+2026-03-17 16:01:50,835 [INFO]   [P1 (H2-L1)] 0.75: lineP=24228.23 | bars_from_origin=38.0 slope=3.9021 | ABOVE gap=62.33
+2026-03-17 16:01:50,836 [INFO]   [P1 (H2-L1)] 0.5: lineP=24164.26 | bars_from_origin=38.0 slope=2.2186 | HIT gap=0.00
+2026-03-17 16:01:50,836 [INFO]     >>> HIT RECORDED: P1 (H2-L1) frac=0.5 @ 24164.26
+2026-03-17 16:01:50,836 [INFO]   [P1 (H2-L1)] 0.25: lineP=24118.81 | bars_from_origin=38.0 slope=1.0227 | BELOW gap=37.94
+2026-03-17 16:01:50,837 [INFO]   [P1 (H2-L1)] 0.125: lineP=24099.02 | bars_from_origin=38.0 slope=0.5017 | BELOW gap=57.73
+2026-03-17 16:01:50,837 [INFO]   [P1 (H2-L1)] main: lineP=24135.41 | bars_from_origin=13.0 slope=0.0000 | BELOW gap=21.34
+2026-03-17 16:01:50,838 [INFO]   [IntDet] Total hits this bar: 1
+2026-03-17 16:01:50,838 [INFO] [Study] Emitting intersection event (DIRECT): {'time': 1773126060, 'fan': 'P1 (H2-L1)', 'fanIdentity': 'H2-L1', 'fraction': '1/2', 'price': 24164.255860215515, 'type': 'RESISTANCE_TEST', 'details': 'Rejection / Pullback'}
+2026-03-17 16:01:50,843 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
+2026-03-17 16:01:51,265 [INFO] Initialized AngularPriceCoverageStudy v4.0. Config: {'left_bars': 5, 'right_bars': 5, 'line_extension_bars': 100, 'fraction_colors': {0.125: '#FF5252', 0.25: '#FF5252', 0.375: '#FF5252', 0.5: '#2196F3', 0.625: '#4CAF50', 0.75: '#4CAF50', 0.875: '#4CAF50', 1.0: '#FFFFFF'}, 'main_color': '#FFFFFF', 'main_line_width': 1, 'fraction_line_width': 2, 'scale_ratio': 3.6603, 'breach_mode': 'wick', 'show_intersection_labels': False, 'max_historical_fans': 3, 'resolution': '4', 'symbol': '^NSEI'}
+2026-03-17 16:01:51,266 [INFO] [Study] Evaluating AngularPriceCoverageStudy (config: {'resolution': '4', 'symbol': '^NSEI', 'scale_ratio': 3.6603, 'left_bars': 5, 'right_bars': 5, 'show_intersection_labels': False})
+2026-03-17 16:01:51,266 [INFO] [IntDet] Bar 50 | 2026-03-10 12:35 | H=24191.50 L=24156.50 C=24162.60 | Fans=1 Lines=7
+2026-03-17 16:01:51,267 [INFO]   [P1 (H2-L1)] main: lineP=24353.50 | bars_from_origin=39.0 slope=7.0141 | ABOVE gap=162.00
+2026-03-17 16:01:51,267 [INFO]   [P1 (H2-L1)] 0.875: lineP=24281.09 | bars_from_origin=39.0 slope=5.1576 | ABOVE gap=89.59
+2026-03-17 16:01:51,268 [INFO]   [P1 (H2-L1)] 0.75: lineP=24232.13 | bars_from_origin=39.0 slope=3.9021 | ABOVE gap=40.63
+2026-03-17 16:01:51,268 [INFO]   [P1 (H2-L1)] 0.5: lineP=24166.47 | bars_from_origin=39.0 slope=2.2186 | HIT gap=0.00
+2026-03-17 16:01:51,268 [INFO]     >>> HIT RECORDED: P1 (H2-L1) frac=0.5 @ 24166.47
+2026-03-17 16:01:51,269 [INFO]   [P1 (H2-L1)] 0.25: lineP=24119.83 | bars_from_origin=39.0 slope=1.0227 | BELOW gap=36.67
+2026-03-17 16:01:51,269 [INFO]   [P1 (H2-L1)] 0.125: lineP=24099.52 | bars_from_origin=39.0 slope=0.5017 | BELOW gap=56.98
+2026-03-17 16:01:51,270 [INFO]   [P1 (H2-L1)] main: lineP=24135.41 | bars_from_origin=14.0 slope=0.0000 | BELOW gap=21.09
+2026-03-17 16:01:51,270 [INFO]   [IntDet] Total hits this bar: 1
+2026-03-17 16:01:51,270 [INFO] [Study] Emitting intersection event (DIRECT): {'time': 1773126300, 'fan': 'P1 (H2-L1)', 'fanIdentity': 'H2-L1', 'fraction': '1/2', 'price': 24166.474456043554, 'type': 'RESISTANCE_TEST', 'details': 'Rejection / Pullback'}
+2026-03-17 16:01:51,275 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
+2026-03-17 16:01:51,691 [INFO] Initialized AngularPriceCoverageStudy v4.0. Config: {'left_bars': 5, 'right_bars': 5, 'line_extension_bars': 100, 'fraction_colors': {0.125: '#FF5252', 0.25: '#FF5252', 0.375: '#FF5252', 0.5: '#2196F3', 0.625: '#4CAF50', 0.75: '#4CAF50', 0.875: '#4CAF50', 1.0: '#FFFFFF'}, 'main_color': '#FFFFFF', 'main_line_width': 1, 'fraction_line_width': 2, 'scale_ratio': 3.6603, 'breach_mode': 'wick', 'show_intersection_labels': False, 'max_historical_fans': 3, 'resolution': '4', 'symbol': '^NSEI'}
+2026-03-17 16:01:51,692 [INFO] [Study] Evaluating AngularPriceCoverageStudy (config: {'resolution': '4', 'symbol': '^NSEI', 'scale_ratio': 3.6603, 'left_bars': 5, 'right_bars': 5, 'show_intersection_labels': False})
+2026-03-17 16:01:51,693 [INFO] [IntDet] Bar 51 | 2026-03-10 12:39 | H=24164.75 L=24153.00 C=24155.40 | Fans=1 Lines=7
+2026-03-17 16:01:51,693 [INFO]   [P1 (H2-L1)] main: lineP=24360.51 | bars_from_origin=40.0 slope=7.0141 | ABOVE gap=195.76
+2026-03-17 16:01:51,693 [INFO]   [P1 (H2-L1)] 0.875: lineP=24286.25 | bars_from_origin=40.0 slope=5.1576 | ABOVE gap=121.50
+2026-03-17 16:01:51,694 [INFO]   [P1 (H2-L1)] 0.75: lineP=24236.03 | bars_from_origin=40.0 slope=3.9021 | ABOVE gap=71.28
+2026-03-17 16:01:51,694 [INFO]   [P1 (H2-L1)] 0.5: lineP=24168.69 | bars_from_origin=40.0 slope=2.2186 | ABOVE gap=3.94
+2026-03-17 16:01:51,695 [INFO]   [P1 (H2-L1)] 0.25: lineP=24120.86 | bars_from_origin=40.0 slope=1.0227 | BELOW gap=32.14
+2026-03-17 16:01:51,695 [INFO]   [P1 (H2-L1)] 0.125: lineP=24100.02 | bars_from_origin=40.0 slope=0.5017 | BELOW gap=52.98
+2026-03-17 16:01:51,696 [INFO]   [P1 (H2-L1)] main: lineP=24135.41 | bars_from_origin=15.0 slope=0.0000 | BELOW gap=17.59
+2026-03-17 16:01:51,697 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
+2026-03-17 16:01:52,020 [INFO] Initialized AngularPriceCoverageStudy v4.0. Config: {'left_bars': 5, 'right_bars': 5, 'line_extension_bars': 100, 'fraction_colors': {0.125: '#FF5252', 0.25: '#FF5252', 0.375: '#FF5252', 0.5: '#2196F3', 0.625: '#4CAF50', 0.75: '#4CAF50', 0.875: '#4CAF50', 1.0: '#FFFFFF'}, 'main_color': '#FFFFFF', 'main_line_width': 1, 'fraction_line_width': 2, 'scale_ratio': 3.6603, 'breach_mode': 'wick', 'show_intersection_labels': False, 'max_historical_fans': 3, 'resolution': '4', 'symbol': '^NSEI'}
+2026-03-17 16:01:52,021 [INFO] [Study] Evaluating AngularPriceCoverageStudy (config: {'resolution': '4', 'symbol': '^NSEI', 'scale_ratio': 3.6603, 'left_bars': 5, 'right_bars': 5, 'show_intersection_labels': False})
+2026-03-17 16:01:52,021 [INFO] [IntDet] Bar 52 | 2026-03-10 12:43 | H=24172.70 L=24142.45 C=24170.30 | Fans=1 Lines=7
+2026-03-17 16:01:52,022 [INFO]   [P1 (H2-L1)] main: lineP=24367.53 | bars_from_origin=41.0 slope=7.0141 | ABOVE gap=194.83
+2026-03-17 16:01:52,022 [INFO]   [P1 (H2-L1)] 0.875: lineP=24291.41 | bars_from_origin=41.0 slope=5.1576 | ABOVE gap=118.71
+2026-03-17 16:01:52,022 [INFO]   [P1 (H2-L1)] 0.75: lineP=24239.94 | bars_from_origin=41.0 slope=3.9021 | ABOVE gap=67.24
+2026-03-17 16:01:52,023 [INFO]   [P1 (H2-L1)] 0.5: lineP=24170.91 | bars_from_origin=41.0 slope=2.2186 | HIT gap=0.00
+2026-03-17 16:01:52,023 [INFO]     >>> HIT RECORDED: P1 (H2-L1) frac=0.5 @ 24170.91
+2026-03-17 16:01:52,023 [INFO]   [P1 (H2-L1)] 0.25: lineP=24121.88 | bars_from_origin=41.0 slope=1.0227 | BELOW gap=20.57
+2026-03-17 16:01:52,023 [INFO]   [P1 (H2-L1)] 0.125: lineP=24100.52 | bars_from_origin=41.0 slope=0.5017 | BELOW gap=41.93
+2026-03-17 16:01:52,024 [INFO]   [P1 (H2-L1)] main: lineP=24135.41 | bars_from_origin=16.0 slope=0.0000 | BELOW gap=7.04
+2026-03-17 16:01:52,024 [INFO]   [IntDet] Total hits this bar: 1
+2026-03-17 16:01:52,024 [INFO] [Study] Emitting intersection event (DIRECT): {'time': 1773126780, 'fan': 'P1 (H2-L1)', 'fanIdentity': 'H2-L1', 'fraction': '1/2', 'price': 24170.91164769963, 'type': 'RESISTANCE_TEST', 'details': 'Rejection / Pullback'}
+2026-03-17 16:01:52,031 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
+2026-03-17 16:01:52,503 [INFO] Initialized AngularPriceCoverageStudy v4.0. Config: {'left_bars': 5, 'right_bars': 5, 'line_extension_bars': 100, 'fraction_colors': {0.125: '#FF5252', 0.25: '#FF5252', 0.375: '#FF5252', 0.5: '#2196F3', 0.625: '#4CAF50', 0.75: '#4CAF50', 0.875: '#4CAF50', 1.0: '#FFFFFF'}, 'main_color': '#FFFFFF', 'main_line_width': 1, 'fraction_line_width': 2, 'scale_ratio': 3.6603, 'breach_mode': 'wick', 'show_intersection_labels': False, 'max_historical_fans': 3, 'resolution': '4', 'symbol': '^NSEI'}
+2026-03-17 16:01:52,504 [INFO] [Study] Evaluating AngularPriceCoverageStudy (config: {'resolution': '4', 'symbol': '^NSEI', 'scale_ratio': 3.6603, 'left_bars': 5, 'right_bars': 5, 'show_intersection_labels': False})
+2026-03-17 16:01:52,505 [INFO] [IntDet] Bar 53 | 2026-03-10 12:47 | H=24195.10 L=24167.35 C=24194.25 | Fans=1 Lines=7
+2026-03-17 16:01:52,506 [INFO]   [P1 (H2-L1)] main: lineP=24374.54 | bars_from_origin=42.0 slope=7.0141 | ABOVE gap=179.44
+2026-03-17 16:01:52,506 [INFO]   [P1 (H2-L1)] 0.875: lineP=24296.57 | bars_from_origin=42.0 slope=5.1576 | ABOVE gap=101.47
+2026-03-17 16:01:52,507 [INFO]   [P1 (H2-L1)] 0.75: lineP=24243.84 | bars_from_origin=42.0 slope=3.9021 | ABOVE gap=48.74
+2026-03-17 16:01:52,507 [INFO]   [P1 (H2-L1)] 0.5: lineP=24173.13 | bars_from_origin=42.0 slope=2.2186 | HIT gap=0.00
+2026-03-17 16:01:52,507 [INFO]     >>> HIT RECORDED: P1 (H2-L1) frac=0.5 @ 24173.13
+2026-03-17 16:01:52,508 [INFO]   [P1 (H2-L1)] 0.25: lineP=24122.90 | bars_from_origin=42.0 slope=1.0227 | BELOW gap=44.45
+2026-03-17 16:01:52,508 [INFO]   [P1 (H2-L1)] 0.125: lineP=24101.02 | bars_from_origin=42.0 slope=0.5017 | BELOW gap=66.33
+2026-03-17 16:01:52,508 [INFO]   [P1 (H2-L1)] main: lineP=24135.41 | bars_from_origin=17.0 slope=0.0000 | BELOW gap=31.94
+2026-03-17 16:01:52,509 [INFO]   [IntDet] Total hits this bar: 1
+2026-03-17 16:01:52,510 [INFO] [Study] Emitting intersection event (DIRECT): {'time': 1773127020, 'fan': 'P1 (H2-L1)', 'fanIdentity': 'H2-L1', 'fraction': '1/2', 'price': 24173.130243527674, 'type': 'CROSS_UP', 'details': 'Breakout Attempt'}
+2026-03-17 16:01:52,515 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
+2026-03-17 16:01:52,916 [INFO] Initialized AngularPriceCoverageStudy v4.0. Config: {'left_bars': 5, 'right_bars': 5, 'line_extension_bars': 100, 'fraction_colors': {0.125: '#FF5252', 0.25: '#FF5252', 0.375: '#FF5252', 0.5: '#2196F3', 0.625: '#4CAF50', 0.75: '#4CAF50', 0.875: '#4CAF50', 1.0: '#FFFFFF'}, 'main_color': '#FFFFFF', 'main_line_width': 1, 'fraction_line_width': 2, 'scale_ratio': 3.6603, 'breach_mode': 'wick', 'show_intersection_labels': False, 'max_historical_fans': 3, 'resolution': '4', 'symbol': '^NSEI'}
+2026-03-17 16:01:52,917 [INFO] [Study] Evaluating AngularPriceCoverageStudy (config: {'resolution': '4', 'symbol': '^NSEI', 'scale_ratio': 3.6603, 'left_bars': 5, 'right_bars': 5, 'show_intersection_labels': False})
+2026-03-17 16:01:52,918 [INFO] [IntDet] Bar 54 | 2026-03-10 12:51 | H=24220.05 L=24183.35 C=24218.40 | Fans=1 Lines=7
+2026-03-17 16:01:52,918 [INFO]   [P1 (H2-L1)] main: lineP=24381.55 | bars_from_origin=43.0 slope=7.0141 | ABOVE gap=161.50
+2026-03-17 16:01:52,918 [INFO]   [P1 (H2-L1)] 0.875: lineP=24301.72 | bars_from_origin=43.0 slope=5.1576 | ABOVE gap=81.67
+2026-03-17 16:01:52,919 [INFO]   [P1 (H2-L1)] 0.75: lineP=24247.74 | bars_from_origin=43.0 slope=3.9021 | ABOVE gap=27.69
+2026-03-17 16:01:52,919 [INFO]   [P1 (H2-L1)] 0.5: lineP=24175.35 | bars_from_origin=43.0 slope=2.2186 | BELOW gap=8.00
+2026-03-17 16:01:52,919 [INFO]   [P1 (H2-L1)] 0.25: lineP=24123.93 | bars_from_origin=43.0 slope=1.0227 | BELOW gap=59.42
+2026-03-17 16:01:52,920 [INFO]   [P1 (H2-L1)] 0.125: lineP=24101.52 | bars_from_origin=43.0 slope=0.5017 | BELOW gap=81.83
+2026-03-17 16:01:52,920 [INFO]   [P1 (H2-L1)] main: lineP=24135.41 | bars_from_origin=18.0 slope=0.0000 | BELOW gap=47.94
+2026-03-17 16:01:52,920 [INFO] [Tracking] Breach CONFIRMED: Fan_H2_L1 0.5 up (T+1 bars)
+2026-03-17 16:01:52,921 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
+2026-03-17 16:01:53,344 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
+2026-03-17 16:01:53,347 [INFO] Initialized AngularPriceCoverageStudy v4.0. Config: {'left_bars': 5, 'right_bars': 5, 'line_extension_bars': 100, 'fraction_colors': {0.125: '#FF5252', 0.25: '#FF5252', 0.375: '#FF5252', 0.5: '#2196F3', 0.625: '#4CAF50', 0.75: '#4CAF50', 0.875: '#4CAF50', 1.0: '#FFFFFF'}, 'main_color': '#FFFFFF', 'main_line_width': 1, 'fraction_line_width': 2, 'scale_ratio': 3.6603, 'breach_mode': 'wick', 'show_intersection_labels': False, 'max_historical_fans': 3, 'resolution': '4', 'symbol': '^NSEI'}
+2026-03-17 16:01:53,348 [INFO] [Study] Evaluating AngularPriceCoverageStudy (config: {'resolution': '4', 'symbol': '^NSEI', 'scale_ratio': 3.6603, 'left_bars': 5, 'right_bars': 5, 'show_intersection_labels': False})
+2026-03-17 16:01:53,348 [INFO] [IntDet] Bar 55 | 2026-03-10 12:55 | H=24231.35 L=24209.40 C=24219.60 | Fans=1 Lines=7
+2026-03-17 16:01:53,348 [INFO]   [P1 (H2-L1)] main: lineP=24388.57 | bars_from_origin=44.0 slope=7.0141 | ABOVE gap=157.22
+2026-03-17 16:01:53,349 [INFO]   [P1 (H2-L1)] 0.875: lineP=24306.88 | bars_from_origin=44.0 slope=5.1576 | ABOVE gap=75.53
+2026-03-17 16:01:53,349 [INFO]   [P1 (H2-L1)] 0.75: lineP=24251.64 | bars_from_origin=44.0 slope=3.9021 | ABOVE gap=20.29
+2026-03-17 16:01:53,350 [INFO]   [P1 (H2-L1)] 0.5: lineP=24177.57 | bars_from_origin=44.0 slope=2.2186 | BELOW gap=31.83
+2026-03-17 16:01:53,350 [INFO]   [P1 (H2-L1)] 0.25: lineP=24124.95 | bars_from_origin=44.0 slope=1.0227 | BELOW gap=84.45
+2026-03-17 16:01:53,350 [INFO]   [P1 (H2-L1)] 0.125: lineP=24102.03 | bars_from_origin=44.0 slope=0.5017 | BELOW gap=107.37
+2026-03-17 16:01:53,350 [INFO]   [P1 (H2-L1)] main: lineP=24135.41 | bars_from_origin=19.0 slope=0.0000 | BELOW gap=73.99
+2026-03-17 16:01:53,351 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
+2026-03-17 16:01:54,048 [INFO] Initialized AngularPriceCoverageStudy v4.0. Config: {'left_bars': 5, 'right_bars': 5, 'line_extension_bars': 100, 'fraction_colors': {0.125: '#FF5252', 0.25: '#FF5252', 0.375: '#FF5252', 0.5: '#2196F3', 0.625: '#4CAF50', 0.75: '#4CAF50', 0.875: '#4CAF50', 1.0: '#FFFFFF'}, 'main_color': '#FFFFFF', 'main_line_width': 1, 'fraction_line_width': 2, 'scale_ratio': 3.6603, 'breach_mode': 'wick', 'show_intersection_labels': False, 'max_historical_fans': 3, 'resolution': '4', 'symbol': '^NSEI'}
+2026-03-17 16:01:54,049 [INFO] [Study] Evaluating AngularPriceCoverageStudy (config: {'resolution': '4', 'symbol': '^NSEI', 'scale_ratio': 3.6603, 'left_bars': 5, 'right_bars': 5, 'show_intersection_labels': False})
+2026-03-17 16:01:54,050 [INFO] [IntDet] Bar 56 | 2026-03-10 12:59 | H=24236.50 L=24211.55 C=24224.40 | Fans=1 Lines=7
+2026-03-17 16:01:54,051 [INFO]   [P1 (H2-L1)] main: lineP=24395.58 | bars_from_origin=45.0 slope=7.0141 | ABOVE gap=159.08
+2026-03-17 16:01:54,051 [INFO]   [P1 (H2-L1)] 0.875: lineP=24312.04 | bars_from_origin=45.0 slope=5.1576 | ABOVE gap=75.54
+2026-03-17 16:01:54,051 [INFO]   [P1 (H2-L1)] 0.75: lineP=24255.55 | bars_from_origin=45.0 slope=3.9021 | ABOVE gap=19.05
+2026-03-17 16:01:54,052 [INFO]   [P1 (H2-L1)] 0.5: lineP=24179.79 | bars_from_origin=45.0 slope=2.2186 | BELOW gap=31.76
+2026-03-17 16:01:54,052 [INFO]   [P1 (H2-L1)] 0.25: lineP=24125.97 | bars_from_origin=45.0 slope=1.0227 | BELOW gap=85.58
+2026-03-17 16:01:54,053 [INFO]   [P1 (H2-L1)] 0.125: lineP=24102.53 | bars_from_origin=45.0 slope=0.5017 | BELOW gap=109.02
+2026-03-17 16:01:54,053 [INFO]   [P1 (H2-L1)] main: lineP=24135.41 | bars_from_origin=20.0 slope=0.0000 | BELOW gap=76.14
+2026-03-17 16:01:54,055 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
+2026-03-17 16:01:54,487 [INFO] Initialized AngularPriceCoverageStudy v4.0. Config: {'left_bars': 5, 'right_bars': 5, 'line_extension_bars': 100, 'fraction_colors': {0.125: '#FF5252', 0.25: '#FF5252', 0.375: '#FF5252', 0.5: '#2196F3', 0.625: '#4CAF50', 0.75: '#4CAF50', 0.875: '#4CAF50', 1.0: '#FFFFFF'}, 'main_color': '#FFFFFF', 'main_line_width': 1, 'fraction_line_width': 2, 'scale_ratio': 3.6603, 'breach_mode': 'wick', 'show_intersection_labels': False, 'max_historical_fans': 3, 'resolution': '4', 'symbol': '^NSEI'}
+2026-03-17 16:01:54,488 [INFO] [Study] Evaluating AngularPriceCoverageStudy (config: {'resolution': '4', 'symbol': '^NSEI', 'scale_ratio': 3.6603, 'left_bars': 5, 'right_bars': 5, 'show_intersection_labels': False})
+2026-03-17 16:01:54,489 [INFO] [Study] Updating fan priority: Fan_H2_L1 -> P2 (H2-L1)
+2026-03-17 16:01:54,489 [INFO] [Study] Creating new fan: Fan_L3_H2 (P1 (L3-H2))
+2026-03-17 16:01:54,490 [INFO] [AngleEngine] scale_ratio=3.6603, slope_per_bar=-7.0532, visual_slope=-1.9270, theta=-62.57 deg
+2026-03-17 16:01:54,490 [INFO] --- [AngleEngine] Fan Created: Fan_L3_H2 ---
+2026-03-17 16:01:54,491 [INFO]   Origin: Bar 36, Time 1773122940, Price 24255.30078125
+2026-03-17 16:01:54,491 [INFO]   Target: Bar 52, Time 1773126780, Price 24142.44921875
+2026-03-17 16:01:54,492 [INFO]   Delta: db=16, dp_origin=-112.85
+2026-03-17 16:01:54,492 [INFO]   Scale Params: Ratio=3.6603, Radius=34.74 bars, Slope/Bar=-7.0532
+2026-03-17 16:01:54,492 [INFO]   Line 0.875: EndBar=1773126780 (approx), EndPrice=24172.43
+2026-03-17 16:01:54,493 [INFO]   Line 0.75: EndBar=1773126780 (approx), EndPrice=24192.65
+2026-03-17 16:01:54,493 [INFO]   Line 0.5: EndBar=1773126780 (approx), EndPrice=24219.71
+2026-03-17 16:01:54,494 [INFO]   Line 0.25: EndBar=1773126780 (approx), EndPrice=24238.90
+2026-03-17 16:01:54,494 [INFO]   Line 0.125: EndBar=1773126780 (approx), EndPrice=24247.26
+2026-03-17 16:01:54,494 [INFO] [IntDet] Bar 57 | 2026-03-10 13:03 | H=24229.45 L=24207.60 C=24208.20 | Fans=2 Lines=14
+2026-03-17 16:01:54,495 [INFO]   [P2 (H2-L1)] main: lineP=24402.60 | bars_from_origin=46.0 slope=7.0141 | ABOVE gap=173.15
+2026-03-17 16:01:54,495 [INFO]   [P2 (H2-L1)] 0.875: lineP=24317.20 | bars_from_origin=46.0 slope=5.1576 | ABOVE gap=87.75
+2026-03-17 16:01:54,496 [INFO]   [P2 (H2-L1)] 0.75: lineP=24259.45 | bars_from_origin=46.0 slope=3.9021 | ABOVE gap=30.00
+2026-03-17 16:01:54,496 [INFO]   [P2 (H2-L1)] 0.5: lineP=24182.00 | bars_from_origin=46.0 slope=2.2186 | BELOW gap=25.59
+2026-03-17 16:01:54,496 [INFO]   [P2 (H2-L1)] 0.25: lineP=24126.99 | bars_from_origin=46.0 slope=1.0227 | BELOW gap=80.61
+2026-03-17 16:01:54,497 [INFO]   [P2 (H2-L1)] 0.125: lineP=24103.03 | bars_from_origin=46.0 slope=0.5017 | BELOW gap=104.57
+2026-03-17 16:01:54,497 [INFO]   [P2 (H2-L1)] main: lineP=24135.41 | bars_from_origin=21.0 slope=0.0000 | BELOW gap=72.19
+2026-03-17 16:01:54,497 [INFO]   [P1 (L3-H2)] main: lineP=24107.18 | bars_from_origin=21.0 slope=-7.0532 | BELOW gap=100.42
+2026-03-17 16:01:54,497 [INFO]   [P1 (L3-H2)] 0.875: lineP=24146.53 | bars_from_origin=21.0 slope=-5.1794 | BELOW gap=61.07
+2026-03-17 16:01:54,498 [INFO]   [P1 (L3-H2)] 0.75: lineP=24173.07 | bars_from_origin=21.0 slope=-3.9155 | BELOW gap=34.52
+2026-03-17 16:01:54,498 [INFO]   [P1 (L3-H2)] 0.5: lineP=24208.59 | bars_from_origin=21.0 slope=-2.2243 | HIT gap=0.00
+2026-03-17 16:01:54,498 [INFO]     >>> HIT RECORDED: P1 (L3-H2) frac=0.5 @ 24208.59
+2026-03-17 16:01:54,499 [INFO]   [P1 (L3-H2)] 0.25: lineP=24233.78 | bars_from_origin=21.0 slope=-1.0249 | ABOVE gap=4.33
+2026-03-17 16:01:54,499 [INFO]   [P1 (L3-H2)] 0.125: lineP=24244.74 | bars_from_origin=21.0 slope=-0.5028 | ABOVE gap=15.29
+2026-03-17 16:01:54,499 [INFO]   [P1 (L3-H2)] main: lineP=24219.71 | bars_from_origin=5.0 slope=0.0000 | HIT gap=0.00
+2026-03-17 16:01:54,500 [INFO]     >>> HIT RECORDED: P1 (L3-H2) frac=main @ 24219.71
+2026-03-17 16:01:54,500 [INFO]   [IntDet] Total hits this bar: 2
+2026-03-17 16:01:54,500 [INFO] [Study] Emitting intersection event (DIRECT): {'time': 1773127980, 'fan': 'P1 (L3-H2)', 'fanIdentity': 'L3-H2', 'fraction': '1/2', 'price': 24208.590369283975, 'type': 'CROSS_DOWN', 'details': 'Breakdown Attempt'}
+2026-03-17 16:01:54,505 [INFO] [Study] Emitting intersection event (DIRECT): {'time': 1773127980, 'fan': 'P1 (L3-H2)', 'fanIdentity': 'L3-H2', 'fraction': 'Horizontal', 'price': 24219.711895942553, 'type': 'CROSS_DOWN', 'details': 'Breakdown Attempt'}
+2026-03-17 16:01:54,509 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
+2026-03-17 16:01:54,943 [INFO] Initialized AngularPriceCoverageStudy v4.0. Config: {'left_bars': 5, 'right_bars': 5, 'line_extension_bars': 100, 'fraction_colors': {0.125: '#FF5252', 0.25: '#FF5252', 0.375: '#FF5252', 0.5: '#2196F3', 0.625: '#4CAF50', 0.75: '#4CAF50', 0.875: '#4CAF50', 1.0: '#FFFFFF'}, 'main_color': '#FFFFFF', 'main_line_width': 1, 'fraction_line_width': 2, 'scale_ratio': 3.6603, 'breach_mode': 'wick', 'show_intersection_labels': False, 'max_historical_fans': 3, 'resolution': '4', 'symbol': '^NSEI'}
+2026-03-17 16:01:54,944 [INFO] [Study] Evaluating AngularPriceCoverageStudy (config: {'resolution': '4', 'symbol': '^NSEI', 'scale_ratio': 3.6603, 'left_bars': 5, 'right_bars': 5, 'show_intersection_labels': False})
+2026-03-17 16:01:54,945 [INFO] [IntDet] Bar 58 | 2026-03-10 13:07 | H=24217.85 L=24201.55 C=24210.40 | Fans=2 Lines=14
+2026-03-17 16:01:54,945 [INFO]   [P2 (H2-L1)] main: lineP=24409.61 | bars_from_origin=47.0 slope=7.0141 | ABOVE gap=191.76
+2026-03-17 16:01:54,945 [INFO]   [P2 (H2-L1)] 0.875: lineP=24322.35 | bars_from_origin=47.0 slope=5.1576 | ABOVE gap=104.51
+2026-03-17 16:01:54,946 [INFO]   [P2 (H2-L1)] 0.75: lineP=24263.35 | bars_from_origin=47.0 slope=3.9021 | ABOVE gap=45.50
+2026-03-17 16:01:54,946 [INFO]   [P2 (H2-L1)] 0.5: lineP=24184.22 | bars_from_origin=47.0 slope=2.2186 | BELOW gap=17.33
+2026-03-17 16:01:54,946 [INFO]   [P2 (H2-L1)] 0.25: lineP=24128.02 | bars_from_origin=47.0 slope=1.0227 | BELOW gap=73.53
+2026-03-17 16:01:54,947 [INFO]   [P2 (H2-L1)] 0.125: lineP=24103.53 | bars_from_origin=47.0 slope=0.5017 | BELOW gap=98.02
+2026-03-17 16:01:54,948 [INFO]   [P2 (H2-L1)] main: lineP=24135.41 | bars_from_origin=22.0 slope=0.0000 | BELOW gap=66.14
+2026-03-17 16:01:54,948 [INFO]   [P1 (L3-H2)] main: lineP=24100.13 | bars_from_origin=22.0 slope=-7.0532 | BELOW gap=101.42
+2026-03-17 16:01:54,948 [INFO]   [P1 (L3-H2)] 0.875: lineP=24141.35 | bars_from_origin=22.0 slope=-5.1794 | BELOW gap=60.20
+2026-03-17 16:01:54,949 [INFO]   [P1 (L3-H2)] 0.75: lineP=24169.16 | bars_from_origin=22.0 slope=-3.9155 | BELOW gap=32.39
+2026-03-17 16:01:54,949 [INFO]   [P1 (L3-H2)] 0.5: lineP=24206.37 | bars_from_origin=22.0 slope=-2.2243 | HIT gap=0.00
+2026-03-17 16:01:54,950 [INFO]     >>> HIT RECORDED: P1 (L3-H2) frac=0.5 @ 24206.37
+2026-03-17 16:01:54,950 [INFO]   [P1 (L3-H2)] 0.25: lineP=24232.75 | bars_from_origin=22.0 slope=-1.0249 | ABOVE gap=14.90
+2026-03-17 16:01:54,951 [INFO]   [P1 (L3-H2)] 0.125: lineP=24244.24 | bars_from_origin=22.0 slope=-0.5028 | ABOVE gap=26.39
+2026-03-17 16:01:54,951 [INFO]   [P1 (L3-H2)] main: lineP=24219.71 | bars_from_origin=6.0 slope=0.0000 | ABOVE gap=1.86
+2026-03-17 16:01:54,952 [INFO]   [IntDet] Total hits this bar: 1
+2026-03-17 16:01:54,952 [INFO] [Study] Emitting intersection event (DIRECT): {'time': 1773128220, 'fan': 'P1 (L3-H2)', 'fanIdentity': 'L3-H2', 'fraction': '1/2', 'price': 24206.36606395226, 'type': 'SUPPORT_TEST', 'details': 'Resting / Throwback'}
+2026-03-17 16:01:54,956 [INFO] [Tracking] FAKE OUT: Fan_L3_H2 0.5 (T+1 bars)
+2026-03-17 16:01:54,958 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
+2026-03-17 16:01:56,333 [INFO] Initialized AngularPriceCoverageStudy v4.0. Config: {'left_bars': 5, 'right_bars': 5, 'line_extension_bars': 100, 'fraction_colors': {0.125: '#FF5252', 0.25: '#FF5252', 0.375: '#FF5252', 0.5: '#2196F3', 0.625: '#4CAF50', 0.75: '#4CAF50', 0.875: '#4CAF50', 1.0: '#FFFFFF'}, 'main_color': '#FFFFFF', 'main_line_width': 1, 'fraction_line_width': 2, 'scale_ratio': 3.6603, 'breach_mode': 'wick', 'show_intersection_labels': False, 'max_historical_fans': 3, 'resolution': '4', 'symbol': '^NSEI'}
+2026-03-17 16:01:56,334 [INFO] [Study] Evaluating AngularPriceCoverageStudy (config: {'resolution': '4', 'symbol': '^NSEI', 'scale_ratio': 3.6603, 'left_bars': 5, 'right_bars': 5, 'show_intersection_labels': False})
+2026-03-17 16:01:56,335 [INFO] [IntDet] Bar 59 | 2026-03-10 13:11 | H=24212.50 L=24194.90 C=24209.35 | Fans=2 Lines=14
+2026-03-17 16:01:56,335 [INFO]   [P2 (H2-L1)] main: lineP=24416.62 | bars_from_origin=48.0 slope=7.0141 | ABOVE gap=204.12
+2026-03-17 16:01:56,335 [INFO]   [P2 (H2-L1)] 0.875: lineP=24327.51 | bars_from_origin=48.0 slope=5.1576 | ABOVE gap=115.01
+2026-03-17 16:01:56,337 [INFO]   [P2 (H2-L1)] 0.75: lineP=24267.25 | bars_from_origin=48.0 slope=3.9021 | ABOVE gap=54.75
+2026-03-17 16:01:56,337 [INFO]   [P2 (H2-L1)] 0.5: lineP=24186.44 | bars_from_origin=48.0 slope=2.2186 | BELOW gap=8.46
+2026-03-17 16:01:56,338 [INFO]   [P2 (H2-L1)] 0.25: lineP=24129.04 | bars_from_origin=48.0 slope=1.0227 | BELOW gap=65.86
+2026-03-17 16:01:56,338 [INFO]   [P2 (H2-L1)] 0.125: lineP=24104.03 | bars_from_origin=48.0 slope=0.5017 | BELOW gap=90.87
+2026-03-17 16:01:56,339 [INFO]   [P2 (H2-L1)] main: lineP=24135.41 | bars_from_origin=23.0 slope=0.0000 | BELOW gap=59.49
+2026-03-17 16:01:56,339 [INFO]   [P1 (L3-H2)] main: lineP=24093.08 | bars_from_origin=23.0 slope=-7.0532 | BELOW gap=101.82
+2026-03-17 16:01:56,340 [INFO]   [P1 (L3-H2)] 0.875: lineP=24136.17 | bars_from_origin=23.0 slope=-5.1794 | BELOW gap=58.73
+2026-03-17 16:01:56,340 [INFO]   [P1 (L3-H2)] 0.75: lineP=24165.24 | bars_from_origin=23.0 slope=-3.9155 | BELOW gap=29.66
+2026-03-17 16:01:56,341 [INFO]   [P1 (L3-H2)] 0.5: lineP=24204.14 | bars_from_origin=23.0 slope=-2.2243 | HIT gap=0.00
+2026-03-17 16:01:56,341 [INFO]     >>> HIT RECORDED: P1 (L3-H2) frac=0.5 @ 24204.14
+2026-03-17 16:01:56,342 [INFO]   [P1 (L3-H2)] 0.25: lineP=24231.73 | bars_from_origin=23.0 slope=-1.0249 | ABOVE gap=19.23
+2026-03-17 16:01:56,342 [INFO]   [P1 (L3-H2)] 0.125: lineP=24243.74 | bars_from_origin=23.0 slope=-0.5028 | ABOVE gap=31.24
+2026-03-17 16:01:56,342 [INFO]   [P1 (L3-H2)] main: lineP=24219.71 | bars_from_origin=7.0 slope=0.0000 | ABOVE gap=7.21
+2026-03-17 16:01:56,343 [INFO]   [IntDet] Total hits this bar: 1
+2026-03-17 16:01:56,344 [INFO] [Study] Emitting intersection event (DIRECT): {'time': 1773128460, 'fan': 'P1 (L3-H2)', 'fanIdentity': 'L3-H2', 'fraction': '1/2', 'price': 24204.141758620546, 'type': 'SUPPORT_TEST', 'details': 'Resting / Throwback'}
+2026-03-17 16:01:56,349 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
+2026-03-17 16:01:56,963 [INFO] Initialized AngularPriceCoverageStudy v4.0. Config: {'left_bars': 5, 'right_bars': 5, 'line_extension_bars': 100, 'fraction_colors': {0.125: '#FF5252', 0.25: '#FF5252', 0.375: '#FF5252', 0.5: '#2196F3', 0.625: '#4CAF50', 0.75: '#4CAF50', 0.875: '#4CAF50', 1.0: '#FFFFFF'}, 'main_color': '#FFFFFF', 'main_line_width': 1, 'fraction_line_width': 2, 'scale_ratio': 3.6603, 'breach_mode': 'wick', 'show_intersection_labels': False, 'max_historical_fans': 3, 'resolution': '4', 'symbol': '^NSEI'}
+2026-03-17 16:01:56,964 [INFO] [Study] Evaluating AngularPriceCoverageStudy (config: {'resolution': '4', 'symbol': '^NSEI', 'scale_ratio': 3.6603, 'left_bars': 5, 'right_bars': 5, 'show_intersection_labels': False})
+2026-03-17 16:01:56,965 [INFO] [IntDet] Bar 60 | 2026-03-10 13:15 | H=24219.05 L=24203.60 C=24210.60 | Fans=2 Lines=14
+2026-03-17 16:01:56,966 [INFO]   [P2 (H2-L1)] main: lineP=24423.64 | bars_from_origin=49.0 slope=7.0141 | ABOVE gap=204.59
+2026-03-17 16:01:56,966 [INFO]   [P2 (H2-L1)] 0.875: lineP=24332.67 | bars_from_origin=49.0 slope=5.1576 | ABOVE gap=113.62
+2026-03-17 16:01:56,967 [INFO]   [P2 (H2-L1)] 0.75: lineP=24271.15 | bars_from_origin=49.0 slope=3.9021 | ABOVE gap=52.10
+2026-03-17 16:01:56,967 [INFO]   [P2 (H2-L1)] 0.5: lineP=24188.66 | bars_from_origin=49.0 slope=2.2186 | BELOW gap=14.94
+2026-03-17 16:01:56,967 [INFO]   [P2 (H2-L1)] 0.25: lineP=24130.06 | bars_from_origin=49.0 slope=1.0227 | BELOW gap=73.54
+2026-03-17 16:01:56,968 [INFO]   [P2 (H2-L1)] 0.125: lineP=24104.53 | bars_from_origin=49.0 slope=0.5017 | BELOW gap=99.07
+2026-03-17 16:01:56,968 [INFO]   [P2 (H2-L1)] main: lineP=24135.41 | bars_from_origin=24.0 slope=0.0000 | BELOW gap=68.19
+2026-03-17 16:01:56,968 [INFO]   [P1 (L3-H2)] main: lineP=24086.02 | bars_from_origin=24.0 slope=-7.0532 | BELOW gap=117.58
+2026-03-17 16:01:56,968 [INFO]   [P1 (L3-H2)] 0.875: lineP=24130.99 | bars_from_origin=24.0 slope=-5.1794 | BELOW gap=72.61
+2026-03-17 16:01:56,969 [INFO]   [P1 (L3-H2)] 0.75: lineP=24161.33 | bars_from_origin=24.0 slope=-3.9155 | BELOW gap=42.27
+2026-03-17 16:01:56,969 [INFO]   [P1 (L3-H2)] 0.5: lineP=24201.92 | bars_from_origin=24.0 slope=-2.2243 | BELOW gap=1.68
+2026-03-17 16:01:56,969 [INFO]   [P1 (L3-H2)] 0.25: lineP=24230.70 | bars_from_origin=24.0 slope=-1.0249 | ABOVE gap=11.65
+2026-03-17 16:01:56,970 [INFO]   [P1 (L3-H2)] 0.125: lineP=24243.23 | bars_from_origin=24.0 slope=-0.5028 | ABOVE gap=24.18
+2026-03-17 16:01:56,970 [INFO]   [P1 (L3-H2)] main: lineP=24219.71 | bars_from_origin=8.0 slope=0.0000 | ABOVE gap=0.66
+2026-03-17 16:01:56,971 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
+2026-03-17 16:01:57,454 [INFO] Initialized AngularPriceCoverageStudy v4.0. Config: {'left_bars': 5, 'right_bars': 5, 'line_extension_bars': 100, 'fraction_colors': {0.125: '#FF5252', 0.25: '#FF5252', 0.375: '#FF5252', 0.5: '#2196F3', 0.625: '#4CAF50', 0.75: '#4CAF50', 0.875: '#4CAF50', 1.0: '#FFFFFF'}, 'main_color': '#FFFFFF', 'main_line_width': 1, 'fraction_line_width': 2, 'scale_ratio': 3.6603, 'breach_mode': 'wick', 'show_intersection_labels': False, 'max_historical_fans': 3, 'resolution': '4', 'symbol': '^NSEI'}
+2026-03-17 16:01:57,455 [INFO] [Study] Evaluating AngularPriceCoverageStudy (config: {'resolution': '4', 'symbol': '^NSEI', 'scale_ratio': 3.6603, 'left_bars': 5, 'right_bars': 5, 'show_intersection_labels': False})
+2026-03-17 16:01:57,456 [INFO] [Study] Creating new fan: Fan_H3_L3 (P1 (H3-L3))
+2026-03-17 16:01:57,456 [INFO] [AngleEngine] scale_ratio=3.6603, slope_per_bar=23.5127, visual_slope=6.4237, theta=81.15 deg
+2026-03-17 16:01:57,457 [INFO] --- [AngleEngine] Fan Created: Fan_H3_L3 ---
+2026-03-17 16:01:57,457 [INFO]   Origin: Bar 52, Time 1773126780, Price 24142.44921875
+2026-03-17 16:01:57,457 [INFO]   Target: Bar 56, Time 1773127740, Price 24236.5
+2026-03-17 16:01:57,457 [INFO]   Delta: db=4, dp_origin=94.05
+2026-03-17 16:01:57,458 [INFO]   Scale Params: Ratio=3.6603, Radius=26.00 bars, Slope/Bar=23.5127
+2026-03-17 16:01:57,458 [INFO]   Line 0.875: EndBar=1773127740 (approx), EndPrice=24184.99
+2026-03-17 16:01:57,458 [INFO]   Line 0.75: EndBar=1773127740 (approx), EndPrice=24168.72
+2026-03-17 16:01:57,458 [INFO]   Line 0.5: EndBar=1773127740 (approx), EndPrice=24154.99
+2026-03-17 16:01:57,458 [INFO]   Line 0.25: EndBar=1773127740 (approx), EndPrice=24147.86
+2026-03-17 16:01:57,459 [INFO]   Line 0.125: EndBar=1773127740 (approx), EndPrice=24145.07
+2026-03-17 16:01:57,459 [INFO] [Study] Updating fan priority: Fan_H2_L1 -> P3 (H2-L1)
+2026-03-17 16:01:57,459 [INFO] [Study] Updating fan priority: Fan_L3_H2 -> P2 (L3-H2)
+2026-03-17 16:01:57,459 [INFO] [IntDet] Bar 61 | 2026-03-10 13:19 | H=24225.30 L=24204.45 C=24205.80 | Fans=3 Lines=21
+2026-03-17 16:01:57,460 [INFO]   [P3 (H2-L1)] main: lineP=24430.65 | bars_from_origin=50.0 slope=7.0141 | ABOVE gap=205.35
+2026-03-17 16:01:57,460 [INFO]   [P3 (H2-L1)] 0.875: lineP=24337.83 | bars_from_origin=50.0 slope=5.1576 | ABOVE gap=112.53
+2026-03-17 16:01:57,460 [INFO]   [P3 (H2-L1)] 0.75: lineP=24275.06 | bars_from_origin=50.0 slope=3.9021 | ABOVE gap=49.76
+2026-03-17 16:01:57,461 [INFO]   [P3 (H2-L1)] 0.5: lineP=24190.88 | bars_from_origin=50.0 slope=2.2186 | BELOW gap=13.57
+2026-03-17 16:01:57,461 [INFO]   [P3 (H2-L1)] 0.25: lineP=24131.08 | bars_from_origin=50.0 slope=1.0227 | BELOW gap=73.37
+2026-03-17 16:01:57,461 [INFO]   [P3 (H2-L1)] 0.125: lineP=24105.04 | bars_from_origin=50.0 slope=0.5017 | BELOW gap=99.41
+2026-03-17 16:01:57,461 [INFO]   [P3 (H2-L1)] main: lineP=24135.41 | bars_from_origin=25.0 slope=0.0000 | BELOW gap=69.04
+2026-03-17 16:01:57,462 [INFO]   [P2 (L3-H2)] main: lineP=24078.97 | bars_from_origin=25.0 slope=-7.0532 | BELOW gap=125.48
+2026-03-17 16:01:57,462 [INFO]   [P2 (L3-H2)] 0.875: lineP=24125.82 | bars_from_origin=25.0 slope=-5.1794 | BELOW gap=78.63
+2026-03-17 16:01:57,463 [INFO]   [P2 (L3-H2)] 0.75: lineP=24157.41 | bars_from_origin=25.0 slope=-3.9155 | BELOW gap=47.04
+2026-03-17 16:01:57,463 [INFO]   [P2 (L3-H2)] 0.5: lineP=24199.69 | bars_from_origin=25.0 slope=-2.2243 | BELOW gap=4.76
+2026-03-17 16:01:57,464 [INFO]   [P2 (L3-H2)] 0.25: lineP=24229.68 | bars_from_origin=25.0 slope=-1.0249 | ABOVE gap=4.38
+2026-03-17 16:01:57,464 [INFO]   [P2 (L3-H2)] 0.125: lineP=24242.73 | bars_from_origin=25.0 slope=-0.5028 | ABOVE gap=17.43
+2026-03-17 16:01:57,465 [INFO]   [P2 (L3-H2)] main: lineP=24219.71 | bars_from_origin=9.0 slope=0.0000 | HIT gap=0.00
+2026-03-17 16:01:57,465 [INFO]     >>> HIT RECORDED: P2 (L3-H2) frac=main @ 24219.71
+2026-03-17 16:01:57,465 [INFO]   [P1 (H3-L3)] main: lineP=24354.06 | bars_from_origin=9.0 slope=23.5127 | ABOVE gap=128.76
+2026-03-17 16:01:57,466 [INFO]   [P1 (H3-L3)] 0.875: lineP=24238.16 | bars_from_origin=9.0 slope=10.6349 | ABOVE gap=12.86
+2026-03-17 16:01:57,466 [INFO]   [P1 (H3-L3)] 0.75: lineP=24201.55 | bars_from_origin=9.0 slope=6.5665 | BELOW gap=2.90
+2026-03-17 16:01:57,466 [INFO]   [P1 (H3-L3)] 0.5: lineP=24170.66 | bars_from_origin=9.0 slope=3.1346 | BELOW gap=33.79
+2026-03-17 16:01:57,467 [INFO]   [P1 (H3-L3)] 0.25: lineP=24154.63 | bars_from_origin=9.0 slope=1.3531 | BELOW gap=49.82
+2026-03-17 16:01:57,467 [INFO]   [P1 (H3-L3)] 0.125: lineP=24148.34 | bars_from_origin=9.0 slope=0.6549 | BELOW gap=56.11
+2026-03-17 16:01:57,468 [INFO]   [P1 (H3-L3)] main: lineP=24154.99 | bars_from_origin=5.0 slope=0.0000 | BELOW gap=49.46
+2026-03-17 16:01:57,468 [INFO]   [IntDet] Total hits this bar: 1
+2026-03-17 16:01:57,468 [INFO] [Study] Emitting intersection event (DIRECT): {'time': 1773128940, 'fan': 'P2 (L3-H2)', 'fanIdentity': 'L3-H2', 'fraction': 'Horizontal', 'price': 24219.711895942553, 'type': 'RESISTANCE_TEST', 'details': 'Rejection / Pullback'}
+2026-03-17 16:01:57,472 [INFO] [Tracking] Breach CONFIRMED: Fan_L3_H2 Horizontal down (T+4 bars)
+2026-03-17 16:01:57,474 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
+2026-03-17 16:02:10,569 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
+2026-03-17 16:02:10,573 [INFO] Initialized AngularPriceCoverageStudy v4.0. Config: {'left_bars': 5, 'right_bars': 5, 'line_extension_bars': 100, 'fraction_colors': {0.125: '#FF5252', 0.25: '#FF5252', 0.375: '#FF5252', 0.5: '#2196F3', 0.625: '#4CAF50', 0.75: '#4CAF50', 0.875: '#4CAF50', 1.0: '#FFFFFF'}, 'main_color': '#FFFFFF', 'main_line_width': 1, 'fraction_line_width': 2, 'scale_ratio': 3.6603, 'breach_mode': 'wick', 'show_intersection_labels': False, 'max_historical_fans': 3, 'resolution': '4', 'symbol': '^NSEI'}
+2026-03-17 16:02:10,573 [INFO] [Study] Evaluating AngularPriceCoverageStudy (config: {'resolution': '4', 'symbol': '^NSEI', 'scale_ratio': 3.6603, 'left_bars': 5, 'right_bars': 5, 'show_intersection_labels': False})
+2026-03-17 16:02:10,574 [INFO] [IntDet] Bar 62 | 2026-03-10 13:23 | H=24211.45 L=24190.40 C=24202.35 | Fans=3 Lines=21
+2026-03-17 16:02:10,575 [INFO]   [P3 (H2-L1)] main: lineP=24437.67 | bars_from_origin=51.0 slope=7.0141 | ABOVE gap=226.22
+2026-03-17 16:02:10,575 [INFO]   [P3 (H2-L1)] 0.875: lineP=24342.99 | bars_from_origin=51.0 slope=5.1576 | ABOVE gap=131.54
+2026-03-17 16:02:10,576 [INFO]   [P3 (H2-L1)] 0.75: lineP=24278.96 | bars_from_origin=51.0 slope=3.9021 | ABOVE gap=67.51
+2026-03-17 16:02:10,576 [INFO]   [P3 (H2-L1)] 0.5: lineP=24193.10 | bars_from_origin=51.0 slope=2.2186 | HIT gap=0.00
+2026-03-17 16:02:10,577 [INFO]     >>> HIT RECORDED: P3 (H2-L1) frac=0.5 @ 24193.10
+2026-03-17 16:02:10,577 [INFO]   [P3 (H2-L1)] 0.25: lineP=24132.11 | bars_from_origin=51.0 slope=1.0227 | BELOW gap=58.29
+2026-03-17 16:02:10,578 [INFO]   [P3 (H2-L1)] 0.125: lineP=24105.54 | bars_from_origin=51.0 slope=0.5017 | BELOW gap=84.86
+2026-03-17 16:02:10,578 [INFO]   [P3 (H2-L1)] main: lineP=24135.41 | bars_from_origin=26.0 slope=0.0000 | BELOW gap=54.99
+2026-03-17 16:02:10,579 [INFO]   [P2 (L3-H2)] main: lineP=24071.92 | bars_from_origin=26.0 slope=-7.0532 | BELOW gap=118.48
+2026-03-17 16:02:10,579 [INFO]   [P2 (L3-H2)] 0.875: lineP=24120.64 | bars_from_origin=26.0 slope=-5.1794 | BELOW gap=69.76
+2026-03-17 16:02:10,580 [INFO]   [P2 (L3-H2)] 0.75: lineP=24153.50 | bars_from_origin=26.0 slope=-3.9155 | BELOW gap=36.90
+2026-03-17 16:02:10,580 [INFO]   [P2 (L3-H2)] 0.5: lineP=24197.47 | bars_from_origin=26.0 slope=-2.2243 | HIT gap=0.00
+2026-03-17 16:02:10,581 [INFO]     >>> HIT RECORDED: P2 (L3-H2) frac=0.5 @ 24197.47
+2026-03-17 16:02:10,581 [INFO]   [P2 (L3-H2)] 0.25: lineP=24228.65 | bars_from_origin=26.0 slope=-1.0249 | ABOVE gap=17.20
+2026-03-17 16:02:10,582 [INFO]   [P2 (L3-H2)] 0.125: lineP=24242.23 | bars_from_origin=26.0 slope=-0.5028 | ABOVE gap=30.78
+2026-03-17 16:02:10,582 [INFO]   [P2 (L3-H2)] main: lineP=24219.71 | bars_from_origin=10.0 slope=0.0000 | ABOVE gap=8.26
+2026-03-17 16:02:10,583 [INFO]   [P1 (H3-L3)] main: lineP=24377.58 | bars_from_origin=10.0 slope=23.5127 | ABOVE gap=166.13
+2026-03-17 16:02:10,583 [INFO]   [P1 (H3-L3)] 0.875: lineP=24248.80 | bars_from_origin=10.0 slope=10.6349 | ABOVE gap=37.35
+2026-03-17 16:02:10,583 [INFO]   [P1 (H3-L3)] 0.75: lineP=24208.11 | bars_from_origin=10.0 slope=6.5665 | HIT gap=0.00
+2026-03-17 16:02:10,584 [INFO]     >>> HIT RECORDED: P1 (H3-L3) frac=0.75 @ 24208.11
+2026-03-17 16:02:10,584 [INFO]   [P1 (H3-L3)] 0.5: lineP=24173.79 | bars_from_origin=10.0 slope=3.1346 | BELOW gap=16.61
+2026-03-17 16:02:10,584 [INFO]   [P1 (H3-L3)] 0.25: lineP=24155.98 | bars_from_origin=10.0 slope=1.3531 | BELOW gap=34.42
+2026-03-17 16:02:10,585 [INFO]   [P1 (H3-L3)] 0.125: lineP=24149.00 | bars_from_origin=10.0 slope=0.6549 | BELOW gap=41.40
+2026-03-17 16:02:10,585 [INFO]   [P1 (H3-L3)] main: lineP=24154.99 | bars_from_origin=6.0 slope=0.0000 | BELOW gap=35.41
+2026-03-17 16:02:10,586 [INFO]   [IntDet] Total hits this bar: 3
+2026-03-17 16:02:10,586 [INFO] [Study] Emitting intersection event (DIRECT): {'time': 1773129180, 'fan': 'P3 (H2-L1)', 'fanIdentity': 'H2-L1', 'fraction': '1/2', 'price': 24193.09760598003, 'type': 'SUPPORT_TEST', 'details': 'Resting / Throwback'}
+2026-03-17 16:02:10,590 [INFO] [Study] Emitting intersection event (DIRECT): {'time': 1773129180, 'fan': 'P2 (L3-H2)', 'fanIdentity': 'L3-H2', 'fraction': '1/2', 'price': 24197.4688426254, 'type': 'SUPPORT_TEST', 'details': 'Resting / Throwback'}
+2026-03-17 16:02:10,593 [INFO] [Study] Emitting intersection event (DIRECT): {'time': 1773129180, 'fan': 'P1 (H3-L3)', 'fanIdentity': 'H3-L3', 'fraction': '3/4', 'price': 24208.11388783289, 'type': 'RESISTANCE_TEST', 'details': 'Rejection / Pullback'}
+2026-03-17 16:02:10,596 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
+2026-03-17 16:02:11,111 [INFO] Initialized AngularPriceCoverageStudy v4.0. Config: {'left_bars': 5, 'right_bars': 5, 'line_extension_bars': 100, 'fraction_colors': {0.125: '#FF5252', 0.25: '#FF5252', 0.375: '#FF5252', 0.5: '#2196F3', 0.625: '#4CAF50', 0.75: '#4CAF50', 0.875: '#4CAF50', 1.0: '#FFFFFF'}, 'main_color': '#FFFFFF', 'main_line_width': 1, 'fraction_line_width': 2, 'scale_ratio': 3.6603, 'breach_mode': 'wick', 'show_intersection_labels': False, 'max_historical_fans': 3, 'resolution': '4', 'symbol': '^NSEI'}
+2026-03-17 16:02:11,112 [INFO] [Study] Evaluating AngularPriceCoverageStudy (config: {'resolution': '4', 'symbol': '^NSEI', 'scale_ratio': 3.6603, 'left_bars': 5, 'right_bars': 5, 'show_intersection_labels': False})
+2026-03-17 16:02:11,114 [INFO] [IntDet] Bar 63 | 2026-03-10 13:27 | H=24232.40 L=24195.65 C=24232.40 | Fans=3 Lines=21
+2026-03-17 16:02:11,114 [INFO]   [P3 (H2-L1)] main: lineP=24444.68 | bars_from_origin=52.0 slope=7.0141 | ABOVE gap=212.28
+2026-03-17 16:02:11,115 [INFO]   [P3 (H2-L1)] 0.875: lineP=24348.14 | bars_from_origin=52.0 slope=5.1576 | ABOVE gap=115.74
+2026-03-17 16:02:11,115 [INFO]   [P3 (H2-L1)] 0.75: lineP=24282.86 | bars_from_origin=52.0 slope=3.9021 | ABOVE gap=50.46
+2026-03-17 16:02:11,115 [INFO]   [P3 (H2-L1)] 0.5: lineP=24195.32 | bars_from_origin=52.0 slope=2.2186 | BELOW gap=0.33
+2026-03-17 16:02:11,115 [INFO]   [P3 (H2-L1)] 0.25: lineP=24133.13 | bars_from_origin=52.0 slope=1.0227 | BELOW gap=62.52
+2026-03-17 16:02:11,116 [INFO]   [P3 (H2-L1)] 0.125: lineP=24106.04 | bars_from_origin=52.0 slope=0.5017 | BELOW gap=89.61
+2026-03-17 16:02:11,116 [INFO]   [P3 (H2-L1)] main: lineP=24135.41 | bars_from_origin=27.0 slope=0.0000 | BELOW gap=60.24
+2026-03-17 16:02:11,117 [INFO]   [P2 (L3-H2)] main: lineP=24064.86 | bars_from_origin=27.0 slope=-7.0532 | BELOW gap=130.79
+2026-03-17 16:02:11,117 [INFO]   [P2 (L3-H2)] 0.875: lineP=24115.46 | bars_from_origin=27.0 slope=-5.1794 | BELOW gap=80.19
+2026-03-17 16:02:11,118 [INFO]   [P2 (L3-H2)] 0.75: lineP=24149.58 | bars_from_origin=27.0 slope=-3.9155 | BELOW gap=46.07
+2026-03-17 16:02:11,118 [INFO]   [P2 (L3-H2)] 0.5: lineP=24195.24 | bars_from_origin=27.0 slope=-2.2243 | BELOW gap=0.41
+2026-03-17 16:02:11,119 [INFO]   [P2 (L3-H2)] 0.25: lineP=24227.63 | bars_from_origin=27.0 slope=-1.0249 | HIT gap=0.00
+2026-03-17 16:02:11,119 [INFO]     >>> HIT RECORDED: P2 (L3-H2) frac=0.25 @ 24227.63
+2026-03-17 16:02:11,119 [INFO]   [P2 (L3-H2)] 0.125: lineP=24241.73 | bars_from_origin=27.0 slope=-0.5028 | ABOVE gap=9.32
+2026-03-17 16:02:11,120 [INFO]   [P2 (L3-H2)] main: lineP=24219.71 | bars_from_origin=11.0 slope=0.0000 | HIT gap=0.00
+2026-03-17 16:02:11,120 [INFO]     >>> HIT RECORDED: P2 (L3-H2) frac=main @ 24219.71
+2026-03-17 16:02:11,121 [INFO]   [P1 (H3-L3)] main: lineP=24401.09 | bars_from_origin=11.0 slope=23.5127 | ABOVE gap=168.69
+2026-03-17 16:02:11,121 [INFO]   [P1 (H3-L3)] 0.875: lineP=24259.43 | bars_from_origin=11.0 slope=10.6349 | ABOVE gap=27.03
+2026-03-17 16:02:11,122 [INFO]   [P1 (H3-L3)] 0.75: lineP=24214.68 | bars_from_origin=11.0 slope=6.5665 | HIT gap=0.00
+2026-03-17 16:02:11,123 [INFO]     >>> HIT RECORDED: P1 (H3-L3) frac=0.75 @ 24214.68
+2026-03-17 16:02:11,123 [INFO]   [P1 (H3-L3)] 0.5: lineP=24176.93 | bars_from_origin=11.0 slope=3.1346 | BELOW gap=18.72
+2026-03-17 16:02:11,123 [INFO]   [P1 (H3-L3)] 0.25: lineP=24157.33 | bars_from_origin=11.0 slope=1.3531 | BELOW gap=38.32
+2026-03-17 16:02:11,123 [INFO]   [P1 (H3-L3)] 0.125: lineP=24149.65 | bars_from_origin=11.0 slope=0.6549 | BELOW gap=46.00
+2026-03-17 16:02:11,124 [INFO]   [P1 (H3-L3)] main: lineP=24154.99 | bars_from_origin=7.0 slope=0.0000 | BELOW gap=40.66
+2026-03-17 16:02:11,124 [INFO]   [IntDet] Total hits this bar: 3
+2026-03-17 16:02:11,125 [INFO] [Study] Emitting intersection event (DIRECT): {'time': 1773129420, 'fan': 'P2 (L3-H2)', 'fanIdentity': 'L3-H2', 'fraction': '1/4', 'price': 24227.627162018933, 'type': 'CROSS_UP', 'details': 'Breakout Attempt'}
+2026-03-17 16:02:11,128 [INFO] [Study] Emitting intersection event (DIRECT): {'time': 1773129420, 'fan': 'P2 (L3-H2)', 'fanIdentity': 'L3-H2', 'fraction': 'Horizontal', 'price': 24219.711895942553, 'type': 'CROSS_UP', 'details': 'Breakout Attempt'}
+2026-03-17 16:02:11,132 [INFO] [Study] Emitting intersection event (DIRECT): {'time': 1773129420, 'fan': 'P1 (H3-L3)', 'fanIdentity': 'H3-L3', 'fraction': '3/4', 'price': 24214.680354741176, 'type': 'CROSS_UP', 'details': 'Breakout Attempt'}
+2026-03-17 16:02:11,136 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
+2026-03-17 16:02:11,652 [INFO] Initialized AngularPriceCoverageStudy v4.0. Config: {'left_bars': 5, 'right_bars': 5, 'line_extension_bars': 100, 'fraction_colors': {0.125: '#FF5252', 0.25: '#FF5252', 0.375: '#FF5252', 0.5: '#2196F3', 0.625: '#4CAF50', 0.75: '#4CAF50', 0.875: '#4CAF50', 1.0: '#FFFFFF'}, 'main_color': '#FFFFFF', 'main_line_width': 1, 'fraction_line_width': 2, 'scale_ratio': 3.6603, 'breach_mode': 'wick', 'show_intersection_labels': False, 'max_historical_fans': 3, 'resolution': '4', 'symbol': '^NSEI'}
+2026-03-17 16:02:11,654 [INFO] [Study] Evaluating AngularPriceCoverageStudy (config: {'resolution': '4', 'symbol': '^NSEI', 'scale_ratio': 3.6603, 'left_bars': 5, 'right_bars': 5, 'show_intersection_labels': False})
+2026-03-17 16:02:11,654 [INFO] [IntDet] Bar 64 | 2026-03-10 13:31 | H=24236.05 L=24221.90 C=24231.80 | Fans=3 Lines=21
+2026-03-17 16:02:11,655 [INFO]   [P3 (H2-L1)] main: lineP=24451.69 | bars_from_origin=53.0 slope=7.0141 | ABOVE gap=215.64
+2026-03-17 16:02:11,655 [INFO]   [P3 (H2-L1)] 0.875: lineP=24353.30 | bars_from_origin=53.0 slope=5.1576 | ABOVE gap=117.25
+2026-03-17 16:02:11,656 [INFO]   [P3 (H2-L1)] 0.75: lineP=24286.76 | bars_from_origin=53.0 slope=3.9021 | ABOVE gap=50.71
+2026-03-17 16:02:11,657 [INFO]   [P3 (H2-L1)] 0.5: lineP=24197.53 | bars_from_origin=53.0 slope=2.2186 | BELOW gap=24.37
+2026-03-17 16:02:11,657 [INFO]   [P3 (H2-L1)] 0.25: lineP=24134.15 | bars_from_origin=53.0 slope=1.0227 | BELOW gap=87.75
+2026-03-17 16:02:11,658 [INFO]   [P3 (H2-L1)] 0.125: lineP=24106.54 | bars_from_origin=53.0 slope=0.5017 | BELOW gap=115.36
+2026-03-17 16:02:11,658 [INFO]   [P3 (H2-L1)] main: lineP=24135.41 | bars_from_origin=28.0 slope=0.0000 | BELOW gap=86.49
+2026-03-17 16:02:11,658 [INFO]   [P2 (L3-H2)] main: lineP=24057.81 | bars_from_origin=28.0 slope=-7.0532 | BELOW gap=164.09
+2026-03-17 16:02:11,659 [INFO]   [P2 (L3-H2)] 0.875: lineP=24110.28 | bars_from_origin=28.0 slope=-5.1794 | BELOW gap=111.62
+2026-03-17 16:02:11,659 [INFO]   [P2 (L3-H2)] 0.75: lineP=24145.67 | bars_from_origin=28.0 slope=-3.9155 | BELOW gap=76.23
+2026-03-17 16:02:11,660 [INFO]   [P2 (L3-H2)] 0.5: lineP=24193.02 | bars_from_origin=28.0 slope=-2.2243 | BELOW gap=28.88
+2026-03-17 16:02:11,660 [INFO]   [P2 (L3-H2)] 0.25: lineP=24226.60 | bars_from_origin=28.0 slope=-1.0249 | HIT gap=0.00
+2026-03-17 16:02:11,660 [INFO]     >>> HIT RECORDED: P2 (L3-H2) frac=0.25 @ 24226.60
+2026-03-17 16:02:11,660 [INFO]   [P2 (L3-H2)] 0.125: lineP=24241.22 | bars_from_origin=28.0 slope=-0.5028 | ABOVE gap=5.17
+2026-03-17 16:02:11,661 [INFO]   [P2 (L3-H2)] main: lineP=24219.71 | bars_from_origin=12.0 slope=0.0000 | BELOW gap=2.19
+2026-03-17 16:02:11,661 [INFO]   [P1 (H3-L3)] main: lineP=24424.60 | bars_from_origin=12.0 slope=23.5127 | ABOVE gap=188.55
+2026-03-17 16:02:11,661 [INFO]   [P1 (H3-L3)] 0.875: lineP=24270.07 | bars_from_origin=12.0 slope=10.6349 | ABOVE gap=34.02
+2026-03-17 16:02:11,662 [INFO]   [P1 (H3-L3)] 0.75: lineP=24221.25 | bars_from_origin=12.0 slope=6.5665 | BELOW gap=0.65
+2026-03-17 16:02:11,662 [INFO]   [P1 (H3-L3)] 0.5: lineP=24180.06 | bars_from_origin=12.0 slope=3.1346 | BELOW gap=41.84
+2026-03-17 16:02:11,663 [INFO]   [P1 (H3-L3)] 0.25: lineP=24158.69 | bars_from_origin=12.0 slope=1.3531 | BELOW gap=63.21
+2026-03-17 16:02:11,664 [INFO]   [P1 (H3-L3)] 0.125: lineP=24150.31 | bars_from_origin=12.0 slope=0.6549 | BELOW gap=71.59
+2026-03-17 16:02:11,664 [INFO]   [P1 (H3-L3)] main: lineP=24154.99 | bars_from_origin=8.0 slope=0.0000 | BELOW gap=66.91
+2026-03-17 16:02:11,665 [INFO]   [IntDet] Total hits this bar: 1
+2026-03-17 16:02:11,665 [INFO] [Study] Emitting intersection event (DIRECT): {'time': 1773129660, 'fan': 'P2 (L3-H2)', 'fanIdentity': 'L3-H2', 'fraction': '1/4', 'price': 24226.60221315852, 'type': 'SUPPORT_TEST', 'details': 'Resting / Throwback'}
+2026-03-17 16:02:11,671 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
+2026-03-17 16:02:12,137 [INFO] Initialized AngularPriceCoverageStudy v4.0. Config: {'left_bars': 5, 'right_bars': 5, 'line_extension_bars': 100, 'fraction_colors': {0.125: '#FF5252', 0.25: '#FF5252', 0.375: '#FF5252', 0.5: '#2196F3', 0.625: '#4CAF50', 0.75: '#4CAF50', 0.875: '#4CAF50', 1.0: '#FFFFFF'}, 'main_color': '#FFFFFF', 'main_line_width': 1, 'fraction_line_width': 2, 'scale_ratio': 3.6603, 'breach_mode': 'wick', 'show_intersection_labels': False, 'max_historical_fans': 3, 'resolution': '4', 'symbol': '^NSEI'}
+2026-03-17 16:02:12,138 [INFO] [Study] Evaluating AngularPriceCoverageStudy (config: {'resolution': '4', 'symbol': '^NSEI', 'scale_ratio': 3.6603, 'left_bars': 5, 'right_bars': 5, 'show_intersection_labels': False})
+2026-03-17 16:02:12,140 [INFO] [Study] Removing invalidated/excess fan: Fan_H2_L1
+2026-03-17 16:02:12,141 [INFO] [Study] Removing invalidated/excess fan: Fan_L3_H2
+2026-03-17 16:02:12,142 [INFO] [Study] Removing invalidated/excess fan: Fan_H3_L3
+2026-03-17 16:02:12,142 [INFO] [IntDet] Bar 65 | 2026-03-10 13:35 | H=24258.10 L=24215.75 C=24256.60 | Fans=0 Lines=0
+2026-03-17 16:02:12,144 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
+2026-03-17 16:02:12,857 [INFO] Initialized AngularPriceCoverageStudy v4.0. Config: {'left_bars': 5, 'right_bars': 5, 'line_extension_bars': 100, 'fraction_colors': {0.125: '#FF5252', 0.25: '#FF5252', 0.375: '#FF5252', 0.5: '#2196F3', 0.625: '#4CAF50', 0.75: '#4CAF50', 0.875: '#4CAF50', 1.0: '#FFFFFF'}, 'main_color': '#FFFFFF', 'main_line_width': 1, 'fraction_line_width': 2, 'scale_ratio': 3.6603, 'breach_mode': 'wick', 'show_intersection_labels': False, 'max_historical_fans': 3, 'resolution': '4', 'symbol': '^NSEI'}
+2026-03-17 16:02:12,858 [INFO] [Study] Evaluating AngularPriceCoverageStudy (config: {'resolution': '4', 'symbol': '^NSEI', 'scale_ratio': 3.6603, 'left_bars': 5, 'right_bars': 5, 'show_intersection_labels': False})
+2026-03-17 16:02:12,859 [INFO] [IntDet] Bar 66 | 2026-03-10 13:39 | H=24262.85 L=24234.85 C=24239.55 | Fans=0 Lines=0
+2026-03-17 16:02:12,860 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
+2026-03-17 16:02:13,369 [INFO] Initialized AngularPriceCoverageStudy v4.0. Config: {'left_bars': 5, 'right_bars': 5, 'line_extension_bars': 100, 'fraction_colors': {0.125: '#FF5252', 0.25: '#FF5252', 0.375: '#FF5252', 0.5: '#2196F3', 0.625: '#4CAF50', 0.75: '#4CAF50', 0.875: '#4CAF50', 1.0: '#FFFFFF'}, 'main_color': '#FFFFFF', 'main_line_width': 1, 'fraction_line_width': 2, 'scale_ratio': 3.6603, 'breach_mode': 'wick', 'show_intersection_labels': False, 'max_historical_fans': 3, 'resolution': '4', 'symbol': '^NSEI'}
+2026-03-17 16:02:13,370 [INFO] [Study] Evaluating AngularPriceCoverageStudy (config: {'resolution': '4', 'symbol': '^NSEI', 'scale_ratio': 3.6603, 'left_bars': 5, 'right_bars': 5, 'show_intersection_labels': False})
+2026-03-17 16:02:13,371 [INFO] [IntDet] Bar 67 | 2026-03-10 13:43 | H=24240.70 L=24227.60 C=24236.60 | Fans=0 Lines=0
+2026-03-17 16:02:13,372 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
+2026-03-17 16:02:13,852 [INFO] Initialized AngularPriceCoverageStudy v4.0. Config: {'left_bars': 5, 'right_bars': 5, 'line_extension_bars': 100, 'fraction_colors': {0.125: '#FF5252', 0.25: '#FF5252', 0.375: '#FF5252', 0.5: '#2196F3', 0.625: '#4CAF50', 0.75: '#4CAF50', 0.875: '#4CAF50', 1.0: '#FFFFFF'}, 'main_color': '#FFFFFF', 'main_line_width': 1, 'fraction_line_width': 2, 'scale_ratio': 3.6603, 'breach_mode': 'wick', 'show_intersection_labels': False, 'max_historical_fans': 3, 'resolution': '4', 'symbol': '^NSEI'}
+2026-03-17 16:02:13,854 [INFO] [Study] Evaluating AngularPriceCoverageStudy (config: {'resolution': '4', 'symbol': '^NSEI', 'scale_ratio': 3.6603, 'left_bars': 5, 'right_bars': 5, 'show_intersection_labels': False})
+2026-03-17 16:02:13,855 [INFO] [IntDet] Bar 68 | 2026-03-10 13:47 | H=24247.05 L=24223.50 C=24246.05 | Fans=0 Lines=0
+2026-03-17 16:02:13,856 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
+2026-03-17 16:02:14,339 [INFO] Initialized AngularPriceCoverageStudy v4.0. Config: {'left_bars': 5, 'right_bars': 5, 'line_extension_bars': 100, 'fraction_colors': {0.125: '#FF5252', 0.25: '#FF5252', 0.375: '#FF5252', 0.5: '#2196F3', 0.625: '#4CAF50', 0.75: '#4CAF50', 0.875: '#4CAF50', 1.0: '#FFFFFF'}, 'main_color': '#FFFFFF', 'main_line_width': 1, 'fraction_line_width': 2, 'scale_ratio': 3.6603, 'breach_mode': 'wick', 'show_intersection_labels': False, 'max_historical_fans': 3, 'resolution': '4', 'symbol': '^NSEI'}
+2026-03-17 16:02:14,340 [INFO] [Study] Evaluating AngularPriceCoverageStudy (config: {'resolution': '4', 'symbol': '^NSEI', 'scale_ratio': 3.6603, 'left_bars': 5, 'right_bars': 5, 'show_intersection_labels': False})
+2026-03-17 16:02:14,341 [INFO] [IntDet] Bar 69 | 2026-03-10 13:51 | H=24253.50 L=24236.90 C=24239.50 | Fans=0 Lines=0
+2026-03-17 16:02:14,342 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
+2026-03-17 16:02:14,830 [INFO] Initialized AngularPriceCoverageStudy v4.0. Config: {'left_bars': 5, 'right_bars': 5, 'line_extension_bars': 100, 'fraction_colors': {0.125: '#FF5252', 0.25: '#FF5252', 0.375: '#FF5252', 0.5: '#2196F3', 0.625: '#4CAF50', 0.75: '#4CAF50', 0.875: '#4CAF50', 1.0: '#FFFFFF'}, 'main_color': '#FFFFFF', 'main_line_width': 1, 'fraction_line_width': 2, 'scale_ratio': 3.6603, 'breach_mode': 'wick', 'show_intersection_labels': False, 'max_historical_fans': 3, 'resolution': '4', 'symbol': '^NSEI'}
+2026-03-17 16:02:14,831 [INFO] [Study] Evaluating AngularPriceCoverageStudy (config: {'resolution': '4', 'symbol': '^NSEI', 'scale_ratio': 3.6603, 'left_bars': 5, 'right_bars': 5, 'show_intersection_labels': False})
+2026-03-17 16:02:14,832 [INFO] [IntDet] Bar 70 | 2026-03-10 13:55 | H=24244.35 L=24236.45 C=24237.95 | Fans=0 Lines=0
+2026-03-17 16:02:14,832 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
+2026-03-17 16:02:15,313 [INFO] Initialized AngularPriceCoverageStudy v4.0. Config: {'left_bars': 5, 'right_bars': 5, 'line_extension_bars': 100, 'fraction_colors': {0.125: '#FF5252', 0.25: '#FF5252', 0.375: '#FF5252', 0.5: '#2196F3', 0.625: '#4CAF50', 0.75: '#4CAF50', 0.875: '#4CAF50', 1.0: '#FFFFFF'}, 'main_color': '#FFFFFF', 'main_line_width': 1, 'fraction_line_width': 2, 'scale_ratio': 3.6603, 'breach_mode': 'wick', 'show_intersection_labels': False, 'max_historical_fans': 3, 'resolution': '4', 'symbol': '^NSEI'}
+2026-03-17 16:02:15,314 [INFO] [Study] Evaluating AngularPriceCoverageStudy (config: {'resolution': '4', 'symbol': '^NSEI', 'scale_ratio': 3.6603, 'left_bars': 5, 'right_bars': 5, 'show_intersection_labels': False})
+2026-03-17 16:02:15,315 [INFO] [Study] Creating new fan: Fan_H4_L1 (P3 (H4-L1))
+2026-03-17 16:02:15,315 [INFO] [AngleEngine] scale_ratio=3.6603, slope_per_bar=3.3255, visual_slope=0.9085, theta=42.26 deg
+2026-03-17 16:02:15,316 [INFO] --- [AngleEngine] Fan Created: Fan_H4_L1 ---
+2026-03-17 16:02:15,316 [INFO]   Origin: Bar 11, Time 1773116940, Price 24079.94921875
+2026-03-17 16:02:15,316 [INFO]   Target: Bar 66, Time 1773130140, Price 24262.849609375
+2026-03-17 16:02:15,316 [INFO]   Delta: db=55, dp_origin=182.90
+2026-03-17 16:02:15,317 [INFO]   Scale Params: Ratio=3.6603, Radius=74.31 bars, Slope/Bar=3.3255
+2026-03-17 16:02:15,317 [INFO]   Line 0.875: EndBar=1773130140 (approx), EndPrice=24231.51
+2026-03-17 16:02:15,317 [INFO]   Line 0.75: EndBar=1773130140 (approx), EndPrice=24204.25
+2026-03-17 16:02:15,317 [INFO]   Line 0.5: EndBar=1773130140 (approx), EndPrice=24157.74
+2026-03-17 16:02:15,317 [INFO]   Line 0.25: EndBar=1773130140 (approx), EndPrice=24117.49
+2026-03-17 16:02:15,318 [INFO]   Line 0.125: EndBar=1773130140 (approx), EndPrice=24098.56
+2026-03-17 16:02:15,318 [INFO] [Study] Creating new fan: Fan_H4_L4 (P1 (H4-L4))
+2026-03-17 16:02:15,318 [INFO] [AngleEngine] scale_ratio=3.6603, slope_per_bar=18.1123, visual_slope=4.9483, theta=78.58 deg
+2026-03-17 16:02:15,319 [INFO] --- [AngleEngine] Fan Created: Fan_H4_L4 ---
+2026-03-17 16:02:15,319 [INFO]   Origin: Bar 62, Time 1773129180, Price 24190.400390625
+2026-03-17 16:02:15,319 [INFO]   Target: Bar 66, Time 1773130140, Price 24262.849609375
+2026-03-17 16:02:15,319 [INFO]   Delta: db=4, dp_origin=72.45
+2026-03-17 16:02:15,320 [INFO]   Scale Params: Ratio=3.6603, Radius=20.19 bars, Slope/Bar=18.1123
+2026-03-17 16:02:15,320 [INFO]   Line 0.875: EndBar=1773130140 (approx), EndPrice=24228.06
+2026-03-17 16:02:15,320 [INFO]   Line 0.75: EndBar=1773130140 (approx), EndPrice=24214.70
+2026-03-17 16:02:15,320 [INFO]   Line 0.5: EndBar=1773130140 (approx), EndPrice=24202.38
+2026-03-17 16:02:15,321 [INFO]   Line 0.25: EndBar=1773130140 (approx), EndPrice=24195.63
+2026-03-17 16:02:15,321 [INFO]   Line 0.125: EndBar=1773130140 (approx), EndPrice=24192.94
+2026-03-17 16:02:15,321 [INFO] [Study] Creating new fan: Fan_H4_L3 (P2 (H4-L3))
+2026-03-17 16:02:15,322 [INFO] [AngleEngine] scale_ratio=3.6603, slope_per_bar=8.6000, visual_slope=2.3495, theta=66.94 deg
+2026-03-17 16:02:15,322 [INFO] --- [AngleEngine] Fan Created: Fan_H4_L3 ---
+2026-03-17 16:02:15,323 [INFO]   Origin: Bar 52, Time 1773126780, Price 24142.44921875
+2026-03-17 16:02:15,323 [INFO]   Target: Bar 66, Time 1773130140, Price 24262.849609375
+2026-03-17 16:02:15,323 [INFO]   Delta: db=14, dp_origin=120.40
+2026-03-17 16:02:15,323 [INFO]   Scale Params: Ratio=3.6603, Radius=35.75 bars, Slope/Bar=8.6000
+2026-03-17 16:02:15,324 [INFO]   Line 0.875: EndBar=1773130140 (approx), EndPrice=24226.32
+2026-03-17 16:02:15,324 [INFO]   Line 0.75: EndBar=1773130140 (approx), EndPrice=24203.97
+2026-03-17 16:02:15,324 [INFO]   Line 0.5: EndBar=1773130140 (approx), EndPrice=24176.33
+2026-03-17 16:02:15,325 [INFO]   Line 0.25: EndBar=1773130140 (approx), EndPrice=24157.86
+2026-03-17 16:02:15,325 [INFO]   Line 0.125: EndBar=1773130140 (approx), EndPrice=24149.99
+2026-03-17 16:02:15,325 [INFO] [IntDet] Bar 71 | 2026-03-10 13:59 | H=24238.60 L=24215.60 C=24221.60 | Fans=3 Lines=21
+2026-03-17 16:02:15,326 [INFO]   [P3 (H4-L1)] main: lineP=24279.48 | bars_from_origin=60.0 slope=3.3255 | ABOVE gap=40.88
+2026-03-17 16:02:15,326 [INFO]   [P3 (H4-L1)] 0.875: lineP=24245.29 | bars_from_origin=60.0 slope=2.7556 | ABOVE gap=6.69
+2026-03-17 16:02:15,326 [INFO]   [P3 (H4-L1)] 0.75: lineP=24215.55 | bars_from_origin=60.0 slope=2.2599 | BELOW gap=0.05
+2026-03-17 16:02:15,327 [INFO]   [P3 (H4-L1)] 0.5: lineP=24164.82 | bars_from_origin=60.0 slope=1.4144 | BELOW gap=50.78
+2026-03-17 16:02:15,327 [INFO]   [P3 (H4-L1)] 0.25: lineP=24120.91 | bars_from_origin=60.0 slope=0.6826 | BELOW gap=94.69
+2026-03-17 16:02:15,327 [INFO]   [P3 (H4-L1)] 0.125: lineP=24100.25 | bars_from_origin=60.0 slope=0.3384 | BELOW gap=115.35
+2026-03-17 16:02:15,327 [INFO]   [P3 (H4-L1)] main: lineP=24157.74 | bars_from_origin=5.0 slope=0.0000 | BELOW gap=57.86
+2026-03-17 16:02:15,328 [INFO]   [P1 (H4-L4)] main: lineP=24353.41 | bars_from_origin=9.0 slope=18.1123 | ABOVE gap=114.81
+2026-03-17 16:02:15,328 [INFO]   [P1 (H4-L4)] 0.875: lineP=24275.13 | bars_from_origin=9.0 slope=9.4140 | ABOVE gap=36.53
+2026-03-17 16:02:15,329 [INFO]   [P1 (H4-L4)] 0.75: lineP=24245.08 | bars_from_origin=9.0 slope=6.0752 | ABOVE gap=6.48
+2026-03-17 16:02:15,329 [INFO]   [P1 (H4-L4)] 0.5: lineP=24217.35 | bars_from_origin=9.0 slope=2.9946 | HIT gap=0.00
+2026-03-17 16:02:15,329 [INFO]     >>> HIT RECORDED: P1 (H4-L4) frac=0.5 @ 24217.35
+2026-03-17 16:02:15,329 [INFO]   [P1 (H4-L4)] 0.25: lineP=24202.16 | bars_from_origin=9.0 slope=1.3065 | BELOW gap=13.44
+2026-03-17 16:02:15,330 [INFO]   [P1 (H4-L4)] 0.125: lineP=24196.10 | bars_from_origin=9.0 slope=0.6337 | BELOW gap=19.50
+2026-03-17 16:02:15,330 [INFO]   [P1 (H4-L4)] main: lineP=24202.38 | bars_from_origin=5.0 slope=0.0000 | BELOW gap=13.22
+2026-03-17 16:02:15,331 [INFO]   [P2 (H4-L3)] main: lineP=24305.85 | bars_from_origin=19.0 slope=8.6000 | ABOVE gap=67.25
+2026-03-17 16:02:15,331 [INFO]   [P2 (H4-L3)] 0.875: lineP=24256.28 | bars_from_origin=19.0 slope=5.9910 | ABOVE gap=17.68
+2026-03-17 16:02:15,332 [INFO]   [P2 (H4-L3)] 0.75: lineP=24225.95 | bars_from_origin=19.0 slope=4.3946 | HIT gap=0.00
+2026-03-17 16:02:15,332 [INFO]     >>> HIT RECORDED: P2 (H4-L3) frac=0.75 @ 24225.95
+2026-03-17 16:02:15,332 [INFO]   [P2 (H4-L3)] 0.5: lineP=24188.43 | bars_from_origin=19.0 slope=2.4202 | BELOW gap=27.17
+2026-03-17 16:02:15,333 [INFO]   [P2 (H4-L3)] 0.25: lineP=24163.36 | bars_from_origin=19.0 slope=1.1007 | BELOW gap=52.24
+2026-03-17 16:02:15,333 [INFO]   [P2 (H4-L3)] 0.125: lineP=24152.68 | bars_from_origin=19.0 slope=0.5384 | BELOW gap=62.92
+2026-03-17 16:02:15,333 [INFO]   [P2 (H4-L3)] main: lineP=24176.33 | bars_from_origin=5.0 slope=0.0000 | BELOW gap=39.27
+2026-03-17 16:02:15,333 [INFO]   [IntDet] Total hits this bar: 2
+2026-03-17 16:02:15,334 [INFO] [Study] Emitting intersection event (DIRECT): {'time': 1773131340, 'fan': 'P1 (H4-L4)', 'fanIdentity': 'H4-L4', 'fraction': '1/2', 'price': 24217.351687694303, 'type': 'SUPPORT_TEST', 'details': 'Resting / Throwback'}
+2026-03-17 16:02:15,337 [INFO] [Study] Emitting intersection event (DIRECT): {'time': 1773131340, 'fan': 'P2 (H4-L3)', 'fanIdentity': 'H4-L3', 'fraction': '3/4', 'price': 24225.945760372877, 'type': 'CROSS_DOWN', 'details': 'Breakdown Attempt'}
+2026-03-17 16:02:15,341 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
+2026-03-17 16:03:11,976 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
+2026-03-17 16:03:11,984 [INFO] Initialized AngularPriceCoverageStudy v4.0. Config: {'left_bars': 5, 'right_bars': 5, 'line_extension_bars': 100, 'fraction_colors': {0.125: '#FF5252', 0.25: '#FF5252', 0.375: '#FF5252', 0.5: '#2196F3', 0.625: '#4CAF50', 0.75: '#4CAF50', 0.875: '#4CAF50', 1.0: '#FFFFFF'}, 'main_color': '#FFFFFF', 'main_line_width': 1, 'fraction_line_width': 2, 'scale_ratio': 3.6603, 'breach_mode': 'wick', 'show_intersection_labels': False, 'max_historical_fans': 3, 'resolution': '4', 'symbol': '^NSEI'}
+2026-03-17 16:03:11,985 [INFO] [Study] Evaluating AngularPriceCoverageStudy (config: {'resolution': '4', 'symbol': '^NSEI', 'scale_ratio': 3.6603, 'left_bars': 5, 'right_bars': 5, 'show_intersection_labels': False})
+2026-03-17 16:03:11,986 [INFO] [IntDet] Bar 72 | 2026-03-10 14:03 | H=24247.45 L=24219.05 C=24236.75 | Fans=3 Lines=21
+2026-03-17 16:03:11,987 [INFO]   [P3 (H4-L1)] main: lineP=24282.80 | bars_from_origin=61.0 slope=3.3255 | ABOVE gap=35.35
+2026-03-17 16:03:11,987 [INFO]   [P3 (H4-L1)] 0.875: lineP=24248.04 | bars_from_origin=61.0 slope=2.7556 | ABOVE gap=0.59
+2026-03-17 16:03:11,988 [INFO]   [P3 (H4-L1)] 0.75: lineP=24217.80 | bars_from_origin=61.0 slope=2.2599 | BELOW gap=1.25
+2026-03-17 16:03:11,989 [INFO]   [P3 (H4-L1)] 0.5: lineP=24166.23 | bars_from_origin=61.0 slope=1.4144 | BELOW gap=52.82
+2026-03-17 16:03:11,989 [INFO]   [P3 (H4-L1)] 0.25: lineP=24121.59 | bars_from_origin=61.0 slope=0.6826 | BELOW gap=97.46
+2026-03-17 16:03:11,990 [INFO]   [P3 (H4-L1)] 0.125: lineP=24100.59 | bars_from_origin=61.0 slope=0.3384 | BELOW gap=118.46
+2026-03-17 16:03:11,990 [INFO]   [P3 (H4-L1)] main: lineP=24157.74 | bars_from_origin=6.0 slope=0.0000 | BELOW gap=61.31
+2026-03-17 16:03:11,990 [INFO]   [P1 (H4-L4)] main: lineP=24371.52 | bars_from_origin=10.0 slope=18.1123 | ABOVE gap=124.07
+2026-03-17 16:03:11,991 [INFO]   [P1 (H4-L4)] 0.875: lineP=24284.54 | bars_from_origin=10.0 slope=9.4140 | ABOVE gap=37.09
+2026-03-17 16:03:11,991 [INFO]   [P1 (H4-L4)] 0.75: lineP=24251.15 | bars_from_origin=10.0 slope=6.0752 | ABOVE gap=3.70
+2026-03-17 16:03:11,992 [INFO]   [P1 (H4-L4)] 0.5: lineP=24220.35 | bars_from_origin=10.0 slope=2.9946 | HIT gap=0.00
+2026-03-17 16:03:11,992 [INFO]     >>> HIT RECORDED: P1 (H4-L4) frac=0.5 @ 24220.35
+2026-03-17 16:03:11,993 [INFO]   [P1 (H4-L4)] 0.25: lineP=24203.47 | bars_from_origin=10.0 slope=1.3065 | BELOW gap=15.59
+2026-03-17 16:03:11,993 [INFO]   [P1 (H4-L4)] 0.125: lineP=24196.74 | bars_from_origin=10.0 slope=0.6337 | BELOW gap=22.31
+2026-03-17 16:03:11,994 [INFO]   [P1 (H4-L4)] main: lineP=24202.38 | bars_from_origin=6.0 slope=0.0000 | BELOW gap=16.67
+2026-03-17 16:03:11,994 [INFO]   [P2 (H4-L3)] main: lineP=24314.45 | bars_from_origin=20.0 slope=8.6000 | ABOVE gap=67.00
+2026-03-17 16:03:11,995 [INFO]   [P2 (H4-L3)] 0.875: lineP=24262.27 | bars_from_origin=20.0 slope=5.9910 | ABOVE gap=14.82
+2026-03-17 16:03:11,995 [INFO]   [P2 (H4-L3)] 0.75: lineP=24230.34 | bars_from_origin=20.0 slope=4.3946 | HIT gap=0.00
+2026-03-17 16:03:11,996 [INFO]     >>> HIT RECORDED: P2 (H4-L3) frac=0.75 @ 24230.34
+2026-03-17 16:03:11,996 [INFO]   [P2 (H4-L3)] 0.5: lineP=24190.85 | bars_from_origin=20.0 slope=2.4202 | BELOW gap=28.20
+2026-03-17 16:03:11,997 [INFO]   [P2 (H4-L3)] 0.25: lineP=24164.46 | bars_from_origin=20.0 slope=1.1007 | BELOW gap=54.59
+2026-03-17 16:03:11,997 [INFO]   [P2 (H4-L3)] 0.125: lineP=24153.22 | bars_from_origin=20.0 slope=0.5384 | BELOW gap=65.83
+2026-03-17 16:03:11,997 [INFO]   [P2 (H4-L3)] main: lineP=24176.33 | bars_from_origin=6.0 slope=0.0000 | BELOW gap=42.72
+2026-03-17 16:03:11,998 [INFO]   [IntDet] Total hits this bar: 2
+2026-03-17 16:03:11,998 [INFO] [Study] Emitting intersection event (DIRECT): {'time': 1773131580, 'fan': 'P1 (H4-L4)', 'fanIdentity': 'H4-L4', 'fraction': '1/2', 'price': 24220.34627625756, 'type': 'SUPPORT_TEST', 'details': 'Resting / Throwback'}
+2026-03-17 16:03:12,002 [INFO] [Study] Emitting intersection event (DIRECT): {'time': 1773131580, 'fan': 'P2 (H4-L3)', 'fanIdentity': 'H4-L3', 'fraction': '3/4', 'price': 24230.34031519513, 'type': 'CROSS_UP', 'details': 'Breakout Attempt'}
+2026-03-17 16:03:12,005 [INFO] [Tracking] FAKE OUT: Fan_H4_L3 0.75 (T+1 bars)
+2026-03-17 16:03:12,006 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
+2026-03-17 16:03:12,153 [INFO] Initialized AngularPriceCoverageStudy v4.0. Config: {'left_bars': 5, 'right_bars': 5, 'line_extension_bars': 100, 'fraction_colors': {0.125: '#FF5252', 0.25: '#FF5252', 0.375: '#FF5252', 0.5: '#2196F3', 0.625: '#4CAF50', 0.75: '#4CAF50', 0.875: '#4CAF50', 1.0: '#FFFFFF'}, 'main_color': '#FFFFFF', 'main_line_width': 1, 'fraction_line_width': 2, 'scale_ratio': 3.6603, 'breach_mode': 'wick', 'show_intersection_labels': False, 'max_historical_fans': 3, 'resolution': '4', 'symbol': '^NSEI'}
+2026-03-17 16:03:12,153 [INFO] [Study] Evaluating AngularPriceCoverageStudy (config: {'resolution': '4', 'symbol': '^NSEI', 'scale_ratio': 3.6603, 'left_bars': 5, 'right_bars': 5, 'show_intersection_labels': False})
+2026-03-17 16:03:12,154 [INFO] [Study] Removing invalidated/excess fan: Fan_H4_L4
+2026-03-17 16:03:12,154 [INFO] [Study] Removing invalidated/excess fan: Fan_H4_L3
+2026-03-17 16:03:12,155 [INFO] [Study] Removing invalidated/excess fan: Fan_H4_L1
+2026-03-17 16:03:12,155 [INFO] [IntDet] Bar 73 | 2026-03-10 14:07 | H=24290.00 L=24235.90 C=24289.90 | Fans=0 Lines=0
+2026-03-17 16:03:12,156 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
+2026-03-17 16:03:12,856 [INFO] Initialized AngularPriceCoverageStudy v4.0. Config: {'left_bars': 5, 'right_bars': 5, 'line_extension_bars': 100, 'fraction_colors': {0.125: '#FF5252', 0.25: '#FF5252', 0.375: '#FF5252', 0.5: '#2196F3', 0.625: '#4CAF50', 0.75: '#4CAF50', 0.875: '#4CAF50', 1.0: '#FFFFFF'}, 'main_color': '#FFFFFF', 'main_line_width': 1, 'fraction_line_width': 2, 'scale_ratio': 3.6603, 'breach_mode': 'wick', 'show_intersection_labels': False, 'max_historical_fans': 3, 'resolution': '4', 'symbol': '^NSEI'}
+2026-03-17 16:03:12,856 [INFO] [Study] Evaluating AngularPriceCoverageStudy (config: {'resolution': '4', 'symbol': '^NSEI', 'scale_ratio': 3.6603, 'left_bars': 5, 'right_bars': 5, 'show_intersection_labels': False})
+2026-03-17 16:03:12,857 [INFO] [IntDet] Bar 74 | 2026-03-10 14:11 | H=24294.00 L=24269.60 C=24285.95 | Fans=0 Lines=0
+2026-03-17 16:03:12,858 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
+2026-03-17 16:03:13,336 [INFO] Initialized AngularPriceCoverageStudy v4.0. Config: {'left_bars': 5, 'right_bars': 5, 'line_extension_bars': 100, 'fraction_colors': {0.125: '#FF5252', 0.25: '#FF5252', 0.375: '#FF5252', 0.5: '#2196F3', 0.625: '#4CAF50', 0.75: '#4CAF50', 0.875: '#4CAF50', 1.0: '#FFFFFF'}, 'main_color': '#FFFFFF', 'main_line_width': 1, 'fraction_line_width': 2, 'scale_ratio': 3.6603, 'breach_mode': 'wick', 'show_intersection_labels': False, 'max_historical_fans': 3, 'resolution': '4', 'symbol': '^NSEI'}
+2026-03-17 16:03:13,337 [INFO] [Study] Evaluating AngularPriceCoverageStudy (config: {'resolution': '4', 'symbol': '^NSEI', 'scale_ratio': 3.6603, 'left_bars': 5, 'right_bars': 5, 'show_intersection_labels': False})
+2026-03-17 16:03:13,338 [INFO] [IntDet] Bar 75 | 2026-03-10 14:15 | H=24296.65 L=24258.60 C=24259.95 | Fans=0 Lines=0
+2026-03-17 16:03:13,339 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
+2026-03-17 16:03:13,855 [INFO] Initialized AngularPriceCoverageStudy v4.0. Config: {'left_bars': 5, 'right_bars': 5, 'line_extension_bars': 100, 'fraction_colors': {0.125: '#FF5252', 0.25: '#FF5252', 0.375: '#FF5252', 0.5: '#2196F3', 0.625: '#4CAF50', 0.75: '#4CAF50', 0.875: '#4CAF50', 1.0: '#FFFFFF'}, 'main_color': '#FFFFFF', 'main_line_width': 1, 'fraction_line_width': 2, 'scale_ratio': 3.6603, 'breach_mode': 'wick', 'show_intersection_labels': False, 'max_historical_fans': 3, 'resolution': '4', 'symbol': '^NSEI'}
+2026-03-17 16:03:13,856 [INFO] [Study] Evaluating AngularPriceCoverageStudy (config: {'resolution': '4', 'symbol': '^NSEI', 'scale_ratio': 3.6603, 'left_bars': 5, 'right_bars': 5, 'show_intersection_labels': False})
+2026-03-17 16:03:13,857 [INFO] [IntDet] Bar 76 | 2026-03-10 14:19 | H=24260.35 L=24222.45 C=24234.20 | Fans=0 Lines=0
+2026-03-17 16:03:13,859 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
+2026-03-17 16:03:14,364 [INFO] Initialized AngularPriceCoverageStudy v4.0. Config: {'left_bars': 5, 'right_bars': 5, 'line_extension_bars': 100, 'fraction_colors': {0.125: '#FF5252', 0.25: '#FF5252', 0.375: '#FF5252', 0.5: '#2196F3', 0.625: '#4CAF50', 0.75: '#4CAF50', 0.875: '#4CAF50', 1.0: '#FFFFFF'}, 'main_color': '#FFFFFF', 'main_line_width': 1, 'fraction_line_width': 2, 'scale_ratio': 3.6603, 'breach_mode': 'wick', 'show_intersection_labels': False, 'max_historical_fans': 3, 'resolution': '4', 'symbol': '^NSEI'}
+2026-03-17 16:03:14,365 [INFO] [Study] Evaluating AngularPriceCoverageStudy (config: {'resolution': '4', 'symbol': '^NSEI', 'scale_ratio': 3.6603, 'left_bars': 5, 'right_bars': 5, 'show_intersection_labels': False})
+2026-03-17 16:03:14,366 [INFO] [IntDet] Bar 77 | 2026-03-10 14:23 | H=24246.30 L=24221.70 C=24224.90 | Fans=0 Lines=0
+2026-03-17 16:03:14,367 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
+2026-03-17 16:03:14,921 [INFO] Initialized AngularPriceCoverageStudy v4.0. Config: {'left_bars': 5, 'right_bars': 5, 'line_extension_bars': 100, 'fraction_colors': {0.125: '#FF5252', 0.25: '#FF5252', 0.375: '#FF5252', 0.5: '#2196F3', 0.625: '#4CAF50', 0.75: '#4CAF50', 0.875: '#4CAF50', 1.0: '#FFFFFF'}, 'main_color': '#FFFFFF', 'main_line_width': 1, 'fraction_line_width': 2, 'scale_ratio': 3.6603, 'breach_mode': 'wick', 'show_intersection_labels': False, 'max_historical_fans': 3, 'resolution': '4', 'symbol': '^NSEI'}
+2026-03-17 16:03:14,922 [INFO] [Study] Evaluating AngularPriceCoverageStudy (config: {'resolution': '4', 'symbol': '^NSEI', 'scale_ratio': 3.6603, 'left_bars': 5, 'right_bars': 5, 'show_intersection_labels': False})
+2026-03-17 16:03:14,923 [INFO] [IntDet] Bar 78 | 2026-03-10 14:27 | H=24238.95 L=24221.25 C=24238.95 | Fans=0 Lines=0
+2026-03-17 16:03:14,924 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
+2026-03-17 16:03:15,458 [INFO] Initialized AngularPriceCoverageStudy v4.0. Config: {'left_bars': 5, 'right_bars': 5, 'line_extension_bars': 100, 'fraction_colors': {0.125: '#FF5252', 0.25: '#FF5252', 0.375: '#FF5252', 0.5: '#2196F3', 0.625: '#4CAF50', 0.75: '#4CAF50', 0.875: '#4CAF50', 1.0: '#FFFFFF'}, 'main_color': '#FFFFFF', 'main_line_width': 1, 'fraction_line_width': 2, 'scale_ratio': 3.6603, 'breach_mode': 'wick', 'show_intersection_labels': False, 'max_historical_fans': 3, 'resolution': '4', 'symbol': '^NSEI'}
+2026-03-17 16:03:15,459 [INFO] [Study] Evaluating AngularPriceCoverageStudy (config: {'resolution': '4', 'symbol': '^NSEI', 'scale_ratio': 3.6603, 'left_bars': 5, 'right_bars': 5, 'show_intersection_labels': False})
+2026-03-17 16:03:15,460 [INFO] [IntDet] Bar 79 | 2026-03-10 14:31 | H=24245.95 L=24201.95 C=24215.15 | Fans=0 Lines=0
+2026-03-17 16:03:15,461 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
+2026-03-17 16:03:15,946 [INFO] Initialized AngularPriceCoverageStudy v4.0. Config: {'left_bars': 5, 'right_bars': 5, 'line_extension_bars': 100, 'fraction_colors': {0.125: '#FF5252', 0.25: '#FF5252', 0.375: '#FF5252', 0.5: '#2196F3', 0.625: '#4CAF50', 0.75: '#4CAF50', 0.875: '#4CAF50', 1.0: '#FFFFFF'}, 'main_color': '#FFFFFF', 'main_line_width': 1, 'fraction_line_width': 2, 'scale_ratio': 3.6603, 'breach_mode': 'wick', 'show_intersection_labels': False, 'max_historical_fans': 3, 'resolution': '4', 'symbol': '^NSEI'}
+2026-03-17 16:03:15,946 [INFO] [Study] Evaluating AngularPriceCoverageStudy (config: {'resolution': '4', 'symbol': '^NSEI', 'scale_ratio': 3.6603, 'left_bars': 5, 'right_bars': 5, 'show_intersection_labels': False})
+2026-03-17 16:03:15,947 [INFO] [Study] Creating new fan: Fan_H5_L1 (P3 (H5-L1))
+2026-03-17 16:03:15,948 [INFO] [AngleEngine] scale_ratio=3.6603, slope_per_bar=3.3860, visual_slope=0.9250, theta=42.77 deg
+2026-03-17 16:03:15,949 [INFO] --- [AngleEngine] Fan Created: Fan_H5_L1 ---
+2026-03-17 16:03:15,949 [INFO]   Origin: Bar 11, Time 1773116940, Price 24079.94921875
+2026-03-17 16:03:15,950 [INFO]   Target: Bar 75, Time 1773132300, Price 24296.650390625
+2026-03-17 16:03:15,950 [INFO]   Delta: db=64, dp_origin=216.70
+2026-03-17 16:03:15,950 [INFO]   Scale Params: Ratio=3.6603, Radius=87.18 bars, Slope/Bar=3.3860
+2026-03-17 16:03:15,951 [INFO]   Line 0.875: EndBar=1773132300 (approx), EndPrice=24259.21
+2026-03-17 16:03:15,952 [INFO]   Line 0.75: EndBar=1773132300 (approx), EndPrice=24226.77
+2026-03-17 16:03:15,952 [INFO]   Line 0.5: EndBar=1773132300 (approx), EndPrice=24171.68
+2026-03-17 16:03:15,953 [INFO]   Line 0.25: EndBar=1773132300 (approx), EndPrice=24124.18
+2026-03-17 16:03:15,953 [INFO]   Line 0.125: EndBar=1773132300 (approx), EndPrice=24101.87
+2026-03-17 16:03:15,953 [INFO] [Study] Creating new fan: Fan_H5_L4 (P1 (H5-L4))
+2026-03-17 16:03:15,954 [INFO] [AngleEngine] scale_ratio=3.6603, slope_per_bar=8.1731, visual_slope=2.2329, theta=65.87 deg
+2026-03-17 16:03:15,955 [INFO] --- [AngleEngine] Fan Created: Fan_H5_L4 ---
+2026-03-17 16:03:15,955 [INFO]   Origin: Bar 62, Time 1773129180, Price 24190.400390625
+2026-03-17 16:03:15,955 [INFO]   Target: Bar 75, Time 1773132300, Price 24296.650390625
+2026-03-17 16:03:15,956 [INFO]   Delta: db=13, dp_origin=106.25
+2026-03-17 16:03:15,956 [INFO]   Scale Params: Ratio=3.6603, Radius=31.81 bars, Slope/Bar=8.1731
+2026-03-17 16:03:15,956 [INFO]   Line 0.875: EndBar=1773132300 (approx), EndPrice=24265.50
+2026-03-17 16:03:15,957 [INFO]   Line 0.75: EndBar=1773132300 (approx), EndPrice=24245.93
+2026-03-17 16:03:15,957 [INFO]   Line 0.5: EndBar=1773132300 (approx), EndPrice=24221.23
+2026-03-17 16:03:15,957 [INFO]   Line 0.25: EndBar=1773132300 (approx), EndPrice=24204.47
+2026-03-17 16:03:15,958 [INFO]   Line 0.125: EndBar=1773132300 (approx), EndPrice=24197.29
+2026-03-17 16:03:15,958 [INFO] [Study] Creating new fan: Fan_H5_L3 (P2 (H5-L3))
+2026-03-17 16:03:15,959 [INFO] [AngleEngine] scale_ratio=3.6603, slope_per_bar=6.7044, visual_slope=1.8317, theta=61.37 deg
+2026-03-17 16:03:15,960 [INFO] --- [AngleEngine] Fan Created: Fan_H5_L3 ---
+2026-03-17 16:03:15,960 [INFO]   Origin: Bar 52, Time 1773126780, Price 24142.44921875
+2026-03-17 16:03:15,961 [INFO]   Target: Bar 75, Time 1773132300, Price 24296.650390625
+2026-03-17 16:03:15,962 [INFO]   Delta: db=23, dp_origin=154.20
+2026-03-17 16:03:15,962 [INFO]   Scale Params: Ratio=3.6603, Radius=48.00 bars, Slope/Bar=6.7044
+2026-03-17 16:03:15,962 [INFO]   Line 0.875: EndBar=1773132300 (approx), EndPrice=24257.04
+2026-03-17 16:03:15,963 [INFO]   Line 0.75: EndBar=1773132300 (approx), EndPrice=24229.71
+2026-03-17 16:03:15,963 [INFO]   Line 0.5: EndBar=1773132300 (approx), EndPrice=24192.40
+2026-03-17 16:03:15,964 [INFO]   Line 0.25: EndBar=1773132300 (approx), EndPrice=24165.55
+2026-03-17 16:03:15,964 [INFO]   Line 0.125: EndBar=1773132300 (approx), EndPrice=24153.79
+2026-03-17 16:03:15,964 [INFO] [IntDet] Bar 80 | 2026-03-10 14:35 | H=24242.05 L=24214.05 C=24241.60 | Fans=3 Lines=21
+2026-03-17 16:03:15,965 [INFO]   [P3 (H5-L1)] main: lineP=24313.58 | bars_from_origin=69.0 slope=3.3860 | ABOVE gap=71.53
+2026-03-17 16:03:15,965 [INFO]   [P3 (H5-L1)] 0.875: lineP=24273.21 | bars_from_origin=69.0 slope=2.8009 | ABOVE gap=31.16
+2026-03-17 16:03:15,965 [INFO]   [P3 (H5-L1)] 0.75: lineP=24238.24 | bars_from_origin=69.0 slope=2.2941 | HIT gap=0.00
+2026-03-17 16:03:15,965 [INFO]     >>> HIT RECORDED: P3 (H5-L1) frac=0.75 @ 24238.24
+2026-03-17 16:03:15,966 [INFO]   [P3 (H5-L1)] 0.5: lineP=24178.85 | bars_from_origin=69.0 slope=1.4334 | BELOW gap=35.20
+2026-03-17 16:03:15,966 [INFO]   [P3 (H5-L1)] 0.25: lineP=24127.64 | bars_from_origin=69.0 slope=0.6911 | BELOW gap=86.41
+2026-03-17 16:03:15,966 [INFO]   [P3 (H5-L1)] 0.125: lineP=24103.58 | bars_from_origin=69.0 slope=0.3425 | BELOW gap=110.47
+2026-03-17 16:03:15,967 [INFO]   [P3 (H5-L1)] main: lineP=24171.68 | bars_from_origin=5.0 slope=0.0000 | BELOW gap=42.37
+2026-03-17 16:03:15,967 [INFO]   [P1 (H5-L4)] main: lineP=24337.52 | bars_from_origin=18.0 slope=8.1731 | ABOVE gap=95.46
+2026-03-17 16:03:15,967 [INFO]   [P1 (H5-L4)] 0.875: lineP=24294.38 | bars_from_origin=18.0 slope=5.7767 | ABOVE gap=52.33
+2026-03-17 16:03:15,967 [INFO]   [P1 (H5-L4)] 0.75: lineP=24267.29 | bars_from_origin=18.0 slope=4.2715 | ABOVE gap=25.24
+2026-03-17 16:03:15,968 [INFO]   [P1 (H5-L4)] 0.5: lineP=24233.08 | bars_from_origin=18.0 slope=2.3713 | HIT gap=0.00
+2026-03-17 16:03:15,968 [INFO]     >>> HIT RECORDED: P1 (H5-L4) frac=0.5 @ 24233.08
+2026-03-17 16:03:15,968 [INFO]   [P1 (H5-L4)] 0.25: lineP=24209.88 | bars_from_origin=18.0 slope=1.0821 | BELOW gap=4.17
+2026-03-17 16:03:15,968 [INFO]   [P1 (H5-L4)] 0.125: lineP=24199.93 | bars_from_origin=18.0 slope=0.5297 | BELOW gap=14.12
+2026-03-17 16:03:15,969 [INFO]   [P1 (H5-L4)] main: lineP=24221.23 | bars_from_origin=5.0 slope=0.0000 | HIT gap=0.00
+2026-03-17 16:03:15,969 [INFO]     >>> HIT RECORDED: P1 (H5-L4) frac=main @ 24221.23
+2026-03-17 16:03:15,969 [INFO]   [P2 (H5-L3)] main: lineP=24330.17 | bars_from_origin=28.0 slope=6.7044 | ABOVE gap=88.12
+2026-03-17 16:03:15,969 [INFO]   [P2 (H5-L3)] 0.875: lineP=24281.95 | bars_from_origin=28.0 slope=4.9823 | ABOVE gap=39.90
+2026-03-17 16:03:15,970 [INFO]   [P2 (H5-L3)] 0.75: lineP=24248.67 | bars_from_origin=28.0 slope=3.7937 | ABOVE gap=6.62
+2026-03-17 16:03:15,970 [INFO]   [P2 (H5-L3)] 0.5: lineP=24203.26 | bars_from_origin=28.0 slope=2.1719 | BELOW gap=10.79
+2026-03-17 16:03:15,970 [INFO]   [P2 (H5-L3)] 0.25: lineP=24170.57 | bars_from_origin=28.0 slope=1.0042 | BELOW gap=43.48
+2026-03-17 16:03:15,970 [INFO]   [P2 (H5-L3)] 0.125: lineP=24156.25 | bars_from_origin=28.0 slope=0.4930 | BELOW gap=57.80
+2026-03-17 16:03:15,971 [INFO]   [P2 (H5-L3)] main: lineP=24192.40 | bars_from_origin=5.0 slope=0.0000 | BELOW gap=21.65
+2026-03-17 16:03:15,971 [INFO]   [IntDet] Total hits this bar: 3
+2026-03-17 16:03:15,972 [INFO] [Study] Emitting intersection event (DIRECT): {'time': 1773133500, 'fan': 'P3 (H5-L1)', 'fanIdentity': 'H5-L1', 'fraction': '3/4', 'price': 24238.24359031697, 'type': 'CROSS_UP', 'details': 'Breakout Attempt'}
+2026-03-17 16:03:15,975 [INFO] [Study] Emitting intersection event (DIRECT): {'time': 1773133500, 'fan': 'P1 (H5-L4)', 'fanIdentity': 'H5-L4', 'fraction': '1/2', 'price': 24233.084641297395, 'type': 'CROSS_UP', 'details': 'Breakout Attempt'}
+2026-03-17 16:03:15,979 [INFO] [Study] Emitting intersection event (DIRECT): {'time': 1773133500, 'fan': 'P1 (H5-L4)', 'fanIdentity': 'H5-L4', 'fraction': 'Horizontal', 'price': 24221.22790499951, 'type': 'CROSS_UP', 'details': 'Breakout Attempt'}
+2026-03-17 16:03:15,983 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
