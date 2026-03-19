@@ -105,14 +105,10 @@ def get_frontend_parity_data(symbol="^NSEI", resolution="4", data_source="yfinan
         
         logging.info(f"[Replay] Fallback fetch: {fallback_from_str} to {fallback_to_str}")
         df = client.fetch_data(symbol, fallback_from_str, fallback_to_str, interval=resolution)
-        
-        if not df.empty and not from_date:
-            # If we fell back and no from_date was provided, update target_from_dt to the first candle
-            target_from_dt = datetime.fromtimestamp(df['timestamp'].iloc[0])
     
     if df is None or df.empty:
         logging.error("Failed to fetch data or dataframe is empty.")
-        return [], target_from_dt
+        return [], target_from_dt, target_from_dt
         
     # Ensure 'time' column exists for the study tool
     if 'timestamp' in df.columns and 'time' not in df.columns:
@@ -121,19 +117,32 @@ def get_frontend_parity_data(symbol="^NSEI", resolution="4", data_source="yfinan
     candles = df.to_dict('records')
     logging.info(f"Loaded {len(candles)} candles from {data_source}.")
     
-    if not from_date and len(candles) > 0:
-        # If no from_date was provided, we want to start tracking events from the very first candle
-        target_from_dt = datetime.fromtimestamp(candles[0]['time'])
-        logging.info(f"No from_date provided. Starting simulation from earliest available candle: {target_from_dt}")
+    # DETERMINE ACTUAL START: Use the first candle's timestamp as the true start
+    # This handles cases where YFinance clamped an old date to its maximum available data
+    if len(candles) > 0:
+        actual_start_ts = int(candles[0]['time'])
+        actual_start_dt = datetime.fromtimestamp(actual_start_ts)
         
-    return candles, target_from_dt
+        # If the actual first candle is newer than the requested from_date, use the actual start
+        requested_ts = int(target_from_dt.timestamp())
+        if actual_start_ts > requested_ts:
+            logging.info(f"[Simulation] YFinance clamped date: requested {from_date or 'default'} ({requested_ts}) -> actual {actual_start_dt.strftime('%Y-%m-%d')} ({actual_start_ts})")
+            target_from_dt = actual_start_dt
+        else:
+            target_from_dt = datetime.fromtimestamp(requested_ts)
+    else:
+        actual_start_ts = int(target_from_dt.timestamp())
+        
+    logging.info(f"Simulation will track events from: {target_from_dt.strftime('%Y-%m-%d')} (ts: {int(target_from_dt.timestamp())})")
+        
+    return candles, target_from_dt, actual_start_dt
 
 def run_simulation(symbol="^NSEI", resolution="4", data_source="yfinance", from_date=None, to_date=None, lookback_bars=5000):
     log_file = setup_logging()
     logging.info(f"Starting simulation run for {symbol} at {resolution}m resolution")
     
     # Setup - Fetch data with frontend parity
-    candles, target_from_dt = get_frontend_parity_data(
+    candles, target_from_dt, actual_start_dt = get_frontend_parity_data(
         symbol=symbol, 
         resolution=resolution, 
         data_source=data_source, 

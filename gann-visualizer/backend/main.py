@@ -582,53 +582,64 @@ def udf_history(symbol: str, resolution: str, from_: int = Query(..., alias="fro
         print(f"DEBUG: df timestamp range: {df['timestamp'].min()} - {df['timestamp'].max()}")
         print(f"DEBUG: df timestamp as dates: {datetime.fromtimestamp(df['timestamp'].min()).isoformat()} - {datetime.fromtimestamp(df['timestamp'].max()).isoformat()}")
     
-    # CRITICAL: Filter data to only include bars within the requested time range
-    # TradingView expects data in the from-to range for pagination to work
+    # CRITICAL FIX FOR LAZY LOADING: For intraday intervals, return ALL available bars
+    # This ensures TradingView can cache all historical data and support lazy loading/scroll-back
+    # For daily+ intervals, apply the normal filtering
+    is_intraday = resolution in ["1", "2", "3", "4", "5", "10", "15", "20", "30", "60", "120", "180", "1", "2", "3", "4", "5", "10", "15", "20", "30", "60"]
+    
     original_len = len(df)
-    original_df = df.copy()  # Keep a copy before filtering
     
-    # ADJUSTMENT: For Daily (1D/D) resolution, the timestamps might be aligned to Exchange Time (IST) 
-    # which is 00:00 IST = 18:30 UTC (Previous Day). 
-    # TradingView requests usually align to UTC Midnight.
-    # So a bar for "June 11" might have timestamp June 10 18:30 UTC.
-    # If TV requests from=June 11 00:00 UTC, strict filtering expels this bar.
-    # We apply a buffer for Daily resolution.
-    filter_from = from_
-    if resolution in ["1D", "D", "W", "1W", "M", "1M"]:
-         filter_from = from_ - 43200 # -12 hours buffer
-         print(f"Daily/Weekly Resolution detected: Applying -12h buffer to start filter (From: {from_} -> {filter_from})")
+    if is_intraday:
+        # For intraday intervals, return ALL available bars for lazy loading
+        print(f"[LazyLoadFix] Intraday interval ({resolution}). Returning all {original_len} bars without filtering.")
+        # No filtering - return all available data
+    else:
+        # For daily+ intervals, apply normal filtering
+        print(f"[LazyLoadFix] Non-intraday interval ({resolution}). Applying date range filter.")
+        original_df = df.copy()  # Keep a copy before filtering
+        
+        # ADJUSTMENT: For Daily (1D/D) resolution, the timestamps might be aligned to Exchange Time (IST) 
+        # which is 00:00 IST = 18:30 UTC (Previous Day). 
+        # TradingView requests usually align to UTC Midnight.
+        # So a bar for "June 11" might have timestamp June 10 18:30 UTC.
+        # If TV requests from=June 11 00:00 UTC, strict filtering expels this bar.
+        # We apply a buffer for Daily resolution.
+        filter_from = from_
+        if resolution in ["1D", "D", "W", "1W", "M", "1M"]:
+             filter_from = from_ - 43200 # -12 hours buffer
+             print(f"Daily/Weekly Resolution detected: Applying -12h buffer to start filter (From: {from_} -> {filter_from})")
 
-    df = df[(df['timestamp'] >= filter_from) & (df['timestamp'] <= to)]
-    print(f"Filtered data from {original_len} to {len(df)} bars (filter_from={filter_from}, to={to})")
-    
-    if len(df) == 0 and original_len > 0:
-        print(f"  [DEBUG] Data was filtered out! Data range: {original_df['timestamp'].min()} - {original_df['timestamp'].max()}")
-        print(f"  [DEBUG] Filter range: {filter_from} - {to}")
-    
-    # SMART FIX: If strict filtering eliminated ALL data, but we had valid data,
-    # this often means the request's 'from_' timestamp falls outside market hours.
-    # Example: TradingView requests from 15:33 IST, but market closes at 15:30.
-    # In this case, return the most recent available data that's within 'to' range.
-    if df.empty and original_len > 0:
-        # Check if data exists that ends before 'from_' but is still relevant
-        data_max_ts = original_df['timestamp'].max()
-        data_min_ts = original_df['timestamp'].min()
+        df = df[(df['timestamp'] >= filter_from) & (df['timestamp'] <= to)]
+        print(f"Filtered data from {original_len} to {len(df)} bars (filter_from={filter_from}, to={to})")
         
-        # Case 1: Request 'from_' is AFTER all our data (common with Yahoo Finance)
-        # This happens when TradingView calculates 'from' based on current time which
-        # may be outside market hours. Return data that's at least within the 'to' range.
-        if from_ > data_max_ts:
-            print(f"[SmartFilter] Request 'from' ({from_}) is after all available data (max: {data_max_ts})")
-            print(f"[SmartFilter] Returning all {original_len} bars since they fall before 'from' but are the best available data")
-            # Return data that's <= 'to' (all data before end of request is valid)
-            df = original_df[original_df['timestamp'] <= to]
-            if not df.empty:
-                print(f"[SmartFilter] Recovered {len(df)} bars by relaxing 'from' filter")
+        if len(df) == 0 and original_len > 0:
+            print(f"  [DEBUG] Data was filtered out! Data range: {original_df['timestamp'].min()} - {original_df['timestamp'].max()}")
+            print(f"  [DEBUG] Filter range: {filter_from} - {to}")
         
-        # Case 2: Request 'to' is BEFORE all our data (shouldn't happen normally)
-        elif to < data_min_ts:
-            print(f"[SmartFilter] Request 'to' ({to}) is before all available data (min: {data_min_ts})")
-            # This is a genuine no-data scenario for this range
+        # SMART FIX: If strict filtering eliminated ALL data, but we had valid data,
+        # this often means the request's 'from_' timestamp falls outside market hours.
+        # Example: TradingView requests from 15:33 IST, but market closes at 15:30.
+        # In this case, return the most recent available data that's within 'to' range.
+        if df.empty and original_len > 0:
+            # Check if data exists that ends before 'from_' but is still relevant
+            data_max_ts = original_df['timestamp'].max()
+            data_min_ts = original_df['timestamp'].min()
+            
+            # Case 1: Request 'from_' is AFTER all our data (common with Yahoo Finance)
+            # This happens when TradingView calculates 'from' based on current time which
+            # may be outside market hours. Return data that's at least within the 'to' range.
+            if from_ > data_max_ts:
+                print(f"[SmartFilter] Request 'from' ({from_}) is after all available data (max: {data_max_ts})")
+                print(f"[SmartFilter] Returning all {original_len} bars since they fall before 'from' but are the best available data")
+                # Return data that's <= 'to' (all data before end of request is valid)
+                df = original_df[original_df['timestamp'] <= to]
+                if not df.empty:
+                    print(f"[SmartFilter] Recovered {len(df)} bars by relaxing 'from' filter")
+            
+            # Case 2: Request 'to' is BEFORE all our data (shouldn't happen normally)
+            elif to < data_min_ts:
+                print(f"[SmartFilter] Request 'to' ({to}) is before all available data (min: {data_min_ts})")
+                # This is a genuine no-data scenario for this range
     
     if df.empty:
         print(f"No data in requested range after filtering.")
@@ -826,6 +837,18 @@ async def fetch_candles(req: FetchCandlesRequest):
         for c in candles_list:
             c['time'] = c.pop('timestamp')
         
+        # DETERMINE ACTUAL START DATE: Use the first candle's timestamp as the true start
+        # This handles cases where YFinance clamped an old date to its maximum available data
+        actual_start_timestamp = int(df['timestamp'].iloc[0]) if len(df) > 0 else int(datetime.now().timestamp())
+        actual_start_date = datetime.fromtimestamp(actual_start_timestamp).strftime('%Y-%m-%d')
+        
+        # Only override if the clamped date differs from requested date (indicating YFinance limited the range)
+        if req.from_date and req.data_source == 'yfinance':
+            requested_dt = datetime.strptime(req.from_date, '%Y-%m-%d')
+            requested_ts = int(requested_dt.timestamp())
+            if actual_start_timestamp > requested_ts:
+                print(f"[FetchCandles] YFinance clamped date: requested {req.from_date} ({requested_ts}) -> actual {actual_start_date} ({actual_start_timestamp})")
+        
         # PRE-FETCH OPTION DATA if strategy uses options
         # This runs in the background and caches data for use during replay
         option_cache_ready = False
@@ -944,7 +967,9 @@ async def fetch_candles(req: FetchCandlesRequest):
             "candles": candles_list, 
             "option_cache_ready": option_cache_ready, 
             "markers": initial_markers,
-            "drawings": initial_drawings
+            "drawings": initial_drawings,
+            "actual_start_date": actual_start_date,
+            "actual_start_timestamp": actual_start_timestamp
         }
     except HTTPException:
         raise 

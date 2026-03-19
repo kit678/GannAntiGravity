@@ -6,8 +6,8 @@ to the Dhan API for development and backtesting purposes.
 
 Supported intervals: 1m, 2m, 5m, 15m, 30m, 60m, 90m, 1h, 1d, 5d, 1wk, 1mo
 Intraday data limitations:
-  - 1m: last 7 days only
-  - 2m-60m: last 60 days only
+  - 1m, 4m: last 8 days only (uses period="8d")
+  - 2m-30m: last 60 days only
   - Daily+: extensive history available
 """
 
@@ -76,10 +76,10 @@ class YFinanceClient:
     
     MAX_HOURLY_DAYS = 700  # Safe buffer below 730
     
-    # Maximum historical period for each interval
+    # Maximum historical period for each interval (in days)
     INTERVAL_LIMITS = {
         "1m": 7,      # 7 days max for 1m
-        "4": 7,       # 7 days max for 1m
+        "4": 8,       # 8 days for 4m to get full trading week
         "2m": 59,     # 59 days to avoid strict 60-day limit errors
         "5m": 59,
         "15m": 59,
@@ -90,6 +90,16 @@ class YFinanceClient:
         "1d": 10000,  # Effectively unlimited
         "1wk": 10000,
         "1mo": 10000,
+    }
+    
+    # Mapping from interval to period parameter for "earliest available" requests
+    INTERVAL_TO_PERIOD = {
+        "1m": "8d",   # Use 8 days to get full trading week
+        "4": "8d",    # Use 8 days for 4m
+        "2m": "60d",  # Use 60 days
+        "5m": "60d",
+        "15m": "60d",
+        "30m": "60d",
     }
 
     def __init__(self):
@@ -243,74 +253,44 @@ class YFinanceClient:
             print(f"[YFinance] Date parse error: {e}")
             return pd.DataFrame()
         
-        # NEW: Check if start date is too old for the interval (Yahoo Limitation)
-        # 1m: 7 days from NOW
-        # 2m-30m: 60 days from NOW
-        # 60m-90m: 730 days from NOW
         now = datetime.now()
-        original_age_days = (now - start_dt).days
         
-        limit_from_now = 36500 # Default huge
-        if interval in ["1", "4"]: limit_from_now = 7 # YFinance limit is 7 days for 1m
-        elif interval in ["2", "5", "15", "30"]: limit_from_now = 60
-        elif interval in ["60", "90", "1H"]: limit_from_now = 700
+        # CRITICAL FIX: For lazy loading to work, we must ALWAYS use the period parameter
+        # for intraday intervals to get maximum historical data (8 days for 1m/4m).
+        # This ensures TradingView can scroll back to see historical candles.
+        use_period = yf_interval in self.INTERVAL_TO_PERIOD
         
-        if original_age_days > limit_from_now:
-            # FIX for "System thinks 1m but User wants History" bug:
-            if interval in ["1", "4"]:
-                # The user explicitly requested 4m data, which requires 1m data from YFinance.
-                # We MUST NOT auto-promote to 5m, because 5m data cannot be aggregated into 4m candles.
-                # Instead, we must strictly clamp the start date to the maximum allowed history for 1m data (7 days).
-                earliest_allowed_date = now - timedelta(days=limit_from_now - 1)
-                print(f"[YFinance] Requested data ({interval}m) starts {original_age_days} days ago, but YFinance limit is {limit_from_now} days.")
-                print(f"[YFinance] STRICT CLAMPING: Auto-adjusting start date from {start_dt.strftime('%Y-%m-%d')} to {earliest_allowed_date.strftime('%Y-%m-%d')} to preserve 1m base resolution.")
-                start_dt = earliest_allowed_date
-            elif interval == "240":
-                interval = "240"
-                yf_interval = "1h" # Request 1H, TradingView will aggregate to 4H natively
-                
-                # If still too old for hourly, clamp or warn
-                if original_age_days >= 700:
-                    print(f"[YFinance] Still too old for 1h (Limit 700 days). Clamping.")
-                    start_dt = now - timedelta(days=699)
-            else:
-                # Normal clamping logic
-                earliest_allowed_date = now - timedelta(days=limit_from_now - 1)
-                if start_dt < earliest_allowed_date:
-                    print(f"[YFinance] Requested data ({interval}m) starts {original_age_days} days ago (Limit: {limit_from_now}d).")
-                    print(f"[YFinance] Auto-adjusting start date from {start_dt.strftime('%Y-%m-%d')} to {earliest_allowed_date.strftime('%Y-%m-%d')}")
-                    start_dt = earliest_allowed_date
-
-        # Now check interval limits (max days per request)
-        max_days = self.INTERVAL_LIMITS.get(yf_interval, 60)
-        requested_days = (end_dt - start_dt).days
-        
-        if requested_days > max_days:
-            print(f"[YFinance] WARNING: Requested {requested_days} days but {yf_interval} limit is {max_days} days")
-            start_dt = end_dt - timedelta(days=max_days)
-            print(f"[YFinance] Adjusted start date to {start_dt.strftime('%Y-%m-%d')}")
-
-
+        # Always use period for intraday intervals to get maximum historical data
+        # This is essential for lazy loading / scroll-back functionality
         
         try:
-            # Fetch data using yfinance
             ticker = yf.Ticker(symbol)
             
-            # Use YYYY-MM-DD strings for better compatibility
-            # Fetch whole days and we'll filter by timestamp later
-            start_str = start_dt.strftime("%Y-%m-%d")
-            # For end date, add 1 day to ensure we cover the target end date (history is exclusive of end)
-            end_str = (end_dt + timedelta(days=1)).strftime("%Y-%m-%d")
-
-            print(f"[YFinance] Requesting dates: start={start_str}, end={end_str} for {symbol}")
-
-            df = ticker.history(
-                start=start_str,
-                end=end_str,
-                interval=yf_interval,
-                auto_adjust=True,
-                prepost=False
-            )
+            if use_period:
+                # Use period parameter to get maximum available data
+                period = self.INTERVAL_TO_PERIOD[yf_interval]
+                print(f"[YFinance] Using period={period} to get maximum available {interval}m data")
+                
+                df = ticker.history(
+                    period=period,
+                    interval=yf_interval,
+                    auto_adjust=True,
+                    prepost=False
+                )
+            else:
+                # Use start/end dates for normal requests
+                start_str = start_dt.strftime("%Y-%m-%d")
+                end_str = (end_dt + timedelta(days=1)).strftime("%Y-%m-%d")
+                
+                print(f"[YFinance] Requesting dates: start={start_str}, end={end_str} for {symbol}")
+                
+                df = ticker.history(
+                    start=start_str,
+                    end=end_str,
+                    interval=yf_interval,
+                    auto_adjust=True,
+                    prepost=False
+                )
             
             if df.empty:
                 print(f"[YFinance] No data returned for {symbol}")
