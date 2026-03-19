@@ -279,7 +279,37 @@ class AngularPriceCoverageStudy:
                     }
                     result['intersection_events'].append(ui_event)
                     self.log(f"[Study] Emitting intersection event (DIRECT): {ui_event}")
-                    # -------------------------
+                    
+                    # --- LOG TO EVENT LOGGER SO IT APPEARS IN CSV ---
+                    # Map the UI hit_type to the EventType enum
+                    # Now we use direct mapping to aligned types for easier validation
+                    event_type_map = {
+                        'TOUCH': EventType.TOUCH,
+                        'CROSS_UP': EventType.CROSS_UP,
+                        'CROSS_DOWN': EventType.CROSS_DOWN,
+                        'SUPPORT_TEST': EventType.SUPPORT_TEST,
+                        'RESISTANCE_TEST': EventType.RESISTANCE_TEST
+                    }
+                    
+                    direction = None
+                    if hit_type == 'CROSS_UP':
+                        direction = 'up'
+                    elif hit_type == 'CROSS_DOWN':
+                        direction = 'down'
+                        
+                    self.event_logger.log_event(
+                        timestamp=event.time,
+                        event_type=event_type_map.get(hit_type, EventType.TOUCH),
+                        angle_name=frac_name,
+                        price=event.price,
+                        direction=direction,
+                        details={
+                            'fan_id': event.fan_id,
+                            'ui_type': hit_type,
+                            'ui_details': details
+                        }
+                    )
+                    # ------------------------------------------------
 
                     try:
                         frac_str = str(event.fraction) if event.fraction is not None else "Horizontal"

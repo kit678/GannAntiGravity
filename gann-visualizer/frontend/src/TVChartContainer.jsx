@@ -48,7 +48,7 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
                                     const shape = chart.getShapeById(id);
                                     if (shape) shape.setProperties({ visible: isVisible });
                                 }
-                            });
+                            }).catch(e => console.warn("[TVChartContainer] Error updating shape visibility:", e));
                         } else if (shapeId) {
                             const shape = chart.getShapeById(shapeId);
                             if (shape) shape.setProperties({ visible: isVisible });
@@ -1100,7 +1100,7 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
                                                     const shape = chart.getShapeById(id);
                                                     if (shape) shape.setProperties({ visible: isVisible });
                                                 }
-                                            });
+                                            }).catch(e => console.warn("[Study] Error setting shape visibility:", e));
                                         } else {
                                             const shape = chart.getShapeById(shapeId);
                                             if (shape) shape.setProperties({ visible: isVisible });
@@ -1146,31 +1146,36 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
                             const startIndex = Math.max(0, replayStartIndex - 100); // Show ~100 bars of context
                             const endIndex = replayStartIndex;
                             
-                            const fromTime = toSeconds(normalizedCandles[startIndex].time);
-                            const toTime = toSeconds(normalizedCandles[endIndex].time);
-                            
-                            // Add buffer to the right (e.g. 10 bars worth of time)
-                            let intervalSeconds = 60; // Default 1m
-                            if (normalizedCandles.length > 1) {
-                                intervalSeconds = toSeconds(normalizedCandles[1].time) - toSeconds(normalizedCandles[0].time);
-                            }
-                            const rightBuffer = intervalSeconds * 15;
+                            if (normalizedCandles[startIndex] && normalizedCandles[endIndex]) {
+                                const fromTime = toSeconds(normalizedCandles[startIndex].time);
+                                const toTime = toSeconds(normalizedCandles[endIndex].time);
+                                
+                                // Add buffer to the right (e.g. 10 bars worth of time)
+                                let intervalSeconds = 60; // Default 1m
+                                if (normalizedCandles.length > 1) {
+                                    intervalSeconds = toSeconds(normalizedCandles[1].time) - toSeconds(normalizedCandles[0].time);
+                                }
+                                const rightBuffer = intervalSeconds * 15;
 
-                            console.log(`[Progressive Replay] dataReady fired - Setting visible range: ${new Date(fromTime * 1000).toLocaleString()} to ${new Date((toTime + rightBuffer) * 1000).toLocaleString()}`);
-                            
-                            // Small delay to ensure layout is recalculated
-                            setTimeout(() => {
-                                chart.setVisibleRange({
-                                    from: fromTime,
-                                    to: toTime + rightBuffer
-                                }).then(() => {
-                                    console.log("[Progressive Replay] Visible range set successfully");
-                                    resolveRangeSet(true);
-                                }).catch(e => {
-                                    console.warn("[Progressive Replay] Failed to set visible range:", e);
-                                    resolveRangeSet(false);
-                                });
-                            }, 50);
+                                console.log(`[Progressive Replay] dataReady fired - Setting visible range: ${new Date(fromTime * 1000).toLocaleString()} to ${new Date((toTime + rightBuffer) * 1000).toLocaleString()}`);
+                                
+                                // Small delay to ensure layout is recalculated
+                                setTimeout(() => {
+                                    chart.setVisibleRange({
+                                        from: fromTime,
+                                        to: toTime + rightBuffer
+                                    }).then(() => {
+                                        console.log("[Progressive Replay] Visible range set successfully");
+                                        resolveRangeSet(true);
+                                    }).catch(e => {
+                                        console.warn("[Progressive Replay] Failed to set visible range:", e);
+                                        resolveRangeSet(false);
+                                    });
+                                }, 50);
+                            } else {
+                                console.warn("[Progressive Replay] Invalid start/end index for visible range", { startIndex, endIndex, candlesLength: normalizedCandles.length });
+                                resolveRangeSet(false);
+                            }
                             
                         } catch (err) {
                             console.warn("[Progressive Replay] Error calculating visible range:", err);
@@ -1270,7 +1275,7 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
                                                     const shape = chart.getShapeById(id);
                                                     if (shape) shape.setProperties({ visible: isVisible });
                                                 }
-                                            });
+                                            }).catch(e => console.warn("[Progressive Replay] Error setting shape visibility:", e));
                                         } else {
                                             const shape = chart.getShapeById(shapeId);
                                             if (shape) shape.setProperties({ visible: isVisible });

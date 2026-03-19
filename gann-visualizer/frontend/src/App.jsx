@@ -574,23 +574,54 @@ function App() {
                                     <p>No price interactions recorded yet. Start a step-by-step simulation with Show Intersections enabled.</p>
                                 ) : (
                                     <>
-                                        <div style={{ marginBottom: '10px', display: 'flex', gap: '10px', alignItems: 'center' }}>
-                                            <label style={{ fontSize: '12px' }}>
-                                                Filter by Fan:
-                                                <select
-                                                    value={filterFan}
-                                                    onChange={(e) => setFilterFan(e.target.value)}
-                                                    style={{ marginLeft: '5px', padding: '2px 5px', fontSize: '11px' }}
-                                                >
-                                                    <option value="all">All Fans</option>
-                                                    {[...new Set(priceInteractions.map(h => h.fanIdentity || h.fan))].sort().map(identity => (
-                                                        <option key={identity} value={identity}>{identity}</option>
-                                                    ))}
-                                                </select>
-                                            </label>
-                                            <span style={{ fontSize: '11px', color: '#888' }}>
-                                                Showing {priceInteractions.filter(h => filterFan === 'all' || (h.fanIdentity || h.fan) === filterFan).length} of {priceInteractions.length} events
-                                            </span>
+                                        <div style={{ marginBottom: '10px', display: 'flex', gap: '10px', alignItems: 'center', justifyContent: 'space-between' }}>
+                                            <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                                                <label style={{ fontSize: '12px' }}>
+                                                    Filter by Fan:
+                                                    <select
+                                                        value={filterFan}
+                                                        onChange={(e) => setFilterFan(e.target.value)}
+                                                        style={{ marginLeft: '5px', padding: '2px 5px', fontSize: '11px' }}
+                                                    >
+                                                        <option value="all">All Fans</option>
+                                                        {[...new Set(priceInteractions.map(h => h.fanIdentity || h.fan))].sort().map(identity => (
+                                                            <option key={identity} value={identity}>{identity}</option>
+                                                        ))}
+                                                    </select>
+                                                </label>
+                                                <span style={{ fontSize: '11px', color: '#888' }}>
+                                                    Showing {priceInteractions.filter(h => filterFan === 'all' || (h.fanIdentity || h.fan) === filterFan).length} of {priceInteractions.length} events
+                                                </span>
+                                            </div>
+                                            <button 
+                                                onClick={() => {
+                                                    const rows = [
+                                                        ['#', 'Time', 'Fan', 'Fraction', 'Price', 'Type', 'Details']
+                                                    ];
+                                                    priceInteractions.forEach((hit, i) => {
+                                                        rows.push([
+                                                            i + 1,
+                                                            new Date(hit.time * 1000).toLocaleString().replace(/,/g, ''),
+                                                            hit.fan,
+                                                            hit.fraction,
+                                                            hit.price != null ? hit.price.toFixed(2) : 'N/A',
+                                                            hit.type || 'N/A',
+                                                            (hit.details || '').replace(/,/g, ';')
+                                                        ]);
+                                                    });
+                                                    const csvContent = "data:text/csv;charset=utf-8," + rows.map(e => e.join(",")).join("\n");
+                                                    const encodedUri = encodeURI(csvContent);
+                                                    const link = document.createElement("a");
+                                                    link.setAttribute("href", encodedUri);
+                                                    link.setAttribute("download", "frontend_price_interactions.csv");
+                                                    document.body.appendChild(link);
+                                                    link.click();
+                                                    document.body.removeChild(link);
+                                                }}
+                                                style={{ padding: '4px 8px', fontSize: '11px', cursor: 'pointer', backgroundColor: '#2196F3', color: 'white', border: 'none', borderRadius: '3px' }}
+                                            >
+                                                Export CSV
+                                            </button>
                                         </div>
                                         <table className="interactions-table">
                                             <thead>

@@ -78,12 +78,12 @@ class YFinanceClient:
     
     # Maximum historical period for each interval
     INTERVAL_LIMITS = {
-        "1m": 7,      # 7 days
-        "4": 7,       # 7 days (relies on 1m data)
-        "2m": 60,     # 60 days
-        "5m": 60,
-        "15m": 60,
-        "30m": 60,
+        "1m": 7,      # 7 days max for 1m
+        "4": 7,       # 7 days max for 1m
+        "2m": 59,     # 59 days to avoid strict 60-day limit errors
+        "5m": 59,
+        "15m": 59,
+        "30m": 59,
         "60m": MAX_HOURLY_DAYS,
         "60": MAX_HOURLY_DAYS, # Ensure string "60" is mapped
         "1h": MAX_HOURLY_DAYS,
@@ -243,7 +243,45 @@ class YFinanceClient:
             print(f"[YFinance] Date parse error: {e}")
             return pd.DataFrame()
         
-        # Check interval limits and adjust start date if needed
+        # NEW: Check if start date is too old for the interval (Yahoo Limitation)
+        # 1m: 7 days from NOW
+        # 2m-30m: 60 days from NOW
+        # 60m-90m: 730 days from NOW
+        now = datetime.now()
+        original_age_days = (now - start_dt).days
+        
+        limit_from_now = 36500 # Default huge
+        if interval in ["1", "4"]: limit_from_now = 7 # YFinance limit is 7 days for 1m
+        elif interval in ["2", "5", "15", "30"]: limit_from_now = 60
+        elif interval in ["60", "90", "1H"]: limit_from_now = 700
+        
+        if original_age_days > limit_from_now:
+            # FIX for "System thinks 1m but User wants History" bug:
+            if interval in ["1", "4"]:
+                # The user explicitly requested 4m data, which requires 1m data from YFinance.
+                # We MUST NOT auto-promote to 5m, because 5m data cannot be aggregated into 4m candles.
+                # Instead, we must strictly clamp the start date to the maximum allowed history for 1m data (7 days).
+                earliest_allowed_date = now - timedelta(days=limit_from_now - 1)
+                print(f"[YFinance] Requested data ({interval}m) starts {original_age_days} days ago, but YFinance limit is {limit_from_now} days.")
+                print(f"[YFinance] STRICT CLAMPING: Auto-adjusting start date from {start_dt.strftime('%Y-%m-%d')} to {earliest_allowed_date.strftime('%Y-%m-%d')} to preserve 1m base resolution.")
+                start_dt = earliest_allowed_date
+            elif interval == "240":
+                interval = "240"
+                yf_interval = "1h" # Request 1H, TradingView will aggregate to 4H natively
+                
+                # If still too old for hourly, clamp or warn
+                if original_age_days >= 700:
+                    print(f"[YFinance] Still too old for 1h (Limit 700 days). Clamping.")
+                    start_dt = now - timedelta(days=699)
+            else:
+                # Normal clamping logic
+                earliest_allowed_date = now - timedelta(days=limit_from_now - 1)
+                if start_dt < earliest_allowed_date:
+                    print(f"[YFinance] Requested data ({interval}m) starts {original_age_days} days ago (Limit: {limit_from_now}d).")
+                    print(f"[YFinance] Auto-adjusting start date from {start_dt.strftime('%Y-%m-%d')} to {earliest_allowed_date.strftime('%Y-%m-%d')}")
+                    start_dt = earliest_allowed_date
+
+        # Now check interval limits (max days per request)
         max_days = self.INTERVAL_LIMITS.get(yf_interval, 60)
         requested_days = (end_dt - start_dt).days
         
@@ -251,64 +289,6 @@ class YFinanceClient:
             print(f"[YFinance] WARNING: Requested {requested_days} days but {yf_interval} limit is {max_days} days")
             start_dt = end_dt - timedelta(days=max_days)
             print(f"[YFinance] Adjusted start date to {start_dt.strftime('%Y-%m-%d')}")
-        
-        # NEW: Check if start date is too old for the interval (Yahoo Limitation)
-        # 1m: 7 days from NOW
-        # 2m-30m: 60 days from NOW
-        # 60m-90m: 730 days from NOW
-        now = datetime.now()
-        age_days = (now - start_dt).days
-        
-        limit_from_now = 36500 # Default huge
-        if interval in ["1", "4"]: limit_from_now = 7
-        elif interval in ["2", "5", "15", "30"]: limit_from_now = 60
-        elif interval in ["60", "90", "1H"]: limit_from_now = 700
-        
-        if age_days > limit_from_now:
-            # FIX for "System thinks 1m but User wants History" bug:
-            # If interval is '1' (1 minute) but request is for historical data (> 7 days old),
-            # YF would clamp it to 7 days. 
-            # If the user actually wanted history, they probably meant Hourly or Daily, 
-            # or the frontend sent the wrong resolution ('1' default).
-            if interval in ["1", "4"] and age_days > 7:
-                if age_days <= 60:
-                    print(f"[YFinance] Auto-promoting '{interval}m' resolution to '5m' to fetch historical data ({age_days} days ago).")
-                    yf_interval = "5m"
-                    # Reset start_dt to original request since 5m allows 60 days
-                    start_dt = end_dt - timedelta(days=requested_days)
-                    # Clamp to 60 days max for 5m
-                    if (datetime.now() - start_dt).days > 60:
-                        start_dt = datetime.now() - timedelta(days=59)
-                else:
-                    print(f"[YFinance] Auto-promoting '{interval}m' resolution to '1h' to fetch historical data ({age_days} days ago).")
-                    yf_interval = "1h"
-                    # Reset start_dt to original request since 1h allows 700 days
-                    start_dt = end_dt - timedelta(days=requested_days)
-                    # Clamp to 700 days max for 1h
-                    if (datetime.now() - start_dt).days > 700:
-                        start_dt = datetime.now() - timedelta(days=699)
-
-            elif interval == "240":
-                interval = "240"
-                yf_interval = "1h" # Request 1H, TradingView will aggregate to 4H natively
-                
-                # If still too old for hourly, clamp or warn
-                if age_days > limit_from_now:
-                    print(f"[YFinance] Still too old for 1h (Limit 700 days). Clamping.")
-                    earliest_allowed_date = now - timedelta(days=limit_from_now - 1)
-                    start_dt = earliest_allowed_date
-            else:
-                # Normal clamping logic
-                # Instead of erroring or risking an empty return from YF, we clamp the start date
-                # to the maximum allowed history limit.
-                earliest_allowed_date = now - timedelta(days=limit_from_now - 1)
-                
-                # If our requested start date is older than the earliest allowed date,
-                # we must move our start date forward to the earliest allowed date.
-                if start_dt < earliest_allowed_date:
-                    print(f"[YFinance] Requested data ({interval}m) starts {age_days} days ago (Limit: {limit_from_now}d).")
-                    print(f"[YFinance] Auto-adjusting start date from {start_dt.strftime('%Y-%m-%d')} to {earliest_allowed_date.strftime('%Y-%m-%d')}")
-                    start_dt = earliest_allowed_date
 
 
         

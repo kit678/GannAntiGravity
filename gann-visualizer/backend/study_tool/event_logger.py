@@ -35,6 +35,13 @@ class EventType(Enum):
     TARGET_HIT = "target_hit"               # Target in progression sequence reached
     FAN_VALIDATED = "fan_validated"           # Fan validated via 7/8 interaction
     ZONE_CHANGE = "zone_change"              # Price moved to a new angle zone
+    
+    # Frontend Alignment Types (for direct CSV compatibility)
+    TOUCH = "TOUCH"
+    CROSS_UP = "CROSS_UP"
+    CROSS_DOWN = "CROSS_DOWN"
+    SUPPORT_TEST = "SUPPORT_TEST"
+    RESISTANCE_TEST = "RESISTANCE_TEST"
 
 
 @dataclass
@@ -47,6 +54,12 @@ class Event:
     direction: Optional[str] = None  # "up", "down"
     details: Optional[Dict] = None
     
+    # Forward-looking outcomes (populated post-simulation)
+    mfe_10: Optional[float] = None  # Max Favorable Excursion (next 10 bars)
+    mae_10: Optional[float] = None  # Max Adverse Excursion (next 10 bars)
+    mfe_20: Optional[float] = None  # Max Favorable Excursion (next 20 bars)
+    mae_20: Optional[float] = None  # Max Adverse Excursion (next 20 bars)
+    
     def to_dict(self) -> Dict:
         return {
             "timestamp": self.timestamp,
@@ -55,6 +68,10 @@ class Event:
             "angle_name": self.angle_name,
             "price": self.price,
             "direction": self.direction,
+            "mfe_10": self.mfe_10,
+            "mae_10": self.mae_10,
+            "mfe_20": self.mfe_20,
+            "mae_20": self.mae_20,
             "details": self.details or {}
         }
 
@@ -293,9 +310,68 @@ class EventLogger:
         
         return stats
     
+    def enrich_with_forward_outcomes(self, candles: List[Dict]):
+        """
+        Post-process events to calculate forward-looking outcomes (MFE/MAE).
+        This is crucial for strategy formulation and ML data collection.
+        
+        Args:
+            candles: The full list of candles used in the simulation.
+        """
+        if not self.events or not candles:
+            return
+            
+        # Create a fast lookup for candle index by timestamp
+        timestamp_to_idx = {int(c['time']): i for i, c in enumerate(candles)}
+        
+        for event in self.events:
+            if event.timestamp not in timestamp_to_idx or event.price is None:
+                continue
+                
+            idx = timestamp_to_idx[event.timestamp]
+            
+            # We need a direction to calculate MFE/MAE. 
+            # If the event has a direction (e.g., BREACH_CONFIRMED), use it.
+            # Otherwise, we might just log absolute max/min, but MFE/MAE is better.
+            # For now, let's calculate absolute max high and min low over next N bars.
+            
+            def calc_excursions(n_bars: int):
+                end_idx = min(idx + n_bars + 1, len(candles))
+                if end_idx <= idx + 1:
+                    return None, None
+                    
+                future_candles = candles[idx+1:end_idx]
+                max_high = max(c['high'] for c in future_candles)
+                min_low = min(c['low'] for c in future_candles)
+                
+                # If we have a direction, we can define Favorable vs Adverse
+                if event.direction == 'up':
+                    mfe = max_high - event.price
+                    mae = event.price - min_low
+                elif event.direction == 'down':
+                    mfe = event.price - min_low
+                    mae = max_high - event.price
+                else:
+                    # If no direction, we calculate the maximum excursion in both directions
+                    # and assign the larger one to MFE and the smaller to MAE.
+                    # This represents the "potential" of the move regardless of direction.
+                    exc_up = max_high - event.price
+                    exc_down = event.price - min_low
+                    mfe = max(exc_up, exc_down)
+                    mae = min(exc_up, exc_down)
+                    
+                # Ensure MFE and MAE are positive values representing the excursion distance
+                mfe = max(0, mfe)
+                mae = max(0, mae)
+                    
+                return mfe, mae
+
+            event.mfe_10, event.mae_10 = calc_excursions(10)
+            event.mfe_20, event.mae_20 = calc_excursions(20)
+
     def export_csv(self, filepath: str):
         """
-        Export events to CSV file.
+        Export events to CSV file, aligned with frontend UI columns and enriched data.
         
         Args:
             filepath: Path to output CSV file
@@ -303,75 +379,55 @@ class EventLogger:
         if not self.events:
             return
             
-        # Ensure directory exists
         path = Path(filepath)
         path.parent.mkdir(parents=True, exist_ok=True)
         
-        # Flatten events for CSV
         rows = []
-        for event in self.events:
+        for i, event in enumerate(self.events):
+            # Skip ZONE_CHANGE events to match frontend price interactions table
+            if event.event_type.value == "zone_change":
+                continue
+                
+            # Extract fan identity and priority from details if available
+            fan_id = event.details.get('fan_id', '') if event.details else ''
+            
+            # Format datetime like frontend: 3/10/2026, 10:35:00 AM
+            dt_str = ""
+            if event.timestamp:
+                dt = datetime.fromtimestamp(event.timestamp)
+                dt_str = dt.strftime("%m/%d/%Y, %I:%M:%S %p")
+                
+            # Use UI-specific type if available, otherwise fallback to event_type name
+            display_type = event.details.get('ui_type', event.event_type.name) if event.details else event.event_type.name
+            
+            # Format details exactly like frontend
+            details_str = ""
+            if event.details and 'ui_details' in event.details:
+                details_str = str(event.details['ui_details']).replace(',', ';')
+                
             row = {
-                "timestamp": event.timestamp,
-                "datetime": datetime.fromtimestamp(event.timestamp).isoformat() if event.timestamp else None,
-                "event_type": event.event_type.value,
-                "angle_name": event.angle_name,
-                "price": event.price,
-                "direction": event.direction
+                "#": len(rows) + 1,
+                "Time": dt_str,
+                "Fan": fan_id,
+                "Fraction": event.angle_name or "",
+                "Price": round(event.price, 2) if event.price else "",
+                "Type": display_type,
+                "Details": details_str,
+                # Keep these for analysis but place them after main columns
+                "MFE_10": round(event.mfe_10, 2) if event.mfe_10 is not None else "",
+                "MAE_10": round(event.mae_10, 2) if event.mae_10 is not None else "",
+                "MFE_20": round(event.mfe_20, 2) if event.mfe_20 is not None else "",
+                "MAE_20": round(event.mae_20, 2) if event.mae_20 is not None else "",
+                "Raw_Timestamp": event.timestamp,
+                "Direction": event.direction or ""
             }
-            
-            # Flatten details
-            if event.details:
-                for k, v in event.details.items():
-                    if isinstance(v, (dict, list)):
-                        row[f"detail_{k}"] = json.dumps(v)
-                    else:
-                        row[f"detail_{k}"] = v
-            
-            rows.append(row)
-            
-        # Get all possible headers
-        headers = set()
-        for row in rows:
-            headers.update(row.keys())
-            
-        # Sort headers for consistency (timestamp first)
-        header_list = sorted(list(headers))
-        if "timestamp" in header_list:
-            header_list.remove("timestamp")
-            header_list.insert(0, "timestamp")
-        if "datetime" in header_list:
-            header_list.remove("datetime")
-            header_list.insert(1, "datetime")
-            
-        with open(filepath, 'w', newline='') as f:
-            writer = csv.DictWriter(f, fieldnames=header_list)
-            writer.writeheader()
-            writer.writerows(rows)
-        if not self.events:
-            return
-        
-        path = Path(filepath)
-        path.parent.mkdir(parents=True, exist_ok=True)
-        
-        # Flatten events for CSV
-        rows = []
-        for event in self.events:
-            row = event.to_dict()
-            # Flatten details into separate columns
-            if row.get("details"):
-                for key, value in row["details"].items():
-                    row[f"detail_{key}"] = value
-                del row["details"]
+                        
             rows.append(row)
         
-        # Write CSV
         if rows:
-            fieldnames = list(rows[0].keys())
-            # Add all detail fields
-            for row in rows:
-                for key in row.keys():
-                    if key not in fieldnames:
-                        fieldnames.append(key)
+            # strictly ordered headers to match frontend first
+            fieldnames = ["#", "Time", "Fan", "Fraction", "Price", "Type", "Details", 
+                          "MFE_10", "MAE_10", "MFE_20", "MAE_20", "Raw_Timestamp", "Direction"]
             
             with open(path, 'w', newline='') as f:
                 writer = csv.DictWriter(f, fieldnames=fieldnames)

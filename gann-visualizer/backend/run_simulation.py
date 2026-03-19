@@ -2,123 +2,280 @@ import sys
 import os
 import json
 import logging
+import argparse
 from datetime import datetime, timedelta
 import pandas as pd
 import numpy as np
+import pytz
 
 # Add current directory to path so we can import modules
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from study_tool.angular_coverage_study import AngularPriceCoverageStudy
 from study_tool.event_logger import EventType
+from main import get_data_client, get_dynamic_scale_ratio
 
-def get_data(symbol="AAPL", period="1y"):
-    """Fetch data from yfinance or generate mock data if unavailable."""
-    try:
-        import yfinance as yf
-        print(f"Fetching data for {symbol}...")
-        df = yf.download(symbol, period=period, progress=False)
-        if df.empty:
-            raise ValueError("Empty dataframe")
-        
-        # Reset index to get Date column
-        df = df.reset_index()
-        
-        candles = []
-        for _, row in df.iterrows():
-            # Handle multi-index columns if present (yfinance update)
-            close = row['Close'].iloc[0] if isinstance(row['Close'], pd.Series) else row['Close']
-            high = row['High'].iloc[0] if isinstance(row['High'], pd.Series) else row['High']
-            low = row['Low'].iloc[0] if isinstance(row['Low'], pd.Series) else row['Low']
-            open_p = row['Open'].iloc[0] if isinstance(row['Open'], pd.Series) else row['Open']
-            
-            candles.append({
-                'time': int(row['Date'].timestamp()),
-                'open': float(open_p),
-                'high': float(high),
-                'low': float(low),
-                'close': float(close),
-                'volume': int(row['Volume'].iloc[0] if isinstance(row['Volume'], pd.Series) else row['Volume'])
-            })
-        print(f"Loaded {len(candles)} candles from yfinance.")
-        return candles
-    except Exception as e:
-        print(f"Failed to fetch data: {e}. Generating mock data.")
-        return generate_mock_data()
-
-def generate_mock_data(count=500):
-    """Generate synthetic price data with trends and pivots."""
-    candles = []
-    price = 100.0
-    trend = 1
-    start_time = int(datetime.now().timestamp()) - (count * 86400)
+def setup_logging():
+    """Set up logging to both console and a file in the logs directory."""
+    log_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "logs")
+    os.makedirs(log_dir, exist_ok=True)
     
-    for i in range(count):
-        # Create waves
-        if i % 50 == 0:
-            trend *= -1
+    log_file = os.path.join(log_dir, "simulation_run.log")
+    
+    # Configure root logger
+    logger = logging.getLogger()
+    logger.setLevel(logging.INFO)
+    
+    # Remove existing handlers if any
+    for handler in logger.handlers[:]:
+        logger.removeHandler(handler)
         
-        change = np.random.normal(0, 1.0) + (trend * 0.5)
-        price += change
-        
-        high = price + abs(np.random.normal(0, 0.5))
-        low = price - abs(np.random.normal(0, 0.5))
-        open_p = (high + low) / 2
-        
-        candles.append({
-            'time': start_time + (i * 86400),
-            'open': open_p,
-            'high': high,
-            'low': low,
-            'close': price,
-            'volume': 1000
-        })
-    return candles
+    # Create file handler (overwrite mode)
+    file_handler = logging.FileHandler(log_file, mode='w')
+    file_handler.setLevel(logging.INFO)
+    
+    # Create console handler
+    console_handler = logging.StreamHandler(sys.__stdout__)
+    console_handler.setLevel(logging.INFO)
+    
+    # Create formatter and add it to the handlers
+    formatter = logging.Formatter('%(asctime)s [%(levelname)s] %(message)s')
+    file_handler.setFormatter(formatter)
+    console_handler.setFormatter(formatter)
+    
+    # Add the handlers to the logger
+    logger.addHandler(file_handler)
+    logger.addHandler(console_handler)
+    
+    logging.info(f"Logging initialized. Output writing to {log_file}")
+    return log_file
 
-def run_simulation():
-    # Setup
-    candles = get_data()
+def get_frontend_parity_data(symbol="^NSEI", resolution="4", data_source="yfinance", lookback_bars=5000, from_date=None, to_date=None):
+    """Fetch data exactly how the frontend's /fetch_candles endpoint does."""
+    logging.info(f"Fetching {resolution}m data for {symbol} using {data_source} with {lookback_bars} lookback bars...")
+    client = get_data_client(data_source)
+    
+    if not to_date:
+        to_date = datetime.now().strftime("%Y-%m-%d")
+        
+    # Simulate frontend's "first available candle" by going back as far as YFinance allows for 4m (60 days)
+    # The frontend calculates lookback_days based on lookback_bars
+    lookback_days = max(1, lookback_bars // 90) # ~90 bars per day for 4m
+    lookback_days = int(lookback_days * 4.0) + 30
+    
+    if data_source == 'yfinance':
+        if resolution in ['1', '4']:
+            lookback_days = min(lookback_days, 60)
+            
+    if not from_date:
+        # If no from_date is provided, we want to fetch the maximum allowed history
+        # and start the simulation from the very first candle we get.
+        # We don't need to add lookback_days to this because we are already fetching the max history.
+        from_dt = datetime.now() - timedelta(days=lookback_days)
+        start_str = from_dt.strftime("%Y-%m-%d")
+        # Set target_from_dt to the same start date so we don't filter out any events
+        target_from_dt = from_dt
+    else:
+        from_dt = datetime.strptime(from_date, "%Y-%m-%d")
+        target_from_dt = from_dt
+        adjusted_from_dt = from_dt - timedelta(days=lookback_days)
+        start_str = adjusted_from_dt.strftime("%Y-%m-%d")
+        
+    end_str = to_date
+    
+    logging.info(f"Calculated date range: {start_str} to {end_str} (lookback: {lookback_days} days)")
+    
+    df = client.fetch_data(symbol, start_str, end_str, interval=resolution)
+    
+    # FALLBACK LOGIC: If explicit fetch returned empty (likely due to invalid/old date range),
+    # automatically fetch the *latest* available data so the user sees something.
+    if (df is None or df.empty) and data_source == 'yfinance':
+        logging.warning(f"[Replay] Data empty for range {start_str} to {end_str}. Attempting fallback to latest available data...")
+        
+        # Define safe fallback duration based on resolution
+        fallback_days = 5 # Default for 1m/4m
+        if resolution in ['2', '5', '15', '30']: fallback_days = 55
+        elif resolution in ['60', '240']: fallback_days = 700
+        elif resolution in ['1D', 'D', 'W', 'M']: fallback_days = 365
+        
+        fallback_from = datetime.now() - timedelta(days=fallback_days)
+        fallback_from_str = fallback_from.strftime('%Y-%m-%d')
+        # Use current time as end date to ensure we get data
+        fallback_to_str = datetime.now().strftime('%Y-%m-%d')
+        
+        logging.info(f"[Replay] Fallback fetch: {fallback_from_str} to {fallback_to_str}")
+        df = client.fetch_data(symbol, fallback_from_str, fallback_to_str, interval=resolution)
+        
+        if not df.empty and not from_date:
+            # If we fell back and no from_date was provided, update target_from_dt to the first candle
+            target_from_dt = datetime.fromtimestamp(df['timestamp'].iloc[0])
+    
+    if df is None or df.empty:
+        logging.error("Failed to fetch data or dataframe is empty.")
+        return [], target_from_dt
+        
+    # Ensure 'time' column exists for the study tool
+    if 'timestamp' in df.columns and 'time' not in df.columns:
+        df['time'] = df['timestamp']
+        
+    candles = df.to_dict('records')
+    logging.info(f"Loaded {len(candles)} candles from {data_source}.")
+    
+    if not from_date and len(candles) > 0:
+        # If no from_date was provided, we want to start tracking events from the very first candle
+        target_from_dt = datetime.fromtimestamp(candles[0]['time'])
+        logging.info(f"No from_date provided. Starting simulation from earliest available candle: {target_from_dt}")
+        
+    return candles, target_from_dt
+
+def run_simulation(symbol="^NSEI", resolution="4", data_source="yfinance", from_date=None, to_date=None, lookback_bars=5000):
+    log_file = setup_logging()
+    logging.info(f"Starting simulation run for {symbol} at {resolution}m resolution")
+    
+    # Setup - Fetch data with frontend parity
+    candles, target_from_dt = get_frontend_parity_data(
+        symbol=symbol, 
+        resolution=resolution, 
+        data_source=data_source, 
+        lookback_bars=lookback_bars,
+        from_date=from_date,
+        to_date=to_date
+    )
+    
+    if not candles:
+        logging.error("No data available to run simulation.")
+        return
+        
+    # Get dynamic scale ratio just like the frontend
+    try:
+        # The frontend passes "NIFTY 50" to get_dynamic_scale_ratio even if the YFinance symbol is "^NSEI"
+        config_symbol = "NIFTY 50" if symbol == "^NSEI" else symbol
+        scale_ratio = get_dynamic_scale_ratio(config_symbol, resolution)
+        logging.info(f"Dynamically resolved scale_ratio for {config_symbol} at {resolution}m: {scale_ratio}")
+    except Exception as e:
+        logging.warning(f"Failed to get dynamic scale ratio: {e}. Falling back to 3.6603")
+        scale_ratio = 3.6603
+        
     study = AngularPriceCoverageStudy(config={
+        'symbol': symbol,
+        'resolution': resolution,
+        'scale_ratio': scale_ratio,
         'left_bars': 5, 
         'right_bars': 5,
         'successive_closes_required': 2
     })
     
-    print("Starting simulation...")
+    logging.info("Starting simulation...")
     
     # Initialize history
     # The study handles initialization internally on the first process_bar call 
     # if we pass the full history, but let's simulate a replay loop
     
     # Run through all candles
+    all_intersection_events = []
+    target_start_ts = int(target_from_dt.timestamp())
+    
     for i in range(len(candles)):
         # We pass the full list of candles, but current index 'i'
         # The study will look back from 'i'
-        study.process_bar(candles, i)
+        result = study.process_bar(candles, i)
         
-        if i % 50 == 0:
-            print(f"Processed {i}/{len(candles)} bars...")
+        # Collect the exact frontend-bound intersection events
+        if result and 'intersection_events' in result:
+            for event in result['intersection_events']:
+                # Only include events that occur on or after the requested from_date
+                if event['time'] >= target_start_ts:
+                    all_intersection_events.append(event)
+        
+        if i > 0 and i % 500 == 0:
+            logging.info(f"Processed {i}/{len(candles)} bars...")
             
-    print("Simulation complete.")
+    logging.info(f"Processed {len(candles)}/{len(candles)} bars...")
+    logging.info("Simulation complete.")
     
     # Export logs
     log_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "logs")
     os.makedirs(log_dir, exist_ok=True)
     csv_path = os.path.join(log_dir, "simulation_events.csv")
     
-    study.event_logger.export_csv(csv_path)
-    print(f"Events exported to {csv_path}")
+    # Write the exact frontend intersection events to CSV
+    import csv
+    if all_intersection_events:
+        with open(csv_path, 'w', newline='') as f:
+            writer = csv.writer(f)
+            writer.writerow(['#', 'Time', 'Fan', 'Fraction', 'Price', 'Type', 'Details'])
+            
+            # Use IST timezone for formatting to match frontend
+            ist = pytz.timezone('Asia/Kolkata')
+            
+            for i, event in enumerate(all_intersection_events):
+                # Convert timestamp to IST datetime
+                # Assuming event['time'] is a unix timestamp in seconds
+                dt_utc = datetime.fromtimestamp(event['time'], pytz.utc)
+                dt_ist = dt_utc.astimezone(ist)
+                
+                # Format: 3/11/2026, 11:07:00 AM
+                m = dt_ist.month
+                d = dt_ist.day
+                y = dt_ist.year
+                time_str = dt_ist.strftime("%I:%M:%S %p")
+                if time_str.startswith('0'):
+                    time_str = time_str[1:]
+                    
+                dt_str = f"{m}/{d}/{y}, {time_str}"
+                
+                # Format details exactly like frontend JS does
+                details_str = str(event.get('details', '')).replace(',', ';')
+                
+                writer.writerow([
+                    i + 1,
+                    dt_str,
+                    event.get('fan', ''),
+                    event.get('fraction', ''),
+                    f"{event.get('price', 0):.2f}",
+                    event.get('type', ''),
+                    details_str
+                ])
+                
+        logging.info(f"Exported {len(all_intersection_events)} identical frontend events to {csv_path}")
+    else:
+        logging.warning("No intersection events found to export.")
+    
+    # Enrich with forward-looking outcomes before exporting
+    # (We still run this so the event_logger has the data for analysis, 
+    #  but we no longer rely on it for the main CSV output)
+    logging.info("Enriching events with forward-looking outcomes (MFE/MAE)...")
+    study.event_logger.enrich_with_forward_outcomes(candles)
     
     # Print stats
     stats = study.event_logger.get_statistics()
-    print("\n--- Simulation Statistics ---")
-    print(json.dumps(stats, indent=2))
+    logging.info("\n--- Simulation Statistics ---")
+    logging.info(json.dumps(stats, indent=2))
     
     # Check if we have any confirmed breaches
     breaches = study.event_logger.get_events_by_type(EventType.BREACH_CONFIRMED)
-    print(f"\nConfirmed Breaches: {len(breaches)}")
+    logging.info(f"\nConfirmed Breaches: {len(breaches)}")
     if breaches:
-        print("Sample breach:", breaches[0].to_dict())
+        logging.info(f"Sample breach: {breaches[0].to_dict()}")
+        
+    logging.info(f"Simulation run finished. Log saved to {log_file}")
 
 if __name__ == "__main__":
-    run_simulation()
+    parser = argparse.ArgumentParser(description="Run Gann Angular Price Coverage Simulation")
+    parser.add_argument("--symbol", type=str, default="^NSEI", help="Ticker symbol (e.g., ^NSEI, RELIANCE.NS)")
+    parser.add_argument("--resolution", type=str, default="4", help="Timeframe resolution (e.g., 1, 4, 5, 15, 60, D)")
+    parser.add_argument("--source", type=str, default="yfinance", choices=["yfinance", "dhan"], help="Data source")
+    parser.add_argument("--from-date", type=str, default=None, help="Start date (YYYY-MM-DD). Defaults to earliest available data.")
+    parser.add_argument("--to-date", type=str, default=None, help="End date (YYYY-MM-DD). Defaults to today.")
+    parser.add_argument("--lookback", type=int, default=5000, help="Number of lookback bars for context building")
+    
+    args = parser.parse_args()
+    
+    run_simulation(
+        symbol=args.symbol,
+        resolution=args.resolution,
+        data_source=args.source,
+        from_date=args.from_date,
+        to_date=args.to_date,
+        lookback_bars=args.lookback
+    )
