@@ -207,12 +207,26 @@ def run_simulation(symbol="^NSEI", resolution="4", data_source="yfinance", from_
     os.makedirs(log_dir, exist_ok=True)
     csv_path = os.path.join(log_dir, "simulation_events.csv")
     
+    # Enrich with forward-looking outcomes before exporting
+    logging.info("Enriching events with forward-looking outcomes (MFE/MAE)...")
+    study.event_logger.enrich_with_forward_outcomes(candles)
+    
+    # Create a lookup for enriched events by timestamp and price
+    enriched_events = {}
+    for event in study.event_logger.events:
+        key = (event.timestamp, event.price)
+        enriched_events[key] = {
+            'mfe_10': getattr(event, 'mfe_10', 0),
+            'mae_10': getattr(event, 'mae_10', 0),
+            'bars_elapsed': getattr(event, 'bars_elapsed', 0)
+        }
+    
     # Write the exact frontend intersection events to CSV
     import csv
     if all_intersection_events:
         with open(csv_path, 'w', newline='') as f:
             writer = csv.writer(f)
-            writer.writerow(['#', 'Time', 'Fan', 'Fraction', 'Price', 'Type', 'Details'])
+            writer.writerow(['#', 'Time', 'Fan', 'Fraction', 'Price', 'Type', 'Details', 'MFE_10', 'MAE_10', 'bars_elapsed'])
             
             # Use IST timezone for formatting to match frontend
             ist = pytz.timezone('Asia/Kolkata')
@@ -236,6 +250,13 @@ def run_simulation(symbol="^NSEI", resolution="4", data_source="yfinance", from_
                 # Format details exactly like frontend JS does
                 details_str = str(event.get('details', '')).replace(',', ';')
                 
+                # Get enriched data - match by timestamp and price
+                event_key = (event['time'], event.get('price', 0))
+                enriched = enriched_events.get(event_key, {})
+                mfe_10 = enriched.get('mfe_10', 0)
+                mae_10 = enriched.get('mae_10', 0)
+                bars_elapsed = enriched.get('bars_elapsed', 0)
+                
                 writer.writerow([
                     i + 1,
                     dt_str,
@@ -243,18 +264,15 @@ def run_simulation(symbol="^NSEI", resolution="4", data_source="yfinance", from_
                     event.get('fraction', ''),
                     f"{event.get('price', 0):.2f}",
                     event.get('type', ''),
-                    details_str
+                    details_str,
+                    f"{mfe_10:.4f}" if mfe_10 else "0",
+                    f"{mae_10:.4f}" if mae_10 else "0",
+                    bars_elapsed
                 ])
                 
         logging.info(f"Exported {len(all_intersection_events)} identical frontend events to {csv_path}")
     else:
         logging.warning("No intersection events found to export.")
-    
-    # Enrich with forward-looking outcomes before exporting
-    # (We still run this so the event_logger has the data for analysis, 
-    #  but we no longer rely on it for the main CSV output)
-    logging.info("Enriching events with forward-looking outcomes (MFE/MAE)...")
-    study.event_logger.enrich_with_forward_outcomes(candles)
     
     # Print stats
     stats = study.event_logger.get_statistics()

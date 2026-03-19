@@ -616,6 +616,21 @@ class AngularPriceCoverageStudy:
                 self.fan_validator.remove_fan(fan_id)
                 self.target_progression.remove_fan(fan_id)
                 
+                # CRITICAL FIX: Release pivots so they can form new fans with new labels
+                # This ensures that H1-L1 fan (invalidated) + new H pivot = H2-L1 fan (not H1-L1)
+                if fan_id in self._persisted_fans:
+                    fan_data = self._persisted_fans[fan_id]
+                    if 'anchor' in fan_data:
+                        anchor_time = fan_data['anchor'].get('time')
+                        anchor_type = fan_data['anchor'].get('type')
+                        if anchor_time and anchor_type:
+                            self.pivot_detector.release_pivot(anchor_time, anchor_type)
+                    if 'target' in fan_data:
+                        target_time = fan_data['target'].get('time')
+                        target_type = fan_data['target'].get('type')
+                        if target_time and target_type:
+                            self.pivot_detector.release_pivot(target_time, target_type)
+                
                 # Remove from persistence
                 del self._persisted_fans[fan_id]
 

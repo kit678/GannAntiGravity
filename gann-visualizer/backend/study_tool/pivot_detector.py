@@ -73,7 +73,11 @@ class PivotDetector:
              self._sync_from_registry()
     
     def _sync_from_registry(self):
-        """Load counts from global registry"""
+        """Load counts from global registry, but preserve local counts if they're higher.
+        
+        This ensures we never regress to lower counts, even if the registry
+        was partially cleared or corrupted.
+        """
         if not self.registry_key:
             return
             
@@ -85,8 +89,15 @@ class PivotDetector:
             }
             
         reg = _PIVOT_REGISTRY[self.registry_key]
-        self.high_count = reg['high_count']
-        self.low_count = reg['low_count']
+        reg_high = reg['high_count']
+        reg_low = reg['low_count']
+        
+        # CRITICAL: Only update from registry if counts are higher
+        # This prevents accidental count regression
+        if reg_high > self.high_count:
+            self.high_count = reg_high
+        if reg_low > self.low_count:
+            self.low_count = reg_low
         
     def _update_registry_counts(self):
         """Update global registry with current counts"""
@@ -121,12 +132,33 @@ class PivotDetector:
         if key in _PIVOT_REGISTRY[self.registry_key]['pivots']:
             del _PIVOT_REGISTRY[self.registry_key]['pivots'][key]
     
+    def release_pivot(self, pivot_time: int, pivot_type: str):
+        """
+        Release a pivot so it can be reused in a new fan.
+        
+        When a fan is invalidated, call this to clear the pivot's state.
+        The pivot will still retain its label (H1, L1, etc.) for tracking purposes,
+        but it will be treated as available for new fan formations.
+        
+        Args:
+            pivot_time: The timestamp of the pivot to release
+            pivot_type: 'high' or 'low'
+        """
+        if pivot_type == 'high' and self.last_high_pivot and self.last_high_pivot.time == pivot_time:
+            self.last_high_pivot = None
+        elif pivot_type == 'low' and self.last_low_pivot and self.last_low_pivot.time == pivot_time:
+            self.last_low_pivot = None
+    
     def reset(self, clear_registry: bool = False):
         """
         Reset detector state (call on new symbol/interval).
         Args:
             clear_registry: If True, wipes the global registry for this key (hard reset).
                           If False, attempts to sync from registry (soft reset/rebuild).
+        
+        NOTE: high_count and low_count are NEVER reset. They persist across the entire
+        simulation to ensure unique pivot labels (H1, H2, H3... L1, L2, L3...).
+        This prevents the same pivot labels from being reused after fan invalidation.
         """
         self.last_high_pivot = None
         self.last_low_pivot = None
@@ -137,13 +169,16 @@ class PivotDetector:
             if self.registry_key in _PIVOT_REGISTRY:
                 del _PIVOT_REGISTRY[self.registry_key]
         
-        # If we have a registry, re-sync counts (don't reset to 0)
-        # If no registry, reset to 0
+        # CRITICAL FIX: Never reset high_count and low_count.
+        # They must persist across the entire simulation to ensure:
+        # 1. Each pivot has a unique label (H1, H2, H3...)
+        # 2. Pivot labels are not reused after fan invalidation
+        # 3. H1-L1, H2-L1, H2-L2, H3-L2... are all different fans
+        
+        # Only sync from registry if it exists (to restore counts after crash recovery)
         if self.registry_key and not clear_registry:
             self._sync_from_registry()
-        else:
-            self.high_count = 0
-            self.low_count = 0
+        # If clear_registry=True, we keep our current counts (they're preserved)
     
     def detect_pivots(self, candles: List[Dict[str, Any]], current_index: int) -> Dict[str, Any]:
         """
