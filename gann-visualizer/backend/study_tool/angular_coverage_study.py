@@ -20,6 +20,7 @@ from .angle_zone_tracker import AngleZoneTracker
 from .breach_analyzer import BreachAnalyzer
 from .fan_validator import FanValidator
 from .target_progression import TargetProgression
+from .bounce_rejection_tracker import BounceRejectionTracker
 from .event_logger import EventLogger, EventType
 
 # --- LOGGING CONFIGURATION (Unified Strategy) ---
@@ -86,6 +87,9 @@ DEFAULT_CONFIG = {
     'breach_mode': 'wick',      # 'wick' or 'close' (Rule 4)
     'show_intersection_labels': False, # Whether to draw price text on hit
     'max_historical_fans': 3,   # Cap on fans when looking backwards for context
+    'bounce_threshold_percent': 0.3,  # Threshold for confirming SUPPORT_BOUNCE
+    'rejection_lookback_bars': 5,      # Bars to look for RESISTANCE_REJECTION after test
+    'rest_required_bars': 3,           # Consecutive bars required for REST_ON_ANGLE
 }
 
 
@@ -130,6 +134,12 @@ class AngularPriceCoverageStudy:
         })
         self.fan_validator = FanValidator()
         self.target_progression = TargetProgression()
+        self.bounce_rejection_tracker = BounceRejectionTracker({
+            'bounce_threshold_percent': self.config.get('bounce_threshold_percent', 0.3),
+            'rejection_lookback_bars': self.config.get('rejection_lookback_bars', 5),
+            'rest_tolerance_percent': self.config.get('rest_tolerance_percent', 0.15),
+            'rest_required_bars': self.config.get('rest_required_bars', 3),
+        })
         self.event_logger = EventLogger()
 
         # Track active fan keys for diffing (old vs new set)
@@ -249,24 +259,54 @@ class AngularPriceCoverageStudy:
                     c_high = float(current_candle.get('high', 0))
                     
                     prev_close = c_open
+                    prev_high = c_high
+                    prev_low = c_low
                     if bar_index > 0:
                         prev_close = float(candles[bar_index - 1].get('close', 0))
+                        prev_high = float(candles[bar_index - 1].get('high', 0))
+                        prev_low = float(candles[bar_index - 1].get('low', 0))
+                    
+                    # Check for preceding directional context (last 2 bars)
+                    was_rising = False
+                    was_falling = False
+                    if bar_index >= 2:
+                        # Check if price was generally rising before this candle
+                        prev2_close = float(candles[bar_index - 2].get('close', 0))
+                        prev2_low = float(candles[bar_index - 2].get('low', 0))
+                        if prev2_close < prev_close and prev2_low <= prev_low:
+                            was_rising = True
+                        # Check if price was generally falling before this candle
+                        prev2_high = float(candles[bar_index - 2].get('high', 0))
+                        if prev2_close > prev_close and prev2_high >= prev_high:
+                            was_falling = True
                     
                     hit_type = 'TOUCH'
                     details = 'Angle Test'
                     
+                    # CROSS_UP: Price must be approaching from below (was_rising) AND crosses above
+                    # If NOT rising before, it's likely a rejection, not a cross
                     if c_open < event.price and c_close > event.price:
-                        hit_type = 'CROSS_UP'
-                        details = 'Breakout Attempt'
+                        if was_rising:
+                            hit_type = 'CROSS_UP'
+                            details = 'Breakout Attempt'
+                        else:
+                            hit_type = 'RESISTANCE_TEST'
+                            details = 'Testing Resistance'
+                    # CROSS_DOWN: Price must be approaching from above (was_falling) AND crosses below
+                    # If NOT falling before, it's likely a rejection, not a cross
                     elif c_open > event.price and c_close < event.price:
-                        hit_type = 'CROSS_DOWN'
-                        details = 'Breakdown Attempt'
+                        if was_falling:
+                            hit_type = 'CROSS_DOWN'
+                            details = 'Breakdown Attempt'
+                        else:
+                            hit_type = 'SUPPORT_TEST'
+                            details = 'Testing Support'
                     elif prev_close > event.price and c_low <= event.price and c_close > event.price:
                         hit_type = 'SUPPORT_TEST'
-                        details = 'Resting / Throwback'
+                        details = 'Testing Support'
                     elif prev_close < event.price and c_high >= event.price and c_close < event.price:
                         hit_type = 'RESISTANCE_TEST'
-                        details = 'Rejection / Pullback'
+                        details = 'Testing Resistance'
                     
                     ui_event = {
                         'time': event.time,
@@ -319,7 +359,6 @@ class AngularPriceCoverageStudy:
                     except Exception as e:
                         print(f"Failed to log intersection: {e}")
 
-
         # 4. Price movement tracking pipeline
         self._process_tracking_modules(current_candle, bar_index, events or [], result)
 
@@ -327,6 +366,138 @@ class AngularPriceCoverageStudy:
         result['state'] = self._get_state()
 
         return result
+
+    def _process_intersection_event(self, event: Any, result: Dict[str, Any], candles: List[Dict[str, Any]]):
+        """
+        Process an IntersectionEvent through the state machine to determine the proper event type.
+        This is used for both live events and retroactive events from the Retroactive Sweep.
+        
+        Args:
+            event: The IntersectionEvent from the detector
+            result: The result dict to append events to
+            candles: The list of candles for historical lookups
+        """
+        # Find the candle for this event
+        candle = None
+        bar_index = -1
+        for i, c in enumerate(candles):
+            if int(c['time']) == event.time:
+                candle = c
+                bar_index = i
+                break
+        
+        if candle is None or bar_index < 0:
+            print(f"[RetroSweep] Could not find candle for event time {event.time}")
+            return
+        
+        c_open = float(candle.get('open', 0))
+        c_high = float(candle.get('high', 0))
+        c_low = float(candle.get('low', 0))
+        c_close = float(candle.get('close', 0))
+        
+        # Get previous close and check for preceding directional context
+        prev_close = c_open
+        prev_high = c_high
+        prev_low = c_low
+        if bar_index > 0:
+            prev_close = float(candles[bar_index - 1].get('close', 0))
+            prev_high = float(candles[bar_index - 1].get('high', 0))
+            prev_low = float(candles[bar_index - 1].get('low', 0))
+        
+        # Check for preceding directional context (last 2 bars)
+        was_rising = False
+        was_falling = False
+        if bar_index >= 2:
+            # Check if price was generally rising before this candle
+            prev2_close = float(candles[bar_index - 2].get('close', 0))
+            prev2_low = float(candles[bar_index - 2].get('low', 0))
+            if prev2_close < prev_close and prev2_low <= prev_low:
+                was_rising = True
+            # Check if price was generally falling before this candle
+            prev2_high = float(candles[bar_index - 2].get('high', 0))
+            if prev2_close > prev_close and prev2_high >= prev_high:
+                was_falling = True
+        
+        # Determine hit type based on candle properties and preceding context
+        hit_type = 'TOUCH'
+        details = 'Angle Test'
+        
+        # CROSS_UP: Price must be approaching from below (was_rising) AND crosses above
+        # If NOT rising before, it's likely a rejection, not a cross
+        if c_open < event.price and c_close > event.price:
+            if was_rising:
+                hit_type = 'CROSS_UP'
+                details = 'Breakout Attempt'
+            else:
+                hit_type = 'RESISTANCE_TEST'
+                details = 'Testing Resistance'
+        # CROSS_DOWN: Price must be approaching from above (was_falling) AND crosses below
+        # If NOT falling before, it's likely a rejection, not a cross
+        elif c_open > event.price and c_close < event.price:
+            if was_falling:
+                hit_type = 'CROSS_DOWN'
+                details = 'Breakdown Attempt'
+            else:
+                hit_type = 'SUPPORT_TEST'
+                details = 'Testing Support'
+        elif prev_close > event.price and c_low <= event.price and c_close > event.price:
+            hit_type = 'SUPPORT_TEST'
+            details = 'Testing Support'
+        elif prev_close < event.price and c_high >= event.price and c_close < event.price:
+            hit_type = 'RESISTANCE_TEST'
+            details = 'Testing Resistance'
+        
+        # Get fan display name and fraction name
+        fan_display_name = event.fan_id.replace('Fan_', 'P')
+        frac_name = f"{event.fraction}" if event.fraction is not None else "main"
+        
+        ui_event = {
+            'time': event.time,
+            'fan': event.priority_label,
+            'fanIdentity': fan_display_name,
+            'fraction': frac_name,
+            'price': event.price,
+            'type': hit_type,
+            'details': details
+        }
+        
+        # Initialize intersection_events if not present
+        if 'intersection_events' not in result:
+            result['intersection_events'] = []
+            
+        result['intersection_events'].append(ui_event)
+        print(f"[RetroSweep] Emitting retroactive event: {ui_event}")
+        
+        # Log to event logger using the correct method
+        event_type_map = {
+            'TOUCH': EventType.TOUCH,
+            'CROSS_UP': EventType.CROSS_UP,
+            'CROSS_DOWN': EventType.CROSS_DOWN,
+            'SUPPORT_TEST': EventType.SUPPORT_TEST,
+            'RESISTANCE_TEST': EventType.RESISTANCE_TEST
+        }
+        
+        direction = None
+        if hit_type == 'CROSS_UP':
+            direction = 'up'
+        elif hit_type == 'CROSS_DOWN':
+            direction = 'down'
+        
+        try:
+            self.event_logger.log_event(
+                timestamp=event.time,
+                event_type=event_type_map.get(hit_type, EventType.TOUCH),
+                angle_name=frac_name,
+                price=event.price,
+                direction=direction,
+                details={
+                    'fan_id': event.fan_id,
+                    'ui_type': hit_type,
+                    'ui_details': details
+                }
+            )
+        except Exception as e:
+            print(f"Failed to log retroactive intersection: {e}")
 
     def _process_tracking_modules(
         self,
@@ -522,6 +693,111 @@ class AngularPriceCoverageStudy:
             result['intersection_events'].append(rest_event)
             # -----------------------------------
 
+        # 4d. Bounce/Rejection tracking (SUPPORT_BOUNCE, RESISTANCE_REJECTION, enhanced REST_ON_ANGLE)
+        # Convert IntersectionEvent objects to dicts for the tracker
+        event_dicts = []
+        for evt in intersection_events:
+            event_dicts.append({
+                'fan_id': evt.fan_id,
+                'line_id': evt.line_id,
+                'fraction': evt.fraction,
+                'price': evt.price,
+                'type': getattr(evt, 'hit_type', 'cross')
+            })
+        
+        bounce_results = self.bounce_rejection_tracker.process_bar(
+            current_candle, bar_index, event_dicts, self.angle_engine.active_fans
+        )
+        
+        for bounce in bounce_results['bounces']:
+            self.event_logger.log_event(
+                timestamp=timestamp,
+                event_type=EventType.SUPPORT_BOUNCE,
+                angle_name=bounce.angle_name,
+                price=bounce.bounce_price,
+                direction='up',
+                details={
+                    'fan_id': bounce.fan_id,
+                    'test_bar': bounce.test_bar,
+                    'bars_elapsed': bounce.bars_elapsed,
+                    'bounce_distance': bounce.bounce_distance
+                }
+            )
+            
+            if 'intersection_events' not in result:
+                result['intersection_events'] = []
+            fan_display = bounce.fan_id.replace("Fan_", "").replace("_", "-")
+            fan_obj = self.angle_engine.active_fans.get(bounce.fan_id)
+            priority_label = fan_obj.priority_label if fan_obj else fan_display
+            result['intersection_events'].append({
+                'time': timestamp,
+                'fan': priority_label,
+                'fanIdentity': fan_display,
+                'fraction': bounce.angle_name,
+                'price': bounce.bounce_price,
+                'type': 'SUPPORT_BOUNCE',
+                'details': f"Bounced (T+{bounce.bars_elapsed} bars)"
+            })
+        
+        for rejection in bounce_results['rejections']:
+            self.event_logger.log_event(
+                timestamp=timestamp,
+                event_type=EventType.RESISTANCE_REJECTION,
+                angle_name=rejection.angle_name,
+                price=rejection.rejection_price,
+                direction='down',
+                details={
+                    'fan_id': rejection.fan_id,
+                    'test_bar': rejection.test_bar,
+                    'bars_elapsed': rejection.bars_elapsed,
+                    'rejection_distance': rejection.rejection_distance
+                }
+            )
+            
+            if 'intersection_events' not in result:
+                result['intersection_events'] = []
+            fan_display = rejection.fan_id.replace("Fan_", "").replace("_", "-")
+            fan_obj = self.angle_engine.active_fans.get(rejection.fan_id)
+            priority_label = fan_obj.priority_label if fan_obj else fan_display
+            result['intersection_events'].append({
+                'time': timestamp,
+                'fan': priority_label,
+                'fanIdentity': fan_display,
+                'fraction': rejection.angle_name,
+                'price': rejection.rejection_price,
+                'type': 'RESISTANCE_REJECTION',
+                'details': f"Rejected (T+{rejection.bars_elapsed} bars)"
+            })
+        
+        for rest in bounce_results['rest_events']:
+            self.event_logger.log_event(
+                timestamp=timestamp,
+                event_type=EventType.REST_ON_ANGLE,
+                angle_name=rest.angle_name,
+                price=rest.rest_price,
+                details={
+                    'fan_id': rest.fan_id,
+                    'bars_elapsed': rest.bars_elapsed,
+                    'line_polarity': rest.line_polarity,
+                    'rest_type': rest.rest_type
+                }
+            )
+            
+            if 'intersection_events' not in result:
+                result['intersection_events'] = []
+            fan_display = rest.fan_id.replace("Fan_", "").replace("_", "-")
+            fan_obj = self.angle_engine.active_fans.get(rest.fan_id)
+            priority_label = fan_obj.priority_label if fan_obj else fan_display
+            result['intersection_events'].append({
+                'time': timestamp,
+                'fan': priority_label,
+                'fanIdentity': fan_display,
+                'fraction': rest.angle_name,
+                'price': rest.rest_price,
+                'type': 'REST_ON_ANGLE',
+                'details': f"Resting ({rest.rest_type}, {rest.line_polarity})"
+            })
+
         # 4c. Zone tracking
         for fan_id, fan_obj in self.angle_engine.active_fans.items():
             snapshot = self.zone_tracker.compute_snapshot(
@@ -615,11 +891,35 @@ class AngularPriceCoverageStudy:
                 self.breach_analyzer.remove_fan(fan_id)
                 self.fan_validator.remove_fan(fan_id)
                 self.target_progression.remove_fan(fan_id)
+                self.bounce_rejection_tracker.remove_fan(fan_id)
                 
                 # CRITICAL FIX: Release pivots so they can form new fans with new labels
-                # This ensures that H1-L1 fan (invalidated) + new H pivot = H2-L1 fan (not H1-L1)
+                # This ensures that H1-L1 fan (deactivated) + new H pivot = H2-L1 fan (not H1-L1)
                 if fan_id in self._persisted_fans:
                     fan_data = self._persisted_fans[fan_id]
+                    
+                    # Log FAN_DEACTIVATED event
+                    anchor_time = fan_data.get('anchor', {}).get('time', 0)
+                    anchor_price = fan_data.get('anchor', {}).get('price', 0)
+                    target_time = fan_data.get('target', {}).get('time', 0)
+                    target_price = fan_data.get('target', {}).get('price', 0)
+                    fan_priority = fan_data.get('priority_label', fan_id)
+                    
+                    if anchor_time:
+                        try:
+                            self.event_logger.log_event(
+                                timestamp=anchor_time,
+                                event_type=EventType.FAN_DEACTIVATED,
+                                price=anchor_price,
+                                details={
+                                    'fan_id': fan_id,
+                                    'fan_label': fan_priority,
+                                    'deactivation_reason': 'completed'
+                                }
+                            )
+                        except Exception as e:
+                            print(f"Failed to log FAN_DEACTIVATED: {e}")
+                    
                     if 'anchor' in fan_data:
                         anchor_time = fan_data['anchor'].get('time')
                         anchor_type = fan_data['anchor'].get('type')
@@ -689,6 +989,25 @@ class AngularPriceCoverageStudy:
                     horizontal_target_price=self._get_horizontal_target_price(fan_obj),
                     full_coverage_target_price=float(fan_data['target'].get('price', 0)),
                 )
+                
+                # CRITICAL FIX: Perform Retroactive Sweep
+                # When a new fan is created, we must look back to the anchor bar
+                # and retroactively detect all historical intersections with the new angle lines.
+                # This builds correct state machine context (e.g., distinguishing FAKE_OUT from CROSS_DOWN).
+                anchor_bar_idx = fan_data['anchor'].get('bar_index', 0)
+                current_bar_idx = len(candles) - 1 if candles else current_bar_index
+                
+                print(f"[RetroSweep] New fan {fan_obj.id} created. Anchor at bar {anchor_bar_idx}, current bar {current_bar_idx}")
+                retro_events = self.intersection_detector.retroactive_sweep(
+                    fan=fan_obj,
+                    candles=candles,
+                    anchor_bar_idx=anchor_bar_idx,
+                    current_bar_idx=current_bar_idx
+                )
+                
+                # Process retro events through the state machine to get proper event types
+                for event in retro_events:
+                    self._process_intersection_event(event, result, candles)
                 
                 # Generate drawings
                 drawings = self.angle_engine.fan_to_drawing_commands(fan_obj)
@@ -769,6 +1088,7 @@ class AngularPriceCoverageStudy:
             'breach_analyzer': self.breach_analyzer.get_state(),
             'fan_validator': self.fan_validator.get_state(),
             'target_progression': self.target_progression.get_state(),
+            'bounce_rejection_tracker': self.bounce_rejection_tracker.get_state(),
             'event_logger': {
                 'events': [e.to_dict() for e in self.event_logger.events],
                 'indicator_snapshots': self.event_logger.indicator_snapshots
@@ -797,6 +1117,8 @@ class AngularPriceCoverageStudy:
             self.fan_validator.restore_state(state['fan_validator'])
         if 'target_progression' in state:
             self.target_progression.restore_state(state['target_progression'])
+        if 'bounce_rejection_tracker' in state:
+            self.bounce_rejection_tracker.restore_state(state['bounce_rejection_tracker'])
         if 'event_logger' in state:
             # Restore event logger state
             logger_state = state['event_logger']

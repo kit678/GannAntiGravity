@@ -42,6 +42,9 @@ class EventType(Enum):
     CROSS_DOWN = "CROSS_DOWN"
     SUPPORT_TEST = "SUPPORT_TEST"
     RESISTANCE_TEST = "RESISTANCE_TEST"
+    SUPPORT_BOUNCE = "SUPPORT_BOUNCE"  # Price successfully bounced from support
+    RESISTANCE_REJECTION = "RESISTANCE_REJECTION"  # Price successfully rejected from resistance
+    FAN_DEACTIVATED = "FAN_DEACTIVATED"  # Fan deactivated/completed (not invalidated)
 
 
 @dataclass

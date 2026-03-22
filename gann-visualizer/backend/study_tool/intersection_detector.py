@@ -120,3 +120,87 @@ class IntersectionDetector:
     def restore_state(self, state: Dict[str, Any]):
         if 'processed_hits' in state:
             self._processed_hits = set(state['processed_hits'])
+    
+    def retroactive_sweep(
+        self, 
+        fan: Any, 
+        candles: List[Dict[str, Any]], 
+        anchor_bar_idx: int, 
+        current_bar_idx: int
+    ) -> List[IntersectionEvent]:
+        """
+        Retroactively sweep through historical candles from anchor to current-1 bar
+        to detect all intersections with a newly created fan's angle lines.
+        
+        This builds the correct historical context for the fan before live trading begins.
+        
+        Args:
+            fan: The newly created fan object
+            candles: List of all candles
+            anchor_bar_idx: The bar index where the fan's anchor pivot is located
+            current_bar_idx: The current bar index (fan was created at this bar)
+            
+        Returns:
+            List of IntersectionEvents found in the historical range
+        """
+        import datetime
+        events = []
+        
+        # Process all bars from anchor to current-1 (exclude current bar as it's already processed)
+        for bar_idx in range(anchor_bar_idx, current_bar_idx):
+            if bar_idx >= len(candles):
+                break
+                
+            candle = candles[bar_idx]
+            c_time = int(candle['time'])
+            c_high = float(candle['high'])
+            c_low = float(candle['low'])
+            c_close = float(candle.get('close', 0))
+            
+            for line in fan.lines:
+                frac_str = f"{line.fraction}" if line.fraction is not None else "main"
+                
+                # Skip if candle is BEFORE the line's start
+                if c_time < line.start_time:
+                    continue
+                    
+                # Skip the origin candle itself
+                if c_time == line.start_time:
+                    continue
+                
+                # Dedup check
+                tracking_key = f"{fan.id}_{line.id}_{c_time}"
+                if tracking_key in self._processed_hits:
+                    continue
+                    
+                # Calculate line price at this bar using SLOPE EXTRAPOLATION
+                bar_span = line.end_bar_index - line.start_bar_index
+                if abs(bar_span) < 0.001:
+                    continue
+                
+                slope_per_bar = (line.end_price - line.start_price) / bar_span
+                bars_from_origin = bar_idx - line.start_bar_index
+                line_price_at_t = line.start_price + bars_from_origin * slope_per_bar
+                
+                # Collision Check (Bounding Box)
+                if c_low <= line_price_at_t <= c_high:
+                    hit_event = IntersectionEvent(
+                        fan_id=fan.id,
+                        line_id=line.id,
+                        priority_label=fan.priority_label,
+                        fraction=line.fraction,
+                        time=c_time,
+                        price=line_price_at_t,
+                        hit_type='cross'
+                    )
+                    events.append(hit_event)
+                    self._processed_hits.add(tracking_key)
+                    ts_str = datetime.datetime.fromtimestamp(c_time).strftime('%Y-%m-%d %H:%M')
+                    print(f"  [RetroSweep] HIT: {fan.priority_label} frac={frac_str} @ {line_price_at_t:.2f} | Bar {bar_idx} ({ts_str})")
+        
+        if events:
+            print(f"  [RetroSweep] Total historical hits for {fan.id}: {len(events)}")
+        else:
+            print(f"  [RetroSweep] No historical hits found for {fan.id}")
+                    
+        return events
