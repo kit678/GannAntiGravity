@@ -593,64 +593,122 @@ function App() {
                                                     Showing {priceInteractions.filter(h => filterFan === 'all' || (h.fanIdentity || h.fan) === filterFan).length} of {priceInteractions.length} events
                                                 </span>
                                             </div>
-                                            <button 
-                                                onClick={() => {
-                                                    const rows = [
-                                                        ['#', 'Time', 'Fan', 'Fraction', 'Price', 'Type', 'Details']
-                                                    ];
-                                                    priceInteractions.forEach((hit, i) => {
-                                                        rows.push([
-                                                            i + 1,
-                                                            new Date(hit.time * 1000).toLocaleString().replace(/,/g, ''),
-                                                            hit.fan,
-                                                            hit.fraction,
-                                                            hit.price != null ? hit.price.toFixed(2) : 'N/A',
-                                                            hit.type || 'N/A',
-                                                            (hit.details || '').replace(/,/g, ';')
-                                                        ]);
-                                                    });
-                                                    const csvContent = "data:text/csv;charset=utf-8," + rows.map(e => e.join(",")).join("\n");
-                                                    const encodedUri = encodeURI(csvContent);
-                                                    const link = document.createElement("a");
-                                                    link.setAttribute("href", encodedUri);
-                                                    link.setAttribute("download", "frontend_price_interactions.csv");
-                                                    document.body.appendChild(link);
-                                                    link.click();
-                                                    document.body.removeChild(link);
-                                                }}
-                                                style={{ padding: '4px 8px', fontSize: '11px', cursor: 'pointer', backgroundColor: '#2196F3', color: 'white', border: 'none', borderRadius: '3px' }}
-                                            >
-                                                Export CSV
-                                            </button>
+                                            <div style={{ display: 'flex', gap: '8px' }}>
+                                                <button 
+                                                    onClick={() => {
+                                                        const rows = [
+                                                            ['#', 'Time', 'Fan', 'Fraction', 'Price', 'Type', 'Details', 'Open', 'High', 'Low', 'Close', 'Active Angles']
+                                                        ];
+                                                        priceInteractions.filter(hit => filterFan === 'all' || (hit.fanIdentity || hit.fan) === filterFan).forEach((hit, i) => {
+                                                            rows.push([
+                                                                i + 1,
+                                                                new Date(hit.time * 1000).toLocaleString().replace(/,/g, ''),
+                                                                hit.fan,
+                                                                hit.fraction,
+                                                                hit.price != null ? hit.price.toFixed(2) : '-',
+                                                                hit.type || '-',
+                                                                (hit.details || '').replace(/,/g, ';'),
+                                                                hit.open != null ? hit.open.toFixed(2) : '-',
+                                                                hit.high != null ? hit.high.toFixed(2) : '-',
+                                                                hit.low != null ? hit.low.toFixed(2) : '-',
+                                                                hit.close != null ? hit.close.toFixed(2) : '-',
+                                                                hit.activeAngles ? JSON.stringify(hit.activeAngles).replace(/,/g, ';') : ''
+                                                            ]);
+                                                        });
+                                                        
+                                                        // Format as a tab-separated string for clipboard
+                                                        const tsvContent = rows.map(e => e.join("\t")).join("\n");
+                                                        navigator.clipboard.writeText(tsvContent).then(() => {
+                                                            alert("Table copied to clipboard!");
+                                                        }).catch(err => {
+                                                            console.error("Could not copy text: ", err);
+                                                            alert("Failed to copy to clipboard.");
+                                                        });
+                                                    }}
+                                                    style={{ padding: '4px 8px', fontSize: '11px', cursor: 'pointer', backgroundColor: '#4CAF50', color: 'white', border: 'none', borderRadius: '3px' }}
+                                                >
+                                                    📋 Copy Table
+                                                </button>
+                                                <button 
+                                                    onClick={() => {
+                                                        const rows = [
+                                                            ['#', 'Time', 'Fan', 'Fraction', 'Price', 'Type', 'Details', 'Open', 'High', 'Low', 'Close', 'Active Angles']
+                                                        ];
+                                                        priceInteractions.forEach((hit, i) => {
+                                                            rows.push([
+                                                                i + 1,
+                                                                new Date(hit.time * 1000).toLocaleString().replace(/,/g, ''),
+                                                                hit.fan,
+                                                                hit.fraction,
+                                                                hit.price != null ? hit.price.toFixed(2) : 'N/A',
+                                                                hit.type || 'N/A',
+                                                                (hit.details || '').replace(/,/g, ';'),
+                                                                hit.open != null ? hit.open.toFixed(2) : 'N/A',
+                                                                hit.high != null ? hit.high.toFixed(2) : 'N/A',
+                                                                hit.low != null ? hit.low.toFixed(2) : 'N/A',
+                                                                hit.close != null ? hit.close.toFixed(2) : 'N/A',
+                                                                hit.activeAngles ? JSON.stringify(hit.activeAngles).replace(/,/g, ';') : ''
+                                                            ]);
+                                                        });
+                                                        const csvContent = "data:text/csv;charset=utf-8," + rows.map(e => e.join(",")).join("\n");
+                                                        const encodedUri = encodeURI(csvContent);
+                                                        const link = document.createElement("a");
+                                                        link.setAttribute("href", encodedUri);
+                                                        link.setAttribute("download", "frontend_price_interactions.csv");
+                                                        document.body.appendChild(link);
+                                                        link.click();
+                                                        document.body.removeChild(link);
+                                                    }}
+                                                    style={{ padding: '4px 8px', fontSize: '11px', cursor: 'pointer', backgroundColor: '#2196F3', color: 'white', border: 'none', borderRadius: '3px' }}
+                                                >
+                                                    Export CSV
+                                                </button>
+                                            </div>
                                         </div>
-                                        <table className="interactions-table">
-                                            <thead>
-                                                <tr>
-                                                    <th>#</th>
-                                                    <th>Time</th>
-                                                    <th>Fan</th>
-                                                    <th>Fraction</th>
-                                                    <th>Price</th>
-                                                    <th>Type</th>
-                                                    <th>Details</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {priceInteractions
-                                                    .filter(hit => filterFan === 'all' || (hit.fanIdentity || hit.fan) === filterFan)
-                                                    .map((hit, i) => (
-                                                        <tr key={i}>
-                                                            <td>{i + 1}</td>
-                                                            <td>{new Date(hit.time * 1000).toLocaleString()}</td>
-                                                            <td style={{ color: '#90CAF9' }}>{hit.fan}</td>
-                                                            <td style={{ color: '#FFEB3B' }}>{hit.fraction}</td>
-                                                            <td>{hit.price != null ? hit.price.toFixed(2) : 'N/A'}</td>
-                                                            <td>{hit.type || 'N/A'}</td>
-                                                            <td style={{ fontSize: '11px', color: '#AAA' }}>{hit.details || ''}</td>
-                                                        </tr>
-                                                    ))}
-                                            </tbody>
-                                        </table>
+                                        <div className="table-container" style={{ overflowX: 'auto' }}>
+                                            <table className="interactions-table" style={{ whiteSpace: 'nowrap' }}>
+                                                <thead>
+                                                    <tr>
+                                                        <th>#</th>
+                                                        <th>Time</th>
+                                                        <th>Fan</th>
+                                                        <th>Fraction</th>
+                                                        <th>Price</th>
+                                                        <th>Type</th>
+                                                        <th>Details</th>
+                                                        <th>O</th>
+                                                        <th>H</th>
+                                                        <th>L</th>
+                                                        <th>C</th>
+                                                        <th>Active Angles</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {priceInteractions
+                                                        .filter(hit => filterFan === 'all' || (hit.fanIdentity || hit.fan) === filterFan)
+                                                        .map((hit, i) => (
+                                                            <tr key={i}>
+                                                                <td>{i + 1}</td>
+                                                                <td>{new Date(hit.time * 1000).toLocaleString()}</td>
+                                                                <td style={{ color: '#90CAF9' }}>{hit.fan}</td>
+                                                                <td style={{ color: '#FFEB3B' }}>{hit.fraction}</td>
+                                                                <td>{hit.price != null ? hit.price.toFixed(2) : 'N/A'}</td>
+                                                                <td>{hit.type || 'N/A'}</td>
+                                                                <td style={{ fontSize: '11px', color: '#AAA' }}>
+                                                                    {hit.details || ''}
+                                                                </td>
+                                                                <td style={{ fontSize: '11px' }}>{hit.open != null ? hit.open.toFixed(2) : '-'}</td>
+                                                                <td style={{ fontSize: '11px' }}>{hit.high != null ? hit.high.toFixed(2) : '-'}</td>
+                                                                <td style={{ fontSize: '11px' }}>{hit.low != null ? hit.low.toFixed(2) : '-'}</td>
+                                                                <td style={{ fontSize: '11px' }}>{hit.close != null ? hit.close.toFixed(2) : '-'}</td>
+                                                                <td style={{ fontSize: '11px', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis' }} title={hit.activeAngles ? JSON.stringify(hit.activeAngles, null, 2) : ''}>
+                                                                    {hit.activeAngles ? JSON.stringify(hit.activeAngles) : '-'}
+                                                                </td>
+                                                            </tr>
+                                                        ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
                                     </>
                                 )}
                             </div>

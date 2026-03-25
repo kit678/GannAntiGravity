@@ -176,18 +176,37 @@ def run_simulation(symbol="^NSEI", resolution="4", data_source="yfinance", from_
     
     logging.info("Starting simulation...")
     
-    # Initialize history
-    # The study handles initialization internally on the first process_bar call 
-    # if we pass the full history, but let's simulate a replay loop
-    
-    # Run through all candles
+    # Run through all candles - maintain state like frontend progressive replay
     all_intersection_events = []
     target_start_ts = int(target_from_dt.timestamp())
     
+    # Replicate exact frontend API behavior
+    study_cache = {'index': -1, 'state': None}
+    
     for i in range(len(candles)):
-        # We pass the full list of candles, but current index 'i'
-        # The study will look back from 'i'
-        result = study.process_bar(candles, i)
+        # Determine if this is sequential processing (like frontend progressive replay)
+        is_sequential = study_cache['index'] == i - 1 and study_cache['state'] is not None
+        
+        if is_sequential:
+            # FAST PATH: Restore state and process single bar (like frontend)
+            study.restore_state(study_cache['state'])
+            result = study.process_bar(candles, i, state=None)  # State already restored
+            
+            # Update cache (like frontend)
+            study_cache['index'] = i
+            study_cache['state'] = result.get('state', {})
+            
+        else:
+            # SLOW PATH: Rebuild from 0 to current bar (like frontend reset)
+            logging.info(f"[Simulation] Slow path: Rebuilding from 0 to {i}")
+            study_cache = {'index': -1, 'state': None}
+            
+            # Single call - process_bar auto-initializes history up to bar_index
+            result = study.process_bar(candles, i, state=None)
+            
+            if result:
+                study_cache['index'] = i
+                study_cache['state'] = result.get('state', {})
         
         # Collect the exact frontend-bound intersection events
         if result and 'intersection_events' in result:
@@ -224,6 +243,9 @@ def run_simulation(symbol="^NSEI", resolution="4", data_source="yfinance", from_
     # Write the exact frontend intersection events to CSV
     import csv
     if all_intersection_events:
+        # Sort events chronologically by timestamp for pure chronological order
+        all_intersection_events = sorted(all_intersection_events, key=lambda e: e['time'])
+        
         with open(csv_path, 'w', newline='') as f:
             writer = csv.writer(f)
             writer.writerow(['#', 'Time', 'Fan', 'Fraction', 'Price', 'Type', 'Details', 'MFE_10', 'MAE_10', 'bars_elapsed'])

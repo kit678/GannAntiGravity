@@ -1077,6 +1077,11 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
                                     price: evt.price,
                                     type: evt.type,
                                     details: evt.details,
+                                    open: evt.open,
+                                    high: evt.high,
+                                    low: evt.low,
+                                    close: evt.close,
+                                    activeAngles: evt.activeAngles
                                 });
                             });
                         }

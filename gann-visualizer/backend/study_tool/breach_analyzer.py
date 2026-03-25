@@ -33,6 +33,7 @@ class FakeOutEvent:
     angle_name: str
     attempted_direction: str
     reversal_bar: int
+    first_breach_bar: int  # The bar where the original cross occurred
     bars_elapsed: int
 
     def to_dict(self):
@@ -64,7 +65,8 @@ class BreachAnalyzer:
         current_candle: Dict[str, Any], 
         bar_index: int, 
         intersection_events: list, 
-        active_fans: dict
+        active_fans: dict,
+        candles: list = None
     ) -> Dict[str, List[Any]]:
         
         results = {
@@ -124,6 +126,19 @@ class BreachAnalyzer:
                     distance_from_origin = bar_index - getattr(fan_obj, 'anchor_bar_index', 0)
                     angle_slope = 0.0 # Placeholder: Calculate actual slope from fan_obj.lines if needed
                     
+                    # Find the line object to store its coordinates for later line price calculation
+                    line_start_time = 0
+                    line_end_time = 0
+                    line_start_price = 0.0
+                    line_end_price = 0.0
+                    for line in fan_obj.lines:
+                        if line.fraction == event.fraction or (event.fraction is None and line.fraction is None):
+                            line_start_time = line.start_time
+                            line_end_time = line.end_time
+                            line_start_price = line.start_price
+                            line_end_price = line.end_price
+                            break
+                    
                     self.active_breaches[state_key] = {
                         'fan_id': event.fan_id,
                         'direction': direction,
@@ -132,11 +147,17 @@ class BreachAnalyzer:
                         'line_price_at_breach': line_price,
                         'distance_from_origin': distance_from_origin,
                         'angle_slope': angle_slope,
-                        'fraction': event.fraction
+                        'fraction': event.fraction,
+                        'line_start_time': line_start_time,
+                        'line_end_time': line_end_time,
+                        'line_start_price': line_start_price,
+                        'line_end_price': line_end_price
                     }
 
         # 2. Update existing Unconfirmed Breaches (Check for Confirmation or Reversal)
         keys_to_remove = []
+        current_bar_time = int(current_candle.get('time', 0))
+        
         for state_key, state in self.active_breaches.items():
             fan_id = state.get('fan_id')
             
@@ -156,9 +177,14 @@ class BreachAnalyzer:
                 
             bars_elapsed = bar_index - state['first_breach_bar']
             
-            # We need the current line price to check for reversals
-            # Approximation: use the line_price_at_breach or calculate exact if available
-            current_line_price = state['line_price_at_breach'] 
+            # Calculate the current line price at this bar using the angle line coordinates
+            # This correctly accounts for the diagonal nature of angled lines
+            current_line_price = state['line_price_at_breach']  # Fallback
+            if (state.get('line_end_time', 0) - state.get('line_start_time', 0)) > 0:
+                time_ratio = (current_bar_time - state['line_start_time']) / (state['line_end_time'] - state['line_start_time'])
+                # Clamp time_ratio to [0, 1] to handle edge cases
+                time_ratio = max(0, min(1, time_ratio))
+                current_line_price = state['line_start_price'] + time_ratio * (state['line_end_price'] - state['line_start_price']) 
             
             if state['direction'] == 'up':
                 if close_price > state['extreme_price']:
@@ -182,6 +208,7 @@ class BreachAnalyzer:
                         angle_name=str(state['fraction']) if state['fraction'] else "Horizontal",
                         attempted_direction='up',
                         reversal_bar=bar_index,
+                        first_breach_bar=state['first_breach_bar'],
                         bars_elapsed=bars_elapsed
                     ))
                     keys_to_remove.append(state_key)
@@ -208,6 +235,7 @@ class BreachAnalyzer:
                         angle_name=str(state['fraction']) if state['fraction'] else "Horizontal",
                         attempted_direction='down',
                         reversal_bar=bar_index,
+                        first_breach_bar=state['first_breach_bar'],
                         bars_elapsed=bars_elapsed
                     ))
                     keys_to_remove.append(state_key)

@@ -6,30 +6,35 @@ This document outlines the core predictive hypotheses developed for the Gann Ang
 **Hypothesis:** Touches on angle lines that are in close proximity (within a defined price band) to other active angle lines from different fans have a significantly higher probability of resulting in a successful price reversal (bounce) compared to isolated line touches.
 
 *   **Mechanism:**
-    *   Scan the master record for interaction events (`TOUCH`, `SUPPORT_TEST`, `RESISTANCE_TEST`, `CROSS_UP`, `CROSS_DOWN`, `FAKE_OUT`, `FAN_VALIDATED`, `REST_ON_ANGLE`).
+    *   Scan the master record for interaction events.
     *   Group events by their exact timestamp (`Time`).
-    *   **Crucial Validation (Bug Fix Applied):** Ensure the interacting lines are distinct (different Fan or Fraction). Ensure the maximum spread between the interacting line prices is `<= 0.2%` (`price_band_pct`).
+    *   Ensure the interacting lines are distinct (different Fan or Fraction). Ensure the maximum spread between the interacting line prices is `<= 0.2%` (`price_band_pct`).
     *   **Win Condition:** Calculate the forward-looking Max Favorable Excursion (MFE) and Max Adverse Excursion (MAE) over the next `N` bars (e.g., 10 bars). A "Win" is recorded if the price moves at least twice as far in the direction of the bounce as it does against it (`MFE > MAE * 2`).
 
-## 2. The Time-Decay Rule (Consolidation Exhaustion)
-**Hypothesis:** The longer price consolidates or "rests" on a specific angle line without achieving a decisive bounce, the weaker that angle becomes as support/resistance. Prolonged rests exponentially increase the probability of a decisive breakthrough rather than a reversal.
+## 2. Strong Support and Resistance (S/R) Rule
+**Hypothesis:** Angular division lines inherently act as rigid support and resistance boundaries. A price interaction that tests a line (wicks touching or piercing, but bodies closing on the origin side) will reliably lead to a significant price reversal (bounce/rejection) rather than an immediate breakthrough.
 
 *   **Mechanism:**
-    *   Scan the master record for `REST_ON_ANGLE` events.
-    *   **Crucial Validation (Pending Fix in Analyzer):** Ensure contiguous rest events on the same line are grouped into a single continuous consolidation block, rather than counting each bar as a separate sample.
-    *   Identify consolidations where `bars_elapsed >= threshold` (e.g., 3 or 5 bars).
-    *   **Win Condition:** Check the forward-looking excursion. A "Win" is recorded if the maximum excursion in one direction is significantly larger than the other (`max(MFE, MAE) > min(MFE, MAE) * 2`), indicating a strong trend away from the consolidation zone. 
-    *   *Note for next chat:* We need to refine the definition of "Breakthrough" vs "Bounce" in the analyzer logic to ensure the strong trend is actually crossing the line, not just bouncing off it strongly after a rest.
+    *   Scan the master record for clean `SUPPORT_TEST` and `RESISTANCE_TEST` events.
+    *   Ensure the test is isolated (not immediately part of an ongoing `CROSS` or `FAKE_OUT` state).
+    *   **Win Condition:** Track if a `SUPPORT_BOUNCE` or `RESISTANCE_REJECTION` confirmation event is emitted within the next `N` bars, and measure if the subsequent MFE indicates a high-probability trade setup.
 
-## 3. The Vacuum Effect Rule
-**Hypothesis:** Once the 1/2 (0.5) angle is decisively breached and confirmed, the speed of the price movement towards the ultimate Horizontal Target is significantly faster (takes fewer bars) than the movement that occurred between the 7/8 angle and the 1/2 angle. The space between 1/2 and Horizontal acts as a price "vacuum."
+## 3. Target Progression Probability
+**Hypothesis:** Once a fractional angle is decisively breached and confirmed (e.g., 7/8 is confirmed breached), the price has a very high probability of reaching the next logical target in the sequence (3/4 → 1/2 → Horizontal Target → Full Coverage) before it reverses to close back across the previously breached line.
 
 *   **Mechanism:**
-    *   Scan the master record for `BREACH_CONFIRMED` events specifically on the `0.5` fraction line.
-    *   **Crucial Validation (Pending Fix in Analyzer):** The current analyzer only checks if the MFE is large. The logic must be rewritten to measure *Time/Speed*.
-    *   **Win Condition:** The analyzer must track the number of bars it took for the price to travel from the `0.5` breach to the `Horizontal` target, and compare it against the average bar duration of previous intra-zone moves. A "Win" is recorded if the velocity (points per bar) is statistically higher in the final zone.
+    *   Scan the master record for `BREACH_CONFIRMED` events on specific fractional lines.
+    *   Track the subsequent price action to see which happens first: a `TARGET_HIT` event for the next fraction in the sequence, or a `CROSS_DOWN`/`CROSS_UP` event back across the origin line (a failure).
+    *   **Win Condition:** A "Win" is recorded if the next sequential target is hit. This allows us to assign mathematical probabilities to the v4 target sequence.
+
+## 4. The 1/4 Reversal Anomaly
+**Hypothesis:** As defined in the v4 strategy, if price reaches the 1/4 angle line *before* reaching the derived Horizontal Target, the trend is exhausted. The 1/4 line will act as a major reversal point rather than a continuation setup towards Full Coverage.
+
+*   **Mechanism:**
+    *   Identify fans where the Horizontal Target is active but not yet hit.
+    *   Scan for interactions (`TOUCH`, `SUPPORT_TEST`, `RESISTANCE_TEST`) specifically on the `0.25` (1/4) fraction line.
+    *   **Win Condition:** Measure the forward-looking MFE/MAE. A "Win" is a major reversal (large excursion away from the 1/4 line back towards the origin), invalidating the standard progression model.
 
 ## General Testing Principles
 *   **Data Parity:** The `simulation_events.csv` must remain a 1:1 identical chronological mirror of the frontend Price Interactions table. The analyzer scripts must do the filtering, not the logger.
-*   **Dynamic Alteration:** The `strategy_analyzer.py` framework is built to allow dynamic parameter tweaking. If a hypothesis fails to achieve a >50% win rate, parameters (like `rest_threshold_bars` or `price_band_pct`) should be programmatically adjusted and re-tested to find the optimal edge.
 *   **MFE/MAE Reality:** Excursion calculations must always represent positive absolute distances from the event price, regardless of the initial interaction direction.

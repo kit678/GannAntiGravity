@@ -42,6 +42,7 @@ class FanTargetState:
     fan_id: str
     is_validated: bool = False                  # set by FanValidator
     current_target: Optional[str] = None        # current target name
+    origin_angle: Optional[str] = None          # the angle we just breached
     targets_hit: List[str] = field(default_factory=list)
     targets_remaining: List[str] = field(default_factory=list)
     horizontal_target_active: bool = True       # can be cancelled by 1/4
@@ -54,9 +55,9 @@ class FanTargetState:
 
 
 # Default target sequence (before 1/2 nuance is applied)
-BASE_TARGET_SEQUENCE = ['7/8', '3/4', '1/2']
+BASE_TARGET_SEQUENCE = ['0.875', '0.75', '0.5']
 # After 1/2, sequence depends on which is reached first
-POST_HALF_TARGETS = ['horizontal', '1/4']
+POST_HALF_TARGETS = ['horizontal', '0.25']
 FINAL_TARGET = 'full_coverage'
 
 
@@ -98,7 +99,7 @@ class TargetProgression:
         state = FanTargetState(
             fan_id=fan_id,
             targets_remaining=list(BASE_TARGET_SEQUENCE),
-            current_target='7/8',
+            current_target='0.875',
             horizontal_target_price=horizontal_target_price,
             full_coverage_target_price=full_coverage_target_price,
         )
@@ -142,7 +143,7 @@ class TargetProgression:
         # Only process if this is the current target
         if state.current_target != angle_name:
             # Special case: 1/4 reached before horizontal
-            if angle_name == '1/4' and state.current_target == 'horizontal':
+            if angle_name == '0.25' and state.current_target == 'horizontal':
                 return self._handle_quarter_before_horizontal(state, bar_index, price)
             return None
 
@@ -162,8 +163,32 @@ class TargetProgression:
 
         # Determine next target
         self._advance_target(state, angle_name)
+        state.origin_angle = angle_name
 
         return hit
+
+    def on_cross(
+        self,
+        fan_id: str,
+        angle_name: str,
+        bar_index: int,
+        price: float
+    ) -> bool:
+        """
+        Called when a CROSS_UP or CROSS_DOWN occurs.
+        If it crosses back over the origin angle, the current target progression fails.
+        """
+        state = self._fan_states.get(fan_id)
+        if state is None or state.completed:
+            return False
+
+        if state.origin_angle == angle_name:
+            # Failed! Crossed back over the origin
+            state.current_target = None
+            state.completed = True
+            return True
+            
+        return False
 
     def _advance_target(self, state: FanTargetState, just_hit: str):
         """Advance to the next target based on what was just hit."""
@@ -172,15 +197,15 @@ class TargetProgression:
             return
 
         # Base sequence exhausted — handle post-1/2 logic
-        if just_hit == '1/2':
+        if just_hit == '0.5':
             # After 1/2, next targets are horizontal and 1/4
             # Horizontal is the primary target; 1/4 could cancel it
             if state.horizontal_target_active and state.horizontal_target_price is not None:
                 state.current_target = 'horizontal'
                 state.targets_remaining = ['horizontal']
             else:
-                state.current_target = '1/4'
-                state.targets_remaining = ['1/4']
+                state.current_target = '0.25'
+                state.targets_remaining = ['0.25']
             return
 
         if just_hit == 'horizontal':
@@ -190,7 +215,7 @@ class TargetProgression:
             state.targets_remaining = [FINAL_TARGET]
             return
 
-        if just_hit == '1/4':
+        if just_hit == '0.25':
             # 1/4 was the last target if horizontal was cancelled
             if 'horizontal' not in state.targets_hit:
                 # 1/4 reached but horizontal wasn't — no more targets
@@ -226,12 +251,12 @@ class TargetProgression:
         
         hit = TargetHit(
             fan_id=state.fan_id,
-            target_name='1/4',
+            target_name='0.25',
             hit_bar=bar_index,
             hit_price=price,
         )
         self._target_hits.append(hit)
-        state.targets_hit.append('1/4')
+        state.targets_hit.append('0.25')
         
         # No more targets — progression paused
         state.current_target = None

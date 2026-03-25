@@ -527,7 +527,10 @@ export function drawAngleFan(
     }
 
     // Draw fraction lines
+    // Exclude the 0.125 (1/8) fraction from visualization
     fractions.forEach((fraction, i) => {
+        if (fraction === 0.125) return; // Skip 1/8 fraction (0.125)
+
         try {
             const fracSlope = mainSlope * fraction;
             const fracEndPrice = p0 + (fracSlope * (endTime - t0));

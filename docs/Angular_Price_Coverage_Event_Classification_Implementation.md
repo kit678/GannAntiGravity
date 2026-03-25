@@ -46,35 +46,45 @@ The system used a rigid binary logic for classifying events:
 This ignored market mechanics. A candle opening barely above a line and closing way below is a rejection, not a structural breakdown.
 
 **Solution Implemented:**
-Added directional context checking before classifying cross events:
+Updated the logic to correctly classify cross events based on open and close prices relative to the line:
 
 **For CROSS_UP:**
-- Check if price was rising BEFORE the current candle (`was_rising`)
-- If `was_rising = True`: Classify as `CROSS_UP` (Breakout Attempt)
-- If `was_rising = False`: Classify as `RESISTANCE_TEST` (Testing Resistance)
+- Price opens below/on and closes above the line
+- `open <= line AND close > line`
 
 **For CROSS_DOWN:**
-- Check if price was falling BEFORE the current candle (`was_falling`)
-- If `was_falling = True`: Classify as `CROSS_DOWN` (Breakdown Attempt)
-- If `was_falling = False`: Classify as `SUPPORT_TEST` (Testing Support)
+- Price opens above/on and closes below the line
+- `open >= line AND close < line`
+
+**For SUPPORT_TEST:**
+- Price was above, dips below/touches, but closes above
+- `prev_close > line AND low <= line AND close > line`
+
+**For RESISTANCE_TEST:**
+- Price was below, spikes above/touches, but closes below
+- `prev_close < line AND high >= line AND close < line`
 
 **Implementation Location:**
 - `backend/study_tool/angular_coverage_study.py` - `_process_intersection_event()` method
 
 **Implementation Details:**
 ```python
-# Check for preceding directional context (last 2 bars)
-was_rising = False
-was_falling = False
-if bar_index >= 2:
-    prev2_close = float(candles[bar_index - 2].get('close', 0))
-    prev2_low = float(candles[bar_index - 2].get('low', 0))
-    if prev2_close < prev_close and prev2_low <= prev_low:
-        was_rising = True
-    
-    prev2_high = float(candles[bar_index - 2].get('high', 0))
-    if prev2_close > prev_close and prev2_high >= prev_high:
-        was_falling = True
+# CROSS_UP: Price opens below/on and closes above the line
+if c_open <= event.price and c_close > event.price:
+    hit_type = 'CROSS_UP'
+    details = 'Breakout Attempt'
+# CROSS_DOWN: Price opens above/on and closes below the line
+elif c_open >= event.price and c_close < event.price:
+    hit_type = 'CROSS_DOWN'
+    details = 'Breakdown Attempt'
+# SUPPORT_TEST: Price was above, dips below/touches, but closes above
+elif prev_close > event.price and c_low <= event.price and c_close > event.price:
+    hit_type = 'SUPPORT_TEST'
+    details = 'Testing Support'
+# RESISTANCE_TEST: Price was below, spikes above/touches, but closes below
+elif prev_close < event.price and c_high >= event.price and c_close < event.price:
+    hit_type = 'RESISTANCE_TEST'
+    details = 'Testing Resistance'
 ```
 
 **Expected Results:**
@@ -138,8 +148,8 @@ When a fan was invalidated and a new fan was created, the system reused the same
 | Type | Definition | Details |
 |------|------------|---------|
 | `TOUCH` | Price touches the angle line | Default when no other conditions match |
-| `CROSS_UP` | Price crosses above the line (rising market) | Requires `was_rising` context |
-| `CROSS_DOWN` | Price crosses below the line (falling market) | Requires `was_falling` context |
+| `CROSS_UP` | Price opens below/on and closes above the line | Breakout Attempt |
+| `CROSS_DOWN` | Price opens above/on and closes below the line | Breakdown Attempt |
 | `SUPPORT_TEST` | Price tests support from above | Prev close > line, low touches, close > line |
 | `RESISTANCE_TEST` | Price tests resistance from below | Prev close < line, high touches, close < line |
 | `FAKE_OUT` | Cross followed by immediate reversal | Tracked by breach_analyzer |
@@ -157,14 +167,11 @@ For each candle at bar T:
     
     2. For each intersection:
        a. Get previous candle data
-       b. Calculate directional context (was_rising/was_falling)
-       c. Apply classification logic:
-          - If open < line AND close > line:
-            - If was_rising: CROSS_UP
-            - Else: RESISTANCE_TEST
-          - If open > line AND close < line:
-            - If was_falling: CROSS_DOWN
-            - Else: SUPPORT_TEST
+       b. Apply classification logic:
+          - If open <= line AND close > line:
+            - CROSS_UP
+          - If open >= line AND close < line:
+            - CROSS_DOWN
           - If prev_close > line AND low <= line AND close > line:
             - SUPPORT_TEST
           - If prev_close < line AND high >= line AND close < line:

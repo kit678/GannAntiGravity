@@ -13,10 +13,10 @@ import uuid
 
 
 # Default Gann angle fractions
-DEFAULT_FRACTIONS = [7/8, 3/4, 1/2, 1/4, 1/8]
+DEFAULT_FRACTIONS = [7/8, 3/4, 1/2, 1/4]
 
 # Default colors for fraction lines (from reference)
-DEFAULT_FRACTION_COLORS = ['#c62828', '#ad1457', '#6a1b9a', '#283593', '#00695c']
+DEFAULT_FRACTION_COLORS = ['#c62828', '#ad1457', '#6a1b9a', '#283593']
 
 # Main angle line color
 MAIN_ANGLE_COLOR = '#FF6600'
@@ -336,8 +336,8 @@ class AngleEngine:
         lines.append(main_line)
         
         # Fractional angles per strategy
-        angle_fractions = [7/8, 3/4, 1/2, 1/4, 1/8]
-        angle_colors = ['#2196F3', '#4CAF50', '#FF9800', '#F44336', '#9C27B0']
+        angle_fractions = [7/8, 3/4, 1/2, 1/4]
+        angle_colors = ['#2196F3', '#4CAF50', '#FF9800', '#F44336']
         
         for i, fraction in enumerate(angle_fractions):
             # Calculate Fractional Theta (Angle of the line in visual space)

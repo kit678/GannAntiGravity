@@ -33,6 +33,7 @@ class EventType(Enum):
     FAKE_OUT = "fake_out"                    # Price crossed the line but immediately failed
     REST_ON_ANGLE = "rest_on_angle"          # Price rests on angle after breach
     TARGET_HIT = "target_hit"               # Target in progression sequence reached
+    TARGET_FAILED = "target_failed"         # Failed to reach target, crossed back
     FAN_VALIDATED = "fan_validated"           # Fan validated via 7/8 interaction
     ZONE_CHANGE = "zone_change"              # Price moved to a new angle zone
     
@@ -57,6 +58,15 @@ class Event:
     direction: Optional[str] = None  # "up", "down"
     details: Optional[Dict] = None
     
+    # OHLC data for the bar where the event occurred
+    open_price: Optional[float] = None
+    high_price: Optional[float] = None
+    low_price: Optional[float] = None
+    close_price: Optional[float] = None
+    
+    # Angle prices snapshot (all active lines for the fan at this bar)
+    active_angle_prices: Optional[Dict[str, float]] = None
+    
     # Forward-looking outcomes (populated post-simulation)
     mfe_10: Optional[float] = None  # Max Favorable Excursion (next 10 bars)
     mae_10: Optional[float] = None  # Max Adverse Excursion (next 10 bars)
@@ -71,6 +81,11 @@ class Event:
             "angle_name": self.angle_name,
             "price": self.price,
             "direction": self.direction,
+            "open": self.open_price,
+            "high": self.high_price,
+            "low": self.low_price,
+            "close": self.close_price,
+            "active_angle_prices": self.active_angle_prices or {},
             "mfe_10": self.mfe_10,
             "mae_10": self.mae_10,
             "mfe_20": self.mfe_20,
@@ -107,7 +122,12 @@ class EventLogger:
         angle_name: Optional[str] = None,
         price: Optional[float] = None,
         direction: Optional[str] = None,
-        details: Optional[Dict] = None
+        details: Optional[Dict] = None,
+        open_price: Optional[float] = None,
+        high_price: Optional[float] = None,
+        low_price: Optional[float] = None,
+        close_price: Optional[float] = None,
+        active_angle_prices: Optional[Dict[str, float]] = None
     ) -> Event:
         """
         Log a generic event.
@@ -119,6 +139,11 @@ class EventLogger:
             price: Price at event
             direction: Direction of movement
             details: Additional details
+            open_price: Candle Open
+            high_price: Candle High
+            low_price: Candle Low
+            close_price: Candle Close
+            active_angle_prices: Dictionary of all current angle prices for the fan
             
         Returns:
             The logged Event object
@@ -129,7 +154,12 @@ class EventLogger:
             angle_name=angle_name,
             price=price,
             direction=direction,
-            details=details
+            details=details,
+            open_price=open_price,
+            high_price=high_price,
+            low_price=low_price,
+            close_price=close_price,
+            active_angle_prices=active_angle_prices
         )
         self.events.append(event)
         return event
@@ -408,7 +438,7 @@ class EventLogger:
             if event.details and 'ui_details' in event.details:
                 details_str = str(event.details['ui_details']).replace(',', ';')
                 
-            row = {
+                row = {
                 "#": len(rows) + 1,
                 "Time": dt_str,
                 "Fan": fan_id,
@@ -416,6 +446,11 @@ class EventLogger:
                 "Price": round(event.price, 2) if event.price else "",
                 "Type": display_type,
                 "Details": details_str,
+                "Open": round(event.open_price, 2) if event.open_price is not None else "",
+                "High": round(event.high_price, 2) if event.high_price is not None else "",
+                "Low": round(event.low_price, 2) if event.low_price is not None else "",
+                "Close": round(event.close_price, 2) if event.close_price is not None else "",
+                "Active_Angles": json.dumps({k: round(v, 2) for k, v in event.active_angle_prices.items()}) if event.active_angle_prices else "",
                 # Keep these for analysis but place them after main columns
                 "MFE_10": round(event.mfe_10, 2) if event.mfe_10 is not None else "",
                 "MAE_10": round(event.mae_10, 2) if event.mae_10 is not None else "",
@@ -430,6 +465,7 @@ class EventLogger:
         if rows:
             # strictly ordered headers to match frontend first
             fieldnames = ["#", "Time", "Fan", "Fraction", "Price", "Type", "Details", 
+                          "Open", "High", "Low", "Close", "Active_Angles",
                           "MFE_10", "MAE_10", "MFE_20", "MAE_20", "Raw_Timestamp", "Direction"]
             
             with open(path, 'w', newline='') as f:

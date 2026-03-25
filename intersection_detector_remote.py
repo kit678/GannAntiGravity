@@ -2,7 +2,7 @@ import math
 from typing import Dict, List, Any, Set, Tuple
 
 class IntersectionEvent:
-    def __init__(self, fan_id: str, line_id: str, priority_label: str, fraction: Any, time: int, price: float, hit_type: str = 'cross'):
+    def __init__(self, fan_id: str, line_id: str, priority_label: str, fraction: float, time: int, price: float, hit_type: str = 'cross'):
         self.fan_id = fan_id
         self.line_id = line_id
         self.priority_label = priority_label
@@ -50,15 +50,7 @@ class IntersectionDetector:
         
         for fan_id, fan in active_fans.items():
             for line in fan.lines:
-                if line.fraction is not None:
-                    frac_str = str(line.fraction)
-                    hit_frac = line.fraction
-                elif "htarget" in line.id:
-                    frac_str = "horizontal"
-                    hit_frac = "horizontal"
-                else:
-                    frac_str = "main"
-                    hit_frac = "main"
+                frac_str = f"{line.fraction}" if line.fraction is not None else "main"
                 
                 # 1. Skip if candle is BEFORE the line's start
                 if c_time < line.start_time:
@@ -94,26 +86,20 @@ class IntersectionDetector:
                     gap = 0
                     gap_dir = "HIT"
                 
-                # Calculate prev_line_price for accurate event classification
-                prev_line_price = line.start_price + (bars_from_origin - 1) * slope_per_bar
-                
                 # Log every fractional line check (verbose but essential for debugging)
                 print(f"  [{fan.priority_label}] {frac_str}: lineP={line_price_at_t:.2f} | bars_from_origin={bars_from_origin:.1f} slope={slope_per_bar:.4f} | {gap_dir} gap={gap:.2f}")
                 
                 # 3. Collision Check (Bounding Box)
-                # For horizontal targets, we can add a small 0.01 buffer to catch exact touches
-                buffer = 0.01 if hit_frac == 'horizontal' else 0.0
-                if (c_low - buffer) <= line_price_at_t <= (c_high + buffer):
+                if c_low <= line_price_at_t <= c_high:
                     hit_event = IntersectionEvent(
                         fan_id=fan.id,
                         line_id=line.id,
                         priority_label=fan.priority_label,
-                        fraction=hit_frac,
+                        fraction=line.fraction,
                         time=c_time,
                         price=line_price_at_t,
                         hit_type='cross'
                     )
-                    hit_event.prev_price = prev_line_price
                     events.append(hit_event)
                     self._processed_hits.add(tracking_key)
                     print(f"    >>> HIT RECORDED: {fan.priority_label} frac={frac_str} @ {line_price_at_t:.2f}")
@@ -160,8 +146,8 @@ class IntersectionDetector:
         import datetime
         events = []
         
-        # Process all bars from anchor+1 to current-1 (exclude anchor and current bar)
-        for bar_idx in range(anchor_bar_idx + 1, current_bar_idx):
+        # Process all bars from anchor to current-1 (exclude current bar as it's already processed)
+        for bar_idx in range(anchor_bar_idx, current_bar_idx):
             if bar_idx >= len(candles):
                 break
                 
@@ -172,15 +158,7 @@ class IntersectionDetector:
             c_close = float(candle.get('close', 0))
             
             for line in fan.lines:
-                if line.fraction is not None:
-                    frac_str = str(line.fraction)
-                    hit_frac = line.fraction
-                elif "htarget" in line.id:
-                    frac_str = "horizontal"
-                    hit_frac = "horizontal"
-                else:
-                    frac_str = "main"
-                    hit_frac = "main"
+                frac_str = f"{line.fraction}" if line.fraction is not None else "main"
                 
                 # Skip if candle is BEFORE the line's start
                 if c_time < line.start_time:
@@ -203,21 +181,18 @@ class IntersectionDetector:
                 slope_per_bar = (line.end_price - line.start_price) / bar_span
                 bars_from_origin = bar_idx - line.start_bar_index
                 line_price_at_t = line.start_price + bars_from_origin * slope_per_bar
-                prev_line_price = line.start_price + (bars_from_origin - 1) * slope_per_bar
                 
                 # Collision Check (Bounding Box)
-                buffer = 0.01 if hit_frac == 'horizontal' else 0.0
-                if (c_low - buffer) <= line_price_at_t <= (c_high + buffer):
+                if c_low <= line_price_at_t <= c_high:
                     hit_event = IntersectionEvent(
                         fan_id=fan.id,
                         line_id=line.id,
                         priority_label=fan.priority_label,
-                        fraction=hit_frac,
+                        fraction=line.fraction,
                         time=c_time,
                         price=line_price_at_t,
                         hit_type='cross'
                     )
-                    hit_event.prev_price = prev_line_price
                     events.append(hit_event)
                     self._processed_hits.add(tracking_key)
                     ts_str = datetime.datetime.fromtimestamp(c_time).strftime('%Y-%m-%d %H:%M')

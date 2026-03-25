@@ -1,0 +1,52 @@
+2026-03-25 23:03:30,375 [INFO] Logging initialized. Output writing to C:\Dev\GannTesting\gann-visualizer\backend\logs\backend_session_20260325_230330.log
+2026-03-25 23:03:30,375 [INFO] Successfully loaded ticker configuration from C:\Dev\GannTesting\gann-visualizer\backend\ticker_config.json
+2026-03-25 23:03:30,376 [INFO] --- BACKEND RESTART v4 - PNL TRACKING ---
+2026-03-25 23:03:30,376 [INFO] Middleware Stack: [Middleware(BaseHTTPMiddleware, dispatch=<function cors_middleware at 0x0000022939BA6340>)]
+2026-03-25 23:03:31,928 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
+2026-03-25 23:03:31,934 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
+2026-03-25 23:03:32,025 [INFO] [YFinance] Client initialized
+2026-03-25 23:03:32,026 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
+2026-03-25 23:03:32,078 [INFO] 
+2026-03-25 23:03:32,078 [INFO] ============================================================
+2026-03-25 23:03:32,079 [INFO] [UDF_HISTORY] === NEW REQUEST ===
+2026-03-25 23:03:32,079 [INFO] [UDF_HISTORY] symbol=^NSEI:YF, resolution=1
+2026-03-25 23:03:32,079 [INFO] [UDF_HISTORY] from_=1774390952, to=1774460072, data_source=yfinance
+2026-03-25 23:03:32,079 [INFO] ============================================================
+2026-03-25 23:03:32,079 [INFO] [YFinance] Client initialized
+2026-03-25 23:03:32,081 [INFO] 
+2026-03-25 23:03:32,082 [INFO] ============================================================
+2026-03-25 23:03:32,082 [INFO] [UDF_HISTORY] INCOMING REQUEST
+2026-03-25 23:03:32,082 [INFO]   Symbol: ^NSEI
+2026-03-25 23:03:32,082 [INFO]   Data Source: yfinance
+2026-03-25 23:03:32,082 [INFO]   Resolution: 1
+2026-03-25 23:03:32,082 [INFO]   From (Unix): 1774390952 -> 2026-03-25 03:52:32
+2026-03-25 23:03:32,083 [INFO]   To (Unix): 1774460072 -> 2026-03-25 23:04:32
+2026-03-25 23:03:32,083 [INFO] ============================================================
+2026-03-25 23:03:32,083 [INFO] [UDF_HISTORY] Calling client.fetch_data(^NSEI, 2026-03-25 03:52:32, 2026-03-25 23:04:32, interval=1)
+2026-03-25 23:03:32,083 [INFO] Cache MISS: ^NSEI:1:2026-03-25 03:52:32:2026-03-25 23:04:32
+2026-03-25 23:03:32,083 [INFO] [YFinance] Fetching ^NSEI | interval=1 -> 1m | 2026-03-25 03:52:32 to 2026-03-25 23:04:32
+2026-03-25 23:03:32,084 [INFO] [YFinance] Using period=8d to get maximum available 1m data
+2026-03-25 23:03:33,341 [INFO] [YFinance] Received 3000 bars
+2026-03-25 23:03:33,358 [INFO] [YFinance] Returning 3000 bars, range: 2026-03-16 09:15:00 to 2026-03-25 15:29:00
+2026-03-25 23:03:33,358 [INFO] Cache PUT: ^NSEI:1:2026-03-25 03:52:32:2026-03-25 23:04:32 (TTL: 300.0s, 3000 rows)
+2026-03-25 23:03:33,359 [INFO] [UDF_HISTORY] fetch_data returned: type=<class 'pandas.core.frame.DataFrame'>, empty=False
+2026-03-25 23:03:33,359 [INFO] [UDF_HISTORY] Raw data shape: (3000, 6), columns: ['timestamp', 'open', 'high', 'low', 'close', 'volume']
+2026-03-25 23:03:33,360 [INFO] [UDF_HISTORY] Raw timestamp range: 1773632700 - 1774432740
+2026-03-25 23:03:33,361 [INFO] [UDF_HISTORY] Raw date range: 2026-03-16 09:15:00 - 2026-03-25 15:29:00
+2026-03-25 23:03:33,361 [INFO] DEBUG: fetch_data result type: <class 'pandas.core.frame.DataFrame'>
+2026-03-25 23:03:33,361 [INFO] DEBUG: fetch_data result shape: (3000, 6)
+2026-03-25 23:03:33,370 [INFO] DEBUG: Data Head:
+2026-03-25 23:03:33,371 [INFO]     timestamp          open  ...         close  volume
+2026-03-25 23:03:33,371 [INFO] 0  1773632700  23125.650391  ...  23155.349609       0
+2026-03-25 23:03:33,371 [INFO] 1  1773632760  23166.900391  ...  23133.000000       0
+2026-03-25 23:03:33,372 [INFO] 
+2026-03-25 23:03:33,372 [INFO] [2 rows x 6 columns]
+2026-03-25 23:03:33,373 [INFO] DEBUG: from_=1774390952 (2026-03-25 03:52:32)
+2026-03-25 23:03:33,373 [INFO] DEBUG: to=1774460072 (2026-03-25 23:04:32)
+2026-03-25 23:03:33,374 [INFO] DEBUG: df['timestamp'] dtype=int64
+2026-03-25 23:03:33,375 [INFO] DEBUG: df timestamp range: 1773632700 - 1774432740
+2026-03-25 23:03:33,376 [INFO] DEBUG: df timestamp as dates: 2026-03-16T09:15:00 - 2026-03-25T15:29:00
+2026-03-25 23:03:33,377 [INFO] [LazyLoadFix] Intraday interval (1). Returning all 3000 bars without filtering.
+2026-03-25 23:03:33,377 [INFO] PAGINATION: Returning 3000 bars for ^NSEI (1)
+2026-03-25 23:03:33,415 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
+2026-03-25 23:03:33,436 [INFO] DEBUG CORS: Origin header received: 'http://localhost:5173'
