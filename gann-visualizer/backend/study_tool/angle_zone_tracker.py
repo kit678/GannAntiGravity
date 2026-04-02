@@ -18,12 +18,15 @@ class ZoneSnapshot:
     bar_index: int
     timestamp: int
     current_price: float          # close price of the candle
-    zone: str                     # e.g. "below_7_8", "between_7_8_and_3_4", "above_1_4"
+    zone: str                     # e.g. "7/8_zone", "7/8-3/4", "3/4_zone"
     nearest_angle_above: Optional[str]   # fraction label of nearest angle above, e.g. "7/8"
     nearest_angle_below: Optional[str]   # fraction label of nearest angle below, e.g. None
     distance_to_above: Optional[float]   # price distance to nearest angle above
     distance_to_below: Optional[float]   # price distance to nearest angle below
     angle_prices: Dict[str, float]       # all angle line prices at this bar: {"7/8": 100.5, ...}
+    zone_highest_close: Optional[float] = None  # maximum close while in this zone
+    zone_lowest_close: Optional[float] = None   # minimum close while in this zone
+    bars_in_zone: int = 0                # how many bars spent in this zone
 
     def to_dict(self) -> Dict[str, Any]:
         return asdict(self)
@@ -47,9 +50,10 @@ TRACKED_FRACTIONS = [0.875, 0.75, 0.5, 0.25]  # 7/8, 3/4, 1/2, 1/4
 
 def _fraction_label(frac: float) -> str:
     """Convert a fraction float to its human-readable label."""
-    if frac in FRACTION_LABELS:
-        return FRACTION_LABELS[frac]
-    return f"{frac:.3f}"
+    frac_float = float(frac)
+    if frac_float in FRACTION_LABELS:
+        return FRACTION_LABELS[frac_float]
+    return f"{frac_float:.3f}"
 
 
 def _line_price_at_bar(line, current_bar_idx: int) -> Optional[float]:
@@ -68,19 +72,21 @@ def _line_price_at_bar(line, current_bar_idx: int) -> Optional[float]:
 class AngleZoneTracker:
     """
     Tracks which zone the price sits in relative to each fan's angle divisions.
-    
-    Zones are defined by the ordered angle division lines. For a fan radiating
-    downward from a high (bearish context), the zones from top to bottom are:
-        above_7_8 → between_7_8_and_3_4 → between_3_4_and_1_2 → 
-        between_1_2_and_1_4 → below_1_4
-    
-    For a fan radiating upward from a low (bullish context), the zones are
-    the mirror: below_7_8 is the starting zone.
+
+    Zones are defined by the ordered angle division lines. Simplified naming:
+        "7/8_zone" → "7/8-3/4" → "3/4-1/2" → "1/2-1/4" → "1/4_zone"
+
+    Zone extremes track the highest and lowest CLOSE prices within each zone,
+    not the wick extremes.
     """
 
     def __init__(self):
         # Per-fan zone history: fan_id -> last ZoneSnapshot
         self._last_zones: Dict[str, ZoneSnapshot] = {}
+        # Per-fan structural extremes for the current zone
+        self._zone_extremes: Dict[str, Dict[str, float]] = {}
+        # Per-fan entry bar index for calculating velocity
+        self._zone_entry_bars: Dict[str, int] = {}
         self._zone_changed: bool = False
 
     def compute_snapshot(
@@ -100,8 +106,8 @@ class AngleZoneTracker:
         Returns:
             ZoneSnapshot describing price position relative to angles
         """
-        close_price = float(current_candle.get('close', 0))
-        timestamp = int(current_candle.get('time', 0))
+        close_price = float(current_candle.get('close', current_candle.get('Close', 0)))
+        timestamp = int(current_candle.get('time', current_candle.get('Time', 0)))
 
         # Compute all angle line prices at this bar
         angle_prices: Dict[str, float] = {}
@@ -144,6 +150,31 @@ class AngleZoneTracker:
                     nearest_below = label
                     dist_below = close_price - price
 
+        # Check zone change BEFORE updating _last_zones
+        previous = self._last_zones.get(fan.id)
+        self._zone_changed = (previous is None or previous.zone != zone)
+
+        # Track close price extremes (not wick extremes)
+        candle_high = float(current_candle.get('High', current_candle.get('high', close_price)))
+        candle_low = float(current_candle.get('Low', current_candle.get('low', close_price)))
+        candle_close = close_price
+
+        # Calculate bars spent in the current zone (including current bar)
+        bars_spent = 0
+        if fan.id in self._zone_entry_bars:
+            bars_spent = current_bar_idx - self._zone_entry_bars[fan.id] + 1
+
+        if self._zone_changed or fan.id not in self._zone_extremes:
+            # Reset extremes for new zone
+            self._zone_extremes[fan.id] = {'highest_close': candle_close, 'lowest_close': candle_close}
+            self._zone_entry_bars[fan.id] = current_bar_idx
+            bars_spent = 1  # First bar in zone counts as 1
+        else:
+            # Update extremes for current zone using CLOSE prices
+            self._zone_extremes[fan.id]['highest_close'] = max(self._zone_extremes[fan.id]['highest_close'], candle_close)
+            self._zone_extremes[fan.id]['lowest_close'] = min(self._zone_extremes[fan.id]['lowest_close'], candle_close)
+            bars_spent = current_bar_idx - self._zone_entry_bars[fan.id] + 1
+
         snapshot = ZoneSnapshot(
             fan_id=fan.id,
             bar_index=current_bar_idx,
@@ -155,14 +186,20 @@ class AngleZoneTracker:
             distance_to_above=dist_above,
             distance_to_below=dist_below,
             angle_prices=angle_prices,
+            zone_highest_close=self._zone_extremes[fan.id]['highest_close'],
+            zone_lowest_close=self._zone_extremes[fan.id]['lowest_close'],
+            bars_in_zone=bars_spent
         )
-
-        # Check zone change BEFORE updating _last_zones
-        previous = self._last_zones.get(fan.id)
-        self._zone_changed = (previous is None or previous.zone != zone)
 
         # Track zone — update last known zone
         self._last_zones[fan.id] = snapshot
+        
+        if not hasattr(self, '_historical_zones'):
+            self._historical_zones = {}
+        if fan.id not in self._historical_zones:
+            self._historical_zones[fan.id] = {}
+        self._historical_zones[fan.id][current_bar_idx] = snapshot
+        
         return snapshot
 
     def _determine_zone(
@@ -172,27 +209,30 @@ class AngleZoneTracker:
     ) -> str:
         """
         Determine which zone the price is in, given sorted (label, price) levels.
-        
+
         The sorted_levels are in ascending price order.
-        Zone naming: "below_{lowest}", "between_{a}_and_{b}", "above_{highest}"
+        Zone naming simplified:
+        - Below lowest angle: "{label}_zone" (e.g., "7/8_zone")
+        - Between two angles: "{lower}-{upper}" (e.g., "7/8-3/4")
+        - Above highest angle: "{label}_zone" (e.g., "1/4_zone")
         """
         if not sorted_levels:
             return "unknown"
 
-        # Check if below all
+        # Below lowest angle
         if price < sorted_levels[0][1]:
-            return f"below_{sorted_levels[0][0]}"
+            return f"{sorted_levels[0][0]}_zone"
 
-        # Check if above all
+        # Above highest angle
         if price > sorted_levels[-1][1]:
-            return f"above_{sorted_levels[-1][0]}"
+            return f"{sorted_levels[-1][0]}_zone"
 
         # Find which pair the price is between
         for i in range(len(sorted_levels) - 1):
             lower_label, lower_price = sorted_levels[i]
             upper_label, upper_price = sorted_levels[i + 1]
             if lower_price <= price <= upper_price:
-                return f"between_{lower_label}_and_{upper_label}"
+                return f"{lower_label}-{upper_label}"
 
         return "unknown"
 
@@ -211,25 +251,51 @@ class AngleZoneTracker:
         """Get the last computed zone snapshot for a fan."""
         return self._last_zones.get(fan_id)
 
+    def get_zone_at_bar(self, fan_id: str, bar_index: int) -> Optional[ZoneSnapshot]:
+        """Get the zone snapshot for a specific historical bar."""
+        if hasattr(self, '_historical_zones') and fan_id in self._historical_zones:
+            return self._historical_zones[fan_id].get(bar_index)
+        return None
+
     def remove_fan(self, fan_id: str):
         """Clean up tracking when a fan is removed."""
         self._last_zones.pop(fan_id, None)
+        self._zone_extremes.pop(fan_id, None)
+        self._zone_entry_bars.pop(fan_id, None)
+        if hasattr(self, '_historical_zones'):
+            self._historical_zones.pop(fan_id, None)
 
     def reset(self):
         """Clear all tracking state."""
         self._last_zones.clear()
+        self._zone_extremes.clear()
+        self._zone_entry_bars.clear()
 
     def get_state(self) -> Dict[str, Any]:
         """Serialize state for replay persistence."""
         return {
             'last_zones': {
                 fid: snap.to_dict() for fid, snap in self._last_zones.items()
+            },
+            'zone_extremes': self._zone_extremes,
+            'zone_entry_bars': self._zone_entry_bars,
+            'historical_zones': {
+                fid: {str(k): v.to_dict() for k, v in history.items()}
+                for fid, history in getattr(self, '_historical_zones', {}).items()
             }
         }
 
     def restore_state(self, state: Dict[str, Any]):
-        """Restore state from serialized form."""
+        """Restore state from persistence."""
         self._last_zones.clear()
-        if 'last_zones' in state:
-            for fid, snap_dict in state['last_zones'].items():
-                self._last_zones[fid] = ZoneSnapshot(**snap_dict)
+        for fid, snap_dict in state.get('last_zones', {}).items():
+            self._last_zones[fid] = ZoneSnapshot(**snap_dict)
+            
+        self._zone_extremes = state.get('zone_extremes', {})
+        self._zone_entry_bars = state.get('zone_entry_bars', {})
+        
+        self._historical_zones = {}
+        for fid, history_dict in state.get('historical_zones', {}).items():
+            self._historical_zones[fid] = {
+                int(k): ZoneSnapshot(**v) for k, v in history_dict.items()
+            }

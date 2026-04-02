@@ -18,6 +18,8 @@ Special rules:
 from dataclasses import dataclass, asdict, field
 from typing import Dict, List, Any, Optional
 
+TARGET_SEQUENCE = ['7/8', '0.875', '0.75', '0.5', '0.25']
+
 
 @dataclass
 class TargetHit:
@@ -49,6 +51,7 @@ class FanTargetState:
     horizontal_target_price: Optional[float] = None  # price level of horizontal
     full_coverage_target_price: Optional[float] = None  # other pivot's price
     completed: bool = False                     # all targets hit
+    last_touched_line: Optional[str] = None     # last angle line touched/crossed
 
     def to_dict(self) -> Dict[str, Any]:
         return asdict(self)
@@ -190,6 +193,51 @@ class TargetProgression:
             
         return False
 
+    def _get_next_line_in_sequence(self, current_line: str, direction: str) -> Optional[str]:
+        """
+        Get the next line in the sequence after the current one.
+        For CROSS_UP: returns the line above (next in sequence)
+        For CROSS_DOWN: returns the line below (previous in sequence)
+        """
+        try:
+            idx = TARGET_SEQUENCE.index(current_line)
+            if direction == 'up' and idx + 1 < len(TARGET_SEQUENCE):
+                return TARGET_SEQUENCE[idx + 1]
+            elif direction == 'down' and idx > 0:
+                return TARGET_SEQUENCE[idx - 1]
+        except ValueError:
+            pass
+        return None
+
+    def on_angle_touched(
+        self,
+        fan_id: str,
+        angle_name: str,
+        bar_index: int,
+        event_type: str = None
+    ):
+        """
+        Called on ANY intersection event (TEST, CROSS, TOUCH).
+        Updates last_touched_line to track the current zone boundary.
+        
+        For CROSS_UP: sets to next line ABOVE (price crossed into next zone)
+        For CROSS_DOWN: sets to next line BELOW (price crossed into next zone)
+        For other events: sets to the touched line (price approaching this line)
+        """
+        state = self._fan_states.get(fan_id)
+        if state is None:
+            return
+
+        if event_type in ('CROSS_UP', 'CROSS_DOWN'):
+            direction = 'up' if event_type == 'CROSS_UP' else 'down'
+            next_line = self._get_next_line_in_sequence(angle_name, direction)
+            if next_line:
+                state.last_touched_line = next_line
+            else:
+                state.last_touched_line = angle_name
+        else:
+            state.last_touched_line = angle_name
+
     def _advance_target(self, state: FanTargetState, just_hit: str):
         """Advance to the next target based on what was just hit."""
         if state.targets_remaining:
@@ -273,6 +321,44 @@ class TargetProgression:
         """Get the current target angle for a fan."""
         state = self._fan_states.get(fan_id)
         return state.current_target if state else None
+
+    def get_target_info(self, fan_id: str) -> Dict[str, Any]:
+        """
+        Get comprehensive target tracking info for a fan.
+
+        Returns a dict with:
+        - next_angle_line: The last angle line touched/crossed (zone boundary tracker)
+        - current_target: The angle we're working towards (e.g., "3/4") — for progression tracking
+        - targets_remaining: List of remaining target names
+        - progress: String describing progress (e.g., "7/8 → 3/4 → 1/2")
+        """
+        state = self._fan_states.get(fan_id)
+        if not state:
+            return {
+                'next_angle_line': None,
+                'current_target': None,
+                'targets_remaining': [],
+                'progress': 'Not registered'
+            }
+
+        # Build progress string
+        if state.targets_hit:
+            progress = " → ".join(state.targets_hit)
+            if state.current_target:
+                progress += f" → {state.current_target}"
+        elif state.current_target:
+            progress = f"Start → {state.current_target}"
+        else:
+            progress = "Complete" if state.completed else "Not started"
+
+        return {
+            'next_angle_line': state.last_touched_line,
+            'current_target': state.current_target,
+            'targets_remaining': list(state.targets_remaining),
+            'progress': progress,
+            'is_validated': state.is_validated,
+            'completed': state.completed
+        }
 
     def is_fan_completed(self, fan_id: str) -> bool:
         """Check if a fan has completed all its targets."""

@@ -57,22 +57,31 @@ class Event:
     price: Optional[float] = None
     direction: Optional[str] = None  # "up", "down"
     details: Optional[Dict] = None
-    
+
     # OHLC data for the bar where the event occurred
     open_price: Optional[float] = None
     high_price: Optional[float] = None
     low_price: Optional[float] = None
     close_price: Optional[float] = None
-    
+
     # Angle prices snapshot (all active lines for the fan at this bar)
     active_angle_prices: Optional[Dict[str, float]] = None
-    
+
+    # Contextual Structural Data
+    cluster_state: Optional[bool] = False
+    current_zone: Optional[str] = None
+    zone_highest_close: Optional[float] = None
+    zone_lowest_close: Optional[float] = None
+
+    # Target Progression Info
+    next_angle_line: Optional[str] = None
+
     # Forward-looking outcomes (populated post-simulation)
     mfe_10: Optional[float] = None  # Max Favorable Excursion (next 10 bars)
     mae_10: Optional[float] = None  # Max Adverse Excursion (next 10 bars)
     mfe_20: Optional[float] = None  # Max Favorable Excursion (next 20 bars)
     mae_20: Optional[float] = None  # Max Adverse Excursion (next 20 bars)
-    
+
     def to_dict(self) -> Dict:
         return {
             "timestamp": self.timestamp,
@@ -86,12 +95,50 @@ class Event:
             "low": self.low_price,
             "close": self.close_price,
             "active_angle_prices": self.active_angle_prices or {},
+            "cluster_state": self.cluster_state,
+            "current_zone": self.current_zone,
+            "zone_highest_close": self.zone_highest_close,
+            "zone_lowest_close": self.zone_lowest_close,
+            "next_angle_line": self.next_angle_line,
             "mfe_10": self.mfe_10,
             "mae_10": self.mae_10,
             "mfe_20": self.mfe_20,
             "mae_20": self.mae_20,
             "details": self.details or {}
         }
+
+    @classmethod
+    def from_dict(cls, data: Dict) -> 'Event':
+        event = cls()
+        event.timestamp = data.get("timestamp")
+        
+        # Handle event_type conversion
+        evt_type_val = data.get("event_type")
+        try:
+            event.event_type = EventType(evt_type_val)
+        except ValueError:
+            # Fallback if somehow invalid
+            event.event_type = EventType.TOUCH
+            
+        event.angle_name = data.get("angle_name")
+        event.price = data.get("price")
+        event.direction = data.get("direction")
+        event.open_price = data.get("open")
+        event.high_price = data.get("high")
+        event.low_price = data.get("low")
+        event.close_price = data.get("close")
+        event.active_angle_prices = data.get("active_angle_prices", {})
+        event.cluster_state = data.get("cluster_state", False)
+        event.current_zone = data.get("current_zone")
+        event.zone_highest_close = data.get("zone_highest_close")
+        event.zone_lowest_close = data.get("zone_lowest_close")
+        event.next_angle_line = data.get("next_angle_line")
+        event.mfe_10 = data.get("mfe_10")
+        event.mae_10 = data.get("mae_10")
+        event.mfe_20 = data.get("mfe_20")
+        event.mae_20 = data.get("mae_20")
+        event.details = data.get("details", {})
+        return event
 
 
 class EventLogger:
@@ -127,11 +174,16 @@ class EventLogger:
         high_price: Optional[float] = None,
         low_price: Optional[float] = None,
         close_price: Optional[float] = None,
-        active_angle_prices: Optional[Dict[str, float]] = None
+        active_angle_prices: Optional[Dict[str, float]] = None,
+        cluster_state: Optional[bool] = False,
+        current_zone: Optional[str] = None,
+        zone_highest_close: Optional[float] = None,
+        zone_lowest_close: Optional[float] = None,
+        next_angle_line: Optional[str] = None
     ) -> Event:
         """
         Log a generic event.
-        
+
         Args:
             timestamp: Bar timestamp
             event_type: Type of event
@@ -144,7 +196,12 @@ class EventLogger:
             low_price: Candle Low
             close_price: Candle Close
             active_angle_prices: Dictionary of all current angle prices for the fan
-            
+            cluster_state: Whether price is in a cluster/consolidation
+            current_zone: The zone the price is in
+            zone_highest_close: Highest close price within the zone
+            zone_lowest_close: Lowest close price within the zone
+            next_angle_line: Last angle line touched/crossed
+
         Returns:
             The logged Event object
         """
@@ -159,7 +216,12 @@ class EventLogger:
             high_price=high_price,
             low_price=low_price,
             close_price=close_price,
-            active_angle_prices=active_angle_prices
+            active_angle_prices=active_angle_prices,
+            cluster_state=cluster_state,
+            current_zone=current_zone,
+            zone_highest_close=zone_highest_close,
+            zone_lowest_close=zone_lowest_close,
+            next_angle_line=next_angle_line
         )
         self.events.append(event)
         return event
@@ -324,7 +386,9 @@ class EventLogger:
             "total_events": len(self.events),
             "events_by_type": {},
             "events_by_angle": {},
-            "breach_directions": {"up": 0, "down": 0}
+            "breach_directions": {"up": 0, "down": 0},
+            "cluster_stats": {"in_cluster": 0, "out_cluster": 0},
+            "vacuum_zones": {} # Tracking velocity between zones
         }
         
         for event in self.events:
@@ -340,6 +404,19 @@ class EventLogger:
             # Count breach directions
             if event.event_type == EventType.ANGLE_BREACH and event.direction:
                 stats["breach_directions"][event.direction] += 1
+                
+            # Count cluster state
+            if event.cluster_state:
+                stats["cluster_stats"]["in_cluster"] += 1
+            else:
+                stats["cluster_stats"]["out_cluster"] += 1
+                
+            # Time-Decay and Vacuum tracking can be extrapolated from ZONE_CHANGE events
+            if event.event_type == EventType.ZONE_CHANGE and event.current_zone:
+                zone_name = event.current_zone
+                if zone_name not in stats["vacuum_zones"]:
+                    stats["vacuum_zones"][zone_name] = 0
+                stats["vacuum_zones"][zone_name] += 1
         
         return stats
     
@@ -437,8 +514,10 @@ class EventLogger:
             details_str = ""
             if event.details and 'ui_details' in event.details:
                 details_str = str(event.details['ui_details']).replace(',', ';')
-                
-                row = {
+            elif event.details and 'details' in event.details:
+                details_str = str(event.details['details']).replace(',', ';')
+
+            row = {
                 "#": len(rows) + 1,
                 "Time": dt_str,
                 "Fan": fan_id,
@@ -451,6 +530,11 @@ class EventLogger:
                 "Low": round(event.low_price, 2) if event.low_price is not None else "",
                 "Close": round(event.close_price, 2) if event.close_price is not None else "",
                 "Active_Angles": json.dumps({k: round(v, 2) for k, v in event.active_angle_prices.items()}) if event.active_angle_prices else "",
+                "Cluster": event.cluster_state,
+                "Zone": event.current_zone or "",
+                "Zone_Highest_Close": round(event.zone_highest_close, 2) if event.zone_highest_close is not None else "",
+                "Zone_Lowest_Close": round(event.zone_lowest_close, 2) if event.zone_lowest_close is not None else "",
+                "Next_Angle_Line": event.next_angle_line or "",
                 # Keep these for analysis but place them after main columns
                 "MFE_10": round(event.mfe_10, 2) if event.mfe_10 is not None else "",
                 "MAE_10": round(event.mae_10, 2) if event.mae_10 is not None else "",
@@ -459,13 +543,15 @@ class EventLogger:
                 "Raw_Timestamp": event.timestamp,
                 "Direction": event.direction or ""
             }
-                        
+
             rows.append(row)
         
         if rows:
             # strictly ordered headers to match frontend first
-            fieldnames = ["#", "Time", "Fan", "Fraction", "Price", "Type", "Details", 
+            fieldnames = ["#", "Time", "Fan", "Fraction", "Price", "Type", "Details",
                           "Open", "High", "Low", "Close", "Active_Angles",
+                          "Cluster", "Zone", "Zone_Highest_Close", "Zone_Lowest_Close",
+                          "Next_Angle_Line",
                           "MFE_10", "MAE_10", "MFE_20", "MAE_20", "Raw_Timestamp", "Direction"]
             
             with open(path, 'w', newline='') as f:

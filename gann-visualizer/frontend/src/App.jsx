@@ -72,7 +72,32 @@ function App() {
     const [isResizing, setIsResizing] = useState(false)
     const [bottomPanelTab, setBottomPanelTab] = useState('backtest') // 'backtest' | 'interactions'
     const [priceInteractions, setPriceInteractions] = useState([]) // Live interaction log
+    const [selectedInteractionIndex, setSelectedInteractionIndex] = useState(0) // Track selected interaction
     const [isChartPlaying, setIsChartPlaying] = useState(false)
+
+    // Reset selected interaction when filter changes
+    useEffect(() => {
+        setSelectedInteractionIndex(0);
+    }, [filterFan]);
+
+    // Handle keyboard navigation for interactions table
+    useEffect(() => {
+        if (bottomPanelTab !== 'interactions' || priceInteractions.length === 0) return;
+
+        const handleKeyDown = (e) => {
+            if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                setSelectedInteractionIndex(prev => Math.max(0, prev - 1));
+            } else if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                const filteredCount = priceInteractions.filter(hit => filterFan === 'all' || (hit.fanIdentity || hit.fan) === filterFan).length;
+                setSelectedInteractionIndex(prev => Math.min(filteredCount - 1, prev + 1));
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [bottomPanelTab, priceInteractions, filterFan]);
 
     // Replay Toolbar Position State
     const [replayPos, setReplayPos] = useState({ x: window.innerWidth / 2 - 300, y: window.innerHeight - 200 });
@@ -366,6 +391,9 @@ function App() {
         };
     }, [handleResizeMove, handleResizeEnd]); // Dependency updated to handle stable callbacks
 
+    const filteredInteractions = priceInteractions.filter(hit => filterFan === 'all' || (hit.fanIdentity || hit.fan) === filterFan);
+    const selectedInteraction = filteredInteractions[selectedInteractionIndex] || null;
+
     return (
         <div className="app-container">
             <header className="app-header">
@@ -486,6 +514,7 @@ function App() {
                         visibleFanLabels={visibleFanLabels}
                         onAvailableFansUpdated={setAvailableFanLabels}
                         onPlayingStateChange={setIsChartPlaying}
+                        selectedInteraction={selectedInteraction}
                         onAutoEnableVisibility={(newIds) => setVisibleFanLabels(prev => [...new Set([...prev, ...newIds])])}
                         onPriceInteraction={(hit) => {
                             console.log("[App] Received interaction:", hit);
@@ -597,7 +626,7 @@ function App() {
                                                 <button 
                                                     onClick={() => {
                                                         const rows = [
-                                                            ['#', 'Time', 'Fan', 'Fraction', 'Price', 'Type', 'Details', 'Open', 'High', 'Low', 'Close', 'Active Angles']
+                                                            ['#', 'Time', 'Fan', 'Fraction', 'Price', 'Type', 'Details', 'Open', 'High', 'Low', 'Close', 'Cluster', 'Zone', 'Zone Extremes', 'Next Angle Line', 'Active Angles']
                                                         ];
                                                         priceInteractions.filter(hit => filterFan === 'all' || (hit.fanIdentity || hit.fan) === filterFan).forEach((hit, i) => {
                                                             rows.push([
@@ -612,6 +641,12 @@ function App() {
                                                                 hit.high != null ? hit.high.toFixed(2) : '-',
                                                                 hit.low != null ? hit.low.toFixed(2) : '-',
                                                                 hit.close != null ? hit.close.toFixed(2) : '-',
+                                                                hit.cluster ? 'Yes' : 'No',
+                                                                hit.zone || '-',
+                                                                hit.zoneExtremes && hit.zoneExtremes.highest_close
+                                                                    ? `${hit.zoneExtremes.lowest_close?.toFixed(2)} - ${hit.zoneExtremes.highest_close?.toFixed(2)}`
+                                                                    : '-',
+                                                                hit.nextAngleLine || '-',
                                                                 hit.activeAngles ? JSON.stringify(hit.activeAngles).replace(/,/g, ';') : ''
                                                             ]);
                                                         });
@@ -632,7 +667,7 @@ function App() {
                                                 <button 
                                                     onClick={() => {
                                                         const rows = [
-                                                            ['#', 'Time', 'Fan', 'Fraction', 'Price', 'Type', 'Details', 'Open', 'High', 'Low', 'Close', 'Active Angles']
+                                                            ['#', 'Time', 'Fan', 'Fraction', 'Price', 'Type', 'Details', 'Open', 'High', 'Low', 'Close', 'Cluster', 'Zone', 'Zone Extremes', 'Next Angle Line', 'Active Angles']
                                                         ];
                                                         priceInteractions.forEach((hit, i) => {
                                                             rows.push([
@@ -647,6 +682,12 @@ function App() {
                                                                 hit.high != null ? hit.high.toFixed(2) : 'N/A',
                                                                 hit.low != null ? hit.low.toFixed(2) : 'N/A',
                                                                 hit.close != null ? hit.close.toFixed(2) : 'N/A',
+                                                                hit.cluster ? 'Yes' : 'No',
+                                                                hit.zone || '-',
+                                                                hit.zoneExtremes && hit.zoneExtremes.highest_close
+                                                                    ? `${hit.zoneExtremes.lowest_close?.toFixed(2)} - ${hit.zoneExtremes.highest_close?.toFixed(2)}`
+                                                                    : '-',
+                                                                hit.nextAngleLine || '-',
                                                                 hit.activeAngles ? JSON.stringify(hit.activeAngles).replace(/,/g, ';') : ''
                                                             ]);
                                                         });
@@ -680,14 +721,21 @@ function App() {
                                                         <th>H</th>
                                                         <th>L</th>
                                                         <th>C</th>
-                                                        <th>Active Angles</th>
+                                                        <th>Cluster</th>        
+                                                        <th>Zone</th>
+                                                        <th>Zone Extremes</th>  
+                                                        <th>Next Angle Line</th>    
                                                     </tr>
                                                 </thead>
                                                 <tbody>
-                                                    {priceInteractions
-                                                        .filter(hit => filterFan === 'all' || (hit.fanIdentity || hit.fan) === filterFan)
+                                                    {filteredInteractions
                                                         .map((hit, i) => (
-                                                            <tr key={i}>
+                                                            <tr 
+                                                                key={i}
+                                                                className={i === selectedInteractionIndex ? 'selected-row' : ''}
+                                                                onClick={() => setSelectedInteractionIndex(i)}
+                                                                style={{ cursor: 'pointer' }}
+                                                            >
                                                                 <td>{i + 1}</td>
                                                                 <td>{new Date(hit.time * 1000).toLocaleString()}</td>
                                                                 <td style={{ color: '#90CAF9' }}>{hit.fan}</td>
@@ -701,9 +749,14 @@ function App() {
                                                                 <td style={{ fontSize: '11px' }}>{hit.high != null ? hit.high.toFixed(2) : '-'}</td>
                                                                 <td style={{ fontSize: '11px' }}>{hit.low != null ? hit.low.toFixed(2) : '-'}</td>
                                                                 <td style={{ fontSize: '11px' }}>{hit.close != null ? hit.close.toFixed(2) : '-'}</td>
-                                                                <td style={{ fontSize: '11px', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis' }} title={hit.activeAngles ? JSON.stringify(hit.activeAngles, null, 2) : ''}>
-                                                                    {hit.activeAngles ? JSON.stringify(hit.activeAngles) : '-'}
+                                                                <td style={{ fontSize: '11px' }}>{hit.cluster ? 'Yes' : 'No'}</td>
+                                                                <td style={{ fontSize: '11px', color: '#81C784' }}>{hit.zone || '-'}</td>
+                                                                <td style={{ fontSize: '11px' }}>
+                                                                    {hit.zoneExtremes && hit.zoneExtremes.highest_close
+                                                                        ? `${hit.zoneExtremes.lowest_close?.toFixed(2)} - ${hit.zoneExtremes.highest_close?.toFixed(2)}`
+                                                                        : '-'}  
                                                                 </td>
+                                                                <td style={{ fontSize: '11px', color: '#64B5F6' }}>{hit.nextAngleLine || '-'}</td>
                                                             </tr>
                                                         ))}
                                                 </tbody>

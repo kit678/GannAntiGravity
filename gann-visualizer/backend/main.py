@@ -1046,6 +1046,22 @@ async def _process_study_bar(req: EvaluateStrategyRequest):
         if req.show_intersection_labels is not None:
             study_config['show_intersection_labels'] = req.show_intersection_labels
             
+        study_config['run_mode'] = 'replay'
+            
+        # OPTIMIZATION: Use cached state if available for sequential replay
+        global _study_cache
+        
+        # Initialize cache if needed
+        if '_study_cache' not in globals():
+            _study_cache = {'index': -1, 'strategy': None, 'state': None}
+            
+        is_sequential = (
+            _study_cache['strategy'] == req.strategy and 
+            _study_cache['index'] == req.current_index - 1
+        )
+        
+        study_config['is_new_replay'] = not is_sequential
+            
         if req.strategy == 'pivot_points_only':
             from study_tool.pivot_points_study import PivotPointsStudy
             study = PivotPointsStudy(config=study_config)
@@ -1067,18 +1083,6 @@ async def _process_study_bar(req: EvaluateStrategyRequest):
                 'volume': float(c.get('volume', 0))
             })
         
-        # OPTIMIZATION: Use cached state if available for sequential replay
-        global _study_cache
-        
-        # Initialize cache if needed
-        if '_study_cache' not in globals():
-            _study_cache = {'index': -1, 'strategy': None, 'state': None}
-            
-        is_sequential = (
-            _study_cache['strategy'] == req.strategy and 
-            _study_cache['index'] == req.current_index - 1
-        )
-        
         output_drawings = []
         output_pivots = []
         output_remove = []
@@ -1086,7 +1090,7 @@ async def _process_study_bar(req: EvaluateStrategyRequest):
         
         if is_sequential and _study_cache['state']:
             # FAST PATH: Restore state and process single bar
-            # print(f"[Study] Fast path: Resuming from index {req.current_index}")
+            print(f"[Study] FAST PATH at index {req.current_index}")
             study.restore_state(_study_cache['state'])
             
             # Process strictly the current bar
@@ -1101,16 +1105,21 @@ async def _process_study_bar(req: EvaluateStrategyRequest):
             output_pivots = result.get('pivot_markers', [])
             output_remove = result.get('remove_drawings', [])
             output_intersection_events = result.get('intersection_events', [])
+            if output_intersection_events:
+                print(f"[Study] Index {req.current_index}: Returning {len(output_intersection_events)} events")
+                for evt in output_intersection_events[:5]:  # Log first 5
+                    print(f"  - {evt.get('type')}: {evt.get('fraction')} @ {evt.get('price')} | fan={evt.get('fan')}")
                 
             # Update cache
             _study_cache['index'] = req.current_index
             _study_cache['state'] = result['state']
+            print(f"[Study] Cache updated: index={req.current_index}, state_keys={list(result['state'].keys())}")
             
         else:
             # SLOW PATH: Full rebuild (first run or reset)
             # process_bar handles initialize_history internally on first call
             # (same pattern as AngularPriceCoverageStudy)
-            print(f"[Study] Slow path: Rebuilding from 0 to {req.current_index}")
+            print(f"[Study] SLOW PATH: Rebuilding from 0 to {req.current_index}")
             _study_cache = {'index': -1, 'strategy': req.strategy, 'state': None}
             
             # Single call - process_bar auto-initializes history up to bar_index
@@ -1125,6 +1134,10 @@ async def _process_study_bar(req: EvaluateStrategyRequest):
                 output_drawings.extend(final_result.get('drawings', []))
                 output_remove.extend(final_result.get('remove_drawings', []))
                 output_intersection_events.extend(final_result.get('intersection_events', []))
+                if output_intersection_events:
+                    print(f"[Study] SLOW PATH Index {req.current_index}: Returning {len(output_intersection_events)} events")
+                    for evt in output_intersection_events[:10]:  # Log first 10
+                        print(f"  - {evt.get('type')}: {evt.get('fraction')} @ {evt.get('price')} | fan={evt.get('fan')}")
             print(f"[Study] Index {req.current_index}: Added {len(output_pivots)} pivot markers from study")
             
             # Update cache after full run

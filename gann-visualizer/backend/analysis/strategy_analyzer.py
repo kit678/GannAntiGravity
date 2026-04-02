@@ -77,12 +77,27 @@ class TargetProgressionHypothesis(Hypothesis):
             name="Target Progression Probability",
             description="Once a fractional angle is breached and confirmed, price has a high probability of reaching the next logical target."
         )
+        self.detailed_log: List[Dict[str, Any]] = []
         
     def evaluate(self, df: pd.DataFrame) -> Dict[str, Any]:
-        # The Unified State Machine emits TARGET_HIT and TARGET_FAILED events after a BREACH_CONFIRMED.
-        # We can just count how many TARGET_HIT vs TARGET_FAILED events exist.
-        hits = len(df[df['Type'] == 'TARGET_HIT'])
-        fails = len(df[df['Type'] == 'TARGET_FAILED'])
+        hits_df = df[df['Type'] == 'TARGET_HIT'].copy()
+        fails_df = df[df['Type'] == 'TARGET_FAILED'].copy()
+        breaches_df = df[df['Type'] == 'BREACH_CONFIRMED'].copy()
+        
+        breaches_df['ts_index'] = range(len(breaches_df))
+        hits_df['ts_index'] = range(len(hits_df))
+        fails_df['ts_index'] = range(len(fails_df))
+        
+        self.detailed_log = []
+        
+        for _, row in hits_df.iterrows():
+            self._log_target_event(row, "WIN", breaches_df)
+            
+        for _, row in fails_df.iterrows():
+            self._log_target_event(row, "MISS", breaches_df)
+            
+        hits = len(hits_df)
+        fails = len(fails_df)
         
         sample_size = hits + fails
         win_rate = hits / sample_size if sample_size > 0 else 0.0
@@ -90,11 +105,70 @@ class TargetProgressionHypothesis(Hypothesis):
         return {
             "sample_size": sample_size,
             "win_rate": win_rate,
-            "avg_mfe_10": 0.0,  # Not strictly applicable for this specific metric
+            "avg_mfe_10": 0.0,
             "avg_mae_10": 0.0,
             "total_hits": hits,
-            "total_fails": fails
+            "total_fails": fails,
+            "detailed_log": self.detailed_log
         }
+    
+    def _find_preceding_breach(self, target_row: pd.Series, breaches_df: pd.DataFrame) -> Optional[Dict[str, Any]]:
+        fan = target_row.get('Fan', '')
+        target_time = target_row.get('Time', '')
+        target_fraction = target_row.get('Fraction', '')
+        
+        preceding_breaches = breaches_df[
+            (breaches_df['Fan'] == fan) & 
+            (breaches_df['Time'] < target_time)
+        ]
+        
+        if preceding_breaches.empty:
+            return None
+            
+        last_breach = preceding_breaches.iloc[-1]
+        
+        return {
+            "breach_time": last_breach.get('Time', ''),
+            "breach_fraction": last_breach.get('Fraction', ''),
+            "breach_price": last_breach.get('Price', 0.0),
+            "breach_direction": last_breach.get('Details', '').split()[0] if last_breach.get('Details', '') else ''
+        }
+    
+    def _log_target_event(self, row: pd.Series, outcome: str, breaches_df: pd.DataFrame):
+        time_val = row.get('Time', 'Unknown')
+        fan_val = row.get('Fan', 'Unknown')
+        fraction = row.get('Fraction', 'Unknown')
+        price = row.get('Price', 0.0)
+        next_angle = row.get('Next_Angle_Line', None)
+        
+        preceding_breach = self._find_preceding_breach(row, breaches_df)
+        
+        log_entry = {
+            "outcome": outcome,
+            "time": time_val,
+            "fan": fan_val,
+            "fraction": fraction,
+            "target_price": round(price, 2),
+            "next_angle": next_angle,
+            "O": row.get('Open', 0.0),
+            "H": row.get('High', 0.0),
+            "L": row.get('Low', 0.0),
+            "C": row.get('Close', 0.0),
+        }
+        
+        if preceding_breach:
+            log_entry["breach_time"] = preceding_breach["breach_time"]
+            log_entry["breach_fraction"] = preceding_breach["breach_fraction"]
+            log_entry["breach_price"] = preceding_breach["breach_price"]
+        
+        if outcome == "WIN":
+            log_entry["mfe_10"] = row.get('MFE_10', 0)
+            log_entry["mae_10"] = row.get('MAE_10', 0)
+        
+        self.detailed_log.append(log_entry)
+    
+    def get_detailed_log(self) -> List[Dict[str, Any]]:
+        return self.detailed_log
 
 class QuarterReversalAnomalyHypothesis(Hypothesis):
     def __init__(self):
@@ -163,7 +237,7 @@ class ConfluenceBounceHypothesis(Hypothesis):
         
         for _, row in touches.iterrows():
             price = row['Price']
-            active_angles_str = row.get('Active Angles', '{}')
+            active_angles_str = row.get('Active_Angles', '{}')
             mfe = row.get('MFE_10', np.nan)
             mae = row.get('MAE_10', np.nan)
             
@@ -210,10 +284,12 @@ class ConfluenceBounceHypothesis(Hypothesis):
         }
 
 class StrategyAnalyzer:
-    def __init__(self, csv_path: str):
+    def __init__(self, csv_path: str, output_dir: str = None):
         self.csv_path = csv_path
+        self.output_dir = output_dir or os.path.join(os.path.dirname(csv_path), "analysis")
         self.df = None
         self.hypotheses: List[Hypothesis] = []
+        self.all_results: Dict[str, Dict[str, Any]] = {}
         
     def load_data(self):
         if not os.path.exists(self.csv_path):
@@ -239,6 +315,7 @@ class StrategyAnalyzer:
             
             try:
                 results = hyp.evaluate(self.df)
+                self.all_results[hyp.name] = results
                 print("-" * 30)
                 print(f"Sample Size : {results.get('sample_size', 0)}")
                 print(f"Win Rate    : {results.get('win_rate', 0.0):.2%}")
@@ -247,26 +324,99 @@ class StrategyAnalyzer:
                 if 'total_hits' in results:
                     print(f"Target Hits : {results['total_hits']}")
                     print(f"Target Fails: {results['total_fails']}")
+                    
+                if 'detailed_log' in results and results['detailed_log']:
+                    self._print_detailed_log(results['detailed_log'])
                         
             except Exception as e:
                 print(f"Error evaluating hypothesis: {e}")
                 
         print("\n" + "="*50)
+    
+    def _print_detailed_log(self, detailed_log: List[Dict[str, Any]]):
+        print("\n" + "-" * 30)
+        print("DETAILED EVENT LOG:")
+        print("-" * 30)
+        for i, entry in enumerate(detailed_log, 1):
+            outcome = entry['outcome']
+            marker = "[WIN]" if outcome == "WIN" else "[MISS]"
+            print(f"\n{i}. {marker} Time: {entry['time']}")
+            print(f"   Fan: {entry['fan']}, Fraction: {entry['fraction']}")
+            print(f"   Target Price: {entry['target_price']:.2f}, Next Angle: {entry['next_angle']}")
+            print(f"   Candle - O:{entry['O']:.2f} H:{entry['H']:.2f} L:{entry['L']:.2f} C:{entry['C']:.2f}")
+            if 'breach_time' in entry:
+                print(f"   Preceding Breach: {entry['breach_time']} | Fraction: {entry['breach_fraction']} | Price: {entry['breach_price']:.2f}")
+            if entry.get('mfe_10'):
+                print(f"   MFE_10: {entry['mfe_10']:.2f}, MAE_10: {entry['mae_10']:.2f}")
+    
+    def export_detailed_logs(self) -> tuple:
+        os.makedirs(self.output_dir, exist_ok=True)
+        
+        json_file = os.path.join(self.output_dir, "hypothesis_detailed_logs.json")
+        csv_file = os.path.join(self.output_dir, "hypothesis_detailed_logs.csv")
+        
+        export_data = {}
+        all_rows = []
+        
+        for hyp_name, results in self.all_results.items():
+            if 'detailed_log' in results:
+                export_data[hyp_name] = {
+                    "sample_size": results.get('sample_size', 0),
+                    "win_rate": results.get('win_rate', 0.0),
+                    "total_hits": results.get('total_hits', 0),
+                    "total_fails": results.get('total_fails', 0),
+                    "events": results['detailed_log']
+                }
+                
+                for event in results['detailed_log']:
+                    row = {
+                        "Outcome": event['outcome'],
+                        "Target_Time": event['time'],
+                        "Fan": event['fan'],
+                        "Target_Fraction": event['fraction'],
+                        "Target_Price": event['target_price'],
+                        "Next_Angle": event['next_angle'],
+                        "O": event['O'],
+                        "H": event['H'],
+                        "L": event['L'],
+                        "C": event['C'],
+                        "Breach_Time": event.get('breach_time', ''),
+                        "Breach_Fraction": event.get('breach_fraction', ''),
+                        "Breach_Price": event.get('breach_price', ''),
+                        "MFE_10": event.get('mfe_10', ''),
+                        "MAE_10": event.get('mae_10', '')
+                    }
+                    all_rows.append(row)
+        
+        with open(json_file, 'w') as f:
+            json.dump(export_data, f, indent=2)
+            
+        if all_rows:
+            csv_df = pd.DataFrame(all_rows)
+            csv_df.to_csv(csv_file, index=False)
+            print(f"\nDetailed logs exported to:")
+            print(f"  JSON: {json_file}")
+            print(f"  CSV:  {csv_file}")
+        else:
+            print(f"\nDetailed logs exported to: {json_file}")
+            
+        return json_file, csv_file
+    
+    def get_results(self) -> Dict[str, Dict[str, Any]]:
+        return self.all_results
 
 if __name__ == "__main__":
-    # Path to the generated CSV
     csv_file = os.path.join(os.path.dirname(os.path.dirname(__file__)), "logs", "simulation_events.csv")
     
     analyzer = StrategyAnalyzer(csv_file)
     
-    # Add our hypotheses
     analyzer.add_hypothesis(ConfluenceBounceHypothesis())
     analyzer.add_hypothesis(StrongSRHypothesis())
     analyzer.add_hypothesis(TargetProgressionHypothesis())
     analyzer.add_hypothesis(QuarterReversalAnomalyHypothesis())
     
-    # Run the analysis
     if os.path.exists(csv_file):
         analyzer.run_analysis()
+        analyzer.export_detailed_logs()
     else:
         print(f"Please run the simulation first to generate {csv_file}")

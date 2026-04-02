@@ -171,7 +171,8 @@ def run_simulation(symbol="^NSEI", resolution="4", data_source="yfinance", from_
         'scale_ratio': scale_ratio,
         'left_bars': 5, 
         'right_bars': 5,
-        'successive_closes_required': 2
+        'successive_closes_required': 2,
+        'run_mode': 'simulation'
     })
     
     logging.info("Starting simulation...")
@@ -180,33 +181,28 @@ def run_simulation(symbol="^NSEI", resolution="4", data_source="yfinance", from_
     all_intersection_events = []
     target_start_ts = int(target_from_dt.timestamp())
     
-    # Replicate exact frontend API behavior
-    study_cache = {'index': -1, 'state': None}
+    # Replicate exact frontend API behavior, but optimize for backend simulation
+    # We don't need to serialize/deserialize state on every step since we hold the study instance
     
-    for i in range(len(candles)):
-        # Determine if this is sequential processing (like frontend progressive replay)
-        is_sequential = study_cache['index'] == i - 1 and study_cache['state'] is not None
-        
-        if is_sequential:
-            # FAST PATH: Restore state and process single bar (like frontend)
-            study.restore_state(study_cache['state'])
-            result = study.process_bar(candles, i, state=None)  # State already restored
+    # Find the index corresponding to the target_from_dt
+    start_index = 0
+    for i, c in enumerate(candles):
+        if int(c['time']) >= target_start_ts:
+            start_index = i
+            break
             
-            # Update cache (like frontend)
-            study_cache['index'] = i
-            study_cache['state'] = result.get('state', {})
-            
-        else:
-            # SLOW PATH: Rebuild from 0 to current bar (like frontend reset)
-            logging.info(f"[Simulation] Slow path: Rebuilding from 0 to {i}")
-            study_cache = {'index': -1, 'state': None}
-            
-            # Single call - process_bar auto-initializes history up to bar_index
-            result = study.process_bar(candles, i, state=None)
-            
-            if result:
-                study_cache['index'] = i
-                study_cache['state'] = result.get('state', {})
+    logging.info(f"Simulation starting at bar index {start_index} (total bars: {len(candles)})")
+    
+    # Initialize history up to the start index (just like frontend does before replay)
+    if start_index > 0:
+        logging.info(f"Initializing history up to bar {start_index}...")
+        # We pass the subset of candles up to start_index
+        study.initialize_history(candles[:start_index])
+        study._initialized = True
+    
+    for i in range(start_index, len(candles)):
+        # Process single bar sequentially
+        result = study.process_bar(candles, i, state=None)
         
         # Collect the exact frontend-bound intersection events
         if result and 'intersection_events' in result:
@@ -248,14 +244,17 @@ def run_simulation(symbol="^NSEI", resolution="4", data_source="yfinance", from_
         
         with open(csv_path, 'w', newline='') as f:
             writer = csv.writer(f)
-            writer.writerow(['#', 'Time', 'Fan', 'Fraction', 'Price', 'Type', 'Details', 'MFE_10', 'MAE_10', 'bars_elapsed'])
+            writer.writerow(['#', 'Time', 'Fan', 'Fraction', 'Price', 'Type', 'Details',
+                             'Open', 'High', 'Low', 'Close', 'Active_Angles',
+                             'Cluster', 'Zone', 'Zone_Highest_Close', 'Zone_Lowest_Close',
+                             'Next_Angle_Line',
+                             'MFE_10', 'MAE_10', 'bars_elapsed'])
             
             # Use IST timezone for formatting to match frontend
             ist = pytz.timezone('Asia/Kolkata')
             
             for i, event in enumerate(all_intersection_events):
                 # Convert timestamp to IST datetime
-                # Assuming event['time'] is a unix timestamp in seconds
                 dt_utc = datetime.fromtimestamp(event['time'], pytz.utc)
                 dt_ist = dt_utc.astimezone(ist)
                 
@@ -287,6 +286,16 @@ def run_simulation(symbol="^NSEI", resolution="4", data_source="yfinance", from_
                     f"{event.get('price', 0):.2f}",
                     event.get('type', ''),
                     details_str,
+                    f"{event.get('open', 0):.2f}",
+                    f"{event.get('high', 0):.2f}",
+                    f"{event.get('low', 0):.2f}",
+                    f"{event.get('close', 0):.2f}",
+                    json.dumps(event.get('activeAngles', {})),
+                    event.get('cluster', False),
+                    event.get('zone', ''),
+                    f"{event.get('zoneExtremes', {}).get('highest_close', 0):.2f}" if event.get('zoneExtremes', {}).get('highest_close') else '',
+                    f"{event.get('zoneExtremes', {}).get('lowest_close', 0):.2f}" if event.get('zoneExtremes', {}).get('lowest_close') else '',
+                    event.get('nextAngleLine', ''),
                     f"{mfe_10:.4f}" if mfe_10 else "0",
                     f"{mae_10:.4f}" if mae_10 else "0",
                     bars_elapsed

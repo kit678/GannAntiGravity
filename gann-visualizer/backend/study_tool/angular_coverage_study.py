@@ -21,6 +21,7 @@ from .fan_validator import FanValidator
 from .target_progression import TargetProgression
 from .event_logger import EventLogger, EventType
 from .unified_state_machine import UnifiedStateMachine, EventOutput
+from .cluster_detector import ClusterDetector
 
 # --- LOGGING CONFIGURATION (Unified Strategy) ---
 # We maintain single files for both debug logs and intersection data per backend process run.
@@ -130,11 +131,14 @@ class AngularPriceCoverageStudy:
         self.fan_validator = FanValidator()
         self.target_progression = TargetProgression()
         self.event_logger = EventLogger()
+        self.cluster_detector = ClusterDetector()
         self.state_machine = UnifiedStateMachine({
             'bounce_threshold_percent': self.config.get('bounce_threshold_percent', 0.3),
             'rejection_lookback_bars': self.config.get('rejection_lookback_bars', 5),
             'rest_tolerance_percent': self.config.get('rest_tolerance_percent', 0.15),
             'rest_required_bars': self.config.get('rest_required_bars', 3),
+            'run_mode': self.config.get('run_mode', 'simulation'),
+            'is_new_replay': self.config.get('is_new_replay', False)
         })
 
         # Track active fan keys for diffing (old vs new set)
@@ -148,7 +152,7 @@ class AngularPriceCoverageStudy:
         self._initialized: bool = False
         
         # Track retroactive events pending processing (for fans that might get deactivated)
-        self._pending_retro_events: Dict[str, List] = {}
+        self._pending_retro_events: Dict[str, Dict] = {}
 
         # Use shared session-level logger
         self.logger = _logger
@@ -176,9 +180,33 @@ class AngularPriceCoverageStudy:
         # Reset detector and scan entire history
         # Force a hard reset of the registry because we are starting fresh from history
         self.pivot_detector.reset(clear_registry=True)
+        self.cluster_detector._reset()
+        self._historical_clusters = []
 
-        for i in range(start_idx, len(candles)):
-            self.pivot_detector.detect_pivots(candles, i)
+        import pandas as pd
+        for i in range(len(candles)):
+            # Update Cluster Detector for every single historical candle
+            c = candles[i]
+            c_open = float(c.get('Open') if c.get('Open') is not None else c.get('open', 0))
+            c_high = float(c.get('High') if c.get('High') is not None else c.get('high', 0))
+            c_low = float(c.get('Low') if c.get('Low') is not None else c.get('low', 0))
+            c_close = float(c.get('Close') if c.get('Close') is not None else c.get('close', 0))
+            
+            candle_series = pd.Series({
+                'Open': c_open,
+                'High': c_high,
+                'Low': c_low,
+                'Close': c_close
+            })
+            self.cluster_detector.process_candle(candle_series, i)
+            
+            while len(self._historical_clusters) <= i:
+                self._historical_clusters.append(False)
+            self._historical_clusters[i] = self.cluster_detector.get_state()['in_cluster']
+
+            # Pivot detection
+            if i >= start_idx:
+                self.pivot_detector.detect_pivots(candles, i)
 
         self.log(f"[Study] Historical detection complete. Found {len(self.pivot_detector.confirmed_pivots)} confirmed pivots.")
 
@@ -212,11 +240,65 @@ class AngularPriceCoverageStudy:
             'state': {}
         }
 
+        current_candle = candles[bar_index]
+        
+        # 0. Global chronological state updates (e.g. Cluster Detector)
+        # We must do this exactly once per chronological bar, NEVER during retroactive sweeps
+        import pandas as pd
+        c_open = float(current_candle.get('Open') if current_candle.get('Open') is not None else current_candle.get('open', 0))
+        c_high = float(current_candle.get('High') if current_candle.get('High') is not None else current_candle.get('high', 0))
+        c_low = float(current_candle.get('Low') if current_candle.get('Low') is not None else current_candle.get('low', 0))
+        c_close = float(current_candle.get('Close') if current_candle.get('Close') is not None else current_candle.get('close', 0))
+        
+        candle_series = pd.Series({
+            'Open': c_open,
+            'High': c_high,
+            'Low': c_low,
+            'Close': c_close
+        })
+        self.cluster_detector.process_candle(candle_series, bar_index)
+        
+        # Store historical cluster state for retroactive sweeps
+        if not hasattr(self, '_historical_clusters'):
+            self._historical_clusters = []
+        while len(self._historical_clusters) <= bar_index:
+            self._historical_clusters.append(False)
+        self._historical_clusters[bar_index] = self.cluster_detector.get_state()['in_cluster']
+
         # 1. Detect pivots at this bar
         self.pivot_detector.detect_pivots(candles, bar_index)
 
         # 2. Run unified backward traversal (same logic every bar)
         self._sync_fans(candles, bar_index, result)
+        
+        # 2.5 Process Zone Tracking for ALL active fans for the LIVE bar
+        for fan_id, fan_obj in self.angle_engine.active_fans.items():
+            if getattr(fan_obj, '_zone_caught_up_to', -1) < bar_index:
+                snapshot = self.zone_tracker.compute_snapshot(fan_obj, current_candle, bar_index)
+                fan_obj._zone_caught_up_to = bar_index
+                
+                if self.zone_tracker.has_zone_changed(fan_id, snapshot.zone):
+                    # For zone change, use the NEW snapshot's extremes
+                    self.event_logger.log_event(
+                        timestamp=current_candle['time'],
+                        event_type=EventType.ZONE_CHANGE,
+                        price=c_close,
+                        open_price=c_open,
+                        high_price=c_high,
+                        low_price=c_low,
+                        close_price=c_close,
+                        active_angle_prices=snapshot.angle_prices,
+                        cluster_state=self._historical_clusters[bar_index],
+                        current_zone=snapshot.zone,
+                        zone_highest_close=snapshot.zone_highest_close,
+                        zone_lowest_close=snapshot.zone_lowest_close,
+                        
+                        details={
+                            'fan_id': fan_id,
+                            'new_zone': snapshot.zone,
+                            'angle_prices': snapshot.angle_prices,
+                        }
+                    )
         
         # Process retroactive events only for fans that remain active after sync
         # We need to process them chronologically by bar_index so the state machine works correctly
@@ -224,43 +306,56 @@ class AngularPriceCoverageStudy:
             # Group all retro events by bar index
             retro_events_by_bar = {}
             
-            for fan_id, retro_events in self._pending_retro_events.items():
-                if fan_id in self._persisted_fans and retro_events:
-                    print(f"[RetroSweep] Queuing {len(retro_events)} retro events for active fan {fan_id}")
-                    for event in retro_events:
-                        # Find the candle for this event
-                        bar_idx = -1
-                        for i, c in enumerate(candles):
-                            if int(c['time']) == event.time:
-                                bar_idx = i
-                                break
-                        
-                        if bar_idx >= 0:
-                            if bar_idx not in retro_events_by_bar:
-                                retro_events_by_bar[bar_idx] = []
-                            retro_events_by_bar[bar_idx].append(event)
-                elif retro_events:
-                    print(f"[RetroSweep] Skipping {len(retro_events)} retro events for deactivated fan {fan_id}")
+            # We also need to track the min anchor bar index to know where to start the sweep
+            min_anchor_idx = bar_index
             
-            # Process chronologically
-            for b_idx in sorted(retro_events_by_bar.keys()):
-                r_events = retro_events_by_bar[b_idx]
-                r_candle = candles[b_idx]
-                r_prev_candle = candles[b_idx - 1] if b_idx > 0 else None
-                
-                ui_events = []
-                self._process_tracking_modules(
-                    r_candle, r_prev_candle, b_idx, r_events, ui_events, candles
-                )
-                
-                if ui_events:
-                    for ui_event in ui_events:
-                        ui_event['details'] = f"[Retro] {ui_event['details']}"
-                        print(f"[RetroSweep] Emitting retroactive event: {ui_event}")
-                        
-                    if 'intersection_events' not in result:
-                        result['intersection_events'] = []
-                    result['intersection_events'].extend(ui_events)
+            for fan_id, retro_data in self._pending_retro_events.items():
+                if fan_id in self._persisted_fans:
+                    events = retro_data.get('events', [])
+                    anchor_idx = retro_data.get('anchor_idx', bar_index)
+                    min_anchor_idx = min(min_anchor_idx, anchor_idx)
+                    
+                    if events:
+                        print(f"[RetroSweep] Queuing {len(events)} retro events for active fan {fan_id}")
+                        for event in events:
+                            # Find the candle for this event
+                            bar_idx = -1
+                            for i, c in enumerate(candles):
+                                if int(c['time']) == event.time:
+                                    bar_idx = i
+                                    break
+                            
+                            if bar_idx >= 0:
+                                if bar_idx not in retro_events_by_bar:
+                                    retro_events_by_bar[bar_idx] = []
+                                retro_events_by_bar[bar_idx].append(event)
+                else:
+                    events = retro_data.get('events', [])
+                    if events:
+                        print(f"[RetroSweep] Skipping {len(events)} retro events for deactivated fan {fan_id}")
+            
+            # Process chronologically for EVERY bar from min_anchor_idx + 1 to current bar_index - 1
+            # This ensures we log the distance to the new fan's lines even if there are no intersections
+            if min_anchor_idx < bar_index:
+                retro_fan_ids = [fid for fid in self._pending_retro_events.keys() if fid in self._persisted_fans]
+                for b_idx in range(min_anchor_idx + 1, bar_index):
+                    r_events = retro_events_by_bar.get(b_idx, [])
+                    r_candle = candles[b_idx]
+                    r_prev_candle = candles[b_idx - 1] if b_idx > 0 else None
+                    
+                    ui_events = []
+                    self._process_tracking_modules(
+                        r_candle, r_prev_candle, b_idx, r_events, ui_events, candles, is_retro=True, retro_fan_ids=retro_fan_ids
+                    )
+                    
+                    if ui_events:
+                        for ui_event in ui_events:
+                            ui_event['details'] = f"[Retro] {ui_event['details']}"
+                            print(f"[RetroSweep] Emitting retroactive event: {ui_event}")
+                            
+                        if 'intersection_events' not in result:
+                            result['intersection_events'] = []
+                        result['intersection_events'].extend(ui_events)
                     
             # Clean up pending retro events
             self._pending_retro_events.clear()
@@ -272,7 +367,7 @@ class AngularPriceCoverageStudy:
         current_candle = candles[bar_index]
         prev_candle = candles[bar_index - 1] if bar_index > 0 else None
         
-        events = self.intersection_detector.detect(current_candle, self.angle_engine.active_fans, bar_index)
+        events = self.intersection_detector.detect(current_candle, prev_candle, self.angle_engine.active_fans, bar_index)
         
         # We'll collect all events (from validations, state machine, targets) in a list to format for UI
         ui_events = []
@@ -317,7 +412,9 @@ class AngularPriceCoverageStudy:
         bar_index: int,
         intersection_events: list,
         ui_events: list,
-        candles: list
+        candles: list,
+        is_retro: bool = False,
+        retro_fan_ids: list = None
     ):
         """
         Run the price movement tracking pipeline:
@@ -326,20 +423,26 @@ class AngularPriceCoverageStudy:
         3. TargetProgression — advance targets on confirmed breaches
         4. AngleZoneTracker — compute zone snapshots
         """
-        timestamp = int(current_candle.get('time', 0))
-        close_price = float(current_candle.get('close', 0))
+        timestamp = int(current_candle.get('time', current_candle.get('Time', 0)))
+        close_price = float(current_candle.get('Close', current_candle.get('close', 0)))
 
         # Add OHLC and Active Angles to the event logging
-        c_open = float(current_candle.get('open', 0))
-        c_high = float(current_candle.get('high', 0))
-        c_low = float(current_candle.get('low', 0))
+        # Handle both 'Open' (yfinance) and 'open' (internal) keys
+        c_open = float(current_candle.get('Open') if current_candle.get('Open') is not None else current_candle.get('open', 0))
+        c_high = float(current_candle.get('High') if current_candle.get('High') is not None else current_candle.get('high', 0))
+        c_low = float(current_candle.get('Low') if current_candle.get('Low') is not None else current_candle.get('low', 0))
         
+        # 0. Check Cluster Detector from historical state
+        is_cluster = False
+        if hasattr(self, '_historical_clusters') and bar_index < len(self._historical_clusters):
+            is_cluster = self._historical_clusters[bar_index]
+
         # Calculate current prices for all angles in active fans
         active_angle_prices = {}
         for f_id, fan in self.angle_engine.active_fans.items():
             if not fan.lines:
                 continue
-                
+
             # Use the first line's start time as the fan's origin time
             origin_time = fan.lines[0].start_time
             if timestamp >= origin_time:
@@ -350,15 +453,19 @@ class AngularPriceCoverageStudy:
                         bars_from_origin = bar_index - line.start_bar_index
                         slope = (line.end_price - line.start_price) / bar_span
                         price_at_t = line.start_price + bars_from_origin * slope
-                        
+
                         if line.fraction is not None:
                             frac_str = str(line.fraction)
                         elif "htarget" in line.id:
                             frac_str = "horizontal"
                         else:
                             frac_str = "main"
-                            
+
                         active_angle_prices[f"{f_id}_{frac_str}"] = round(price_at_t, 2)
+
+        def get_target_info_for_event(fan_id: str) -> Dict[str, Any]:
+            """Get target progression info for a specific fan."""
+            return self.target_progression.get_target_info(fan_id)
 
         # 1. Fan validation (7/8 interaction check)
         new_validations = self.fan_validator.process_intersections(
@@ -366,6 +473,18 @@ class AngularPriceCoverageStudy:
         )
         for validation in new_validations:
             self.target_progression.activate_fan(validation.fan_id)
+            self.target_progression.on_angle_touched(validation.fan_id, '7/8', bar_index)
+            target_info = get_target_info_for_event(validation.fan_id)
+
+            # Get zone context using historical state
+            last_zone = self.zone_tracker.get_zone_at_bar(validation.fan_id, bar_index)
+            if not last_zone:
+                last_zone = self.zone_tracker.get_last_zone(validation.fan_id)
+                
+            current_zone_str = last_zone.zone if last_zone else None
+            z_extremes = {'highest_close': last_zone.zone_highest_close, 'lowest_close': last_zone.zone_lowest_close} if last_zone else None
+            b_in_zone = last_zone.bars_in_zone if last_zone else None
+
             self.event_logger.log_event(
                 timestamp=timestamp,
                 event_type=EventType.FAN_VALIDATED,
@@ -376,6 +495,12 @@ class AngularPriceCoverageStudy:
                 low_price=c_low,
                 close_price=close_price,
                 active_angle_prices=active_angle_prices,
+                cluster_state=is_cluster,
+                current_zone=current_zone_str,
+                zone_highest_close=z_extremes.get('highest_close') if z_extremes else None,
+                zone_lowest_close=z_extremes.get('lowest_close') if z_extremes else None,
+                
+                next_angle_line=target_info.get('next_angle_line'),
                 details={
                     'fan_id': validation.fan_id,
                     'validation_type': validation.validation_type,
@@ -399,13 +524,18 @@ class AngularPriceCoverageStudy:
                 'high': c_high,
                 'low': c_low,
                 'close': close_price,
-                'activeAngles': active_angle_prices
+                'activeAngles': active_angle_prices,
+                'cluster': is_cluster,
+                'zone': current_zone_str or "",
+                'zoneExtremes': z_extremes or "",
+
+                'nextAngleLine': target_info.get('next_angle_line') or ""
             })
 
         # 2. Unified State Machine (Breaches, Tests, Fake-outs, Rests, Bounces)
         state_events = self.state_machine.process_bar(
             current_candle, prev_candle, bar_index,
-            intersection_events, self.angle_engine.active_fans, candles
+            intersection_events, self.angle_engine.active_fans, candles, is_retro, retro_fan_ids
         )
         
         for state_event in state_events:
@@ -420,6 +550,36 @@ class AngularPriceCoverageStudy:
                 except ValueError:
                     evt_enum = EventType.TOUCH
                 
+            # Get zone context using historical state
+            last_zone = self.zone_tracker.get_zone_at_bar(state_event.fan_id, bar_index)
+            if not last_zone:
+                last_zone = self.zone_tracker.get_last_zone(state_event.fan_id)
+                
+            current_zone_str = last_zone.zone if last_zone else None
+            z_extremes = {'highest_close': last_zone.zone_highest_close, 'lowest_close': last_zone.zone_lowest_close} if last_zone else None
+            b_in_zone = last_zone.bars_in_zone if last_zone else None
+
+            # Advance target progression if breach confirmed (do this BEFORE logging so the event shows the NEW targets)
+            target_hit = None
+            if state_event.event_type == 'BREACH_CONFIRMED':
+                target_hit = self.target_progression.on_breach_confirmed(
+                    fan_id=state_event.fan_id,
+                    angle_name=state_event.fraction,
+                    bar_index=bar_index,
+                    price=state_event.price,
+                )
+
+            # Update last_touched_line on ANY intersection event
+            # For CROSS events, nextAngleLine will be set to the NEXT line in sequence
+            self.target_progression.on_angle_touched(
+                fan_id=state_event.fan_id,
+                angle_name=str(state_event.fraction),
+                bar_index=bar_index,
+                event_type=state_event.event_type
+            )
+
+            target_info = get_target_info_for_event(state_event.fan_id)
+
             self.event_logger.log_event(
                 timestamp=timestamp,
                 event_type=evt_enum,
@@ -431,13 +591,19 @@ class AngularPriceCoverageStudy:
                 low_price=c_low,
                 close_price=close_price,
                 active_angle_prices=active_angle_prices,
+                cluster_state=is_cluster,
+                current_zone=current_zone_str,
+                zone_highest_close=z_extremes.get('highest_close') if z_extremes else None,
+                zone_lowest_close=z_extremes.get('lowest_close') if z_extremes else None,
+                
+                next_angle_line=target_info.get('next_angle_line'),
                 details={
                     'fan_id': state_event.fan_id,
                     'ui_type': state_event.event_type,
                     'ui_details': state_event.details,
                 }
             )
-            
+
             ui_events.append({
                 'time': timestamp,
                 'fan': state_event.priority_label,
@@ -450,49 +616,68 @@ class AngularPriceCoverageStudy:
                 'high': c_high,
                 'low': c_low,
                 'close': close_price,
-                'activeAngles': active_angle_prices
+                'activeAngles': active_angle_prices,
+                'cluster': is_cluster,
+                'zone': current_zone_str or "",
+                'zoneExtremes': z_extremes or "",
+
+                'nextAngleLine': target_info.get('next_angle_line') or ""
             })
 
-            # Advance target progression if breach confirmed
-            if state_event.event_type == 'BREACH_CONFIRMED':
-                target_hit = self.target_progression.on_breach_confirmed(
-                    fan_id=state_event.fan_id,
-                    angle_name=state_event.fraction,
-                    bar_index=bar_index,
-                    price=state_event.price,
-                )
-                if target_hit:
-                    self.event_logger.log_event(
-                        timestamp=timestamp,
-                        event_type=EventType.TARGET_HIT,
-                        angle_name=target_hit.target_name,
-                        price=target_hit.hit_price,
-                        open_price=c_open,
-                        high_price=c_high,
-                        low_price=c_low,
-                        close_price=close_price,
-                        active_angle_prices=active_angle_prices,
-                        details={
-                            'fan_id': target_hit.fan_id,
-                            'hit_bar': target_hit.hit_bar,
-                        }
-                    )
-                    self.log(f"[Tracking] Target HIT: {target_hit.fan_id} {target_hit.target_name}")
+            # Emit target hit event if applicable
+            if target_hit:
+                # Get zone context using historical state
+                last_zone = self.zone_tracker.get_zone_at_bar(target_hit.fan_id, bar_index)
+                if not last_zone:
+                    last_zone = self.zone_tracker.get_last_zone(target_hit.fan_id)
+                    
+                current_zone_str = last_zone.zone if last_zone else None
+                z_extremes = {'highest_close': last_zone.zone_highest_close, 'lowest_close': last_zone.zone_lowest_close} if last_zone else None
+                b_in_zone = last_zone.bars_in_zone if last_zone else None
+                target_info = get_target_info_for_event(state_event.fan_id)
 
-                    ui_events.append({
-                        'time': timestamp,
-                        'fan': state_event.priority_label,
-                        'fanIdentity': state_event.fan_identity,
-                        'fraction': target_hit.target_name,
-                        'price': target_hit.hit_price,
-                        'type': 'TARGET_HIT',
-                        'details': f"Target Reached",
-                        'open': c_open,
-                        'high': c_high,
-                        'low': c_low,
-                        'close': close_price,
-                        'activeAngles': active_angle_prices
-                    })
+                self.event_logger.log_event(
+                    timestamp=timestamp,
+                    event_type=EventType.TARGET_HIT,
+                    angle_name=target_hit.target_name,
+                    price=target_hit.hit_price,
+                    open_price=c_open,
+                    high_price=c_high,
+                    low_price=c_low,
+                    close_price=close_price,
+                    active_angle_prices=active_angle_prices,
+                    cluster_state=is_cluster,
+                    current_zone=current_zone_str,
+                    zone_highest_close=z_extremes.get('highest_close') if z_extremes else None,
+                    zone_lowest_close=z_extremes.get('lowest_close') if z_extremes else None,
+                    
+                    details={
+                        'fan_id': target_hit.fan_id,
+                        'hit_bar': target_hit.hit_bar,
+                    }
+                )
+                self.log(f"[Tracking] Target HIT: {target_hit.fan_id} {target_hit.target_name}")
+                target_info = get_target_info_for_event(target_hit.fan_id)
+
+                ui_events.append({
+                    'time': timestamp,
+                    'fan': state_event.priority_label,
+                    'fanIdentity': state_event.fan_identity,
+                    'fraction': target_hit.target_name,
+                    'price': target_hit.hit_price,
+                    'type': 'TARGET_HIT',
+                    'details': f"Target Reached",
+                    'open': c_open,
+                    'high': c_high,
+                    'low': c_low,
+                    'close': close_price,
+                    'activeAngles': active_angle_prices,
+                    'cluster': is_cluster,
+                    'zone': current_zone_str or "",
+                    'zoneExtremes': z_extremes or "",
+
+                    'nextAngleLine': target_info.get('next_angle_line') or ""
+                })
             elif state_event.event_type in ('CROSS_UP', 'CROSS_DOWN'):
                 target_failed = self.target_progression.on_cross(
                     fan_id=state_event.fan_id,
@@ -501,6 +686,15 @@ class AngularPriceCoverageStudy:
                     price=state_event.price,
                 )
                 if target_failed:
+                    # Get zone context using historical state
+                    last_zone = self.zone_tracker.get_zone_at_bar(state_event.fan_id, bar_index)
+                    if not last_zone:
+                        last_zone = self.zone_tracker.get_last_zone(state_event.fan_id)
+                        
+                    current_zone_str = last_zone.zone if last_zone else None
+                    z_extremes = {'highest_close': last_zone.zone_highest_close, 'lowest_close': last_zone.zone_lowest_close} if last_zone else None
+                    b_in_zone = last_zone.bars_in_zone if last_zone else None
+
                     self.event_logger.log_event(
                         timestamp=timestamp,
                         event_type=EventType.TARGET_FAILED,
@@ -511,6 +705,11 @@ class AngularPriceCoverageStudy:
                         low_price=c_low,
                         close_price=close_price,
                         active_angle_prices=active_angle_prices,
+                        cluster_state=is_cluster,
+                        current_zone=current_zone_str,
+                        zone_highest_close=z_extremes.get('highest_close') if z_extremes else None,
+                        zone_lowest_close=z_extremes.get('lowest_close') if z_extremes else None,
+                        
                         details={
                             'fan_id': state_event.fan_id,
                             'fail_bar': bar_index,
@@ -530,30 +729,13 @@ class AngularPriceCoverageStudy:
                         'high': c_high,
                         'low': c_low,
                         'close': close_price,
-                        'activeAngles': active_angle_prices
-                    })
+                        'activeAngles': active_angle_prices,
+                        'cluster': is_cluster,
+                        'zone': current_zone_str or "",
+                        'zoneExtremes': z_extremes or "",
 
-        # 3. Zone tracking
-        for fan_id, fan_obj in self.angle_engine.active_fans.items():
-            snapshot = self.zone_tracker.compute_snapshot(
-                fan_obj, current_candle, bar_index
-            )
-            if self.zone_tracker.has_zone_changed(fan_id, snapshot.zone):
-                self.event_logger.log_event(
-                    timestamp=timestamp,
-                    event_type=EventType.ZONE_CHANGE,
-                    price=close_price,
-                    open_price=c_open,
-                    high_price=c_high,
-                    low_price=c_low,
-                    close_price=close_price,
-                    active_angle_prices=active_angle_prices,
-                    details={
-                        'fan_id': fan_id,
-                        'new_zone': snapshot.zone,
-                        'angle_prices': snapshot.angle_prices,
-                    }
-                )
+                        'nextAngleLine': target_info.get('next_angle_line') or ""
+                    })
 
     def _extend_active_fans(self, candles: List[Dict[str, Any]], current_bar_index: int, result: Dict[str, Any]):
         """
@@ -718,6 +900,15 @@ class AngularPriceCoverageStudy:
                 fan_obj.anchor_type = fan_data['anchor'].get('type', '')
                 fan_obj.anchor_bar_index = fan_data['anchor'].get('bar_index', 0)
                 
+                # CRITICAL: Catch up AngleZoneTracker for this new fan
+                anchor_bar_idx = fan_obj.anchor_bar_index
+                current_bar_idx = current_bar_index
+                for b_idx in range(anchor_bar_idx, current_bar_idx + 1):
+                    # We compute snapshot but don't emit ZONE_CHANGE to UI/logs during catch-up
+                    # This ensures the fan has correct zone extremes before retro events are processed
+                    self.zone_tracker.compute_snapshot(fan_obj, candles[b_idx], b_idx)
+                fan_obj._zone_caught_up_to = current_bar_idx
+                
                 # Store mapping
                 self._active_fan_keys[fan_id] = fan_obj.id
                 
@@ -734,7 +925,7 @@ class AngularPriceCoverageStudy:
                 # and retroactively detect all historical intersections with the new angle lines.
                 # This builds correct state machine context (e.g., distinguishing FAKE_OUT from CROSS_DOWN).
                 anchor_bar_idx = fan_data['anchor'].get('bar_index', 0)
-                current_bar_idx = len(candles) - 1 if candles else current_bar_index
+                current_bar_idx = current_bar_index
                 
                 print(f"[RetroSweep] New fan {fan_obj.id} created. Anchor at bar {anchor_bar_idx}, current bar {current_bar_idx}")
                 retro_events = self.intersection_detector.retroactive_sweep(
@@ -747,7 +938,10 @@ class AngularPriceCoverageStudy:
                 # Store retro events temporarily - we'll process them after knowing if fan stays active
                 if not hasattr(self, '_pending_retro_events'):
                     self._pending_retro_events = {}
-                self._pending_retro_events[fan_obj.id] = retro_events
+                self._pending_retro_events[fan_obj.id] = {
+                    'events': retro_events,
+                    'anchor_idx': anchor_bar_idx
+                }
                 
                 # Generate drawings (these will be removed later if fan gets deactivated)
                 drawings = self.angle_engine.fan_to_drawing_commands(fan_obj)
@@ -828,6 +1022,8 @@ class AngularPriceCoverageStudy:
             'fan_validator': self.fan_validator.get_state(),
             'target_progression': self.target_progression.get_state(),
             'state_machine': self.state_machine.get_state(),
+            'cluster_detector': self.cluster_detector.get_state(),
+            'historical_clusters': getattr(self, '_historical_clusters', []),
             'event_logger': {
                 'events': [e.to_dict() for e in self.event_logger.events],
                 'indicator_snapshots': self.event_logger.indicator_snapshots
@@ -857,28 +1053,19 @@ class AngularPriceCoverageStudy:
             self.fan_validator.restore_state(state['fan_validator'])
         if 'target_progression' in state:
             self.target_progression.restore_state(state['target_progression'])
+        if 'cluster_detector' in state:
+            self.cluster_detector.restore_state(state['cluster_detector'])
+        if 'historical_clusters' in state:
+            self._historical_clusters = list(state['historical_clusters'])
         if 'event_logger' in state:
             # Restore event logger state
             logger_state = state['event_logger']
             self.event_logger.events = []
             for evt_dict in logger_state.get('events', []):
-                # Reconstruct Event object
-                # Convert string event_type back to Enum
+                # Reconstruct Event object using from_dict
                 try:
-                    evt_type = EventType(evt_dict['event_type'])
-                    
-                    # Import Event explicitly here if needed or rely on module scope
-                    # Assuming Event is available in module scope or from event_logger import
                     from .event_logger import Event
-                    
-                    self.event_logger.events.append(Event(
-                        timestamp=evt_dict['timestamp'],
-                        event_type=evt_type,
-                        angle_name=evt_dict.get('angle_name'),
-                        price=evt_dict.get('price'),
-                        direction=evt_dict.get('direction'),
-                        details=evt_dict.get('details')
-                    ))
+                    self.event_logger.events.append(Event.from_dict(evt_dict))
                 except Exception as e:
                     self.log(f"[Study] Failed to restore event: {e}")
             

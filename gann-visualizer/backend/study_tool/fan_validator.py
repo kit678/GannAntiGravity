@@ -36,9 +36,15 @@ class FanValidation:
         return asdict(self)
 
 
-def _fraction_to_label(frac: Optional[float]) -> str:
+def _fraction_to_label(frac: Any) -> str:
     if frac is None:
         return "horizontal"
+    if isinstance(frac, str):
+        try:
+            frac = float(frac)
+        except ValueError:
+            return frac
+            
     if frac in FRACTION_LABELS:
         return FRACTION_LABELS[frac]
     closest = min(FRACTION_LABELS.keys(), key=lambda k: abs(k - frac))

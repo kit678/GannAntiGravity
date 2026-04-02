@@ -465,3 +465,8 @@ body {
 .interactions-table tbody tr:hover {
   background: #1a1d27;
 }
+
+.interactions-table tbody tr.selected-row {
+  background: #2a2e39;
+  border-left: 3px solid #FFEB3B;
+}

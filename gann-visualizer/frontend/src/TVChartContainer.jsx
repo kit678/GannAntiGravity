@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState, useImperativeHandle, forwardRef } f
 import createChartDatafeed from './chart/ChartDatafeed';
 import { processStudyResponse } from './study_tool/StudyDrawingUtils';
 
-export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, interval = '60', onTradeLogged, dataSource = 'dhan', cycleType = '24_hour', sessionDuration = 'standard', onSymbolChange, onPlayingStateChange, ...props }, ref) => {
+export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, interval = '60', onTradeLogged, dataSource = 'dhan', cycleType = '24_hour', sessionDuration = 'standard', onSymbolChange, onPlayingStateChange, selectedInteraction, ...props }, ref) => {
     const chartContainerRef = useRef(null);
     const datafeedRef = useRef(null);
     const widgetRef = useRef(null);
@@ -358,6 +358,205 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
             // Chart might not be ready yet, which is fine (handled by initial load)
         }
     }, [cycleType, sessionDuration]);
+
+    // Track the currently drawn interaction markers
+    const interactionMarkersRef = useRef([]);
+
+    // Handle selected interaction changes
+    useEffect(() => {
+        console.log('[TVChart] selectedInteraction changed:', selectedInteraction);
+        
+        if (!widgetRef.current) {
+            console.log('[TVChart] widgetRef.current is null');
+            return;
+        }
+
+        let isCancelled = false;
+
+        try {
+            let chart;
+            try {
+                chart = widgetRef.current.activeChart();
+            } catch (e) {
+                console.log('[TVChart] activeChart not available:', e);
+                return; // Chart not ready
+            }
+
+            console.log('[TVChart] Chart is ready, proceeding to draw marker');
+
+            // Remove previous markers
+            interactionMarkersRef.current.forEach(marker => {
+                try {
+                    chart.removeEntity(marker);
+                } catch (e) {
+                    console.warn('[TVChart] Failed to remove old interaction marker:', e);
+                }
+            });
+            interactionMarkersRef.current = [];
+
+            if (selectedInteraction) {
+                const interactionTimeSec = toSeconds(selectedInteraction.time);
+                console.log('[TVChart] Drawing marker for interaction time:', interactionTimeSec);
+                
+                // Get candles to find the exact candle this interaction belongs to
+                const candles = currentCandlesRef.current || [];
+                
+                let targetTime = interactionTimeSec;
+                let targetPrice = selectedInteraction.price;
+                let matchedCandleIndex = -1;
+                let candleTimesSec = [];
+                
+                if (candles.length > 0) {
+                    candleTimesSec = candles.map(c => toSeconds(c.time));
+                    
+                    // Find the candle that contains this interaction time
+                    // A candle contains a time if candleTime <= interactionTime < nextCandleTime
+                    
+                    for (let i = 0; i < candleTimesSec.length - 1; i++) {
+                        if (interactionTimeSec >= candleTimesSec[i] && interactionTimeSec < candleTimesSec[i+1]) {
+                            matchedCandleIndex = i;
+                            break;
+                        }
+                    }
+                    
+                    // Handle edge cases (after last candle or before first)
+                    if (matchedCandleIndex === -1) {
+                        if (interactionTimeSec >= candleTimesSec[candleTimesSec.length - 1]) {
+                            matchedCandleIndex = candleTimesSec.length - 1;
+                        } else if (interactionTimeSec < candleTimesSec[0]) {
+                            matchedCandleIndex = 0;
+                        }
+                    }
+                    
+                    if (matchedCandleIndex !== -1) {
+                        const matchedCandle = candles[matchedCandleIndex];
+                        targetTime = candleTimesSec[matchedCandleIndex];
+                        targetPrice = matchedCandle.high;
+                        console.log(`[TVChart] Matched to candle at ${targetTime} with high ${targetPrice}`);
+                    }
+                }
+                
+                // First, pan the chart to show this bar
+                try {
+                    const visibleRange = chart.getVisibleRange();
+                    if (visibleRange && candles.length > 0 && matchedCandleIndex !== -1) {
+                        // Find indices for current visible range to determine zoom level (number of visible bars)
+                        let fromIndex = candleTimesSec.findIndex(t => t >= visibleRange.from);
+                        let toIndex = candleTimesSec.findIndex(t => t >= visibleRange.to);
+                        
+                        if (fromIndex === -1) fromIndex = 0;
+                        if (toIndex === -1) toIndex = candleTimesSec.length - 1;
+                        
+                        let visibleBarsCount = toIndex - fromIndex;
+                        if (visibleBarsCount <= 0) visibleBarsCount = 100; // fallback
+                        
+                        // Check if target is outside the middle 80% of the screen
+                        const barPosition = (matchedCandleIndex - fromIndex) / visibleBarsCount;
+                        
+                        if (barPosition < 0.1 || barPosition > 0.9) {
+                            // Calculate new from/to indices to keep the exact same number of visible bars
+                            let newFromIndex = Math.floor(matchedCandleIndex - visibleBarsCount / 2);
+                            let newToIndex = newFromIndex + visibleBarsCount;
+                            
+                            // Clamp to available data
+                            if (newFromIndex < 0) {
+                                newFromIndex = 0;
+                                newToIndex = Math.min(visibleBarsCount, candleTimesSec.length - 1);
+                            }
+                            if (newToIndex >= candleTimesSec.length) {
+                                newToIndex = candleTimesSec.length - 1;
+                                newFromIndex = Math.max(0, newToIndex - visibleBarsCount);
+                            }
+                            
+                            const newFrom = candleTimesSec[newFromIndex];
+                            const newTo = candleTimesSec[newToIndex];
+                            
+                            chart.setVisibleRange({ from: newFrom, to: newTo });
+                        }
+                    } else if (visibleRange) {
+                        // Fallback if candles array is not available
+                        const rangeWidth = visibleRange.to - visibleRange.from;
+                        const barPosition = (targetTime - visibleRange.from) / rangeWidth;
+                        
+                        if (barPosition < 0.1 || barPosition > 0.9) {
+                            const newFrom = targetTime - rangeWidth / 2;
+                            const newTo = targetTime + rangeWidth / 2;
+                            chart.setVisibleRange({ from: newFrom, to: newTo });
+                        }
+                    }
+                } catch (e) {
+                    console.warn('[TVChart] Could not adjust visible range:', e);
+                }
+                
+                // Position the marker slightly above the candle high
+                const offset = targetPrice * 0.0015; // 0.15% offset to match plotTradeShape
+                const priceForMarker = targetPrice + offset;
+                
+                // Create a combination of shapes for pixel-perfect centering:
+                // 1. arrow_down pointing exactly at the candle high (fixes the off-center icon issue)
+                // 2. vertical_line to perfectly mark the time axis
+                const shapesToCreate = [
+                    {
+                        point: { time: targetTime, price: priceForMarker },
+                        options: {
+                            shape: 'arrow_down',
+                            text: '',
+                            lock: true,
+                            disableSelection: true,
+                            disableSave: true,
+                            overrides: {
+                                color: '#FFFFFF',
+                                backgroundColor: '#FFFFFF', // Required to override default red
+                                borderColor: '#FFFFFF', // Some versions use borderColor for the arrow body
+                                size: 1, // Numeric size: 1 is smallest
+                                fontsize: 0,
+                                bold: false
+                            }
+                        }
+                    },
+                    {
+                        point: { time: targetTime, price: targetPrice },
+                        options: {
+                            shape: 'vertical_line',
+                            lock: true,
+                            disableSelection: true,
+                            disableSave: true,
+                            overrides: {
+                                linecolor: 'rgba(255, 255, 255, 0.4)',
+                                linewidth: 1,
+                                linestyle: 2 // dashed
+                            }
+                        }
+                    }
+                ];
+
+                shapesToCreate.forEach(({ point, options }) => {
+                    try {
+                        const shapeId = chart.createShape(point, options);
+                        
+                        // Handle both synchronous IDs and Promises
+                        if (shapeId && typeof shapeId.then === 'function') {
+                            shapeId.then(id => {
+                                if (!isCancelled && id) {
+                                    interactionMarkersRef.current.push(id);
+                                }
+                            }).catch(err => console.error('[TVChart] Error creating interaction shape:', err));
+                        } else if (shapeId) {
+                            interactionMarkersRef.current.push(shapeId);
+                        }
+                    } catch (e) {
+                        console.warn('[TVChart] Error creating interaction shape:', e);
+                    }
+                });
+            }
+        } catch (e) {
+            console.warn('[TVChart] Error drawing interaction marker:', e);
+        }
+
+        return () => {
+            isCancelled = true;
+        };
+    }, [selectedInteraction, isPlaying]);
 
     // Handle Visibility Toggles
     useEffect(() => {
@@ -1081,7 +1280,11 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
                                     high: evt.high,
                                     low: evt.low,
                                     close: evt.close,
-                                    activeAngles: evt.activeAngles
+                                    activeAngles: evt.activeAngles,
+                                    cluster: evt.cluster,
+                                    zone: evt.zone,
+                                    zoneExtremes: evt.zoneExtremes,
+                                    nextAngleLine: evt.nextAngleLine
                                 });
                             });
                         }

@@ -1,0 +1,55 @@
+=== REPLAY DECISION TRACE LOG ===
+Possible Event Types:
+- CROSS_UP: Price opens below/on and closes above the line
+- CROSS_DOWN: Price opens above/on and closes below the line
+- SUPPORT_TEST: Candle opens and closes above line, but low wick touches/pierces line
+- RESISTANCE_TEST: Candle opens and closes below line, but high wick touches/pierces line
+- BREACH_CONFIRMED: Price closes beyond the extreme of the original breakout candle
+- FAKE_OUT: Price reverses and closes back across the original breach price
+- SUPPORT_BOUNCE: Price bounces up by threshold % after a SUPPORT_TEST
+- RESISTANCE_REJECTION: Price rejects down by threshold % after a RESISTANCE_TEST
+- REST_ON_ANGLE: Price consolidates near line for N consecutive bars
+=================================================
+
+[Bar 0] [2026-03-20 09:15] [O:23130.60, H:23278.75, L:23130.60, C:23264.55] -> [No Intersection Detected] -> No Event
+[Bar 1] [2026-03-20 09:19] [O:23264.15, H:23303.05, L:23223.25, C:23255.75] -> [No Intersection Detected] -> No Event
+[Bar 2] [2026-03-20 09:23] [O:23257.40, H:23266.75, L:23244.50, C:23259.70] -> [No Intersection Detected] -> No Event
+[Bar 3] [2026-03-20 09:27] [O:23263.10, H:23291.50, L:23257.75, C:23279.05] -> [No Intersection Detected] -> No Event
+[Bar 4] [2026-03-20 09:31] [O:23280.25, H:23317.75, L:23279.55, C:23313.80] -> [No Intersection Detected] -> No Event
+[Bar 5] [2026-03-20 09:35] [O:23314.90, H:23318.90, L:23262.70, C:23265.05] -> [No Intersection Detected] -> No Event
+[Bar 6] [2026-03-20 09:39] [O:23266.20, H:23280.00, L:23247.05, C:23251.50] -> [No Intersection Detected] -> No Event
+[Bar 7] [2026-03-20 09:43] [O:23253.00, H:23254.30, L:23222.75, C:23225.25] -> [No Intersection Detected] -> No Event
+[Bar 8] [2026-03-20 09:47] [O:23227.05, H:23264.50, L:23226.90, C:23264.00] -> [No Intersection Detected] -> No Event
+[Bar 9] [2026-03-20 09:51] [O:23264.20, H:23266.70, L:23236.15, C:23244.30] -> [No Intersection Detected] -> No Event
+[Bar 10] [2026-03-20 09:55] [O:23243.35, H:23261.65, L:23239.10, C:23247.80] -> [No Intersection Detected] -> No Event
+[Bar 11] [2026-03-20 09:59] [O:23248.30, H:23264.20, L:23220.70, C:23234.20] -> [No Intersection Detected] -> No Event
+[Bar 12] [2026-03-20 10:03] [O:23235.05, H:23258.20, L:23227.45, C:23252.45] -> [No Intersection Detected] -> No Event
+[Bar 13] [2026-03-20 10:07] [O:23253.30, H:23255.85, L:23232.80, C:23239.75] -> [No Intersection Detected] -> No Event
+[Bar 14] [2026-03-20 10:11] [O:23239.90, H:23260.75, L:23236.40, C:23243.65] -> [No Intersection Detected] -> No Event
+[Bar 15] [2026-03-20 10:15] [O:23243.40, H:23246.80, L:23206.55, C:23209.05] -> [No Intersection Detected] -> No Event
+[Bar 16] [2026-03-20 10:19] [O:23209.80, H:23228.65, L:23200.65, C:23222.05] -> [No Intersection Detected] -> No Event
+[Bar 17] [2026-03-20 10:23] [O:23222.35, H:23261.05, L:23222.05, C:23261.05] -> [No Intersection Detected] -> No Event
+[Bar 18] [2026-03-20 10:27] [O:23261.30, H:23269.60, L:23249.50, C:23265.20] -> [No Intersection Detected] -> No Event
+[Bar 19] [2026-03-20 10:31] [O:23265.40, H:23278.35, L:23252.60, C:23269.30] -> [No Intersection Detected] -> No Event
+[Bar 20] [2026-03-20 10:35] [O:23269.75, H:23283.75, L:23269.45, C:23282.40] -> [No Intersection Detected] -> No Event
+[RETRO] [Bar 17] [2026-03-20 10:23] [O:23222.35, H:23261.05, L:23222.05, C:23261.05] -> [L1-H1 0.875 @ 23235.25] O <= Line & C > Line -> CROSS_UP (Pending Breach UP)
+[RETRO] [Bar 17] [2026-03-20 10:23] [O:23222.35, H:23261.05, L:23222.05, C:23261.05] -> [L1-H1 0.875] Near line, rest count incremented to 1
+[RETRO] [Bar 17] [2026-03-20 10:23] [O:23222.35, H:23261.05, L:23222.05, C:23261.05] -> [L1-H1 0.75 @ 23259.76] O <= Line & C > Line -> CROSS_UP (Pending Breach UP)
+[RETRO] [Bar 17] [2026-03-20 10:23] [O:23222.35, H:23261.05, L:23222.05, C:23261.05] -> [L1-H1 0.75] Near line, rest count incremented to 1
+[RETRO] [Bar 17] [2026-03-20 10:23] [O:23222.35, H:23261.05, L:23222.05, C:23261.05] -> [L1-H1 0.875] Intra-bar multi-cross -> BREACH_CONFIRMED
+[RETRO] [Bar 18] [2026-03-20 10:27] [O:23261.30, H:23269.60, L:23249.50, C:23265.20] -> [L1-H1 0.75 @ 23254.83] O >= Line & C >= Line & L <= Line -> SUPPORT_TEST (Pending Bounce)
+[RETRO] [Bar 18] [2026-03-20 10:27] [O:23261.30, H:23269.60, L:23249.50, C:23265.20] -> [L1-H1 0.75] Near line, rest count incremented to 2
+[RETRO] [Bar 18] [2026-03-20 10:27] [O:23261.30, H:23269.60, L:23249.50, C:23265.20] -> [L1-H1 0.75] Pending Breach UP: C (23265.20) > Extreme (23261.05) -> BREACH_CONFIRMED
+[RETRO] [Bar 19] [2026-03-20 10:31] [O:23265.40, H:23278.35, L:23252.60, C:23269.30] -> [L1-H1] Nearest line is 0.5 @ 23282.22 (Distance: 12.91) -> No Intersection
+[RETRO] [Bar 20] [2026-03-20 10:35] [O:23269.75, H:23283.75, L:23269.45, C:23282.40] -> [L1-H1 0.5 @ 23279.60] O <= Line & C > Line -> CROSS_UP (Pending Breach UP)
+[RETRO] [Bar 20] [2026-03-20 10:35] [O:23269.75, H:23283.75, L:23269.45, C:23282.40] -> [L1-H1 0.5] Near line, rest count incremented to 1
+[Bar 21] [2026-03-20 10:39] [O:23282.10, H:23301.80, L:23280.45, C:23293.30] -> [L1-H1 horizontal @ 23290.08] O <= Line & C > Line -> CROSS_UP (Pending Breach UP)
+[Bar 21] [2026-03-20 10:39] [O:23282.10, H:23301.80, L:23280.45, C:23293.30] -> [L1-H1 horizontal] Near line, rest count incremented to 1
+[Bar 21] [2026-03-20 10:39] [O:23282.10, H:23301.80, L:23280.45, C:23293.30] -> [L1-H1 0.25 @ 23300.10] O <= Line & C <= Line & H >= Line -> RESISTANCE_TEST (Pending Rejection)
+[Bar 21] [2026-03-20 10:39] [O:23282.10, H:23301.80, L:23280.45, C:23293.30] -> [L1-H1 0.25] Near line, rest count incremented to 1
+[Bar 21] [2026-03-20 10:39] [O:23282.10, H:23301.80, L:23280.45, C:23293.30] -> [L1-H1 0.5] Pending Breach UP: C (23293.30) > Extreme (23283.75) -> BREACH_CONFIRMED
+[Bar 22] [2026-03-20 10:43] [O:23293.20, H:23312.60, L:23286.05, C:23307.25] -> [L1-H1 horizontal @ 23290.08] O >= Line & C >= Line & L <= Line -> SUPPORT_TEST (Pending Bounce)
+[Bar 22] [2026-03-20 10:43] [O:23293.20, H:23312.60, L:23286.05, C:23307.25] -> [L1-H1 horizontal] Near line, rest count incremented to 2
+[Bar 22] [2026-03-20 10:43] [O:23293.20, H:23312.60, L:23286.05, C:23307.25] -> [L1-H1 0.25 @ 23298.92] O <= Line & C > Line -> CROSS_UP (Pending Breach UP)
+[Bar 22] [2026-03-20 10:43] [O:23293.20, H:23312.60, L:23286.05, C:23307.25] -> [L1-H1 0.25] Near line, rest count incremented to 2
+[Bar 22] [2026-03-20 10:43] [O:23293.20, H:23312.60, L:23286.05, C:23307.25] -> [L1-H1 horizontal] Pending Breach UP: C (23307.25) > Extreme (23301.80) -> BREACH_CONFIRMED

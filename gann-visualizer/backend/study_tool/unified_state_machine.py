@@ -1,6 +1,8 @@
 """
 Unified State Machine for Event Classification
 """
+import os
+import datetime
 from typing import Dict, List, Any, Optional
 from dataclasses import dataclass
 from .event_logger import EventType
@@ -23,11 +25,51 @@ class UnifiedStateMachine:
         self.rest_required_bars = config.get('rest_required_bars', 3)
         self.bounce_threshold_percent = config.get('bounce_threshold_percent', 0.3)
         self.rejection_lookback_bars = config.get('rejection_lookback_bars', 5)
+        self.run_mode = config.get('run_mode', 'simulation')
+        is_new_replay = config.get('is_new_replay', False)
         
+        # Setup trace logger
+        log_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "logs")
+        os.makedirs(log_dir, exist_ok=True)
+        self.trace_log_path = os.path.join(log_dir, f"{self.run_mode}_trace.log")
+        
+        # Initialize log file
+        # For simulation: always truncate on init (since it's instantiated once per run)
+        # For replay: truncate only if it's a new replay session
+        should_truncate = (self.run_mode == 'simulation') or (self.run_mode == 'replay' and is_new_replay)
+        
+        if should_truncate:
+            with open(self.trace_log_path, 'w', encoding='utf-8') as f:
+                f.write(f"=== {self.run_mode.upper()} DECISION TRACE LOG ===\n")
+                f.write("Possible Event Types:\n")
+                f.write("- CROSS_UP: Price opens below/on and closes above the line\n")
+                f.write("- CROSS_DOWN: Price opens above/on and closes below the line\n")
+                f.write("- SUPPORT_TEST: Candle opens and closes above line, but low wick touches/pierces line\n")
+                f.write("- RESISTANCE_TEST: Candle opens and closes below line, but high wick touches/pierces line\n")
+                f.write("- BREACH_CONFIRMED: Price closes beyond the extreme of the original breakout candle\n")
+                f.write("- FAKE_OUT: Price reverses and closes back across the original breach price\n")
+                f.write("- SUPPORT_BOUNCE: Price bounces up by threshold % after a SUPPORT_TEST\n")
+                f.write("- RESISTANCE_REJECTION: Price rejects down by threshold % after a RESISTANCE_TEST\n")
+                f.write("- REST_ON_ANGLE: Price consolidates near line for N consecutive bars\n")
+                f.write("=================================================\n\n")
+
         # State tracking per line: fan_id_line_id
         self.pending_breaches: Dict[str, Dict[str, Any]] = {}
         self.pending_tests: Dict[str, Dict[str, Any]] = {}
         self.rest_counters: Dict[str, Dict[str, Any]] = {}
+
+    def _log_trace(self, bar_index: int, c_time: int, c_open: float, c_high: float, c_low: float, c_close: float, evaluations: List[str], is_retro: bool = False):
+        """Write a structured one-liner trace for the current bar."""
+        dt_str = datetime.datetime.fromtimestamp(c_time).strftime('%Y-%m-%d %H:%M')
+        retro_str = "[RETRO] " if is_retro else ""
+        header = f"{retro_str}[Bar {bar_index}] [{dt_str}] [O:{c_open:.2f}, H:{c_high:.2f}, L:{c_low:.2f}, C:{c_close:.2f}]"
+        
+        with open(self.trace_log_path, 'a', encoding='utf-8') as f:
+            if not evaluations:
+                f.write(f"{header} -> [No Intersection Detected] -> No Event\n")
+            else:
+                for eval_str in evaluations:
+                    f.write(f"{header} -> {eval_str}\n")
 
     def process_bar(
         self,
@@ -36,11 +78,14 @@ class UnifiedStateMachine:
         bar_index: int,
         intersection_events: list,
         active_fans: dict,
-        candles: list = None
+        candles: list = None,
+        is_retro: bool = False,
+        retro_fan_ids: list = None
     ) -> List[EventOutput]:
-        
+
         results: List[EventOutput] = []
-        
+        evaluations: List[str] = []
+
         c_open = float(current_candle.get('open', 0))
         c_high = float(current_candle.get('high', 0))
         c_low = float(current_candle.get('low', 0))
@@ -60,20 +105,21 @@ class UnifiedStateMachine:
         for fan_id, fan_events in events_by_fan.items():
             if fan_id not in active_fans:
                 continue
-                
+
             fan_obj = active_fans[fan_id]
-            
+
             # Sort events by price distance from open to find the "first" line encountered
             fan_events.sort(key=lambda e: abs(c_open - e.price))
-            
-            cross_triggered = False
+
+            crosses_up_this_bar = []
+            crosses_down_this_bar = []
 
             for event in fan_events:
                 line_id = event.line_id
                 state_key = f"{fan_id}_{line_id}"
-                
+
                 line_price = event.price
-                
+
                 fan_identity = event.priority_label.split('(')[-1].rstrip(')').strip() if '(' in event.priority_label else event.priority_label
                 frac_name = f"{event.fraction}" if event.fraction is not None else "main"
 
@@ -91,37 +137,43 @@ class UnifiedStateMachine:
                 is_resistance_test = c_open <= line_price and c_close <= line_price and c_high >= line_price
                 is_support_test = c_open >= line_price and c_close >= line_price and c_low <= line_price
 
-                # Crosses
-                is_cross_up = c_open <= line_price and c_close > line_price
-                is_cross_down = c_open >= line_price and c_close < line_price
-
-                # Prevent a massive candle from triggering crosses on multiple lines within a single fan
-                if (is_cross_up or is_cross_down) and cross_triggered:
-                    continue
+                # Crosses (Physical or Gap)
+                is_cross_up = (c_open <= line_price and c_close > line_price) or (event.prev_price is not None and prev_close < event.prev_price and c_close > line_price)
+                is_cross_down = (c_open >= line_price and c_close < line_price) or (event.prev_price is not None and prev_close > event.prev_price and c_close < line_price)
 
                 if is_cross_up:
                     hit_type = 'CROSS_UP'
                     details = 'Breakout Attempt'
                     direction = 'up'
                     self._start_pending_breach(state_key, event.fan_id, line_id, 'up', c_high, bar_index, line_price, event.fraction, fan_obj)
-                    cross_triggered = True
+                    crosses_up_this_bar.append((state_key, event, fan_identity, frac_name, fan_obj))
+                    if c_open <= line_price:
+                        evaluations.append(f"[{fan_identity} {frac_name} @ {line_price:.2f}] O <= Line & C > Line -> CROSS_UP (Pending Breach UP)")
+                    else:
+                        evaluations.append(f"[{fan_identity} {frac_name} @ {line_price:.2f}] PrevC < PrevLine & C > Line -> GAP CROSS_UP (Pending Breach UP)")
                 elif is_cross_down:
                     hit_type = 'CROSS_DOWN'
                     details = 'Breakdown Attempt'
                     direction = 'down'
                     self._start_pending_breach(state_key, event.fan_id, line_id, 'down', c_low, bar_index, line_price, event.fraction, fan_obj)
-                    cross_triggered = True
+                    crosses_down_this_bar.append((state_key, event, fan_identity, frac_name, fan_obj))
+                    if c_open >= line_price:
+                        evaluations.append(f"[{fan_identity} {frac_name} @ {line_price:.2f}] O >= Line & C < Line -> CROSS_DOWN (Pending Breach DOWN)")
+                    else:
+                        evaluations.append(f"[{fan_identity} {frac_name} @ {line_price:.2f}] PrevC > PrevLine & C < Line -> GAP CROSS_DOWN (Pending Breach DOWN)")
                 elif is_support_test:
                     hit_type = 'SUPPORT_TEST'
                     details = 'Testing Support'
                     self._start_pending_test(state_key, event.fan_id, line_id, 'SUPPORT_TEST', bar_index, line_price, event.fraction)
+                    evaluations.append(f"[{fan_identity} {frac_name} @ {line_price:.2f}] O >= Line & C >= Line & L <= Line -> SUPPORT_TEST (Pending Bounce)")
                 elif is_resistance_test:
                     hit_type = 'RESISTANCE_TEST'
                     details = 'Testing Resistance'
                     self._start_pending_test(state_key, event.fan_id, line_id, 'RESISTANCE_TEST', bar_index, line_price, event.fraction)
+                    evaluations.append(f"[{fan_identity} {frac_name} @ {line_price:.2f}] O <= Line & C <= Line & H >= Line -> RESISTANCE_TEST (Pending Rejection)")
                 else:
                     # Pure touch
-                    pass
+                    evaluations.append(f"[{fan_identity} {frac_name} @ {line_price:.2f}] Intersection detected but did not meet strict wick/body criteria -> TOUCH")
 
                 results.append(EventOutput(
                     fan_id=event.fan_id,
@@ -135,7 +187,36 @@ class UnifiedStateMachine:
                 ))
 
                 # Rest processing
-                self._process_rest_event(state_key, event.fan_id, frac_name, line_price, c_close, c_open, c_high, c_low, bar_index, fan_obj, event.priority_label, fan_identity, results)
+                self._process_rest_event(state_key, event.fan_id, frac_name, line_price, c_close, c_open, c_high, c_low, bar_index, fan_obj, event.priority_label, fan_identity, results, evaluations)
+
+            # Intra-bar immediate breach confirmation
+            if len(crosses_up_this_bar) > 1:
+                # Sort by line price ascending
+                crosses_up_this_bar.sort(key=lambda x: x[1].price)
+                # All except the highest one are confirmed
+                for state_key, event, fan_identity, frac_name, fan_obj in crosses_up_this_bar[:-1]:
+                    results.append(EventOutput(
+                        fan_id=event.fan_id, fan_identity=fan_identity, priority_label=fan_obj.priority_label,
+                        fraction=frac_name, price=c_close, event_type='BREACH_CONFIRMED',
+                        details="UP (Intra-bar confirmation)", direction='up'
+                    ))
+                    if state_key in self.pending_breaches:
+                        del self.pending_breaches[state_key]
+                    evaluations.append(f"[{fan_identity} {frac_name}] Intra-bar multi-cross -> BREACH_CONFIRMED")
+
+            if len(crosses_down_this_bar) > 1:
+                # Sort by line price descending
+                crosses_down_this_bar.sort(key=lambda x: x[1].price, reverse=True)
+                # All except the lowest one are confirmed
+                for state_key, event, fan_identity, frac_name, fan_obj in crosses_down_this_bar[:-1]:
+                    results.append(EventOutput(
+                        fan_id=event.fan_id, fan_identity=fan_identity, priority_label=fan_obj.priority_label,
+                        fraction=frac_name, price=c_close, event_type='BREACH_CONFIRMED',
+                        details="DOWN (Intra-bar confirmation)", direction='down'
+                    ))
+                    if state_key in self.pending_breaches:
+                        del self.pending_breaches[state_key]
+                    evaluations.append(f"[{fan_identity} {frac_name}] Intra-bar multi-cross -> BREACH_CONFIRMED")
 
         # 2. Update existing pending breaches
         keys_to_remove = []
@@ -144,12 +225,12 @@ class UnifiedStateMachine:
             if fan_id not in active_fans:
                 keys_to_remove.append(state_key)
                 continue
-                
+
             if state['first_breach_bar'] == bar_index:
                 continue
-                
+
             bars_elapsed = bar_index - state['first_breach_bar']
-            
+
             fan_obj = active_fans[fan_id]
             fan_identity = fan_obj.priority_label.split('(')[-1].rstrip(')').strip() if '(' in fan_obj.priority_label else fan_obj.priority_label
             frac_name = f"{state['fraction']}" if state['fraction'] is not None else "main"
@@ -164,6 +245,7 @@ class UnifiedStateMachine:
                         details=f"UP (T+{bars_elapsed} bars)", direction='up'
                     ))
                     keys_to_remove.append(state_key)
+                    evaluations.append(f"[{fan_identity} {frac_name}] Pending Breach UP: C ({c_close:.2f}) > Extreme ({state['extreme_price']:.2f}) -> BREACH_CONFIRMED")
                 elif c_close < state['line_price_at_breach']:
                     results.append(EventOutput(
                         fan_id=fan_id, fan_identity=fan_identity, priority_label=fan_obj.priority_label,
@@ -171,6 +253,7 @@ class UnifiedStateMachine:
                         details=f"Failed UP (reversed at bar {bar_index})", direction='up'
                     ))
                     keys_to_remove.append(state_key)
+                    evaluations.append(f"[{fan_identity} {frac_name}] Pending Breach UP: C ({c_close:.2f}) < Original Line Price ({state['line_price_at_breach']:.2f}) -> FAKE_OUT")
             elif state['direction'] == 'down':
                 if c_close < state['extreme_price']:
                     results.append(EventOutput(
@@ -179,6 +262,7 @@ class UnifiedStateMachine:
                         details=f"DOWN (T+{bars_elapsed} bars)", direction='down'
                     ))
                     keys_to_remove.append(state_key)
+                    evaluations.append(f"[{fan_identity} {frac_name}] Pending Breach DOWN: C ({c_close:.2f}) < Extreme ({state['extreme_price']:.2f}) -> BREACH_CONFIRMED")
                 elif c_close > state['line_price_at_breach']:
                     results.append(EventOutput(
                         fan_id=fan_id, fan_identity=fan_identity, priority_label=fan_obj.priority_label,
@@ -186,6 +270,7 @@ class UnifiedStateMachine:
                         details=f"Failed DOWN (reversed at bar {bar_index})", direction='down'
                     ))
                     keys_to_remove.append(state_key)
+                    evaluations.append(f"[{fan_identity} {frac_name}] Pending Breach DOWN: C ({c_close:.2f}) > Original Line Price ({state['line_price_at_breach']:.2f}) -> FAKE_OUT")
 
         for key in keys_to_remove:
             del self.pending_breaches[key]
@@ -197,19 +282,20 @@ class UnifiedStateMachine:
             if fan_id not in active_fans:
                 keys_to_remove.append(state_key)
                 continue
-                
+
             bars_elapsed = bar_index - state['test_bar']
             if bars_elapsed > self.rejection_lookback_bars:
                 keys_to_remove.append(state_key)
+                evaluations.append(f"[{fan_id} {state['fraction']}] Pending Test expired after {bars_elapsed} bars -> Removed")
                 continue
-                
+
             fan_obj = active_fans[fan_id]
             fan_identity = fan_obj.priority_label.split('(')[-1].rstrip(')').strip() if '(' in fan_obj.priority_label else fan_obj.priority_label
             frac_name = f"{state['fraction']}" if state['fraction'] is not None else "main"
-            
+
             line_price = state['line_price']
             threshold = line_price * (self.bounce_threshold_percent / 100.0)
-            
+
             if state['test_type'] == 'SUPPORT_TEST':
                 if c_close >= line_price + threshold:
                     results.append(EventOutput(
@@ -218,6 +304,7 @@ class UnifiedStateMachine:
                         details=f"Bounced (T+{bars_elapsed} bars)", direction='up'
                     ))
                     keys_to_remove.append(state_key)
+                    evaluations.append(f"[{fan_identity} {frac_name}] Pending SUPPORT_TEST: C ({c_close:.2f}) >= Line + Threshold ({line_price + threshold:.2f}) -> SUPPORT_BOUNCE")
             elif state['test_type'] == 'RESISTANCE_TEST':
                 if c_close <= line_price - threshold:
                     results.append(EventOutput(
@@ -226,9 +313,43 @@ class UnifiedStateMachine:
                         details=f"Rejected (T+{bars_elapsed} bars)", direction='down'
                     ))
                     keys_to_remove.append(state_key)
-                    
+                    evaluations.append(f"[{fan_identity} {frac_name}] Pending RESISTANCE_TEST: C ({c_close:.2f}) <= Line - Threshold ({line_price - threshold:.2f}) -> RESISTANCE_REJECTION")
+
         for key in keys_to_remove:
             del self.pending_tests[key]
+
+        # If there are active fans but no evaluations were generated, log the distances to explain why
+        if active_fans and not evaluations:
+            # If this is a retro sweep, only log distances for the new fans being retroactively evaluated
+            fans_to_log = active_fans
+            if is_retro and retro_fan_ids:
+                fans_to_log = {fid: fan for fid, fan in active_fans.items() if fid in retro_fan_ids}
+                
+            for fan_id, fan_obj in fans_to_log.items():
+                fan_identity = fan_obj.priority_label.split('(')[-1].rstrip(')').strip() if '(' in fan_obj.priority_label else fan_obj.priority_label
+                
+                # Find the nearest line for this fan
+                nearest_line = None
+                min_dist = float('inf')
+                
+                # Calculate current prices for all lines in this fan
+                for line in fan_obj.lines:
+                    bar_span = line.end_bar_index - line.start_bar_index
+                    if bar_span > 0:
+                        bars_from_origin = bar_index - line.start_bar_index
+                        slope = (line.end_price - line.start_price) / bar_span
+                        price_at_t = line.start_price + bars_from_origin * slope
+                        
+                        dist = abs(c_close - price_at_t)
+                        if dist < min_dist:
+                            min_dist = dist
+                            frac_str = str(line.fraction) if line.fraction is not None else "horizontal"
+                            nearest_line = f"{frac_str} @ {price_at_t:.2f}"
+                
+                if nearest_line:
+                    evaluations.append(f"[{fan_identity}] Nearest line is {nearest_line} (Distance: {min_dist:.2f}) -> No Intersection")
+
+        self._log_trace(bar_index, c_time, c_open, c_high, c_low, c_close, evaluations, is_retro)
 
         return results
 
@@ -244,7 +365,7 @@ class UnifiedStateMachine:
                 line_start_price = line.start_price
                 line_end_price = line.end_price
                 break
-                
+
         self.pending_breaches[state_key] = {
             'fan_id': fan_id,
             'direction': direction,
@@ -267,50 +388,55 @@ class UnifiedStateMachine:
             'test_bar': bar_index
         }
 
-    def _process_rest_event(self, state_key, fan_id, frac_name, line_price, c_close, c_open, c_high, c_low, bar_index, fan_obj, priority_label, fan_identity, results):
+    def _process_rest_event(self, state_key, fan_id, frac_name, line_price, c_close, c_open, c_high, c_low, bar_index, fan_obj, priority_label, fan_identity, results, evaluations):
         body_size = abs(c_open - c_close)
         candle_range = c_high - c_low
         is_small_body = body_size <= (candle_range * 0.4) if candle_range > 0 else True
         is_near_line = abs(c_close - line_price) / line_price <= self.rest_tolerance
-        
+
         # A candle with a very small body, near the line, indicates resting.
         # Alternatively, a candle whose body is entirely near the line.
-        
+
         line_polarity = 'neutral'
         if hasattr(fan_obj, 'anchor_type') and fan_obj.anchor_type:
             line_polarity = 'angled_down' if fan_obj.anchor_type == 'low' else 'angled_up'
-            
+
         # Rest logic requires the body to be small relative to the candle, OR the entire body to be close to the line.
         if is_near_line:
             if state_key not in self.rest_counters:
                 self.rest_counters[state_key] = {'count': 0, 'polarity': line_polarity, 'last_bar': bar_index - 1}
-            
+
             # Ensure continuity
             if self.rest_counters[state_key]['last_bar'] == bar_index - 1:
                 self.rest_counters[state_key]['count'] += 1
                 self.rest_counters[state_key]['last_bar'] = bar_index
-                
+
                 if self.rest_counters[state_key]['count'] == self.rest_required_bars:
                     results.append(EventOutput(
                         fan_id=fan_id, fan_identity=fan_identity, priority_label=priority_label,
                         fraction=frac_name, price=c_close, event_type='REST_ON_ANGLE',
                         details=f"Resting (T+{self.rest_required_bars} bars)"
                     ))
+                    evaluations.append(f"[{fan_identity} {frac_name}] Rest count reached {self.rest_required_bars} -> REST_ON_ANGLE")
+                else:
+                    evaluations.append(f"[{fan_identity} {frac_name}] Near line, rest count incremented to {self.rest_counters[state_key]['count']}")
             else:
                 # Broken continuity, reset
                 self.rest_counters[state_key] = {'count': 1, 'polarity': line_polarity, 'last_bar': bar_index}
+                evaluations.append(f"[{fan_identity} {frac_name}] Near line but continuity broken, rest count reset to 1")
         else:
             # Not resting, reset
             if state_key in self.rest_counters:
                 del self.rest_counters[state_key]
+                evaluations.append(f"[{fan_identity} {frac_name}] Moved away from line, rest count cleared")
 
     def remove_fan(self, fan_id: str):
         keys_to_remove = [k for k in self.pending_breaches.keys() if k.startswith(f"{fan_id}_")]
         for k in keys_to_remove: del self.pending_breaches[k]
-        
+
         keys_to_remove = [k for k in self.pending_tests.keys() if k.startswith(f"{fan_id}_")]
         for k in keys_to_remove: del self.pending_tests[k]
-        
+
         keys_to_remove = [k for k in self.rest_counters.keys() if k.startswith(f"{fan_id}_")]
         for k in keys_to_remove: del self.rest_counters[k]
 
