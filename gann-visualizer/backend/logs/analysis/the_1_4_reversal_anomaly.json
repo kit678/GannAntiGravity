@@ -1,0 +1,9 @@
+{
+  "hypothesis": "The 1/4 Reversal Anomaly",
+  "description": "If price reaches the 1/4 angle line, the trend is exhausted. The 1/4 line will act as a major reversal point.",
+  "sample_size": 82,
+  "win_rate": 0.5975609756097561,
+  "avg_mfe_10": 80.26176219512195,
+  "avg_mae_10": 25.560963414634145,
+  "band_pct_used": ""
+}

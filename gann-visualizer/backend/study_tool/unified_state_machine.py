@@ -26,7 +26,6 @@ class UnifiedStateMachine:
         self.bounce_threshold_percent = config.get('bounce_threshold_percent', 0.3)
         self.rejection_lookback_bars = config.get('rejection_lookback_bars', 5)
         self.run_mode = config.get('run_mode', 'simulation')
-        is_new_replay = config.get('is_new_replay', False)
         
         # Setup trace logger
         log_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "logs")
@@ -35,8 +34,14 @@ class UnifiedStateMachine:
         
         # Initialize log file
         # For simulation: always truncate on init (since it's instantiated once per run)
-        # For replay: truncate only if it's a new replay session
-        should_truncate = (self.run_mode == 'simulation') or (self.run_mode == 'replay' and is_new_replay)
+        # For replay: truncate ONLY ONCE per server lifecycle
+        should_truncate = False
+        if self.run_mode == 'simulation':
+            should_truncate = True
+        elif self.run_mode == 'replay':
+            if not hasattr(UnifiedStateMachine, '_replay_log_truncated'):
+                should_truncate = True
+                UnifiedStateMachine._replay_log_truncated = True
         
         if should_truncate:
             with open(self.trace_log_path, 'w', encoding='utf-8') as f:
@@ -102,7 +107,8 @@ class UnifiedStateMachine:
                 events_by_fan[event.fan_id] = []
             events_by_fan[event.fan_id].append(event)
 
-        for fan_id, fan_events in events_by_fan.items():
+        for fan_id in sorted(events_by_fan.keys()):
+            fan_events = events_by_fan[fan_id]
             if fan_id not in active_fans:
                 continue
 
@@ -220,7 +226,8 @@ class UnifiedStateMachine:
 
         # 2. Update existing pending breaches
         keys_to_remove = []
-        for state_key, state in self.pending_breaches.items():
+        for state_key in sorted(self.pending_breaches.keys()):
+            state = self.pending_breaches[state_key]
             fan_id = state['fan_id']
             if fan_id not in active_fans:
                 keys_to_remove.append(state_key)
@@ -277,7 +284,8 @@ class UnifiedStateMachine:
 
         # 3. Update existing pending tests (Bounce / Rejection)
         keys_to_remove = []
-        for state_key, state in self.pending_tests.items():
+        for state_key in sorted(self.pending_tests.keys()):
+            state = self.pending_tests[state_key]
             fan_id = state['fan_id']
             if fan_id not in active_fans:
                 keys_to_remove.append(state_key)
@@ -325,7 +333,8 @@ class UnifiedStateMachine:
             if is_retro and retro_fan_ids:
                 fans_to_log = {fid: fan for fid, fan in active_fans.items() if fid in retro_fan_ids}
                 
-            for fan_id, fan_obj in fans_to_log.items():
+            for fan_id in sorted(fans_to_log.keys()):
+                fan_obj = fans_to_log[fan_id]
                 fan_identity = fan_obj.priority_label.split('(')[-1].rstrip(')').strip() if '(' in fan_obj.priority_label else fan_obj.priority_label
                 
                 # Find the nearest line for this fan

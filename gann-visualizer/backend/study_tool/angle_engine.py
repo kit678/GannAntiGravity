@@ -561,6 +561,7 @@ class AngleEngine:
     def get_state(self) -> Dict[str, Any]:
         """Get engine state for serialization"""
         return {
+            'active_fan_order': list(self.active_fans.keys()),
             'active_fans': {
                 fan_id: {
                     'id': fan.id,
@@ -597,7 +598,12 @@ class AngleEngine:
         from .intersection_detector import IntersectionEvent
         self.active_fans = {}
         
-        for fan_id, fan_data in state.get('active_fans', {}).items():
+        fan_order = state.get('active_fan_order', list(state.get('active_fans', {}).keys()))
+        
+        for fan_id in fan_order:
+            if fan_id not in state.get('active_fans', {}):
+                continue
+            fan_data = state['active_fans'][fan_id]
             lines = [
                 AngleLine(
                     id=line['id'],

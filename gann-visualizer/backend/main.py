@@ -1060,7 +1060,11 @@ async def _process_study_bar(req: EvaluateStrategyRequest):
             _study_cache['index'] == req.current_index - 1
         )
         
-        study_config['is_new_replay'] = not is_sequential
+        # A new replay session is started if we go backwards in time, 
+        # or if the cache was just initialized (index == -1)
+        is_new_replay = _study_cache['index'] == -1 or _study_cache['index'] >= req.current_index
+        
+        study_config['is_new_replay'] = is_new_replay
             
         if req.strategy == 'pivot_points_only':
             from study_tool.pivot_points_study import PivotPointsStudy

@@ -486,7 +486,7 @@ class ChartDatafeed {
     }
 
     // Start automated playback
-    playback_start() {
+    async playback_start() {
         console.log("ChartDatafeed.playback_start called");
 
         if (!this.isCustomMode || !this.isInitialized) {
@@ -494,30 +494,45 @@ class ChartDatafeed {
             return;
         }
 
-        if (this.playbackInterval) {
+        if (this.isPlaying) {
             console.log("Playback already running");
             return;
         }
 
-        console.log("Starting playback interval with speed", this.playbackSpeed);
-        this.playbackInterval = setInterval(() => {
-            this.playback_step();
-        }, this.playbackSpeed);
+        // Clear any legacy interval just in case
+        if (this.playbackInterval) {
+            clearInterval(this.playbackInterval);
+            this.playbackInterval = null;
+        }
+
+        this.isPlaying = true;
+        console.log("Starting playback loop with speed", this.playbackSpeed);
+        
+        const delay = ms => new Promise(res => setTimeout(res, ms));
+        
+        while (this.isPlaying) {
+            await this.playback_step();
+            if (this.isPlaying) {
+                await delay(this.playbackSpeed);
+            }
+        }
     }
 
     // Stop automated playback
     playback_stop() {
         console.log("ChartDatafeed.playback_stop called");
-
+        this.isPlaying = false;
+        
+        // Clean up legacy interval if it exists
         if (this.playbackInterval) {
             clearInterval(this.playbackInterval);
             this.playbackInterval = null;
-            console.log("Playback stopped");
         }
+        console.log("Playback stopped");
     }
 
     // Move forward one bar
-    playback_step() {
+    async playback_step() {
         if (!this.isCustomMode || !this.isInitialized) {
             console.error("Cannot step - not in custom mode or not initialized");
             return;
@@ -578,7 +593,7 @@ class ChartDatafeed {
         this.updateChartDisplay();
 
         // Evaluate strategy at the new current step
-        this._evaluateCurrentStep();
+        await this._evaluateCurrentStep();
     }
 
     // Evaluate strategy at current step without advancing
@@ -627,7 +642,7 @@ class ChartDatafeed {
                 requestBody.resolution = this.currentResolution;
             }
 
-            fetch(`${this.datafeedUrl}/evaluate_strategy_step`, {
+            return fetch(`${this.datafeedUrl}/evaluate_strategy_step`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(requestBody)
@@ -688,6 +703,7 @@ class ChartDatafeed {
                 })
                 .catch(err => console.error("[Progressive] Evaluation error:", err));
         }
+        return Promise.resolve();
     }
 
     // Helper to update the chart display

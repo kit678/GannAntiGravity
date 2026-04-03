@@ -1,0 +1,9 @@
+{
+  "hypothesis": "Strong Support and Resistance (S/R) Rule",
+  "description": "Angular division lines inherently act as rigid support and resistance boundaries. A S/R test will reliably lead to a significant price reversal.",
+  "sample_size": 398,
+  "win_rate": 0.7562814070351759,
+  "avg_mfe_10": 118.11542487437187,
+  "avg_mae_10": 22.628013316582898,
+  "band_pct_used": ""
+}

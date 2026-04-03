@@ -516,7 +516,7 @@ class AngularPriceCoverageStudy:
                 'time': timestamp,
                 'fan': priority_label,
                 'fanIdentity': fan_display,
-                'fraction': '7/8',
+                'fraction': '-',
                 'price': validation.validation_price,
                 'type': 'FAN_VALIDATED',
                 'details': f"Via {validation.validation_type}",

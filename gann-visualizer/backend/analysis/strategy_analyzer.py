@@ -221,12 +221,14 @@ class ConfluenceBounceHypothesis(Hypothesis):
             description="Touches on angles that are near other active angles from different fans have a higher reversal probability."
         )
         self.set_parameters(price_band_pct=0.002) # 0.2%
+        self.detailed_log = []
         
     def evaluate(self, df: pd.DataFrame) -> Dict[str, Any]:
+        self.detailed_log = []
         target_types = ['SUPPORT_TEST', 'RESISTANCE_TEST', 'TOUCH']
         touches = df[df['Type'].isin(target_types)].copy()
         if touches.empty:
-            return {"sample_size": 0, "win_rate": 0.0, "avg_mfe_10": 0.0, "avg_mae_10": 0.0}
+            return {"sample_size": 0, "win_rate": 0.0, "avg_mfe_10": 0.0, "avg_mae_10": 0.0, "detailed_log": []}
             
         band_pct = self.parameters['price_band_pct']
         
@@ -253,6 +255,7 @@ class ConfluenceBounceHypothesis(Hypothesis):
                 
             # Check if there is another line from a DIFFERENT fan within the price band
             has_confluence = False
+            confluence_lines = []
             current_fan = row['Fan']
             
             for line_key, line_price in active_angles.items():
@@ -262,15 +265,33 @@ class ConfluenceBounceHypothesis(Hypothesis):
                         diff_pct = abs(price - line_price) / line_price
                         if diff_pct <= band_pct:
                             has_confluence = True
-                            break
+                            confluence_lines.append(f"{line_key}: {line_price:.2f}")
                             
             if has_confluence:
                 valid_confluence_events += 1
                 safe_mae = max(mae, 0.1)
-                if mfe > safe_mae * 2:
+                is_win = mfe > safe_mae * 2
+                if is_win:
                     wins += 1
                 total_mfe += mfe
                 total_mae += mae
+                
+                # Log individual event
+                self.detailed_log.append({
+                    "outcome": "WIN" if is_win else "MISS",
+                    "time": row.get('Time', ''),
+                    "fan": row['Fan'],
+                    "fraction": row.get('Fraction', '-'),
+                    "price": price,
+                    "type": row['Type'],
+                    "confluence_with": confluence_lines,
+                    "O": row.get('Open', ''),
+                    "H": row.get('High', ''),
+                    "L": row.get('Low', ''),
+                    "C": row.get('Close', ''),
+                    "mfe_10": mfe,
+                    "mae_10": mae
+                })
                 
         sample_size = valid_confluence_events
         win_rate = wins / sample_size if sample_size > 0 else 0.0
@@ -280,7 +301,8 @@ class ConfluenceBounceHypothesis(Hypothesis):
             "win_rate": win_rate,
             "avg_mfe_10": total_mfe / sample_size if sample_size > 0 else 0.0,
             "avg_mae_10": total_mae / sample_size if sample_size > 0 else 0.0,
-            "band_pct_used": band_pct
+            "band_pct_used": band_pct,
+            "detailed_log": self.detailed_log
         }
 
 class StrategyAnalyzer:
@@ -349,58 +371,83 @@ class StrategyAnalyzer:
             if entry.get('mfe_10'):
                 print(f"   MFE_10: {entry['mfe_10']:.2f}, MAE_10: {entry['mae_10']:.2f}")
     
-    def export_detailed_logs(self) -> tuple:
+    def export_detailed_logs(self) -> list:
         os.makedirs(self.output_dir, exist_ok=True)
         
-        json_file = os.path.join(self.output_dir, "hypothesis_detailed_logs.json")
-        csv_file = os.path.join(self.output_dir, "hypothesis_detailed_logs.csv")
-        
-        export_data = {}
-        all_rows = []
+        exported_files = []
         
         for hyp_name, results in self.all_results.items():
-            if 'detailed_log' in results:
-                export_data[hyp_name] = {
+            safe_name = hyp_name.lower().replace(' ', '_').replace('/', '_').replace('(', '').replace(')', '')
+            json_file = os.path.join(self.output_dir, f"{safe_name}.json")
+            csv_file = os.path.join(self.output_dir, f"{safe_name}.csv")
+            
+            if 'detailed_log' in results and results['detailed_log']:
+                events = results['detailed_log']
+                export_data = {
+                    "hypothesis": hyp_name,
+                    "description": next((h.description for h in self.hypotheses if h.name == hyp_name), ''),
                     "sample_size": results.get('sample_size', 0),
                     "win_rate": results.get('win_rate', 0.0),
+                    "avg_mfe_10": results.get('avg_mfe_10', 0.0),
+                    "avg_mae_10": results.get('avg_mae_10', 0.0),
                     "total_hits": results.get('total_hits', 0),
                     "total_fails": results.get('total_fails', 0),
-                    "events": results['detailed_log']
+                    "events": events
                 }
                 
-                for event in results['detailed_log']:
+                rows = []
+                for event in events:
                     row = {
                         "Outcome": event['outcome'],
-                        "Target_Time": event['time'],
+                        "Time": event['time'],
                         "Fan": event['fan'],
-                        "Target_Fraction": event['fraction'],
-                        "Target_Price": event['target_price'],
-                        "Next_Angle": event['next_angle'],
-                        "O": event['O'],
-                        "H": event['H'],
-                        "L": event['L'],
-                        "C": event['C'],
+                        "Fraction": event['fraction'],
+                        "Price": event.get('target_price', event.get('price', '')),
+                        "Type": event.get('type', ''),
+                        "Confluence_With": '; '.join(event.get('confluence_with', [])),
+                        "O": event.get('O', ''),
+                        "H": event.get('H', ''),
+                        "L": event.get('L', ''),
+                        "C": event.get('C', ''),
                         "Breach_Time": event.get('breach_time', ''),
                         "Breach_Fraction": event.get('breach_fraction', ''),
                         "Breach_Price": event.get('breach_price', ''),
-                        "MFE_10": event.get('mfe_10', ''),
-                        "MAE_10": event.get('mae_10', '')
+                        "MFE_10": event.get('mfe_10', event.get('mfe_10', '')),
+                        "MAE_10": event.get('mae_10', event.get('mae_10', ''))
                     }
-                    all_rows.append(row)
+                    rows.append(row)
+                
+                with open(json_file, 'w') as f:
+                    json.dump(export_data, f, indent=2)
+                
+                csv_df = pd.DataFrame(rows)
+                csv_df.to_csv(csv_file, index=False)
+                
+                print(f"  {hyp_name}:")
+                print(f"    JSON: {json_file}")
+                print(f"    CSV:  {csv_file}")
+                exported_files.append((json_file, csv_file))
+            else:
+                export_data = {
+                    "hypothesis": hyp_name,
+                    "description": next((h.description for h in self.hypotheses if h.name == hyp_name), ''),
+                    "sample_size": results.get('sample_size', 0),
+                    "win_rate": results.get('win_rate', 0.0),
+                    "avg_mfe_10": results.get('avg_mfe_10', 0.0),
+                    "avg_mae_10": results.get('avg_mae_10', 0.0),
+                    "band_pct_used": results.get('band_pct_used', '')
+                }
+                
+                with open(json_file, 'w') as f:
+                    json.dump(export_data, f, indent=2)
+                
+                print(f"  {hyp_name}:")
+                print(f"    JSON: {json_file}")
+                print(f"    (No detailed events)")
+                exported_files.append((json_file, None))
         
-        with open(json_file, 'w') as f:
-            json.dump(export_data, f, indent=2)
-            
-        if all_rows:
-            csv_df = pd.DataFrame(all_rows)
-            csv_df.to_csv(csv_file, index=False)
-            print(f"\nDetailed logs exported to:")
-            print(f"  JSON: {json_file}")
-            print(f"  CSV:  {csv_file}")
-        else:
-            print(f"\nDetailed logs exported to: {json_file}")
-            
-        return json_file, csv_file
+        print(f"\nAll hypothesis files exported to: {self.output_dir}")
+        return exported_files
     
     def get_results(self) -> Dict[str, Dict[str, Any]]:
         return self.all_results
