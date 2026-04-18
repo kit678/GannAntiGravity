@@ -112,11 +112,13 @@ class CandlestickPatternDetector:
             return PatternType.MARUBOZU
 
         # Hammer / Hanging Man: small body at top, long lower wick (2x+ body), minimal upper wick
-        # Caller applies trend filter to distinguish HAMMER (bullish) from HANGING_MAN (bearish top)
+        # Both have identical geometry. Caller applies trend filter:
+        #   - HAMMER: appears in uptrend -> bullish reversal signal
+        #   - HANGING_MAN: appears in downtrend -> bearish reversal signal
+        # For rule-based fallback we return HANGING_MAN. Caller must upgrade to HAMMER
+        # if price is in an confirmed uptrend (not implemented in this detector).
         if lower_wick >= 2 * body and upper_wick < body:
-            # Check if it could be HANGING_MAN by context (caller decides based on trend)
-            # For now return HAMMER - caller will re-classify if in downtrend
-            return PatternType.HAMMER
+            return PatternType.HANGING_MAN
 
         # Shooting Star / Inverted Hammer: upper wick >= 2x body, lower wick < body
         # Distinguish by where the body closes within the range:
