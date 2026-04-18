@@ -646,6 +646,10 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
     // Key: unique trade identifier (time_type_price), Value: true
     const plottedTradesRef = useRef({});
 
+    // Track pattern label markers to prevent stacking
+    // Key: time bucket, Value: array of { price, time }
+    const patternMarkersRef = useRef({});
+
     // Plot a single trade shape - now accepts optional candles for time snapping
     const plotTradeShape = (chart, trade, candles = null) => {
         // Validate trade data before calling TradingView API
@@ -757,6 +761,74 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
                 shapeTime: shapeTime,
                 shapePrice: shapePrice
             });
+            return false;
+        }
+    };
+
+    // Pattern abbreviation map
+    const PATTERN_ABBREV = {
+        'PINBAR': 'PB',
+        'DOJI': 'DOJI',
+        'SHOOTING_STAR': 'SS',
+        'INVERTED_HAMMER': 'IH',
+        'MARUBOZU': 'M',
+        'SPINNING_TOP': 'ST'
+    };
+
+    // Position logic: bearish/neutral above, bullish below
+    const PATTERN_POSITION = {
+        'PINBAR': 'above',
+        'SHOOTING_STAR': 'above',
+        'MARUBOZU': 'above',
+        'DOJI': 'above',
+        'SPINNING_TOP': 'above',
+        'INVERTED_HAMMER': 'below'
+    };
+
+    const plotPatternLabel = (chart, pattern, candle) => {
+        if (!chart || !pattern || pattern === 'NO_PATTERN' || !candle) return false;
+
+        const abbrev = PATTERN_ABBREV[pattern];
+        if (!abbrev) return false;
+
+        const position = PATTERN_POSITION[pattern] || 'above';
+        const candleTime = toSeconds(candle.time);
+        const candleHigh = parseFloat(candle.high);
+        const candleLow = parseFloat(candle.low);
+
+        // Time bucket stacking prevention (same as trade shapes)
+        const timeBucket = Math.floor(candleTime / 300) * 300;
+        const bucketKey = `${timeBucket}_pattern_${pattern}`;
+        if (!patternMarkersRef.current) patternMarkersRef.current = {};
+        if (!patternMarkersRef.current[bucketKey]) patternMarkersRef.current[bucketKey] = [];
+
+        const existingCount = patternMarkersRef.current[bucketKey].length;
+        const baseOffset = (candleHigh - candleLow) * 0.3 + (candleHigh * 0.001);
+        const stackOffset = candleHigh * 0.001 * existingCount;
+
+        const shapePrice = position === 'below'
+            ? candleLow - baseOffset - stackOffset
+            : candleHigh + baseOffset + stackOffset;
+
+        patternMarkersRef.current[bucketKey].push({ price: shapePrice, time: candleTime });
+
+        console.log(`[plotPatternLabel] ${pattern} (${abbrev}) at ${new Date(candleTime * 1000).toLocaleString()}, price=${shapePrice.toFixed(2)}`);
+
+        try {
+            chart.createShape({ time: candleTime, price: shapePrice }, {
+                shape: 'text',
+                text: abbrev,
+                overrides: {
+                    color: '#FF9800',
+                    backgroundColor: 'rgba(255, 152, 0, 0.15)',
+                    fontsize: 9,
+                    bold: true,
+                    size: 1
+                }
+            });
+            return true;
+        } catch (err) {
+            console.warn("[plotPatternLabel] Error creating label:", err.message);
             return false;
         }
     };
@@ -903,6 +975,7 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
                 const chart = widgetRef.current.activeChart();
                 chart.removeAllShapes();
                 recentMarkersRef.current = {};
+                patternMarkersRef.current = {};
                 studyShapesRef.current = {}; // Clear study shapes
                 fanLabelsRef.current = {};
                 fanDisplayMapRef.current = {};
@@ -1101,6 +1174,7 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
                 const chart = widgetRef.current.activeChart();
                 chart.removeAllShapes();
                 recentMarkersRef.current = {}; // Clear marker tracking
+                patternMarkersRef.current = {};
                 plottedTradesRef.current = {};  // Reset trade tracking for new replay
 
                 console.log("[Replay] Chart ready - cleared existing shapes");
@@ -1185,6 +1259,19 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
                     try {
                         const chart = widgetRef.current.activeChart();
                         studyShapesRef.current = processStudyResponse(chart, studyData, studyShapesRef.current);
+
+                        // Plot candle pattern label if present
+                        if (studyData.candle_pattern && studyData.candle_pattern !== 'NO_PATTERN') {
+                            // Use current step from datafeed to get the correct candle
+                            const datafeed = datafeedRef.current;
+                            const stepIndex = datafeed && datafeed.customData
+                                ? Math.min(datafeed.currentStep, datafeed.customData.length - 1)
+                                : 0;
+                            const candle = datafeed && datafeed.customData && datafeed.customData[stepIndex];
+                            if (candle) {
+                                plotPatternLabel(chart, studyData.candle_pattern, candle);
+                            }
+                        }
 
                         // --- SYNC AVAILABLE FANS based on actual remaining shapes ---
                         if (props.onAvailableFansUpdated) {
@@ -1334,6 +1421,7 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
                 const chart = widgetRef.current.activeChart();
                 chart.removeAllShapes();
                 recentMarkersRef.current = {};
+                patternMarkersRef.current = {};
                 plottedTradesRef.current = {};  // Reset trade tracking for new replay
                 studyShapesRef.current = {};    // Reset study shape tracking
                 fanLabelsRef.current = {};

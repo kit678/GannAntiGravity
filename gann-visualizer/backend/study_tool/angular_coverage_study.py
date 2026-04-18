@@ -248,14 +248,21 @@ class AngularPriceCoverageStudy:
         }
 
         current_candle = candles[bar_index]
-        
-        # 0. Global chronological state updates (e.g. Cluster Detector)
-        # We must do this exactly once per chronological bar, NEVER during retroactive sweeps
-        import pandas as pd
+
+        # 0. Detect candlestick pattern for frontend chart labels
         c_open = float(current_candle.get('Open') if current_candle.get('Open') is not None else current_candle.get('open', 0))
         c_high = float(current_candle.get('High') if current_candle.get('High') is not None else current_candle.get('high', 0))
         c_low = float(current_candle.get('Low') if current_candle.get('Low') is not None else current_candle.get('low', 0))
         c_close = float(current_candle.get('Close') if current_candle.get('Close') is not None else current_candle.get('close', 0))
+        pattern = self.state_machine.pattern_detector.detect({
+            'open': c_open, 'high': c_high, 'low': c_low, 'close': c_close
+        })
+        if pattern.name != 'NO_PATTERN':
+            result['candle_pattern'] = pattern.name
+
+        # 0. Global chronological state updates (e.g. Cluster Detector)
+        # We must do this exactly once per chronological bar, NEVER during retroactive sweeps
+        import pandas as pd
         
         candle_series = pd.Series({
             'Open': c_open,
