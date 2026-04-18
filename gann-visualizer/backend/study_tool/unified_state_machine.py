@@ -28,7 +28,10 @@ class UnifiedStateMachine:
         self.run_mode = config.get('run_mode', 'simulation')
         
         # Setup trace logger
-        log_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "logs")
+        log_dir = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
+            "logs", "backend"
+        )
         os.makedirs(log_dir, exist_ok=True)
         self.trace_log_path = os.path.join(log_dir, f"{self.run_mode}_trace.log")
         

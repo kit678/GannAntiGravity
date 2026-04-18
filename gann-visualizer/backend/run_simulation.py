@@ -17,7 +17,10 @@ from main import get_data_client, get_dynamic_scale_ratio
 
 def setup_logging():
     """Set up logging to both console and a file in the logs directory."""
-    log_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "logs")
+    log_dir = os.path.join(
+        os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
+        "logs", "backend"
+    )
     os.makedirs(log_dir, exist_ok=True)
     
     log_file = os.path.join(log_dir, "simulation_run.log")
@@ -218,7 +221,10 @@ def run_simulation(symbol="^NSEI", resolution="4", data_source="yfinance", from_
     logging.info("Simulation complete.")
     
     # Export logs
-    log_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "logs")
+    log_dir = os.path.join(
+        os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
+        "logs", "backend"
+    )
     os.makedirs(log_dir, exist_ok=True)
     csv_path = os.path.join(log_dir, "simulation_events.csv")
     

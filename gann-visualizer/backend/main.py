@@ -18,7 +18,10 @@ import os
 import json
 
 # --- LOGGING CONFIGURATION ---
-LOG_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "logs")
+LOG_DIR = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
+    "logs", "backend"
+)
 
 # Ensure log directory exists
 if not os.path.exists(LOG_DIR):

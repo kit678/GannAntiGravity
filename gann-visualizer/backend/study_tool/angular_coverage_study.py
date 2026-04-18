@@ -26,10 +26,17 @@ from .cluster_detector import ClusterDetector
 # --- LOGGING CONFIGURATION (Unified Strategy) ---
 # We maintain single files for both debug logs and intersection data per backend process run.
 # Old logs are cleaned up on startup, matching the behavior of backend_session_*.log in main.py.
+# Log files are now written to logs/backend/ (relative to project root).
 
 _backend_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-_log_dir = os.path.join(_backend_dir, 'logs', 'study_debug')
-_csv_dir = os.path.join(_backend_dir, 'logs')
+_log_dir = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
+    "logs", "backend", "study_debug"
+)
+_csv_dir = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
+    "logs", "backend"
+)
 
 os.makedirs(_log_dir, exist_ok=True)
 os.makedirs(_csv_dir, exist_ok=True)
