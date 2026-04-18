@@ -26,6 +26,15 @@ class CandlestickPatternDetector:
     logic without changing the calling code.
     """
 
+    # Rule-based detection thresholds
+    DOJI_BODY_RATIO = 0.1          # body / total_range < this
+    MARUBOZU_WICK_RATIO = 0.05    # wick / total_range < this for both wicks
+    WICK_TO_BODY_MULTIPLIER = 2    # wick must be >= this * body
+    SPINNING_TOP_BODY_RATIO = 0.3  # body / total_range < this
+    # Body position for Shooting Star vs Inverted Hammer (0=bottom, 1=top)
+    # body_position < this -> SHOOTING_STAR, else -> INVERTED_HAMMER
+    BODY_POSITION_THRESHOLD = 0.4
+
     def __init__(self, pattern_log_path: str):
         self.pattern_log_path = pattern_log_path
         os.makedirs(os.path.dirname(pattern_log_path), exist_ok=True)
@@ -49,6 +58,7 @@ class CandlestickPatternDetector:
         Detect using CandleKit library.
 
         CandleKit expects a pandas DataFrame. We construct it inline.
+        Any runtime errors (type mismatch, etc.) fall through to fallback.
         """
         try:
             import candlekit
@@ -104,11 +114,12 @@ class CandlestickPatternDetector:
             return PatternType.NO_PATTERN
 
         # Doji: body is negligible compared to range
-        if body / total_range < 0.1:
+        if body / total_range < self.DOJI_BODY_RATIO:
             return PatternType.DOJI
 
         # Marubozu: almost no upper or lower wicks
-        if upper_wick / total_range < 0.05 and lower_wick / total_range < 0.05:
+        if (upper_wick / total_range < self.MARUBOZU_WICK_RATIO
+                and lower_wick / total_range < self.MARUBOZU_WICK_RATIO):
             return PatternType.MARUBOZU
 
         # Hammer / Hanging Man: small body at top, long lower wick (2x+ body), minimal upper wick
@@ -116,23 +127,26 @@ class CandlestickPatternDetector:
         #   - HAMMER: appears in uptrend -> bullish reversal signal
         #   - HANGING_MAN: appears in downtrend -> bearish reversal signal
         # For rule-based fallback we return HANGING_MAN. Caller must upgrade to HAMMER
-        # if price is in an confirmed uptrend (not implemented in this detector).
-        if lower_wick >= 2 * body and upper_wick < body:
+        # if price is in a confirmed uptrend (not implemented in this detector).
+        if (lower_wick >= self.WICK_TO_BODY_MULTIPLIER * body
+                and upper_wick < body):
             return PatternType.HANGING_MAN
 
         # Shooting Star / Inverted Hammer: upper wick >= 2x body, lower wick < body
         # Distinguish by where the body closes within the range:
         #   - SHOOTING_STAR: close near the low (bearish context)
         #   - INVERTED_HAMMER: close near the high (bullish context)
-        if upper_wick >= 2 * body and lower_wick < body:
+        if (upper_wick >= self.WICK_TO_BODY_MULTIPLIER * body
+                and lower_wick < body):
             body_position = (max(o, c) - l) / total_range  # 0 = bottom, 1 = top
-            if body_position < 0.4:
+            if body_position < self.BODY_POSITION_THRESHOLD:
                 return PatternType.SHOOTING_STAR
             else:
                 return PatternType.INVERTED_HAMMER
 
         # Spinning Top: body small but notable, wicks larger than body
-        if body / total_range < 0.3 and upper_wick > body and lower_wick > body:
+        if (body / total_range < self.SPINNING_TOP_BODY_RATIO
+                and upper_wick > body and lower_wick > body):
             return PatternType.SPINNING_TOP
 
         return PatternType.NO_PATTERN
