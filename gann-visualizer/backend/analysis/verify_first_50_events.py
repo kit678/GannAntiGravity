@@ -79,7 +79,7 @@ def verify_events():
                             is_correct = False
                     else:
                         reason = f"Expected pC < P, H >= P, C < P"
-                elif e_type in ['TOUCH', 'FAN_VALIDATED', 'BREACH_CONFIRMED', 'FAKE_OUT', 'REST_ON_ANGLE', 'ZONE_CHANGE']:
+                elif e_type in ['FAN_VALIDATED', 'BREACH_CONFIRMED', 'ZONE_CHANGE']:
                     is_correct = True # These are complex multi-bar logic, assuming true for basic OHLC check
                 else:
                     is_correct = True

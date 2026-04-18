@@ -17,28 +17,18 @@ from pathlib import Path
 
 
 class EventType(Enum):
-    """Types of events to log"""
-    ANGLE_TOUCH = "angle_touch"
-    ANGLE_BREACH = "angle_breach"
-    ANGLE_REACTION = "angle_reaction"
-    HORIZONTAL_TOUCH = "horizontal_touch"
-    HORIZONTAL_BREACH = "horizontal_breach"
-    PIVOT_FORMED = "pivot_formed"
-    MOMENTUM_CHANGE = "momentum_change"
-    REVERSAL_SIGNAL = "reversal_signal"
-    CANDLE_PATTERN = "candle_pattern"
-    # New event types for price movement tracking
+    """Types of events to log.
+
+    Single source of truth: see docs/EVENT_TYPES.md for full documentation.
+    """
+    # Core Event Types
     BREACH_CONFIRMED = "breach_confirmed"    # N successive closes achieved
-    ANGLE_REVERSAL = "angle_reversal"        # Successive close streak broken — price reversed
-    FAKE_OUT = "fake_out"                    # Price crossed the line but immediately failed
-    REST_ON_ANGLE = "rest_on_angle"          # Price rests on angle after breach
     TARGET_HIT = "target_hit"               # Target in progression sequence reached
     TARGET_FAILED = "target_failed"         # Failed to reach target, crossed back
     FAN_VALIDATED = "fan_validated"           # Fan validated via 7/8 interaction
     ZONE_CHANGE = "zone_change"              # Price moved to a new angle zone
-    
+
     # Frontend Alignment Types (for direct CSV compatibility)
-    TOUCH = "TOUCH"
     CROSS_UP = "CROSS_UP"
     CROSS_DOWN = "CROSS_DOWN"
     SUPPORT_TEST = "SUPPORT_TEST"
@@ -118,7 +108,7 @@ class Event:
             event.event_type = EventType(evt_type_val)
         except ValueError:
             # Fallback if somehow invalid
-            event.event_type = EventType.TOUCH
+            event.event_type = EventType.CROSS_UP
             
         event.angle_name = data.get("angle_name")
         event.price = data.get("price")
@@ -402,7 +392,7 @@ class EventLogger:
                     stats["events_by_angle"].get(event.angle_name, 0) + 1
             
             # Count breach directions
-            if event.event_type == EventType.ANGLE_BREACH and event.direction:
+            if event.event_type == EventType.BREACH_CONFIRMED and event.direction:
                 stats["breach_directions"][event.direction] += 1
                 
             # Count cluster state

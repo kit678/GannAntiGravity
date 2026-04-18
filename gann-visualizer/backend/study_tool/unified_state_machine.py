@@ -46,16 +46,18 @@ class UnifiedStateMachine:
         if should_truncate:
             with open(self.trace_log_path, 'w', encoding='utf-8') as f:
                 f.write(f"=== {self.run_mode.upper()} DECISION TRACE LOG ===\n")
-                f.write("Possible Event Types:\n")
+                f.write("Event Type Definitions:\n")
                 f.write("- CROSS_UP: Price opens below/on and closes above the line\n")
                 f.write("- CROSS_DOWN: Price opens above/on and closes below the line\n")
                 f.write("- SUPPORT_TEST: Candle opens and closes above line, but low wick touches/pierces line\n")
                 f.write("- RESISTANCE_TEST: Candle opens and closes below line, but high wick touches/pierces line\n")
-                f.write("- BREACH_CONFIRMED: Price closes beyond the extreme of the original breakout candle\n")
-                f.write("- FAKE_OUT: Price reverses and closes back across the original breach price\n")
+                f.write("- BREACH_CONFIRMED: Price closes beyond the more extreme of (BEC close OR ZEC extreme). ")
+                f.write("For multi-line crosses, all except furthest line get immediate intrabar confirmation.\n")
+                f.write("  UP: max(BEC_close, ZEC_high). DOWN: min(BEC_close, ZEC_low)\n")
                 f.write("- SUPPORT_BOUNCE: Price bounces up by threshold % after a SUPPORT_TEST\n")
                 f.write("- RESISTANCE_REJECTION: Price rejects down by threshold % after a RESISTANCE_TEST\n")
-                f.write("- REST_ON_ANGLE: Price consolidates near line for N consecutive bars\n")
+                f.write("- TARGET_HIT: First contact with an angle line in the target progression sequence. ")
+                f.write("Only fires once per line; subsequent contacts are ignored.\n")
                 f.write("=================================================\n\n")
 
         # State tracking per line: fan_id_line_id
@@ -151,7 +153,7 @@ class UnifiedStateMachine:
                     hit_type = 'CROSS_UP'
                     details = 'Breakout Attempt'
                     direction = 'up'
-                    self._start_pending_breach(state_key, event.fan_id, line_id, 'up', c_high, bar_index, line_price, event.fraction, fan_obj)
+                    self._start_pending_breach(state_key, event.fan_id, line_id, 'up', c_close, bar_index, line_price, event.fraction, fan_obj)
                     crosses_up_this_bar.append((state_key, event, fan_identity, frac_name, fan_obj))
                     if c_open <= line_price:
                         evaluations.append(f"[{fan_identity} {frac_name} @ {line_price:.2f}] O <= Line & C > Line -> CROSS_UP (Pending Breach UP)")
@@ -161,7 +163,7 @@ class UnifiedStateMachine:
                     hit_type = 'CROSS_DOWN'
                     details = 'Breakdown Attempt'
                     direction = 'down'
-                    self._start_pending_breach(state_key, event.fan_id, line_id, 'down', c_low, bar_index, line_price, event.fraction, fan_obj)
+                    self._start_pending_breach(state_key, event.fan_id, line_id, 'down', c_close, bar_index, line_price, event.fraction, fan_obj)
                     crosses_down_this_bar.append((state_key, event, fan_identity, frac_name, fan_obj))
                     if c_open >= line_price:
                         evaluations.append(f"[{fan_identity} {frac_name} @ {line_price:.2f}] O >= Line & C < Line -> CROSS_DOWN (Pending Breach DOWN)")
@@ -170,12 +172,12 @@ class UnifiedStateMachine:
                 elif is_support_test:
                     hit_type = 'SUPPORT_TEST'
                     details = 'Testing Support'
-                    self._start_pending_test(state_key, event.fan_id, line_id, 'SUPPORT_TEST', bar_index, line_price, event.fraction)
+                    self._start_pending_test(state_key, event.fan_id, line_id, 'SUPPORT_TEST', bar_index, line_price, event.fraction, c_close)
                     evaluations.append(f"[{fan_identity} {frac_name} @ {line_price:.2f}] O >= Line & C >= Line & L <= Line -> SUPPORT_TEST (Pending Bounce)")
                 elif is_resistance_test:
                     hit_type = 'RESISTANCE_TEST'
                     details = 'Testing Resistance'
-                    self._start_pending_test(state_key, event.fan_id, line_id, 'RESISTANCE_TEST', bar_index, line_price, event.fraction)
+                    self._start_pending_test(state_key, event.fan_id, line_id, 'RESISTANCE_TEST', bar_index, line_price, event.fraction, c_close)
                     evaluations.append(f"[{fan_identity} {frac_name} @ {line_price:.2f}] O <= Line & C <= Line & H >= Line -> RESISTANCE_TEST (Pending Rejection)")
                 else:
                     # Pure touch
@@ -199,7 +201,7 @@ class UnifiedStateMachine:
             if len(crosses_up_this_bar) > 1:
                 # Sort by line price ascending
                 crosses_up_this_bar.sort(key=lambda x: x[1].price)
-                # All except the highest one are confirmed
+                # All except the last one (highest price) are confirmed
                 for state_key, event, fan_identity, frac_name, fan_obj in crosses_up_this_bar[:-1]:
                     results.append(EventOutput(
                         fan_id=event.fan_id, fan_identity=fan_identity, priority_label=fan_obj.priority_label,
@@ -213,7 +215,7 @@ class UnifiedStateMachine:
             if len(crosses_down_this_bar) > 1:
                 # Sort by line price descending
                 crosses_down_this_bar.sort(key=lambda x: x[1].price, reverse=True)
-                # All except the lowest one are confirmed
+                # All except the last one (lowest price) are confirmed
                 for state_key, event, fan_identity, frac_name, fan_obj in crosses_down_this_bar[:-1]:
                     results.append(EventOutput(
                         fan_id=event.fan_id, fan_identity=fan_identity, priority_label=fan_obj.priority_label,
@@ -254,13 +256,9 @@ class UnifiedStateMachine:
                     keys_to_remove.append(state_key)
                     evaluations.append(f"[{fan_identity} {frac_name}] Pending Breach UP: C ({c_close:.2f}) > Extreme ({state['extreme_price']:.2f}) -> BREACH_CONFIRMED")
                 elif c_close < state['line_price_at_breach']:
-                    results.append(EventOutput(
-                        fan_id=fan_id, fan_identity=fan_identity, priority_label=fan_obj.priority_label,
-                        fraction=frac_name, price=c_close, event_type='FAKE_OUT',
-                        details=f"Failed UP (reversed at bar {bar_index})", direction='up'
-                    ))
+                    # Pending breach reversed - remove without emitting event (previously FAKE_OUT)
                     keys_to_remove.append(state_key)
-                    evaluations.append(f"[{fan_identity} {frac_name}] Pending Breach UP: C ({c_close:.2f}) < Original Line Price ({state['line_price_at_breach']:.2f}) -> FAKE_OUT")
+                    evaluations.append(f"[{fan_identity} {frac_name}] Pending Breach UP: C ({c_close:.2f}) < Original Line Price ({state['line_price_at_breach']:.2f}) -> Reversed (pending breach cancelled)")
             elif state['direction'] == 'down':
                 if c_close < state['extreme_price']:
                     results.append(EventOutput(
@@ -271,13 +269,9 @@ class UnifiedStateMachine:
                     keys_to_remove.append(state_key)
                     evaluations.append(f"[{fan_identity} {frac_name}] Pending Breach DOWN: C ({c_close:.2f}) < Extreme ({state['extreme_price']:.2f}) -> BREACH_CONFIRMED")
                 elif c_close > state['line_price_at_breach']:
-                    results.append(EventOutput(
-                        fan_id=fan_id, fan_identity=fan_identity, priority_label=fan_obj.priority_label,
-                        fraction=frac_name, price=c_close, event_type='FAKE_OUT',
-                        details=f"Failed DOWN (reversed at bar {bar_index})", direction='down'
-                    ))
+                    # Pending breach reversed - remove without emitting event (previously FAKE_OUT)
                     keys_to_remove.append(state_key)
-                    evaluations.append(f"[{fan_identity} {frac_name}] Pending Breach DOWN: C ({c_close:.2f}) > Original Line Price ({state['line_price_at_breach']:.2f}) -> FAKE_OUT")
+                    evaluations.append(f"[{fan_identity} {frac_name}] Pending Breach DOWN: C ({c_close:.2f}) > Original Line Price ({state['line_price_at_breach']:.2f}) -> Reversed (pending breach cancelled)")
 
         for key in keys_to_remove:
             del self.pending_breaches[key]
@@ -305,6 +299,11 @@ class UnifiedStateMachine:
             threshold = line_price * (self.bounce_threshold_percent / 100.0)
 
             if state['test_type'] == 'SUPPORT_TEST':
+                # Cancel if price closes decisively below the candle that triggered the test
+                if c_close < state['candle_close']:
+                    keys_to_remove.append(state_key)
+                    evaluations.append(f"[{fan_identity} {frac_name}] Pending SUPPORT_TEST: C ({c_close:.2f}) < Test Candle Close ({state['candle_close']:.2f}) -> Cancelled")
+                    continue
                 if c_close >= line_price + threshold:
                     results.append(EventOutput(
                         fan_id=fan_id, fan_identity=fan_identity, priority_label=fan_obj.priority_label,
@@ -314,6 +313,11 @@ class UnifiedStateMachine:
                     keys_to_remove.append(state_key)
                     evaluations.append(f"[{fan_identity} {frac_name}] Pending SUPPORT_TEST: C ({c_close:.2f}) >= Line + Threshold ({line_price + threshold:.2f}) -> SUPPORT_BOUNCE")
             elif state['test_type'] == 'RESISTANCE_TEST':
+                # Cancel if price closes decisively above the candle that triggered the test
+                if c_close > state['candle_close']:
+                    keys_to_remove.append(state_key)
+                    evaluations.append(f"[{fan_identity} {frac_name}] Pending RESISTANCE_TEST: C ({c_close:.2f}) > Test Candle Close ({state['candle_close']:.2f}) -> Cancelled")
+                    continue
                 if c_close <= line_price - threshold:
                     results.append(EventOutput(
                         fan_id=fan_id, fan_identity=fan_identity, priority_label=fan_obj.priority_label,
@@ -388,13 +392,14 @@ class UnifiedStateMachine:
             'line_end_price': line_end_price
         }
 
-    def _start_pending_test(self, state_key, fan_id, line_id, test_type, bar_index, line_price, fraction):
+    def _start_pending_test(self, state_key, fan_id, line_id, test_type, bar_index, line_price, fraction, candle_close):
         self.pending_tests[state_key] = {
             'fan_id': fan_id,
             'fraction': fraction,
             'line_price': line_price,
             'test_type': test_type,
-            'test_bar': bar_index
+            'test_bar': bar_index,
+            'candle_close': candle_close
         }
 
     def _process_rest_event(self, state_key, fan_id, frac_name, line_price, c_close, c_open, c_high, c_low, bar_index, fan_obj, priority_label, fan_identity, results, evaluations):

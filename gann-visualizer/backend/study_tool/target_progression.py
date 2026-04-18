@@ -37,7 +37,7 @@ class TargetHit:
 class FanTargetState:
     """
     Complete target tracking state for one fan.
-    
+
     This is the core state machine that tracks which target we're
     working towards and what has been achieved.
     """
@@ -52,9 +52,15 @@ class FanTargetState:
     full_coverage_target_price: Optional[float] = None  # other pivot's price
     completed: bool = False                     # all targets hit
     last_touched_line: Optional[str] = None     # last angle line touched/crossed
+    angles_contacted: List[str] = field(default_factory=list)  # angles where first contact was made (for TARGET_HIT dedup)
 
     def to_dict(self) -> Dict[str, Any]:
         return asdict(self)
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> 'FanTargetState':
+        """Reconstruct from serialized dict."""
+        return cls(**data)
 
 
 # Default target sequence (before 1/2 nuance is applied)
@@ -117,7 +123,7 @@ class TargetProgression:
         if state:
             state.is_validated = True
 
-    def on_breach_confirmed(
+    def on_angle_contact(
         self,
         fan_id: str,
         angle_name: str,
@@ -125,25 +131,38 @@ class TargetProgression:
         price: float
     ) -> Optional[TargetHit]:
         """
-        Called when BreachAnalyzer confirms a breach at a specific angle.
-        
-        If the breached angle matches the current target, advance the
-        progression to the next target.
-        
+        Record first contact with an angle line for target progression tracking.
+
+        Only the VERY FIRST contact with a given angle line triggers TARGET_HIT.
+        Subsequent contacts (wick/cross/touch) with the same line are ignored.
+
+        Called on ANY intersection event from the state machine — not just
+        BREACH_CONFIRMED. This decouples TARGET_HIT from breach confirmation.
+
         Args:
-            fan_id: Fan where breach occurred
-            angle_name: Angle label that was breached (e.g., "7/8")
-            bar_index: Bar index of breach confirmation
-            price: Price at breach confirmation
-            
+            fan_id: Fan where contact occurred
+            angle_name: Angle label that was contacted (e.g., "0.875")
+            bar_index: Bar index of contact
+            price: Price at contact
+
         Returns:
-            TargetHit if this breach advanced the progression, None otherwise
+            TargetHit if this contact advanced the progression, None otherwise
         """
         state = self._fan_states.get(fan_id)
         if state is None or state.completed:
             return None
 
+        # DEDUP: First contact only — ignore subsequent contacts with same angle
+        if angle_name in state.angles_contacted:
+            return None
+
+        # Record this as a first contact
+        state.angles_contacted.append(angle_name)
+
         # Only process if this is the current target
+        if state.current_target is None:
+            return None
+
         if state.current_target != angle_name:
             # Special case: 1/4 reached before horizontal
             if angle_name == '0.25' and state.current_target == 'horizontal':
@@ -179,18 +198,10 @@ class TargetProgression:
     ) -> bool:
         """
         Called when a CROSS_UP or CROSS_DOWN occurs.
-        If it crosses back over the origin angle, the current target progression fails.
+        Note: TARGET_FAILED is now emitted on fan invalidation, not on crossing back over origin.
+        This method is kept for potential future use but returns False always.
         """
-        state = self._fan_states.get(fan_id)
-        if state is None or state.completed:
-            return False
-
-        if state.origin_angle == angle_name:
-            # Failed! Crossed back over the origin
-            state.current_target = None
-            state.completed = True
-            return True
-            
+        # TARGET_FAILED is now handled on fan deactivation, not on crossing back over origin
         return False
 
     def _get_next_line_in_sequence(self, current_line: str, direction: str) -> Optional[str]:
@@ -240,11 +251,8 @@ class TargetProgression:
 
     def _advance_target(self, state: FanTargetState, just_hit: str):
         """Advance to the next target based on what was just hit."""
-        if state.targets_remaining:
-            state.current_target = state.targets_remaining[0]
-            return
-
-        # Base sequence exhausted — handle post-1/2 logic
+        # Special case: after 0.5, handle post-half logic BEFORE checking remaining
+        # This ensures we don't return early and skip the horizontal/1/4 logic
         if just_hit == '0.5':
             # After 1/2, next targets are horizontal and 1/4
             # Horizontal is the primary target; 1/4 could cancel it
@@ -254,6 +262,10 @@ class TargetProgression:
             else:
                 state.current_target = '0.25'
                 state.targets_remaining = ['0.25']
+            return
+
+        if state.targets_remaining:
+            state.current_target = state.targets_remaining[0]
             return
 
         if just_hit == 'horizontal':
@@ -372,6 +384,17 @@ class TargetProgression:
     def remove_fan(self, fan_id: str):
         """Clean up when a fan is removed."""
         self._fan_states.pop(fan_id, None)
+
+    def has_pending_progression(self, fan_id: str) -> bool:
+        """
+        Check if a fan has an in-flight progression (breach happened but target not yet reached).
+        Returns True if origin_angle is set (breach confirmed) and progression not completed.
+        """
+        state = self._fan_states.get(fan_id)
+        if state is None:
+            return False
+        # Pending if: origin_angle was set (breach confirmed) AND progression not completed
+        return state.origin_angle is not None and not state.completed
 
     def reset(self):
         """Clear all state."""

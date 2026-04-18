@@ -334,11 +334,12 @@ class AngularPriceCoverageStudy:
                     if events:
                         print(f"[RetroSweep] Skipping {len(events)} retro events for deactivated fan {fan_id}")
             
-            # Process chronologically for EVERY bar from min_anchor_idx + 1 to current bar_index - 1
+            # Process chronologically for EVERY bar from min_anchor_idx to current bar_index - 1
             # This ensures we log the distance to the new fan's lines even if there are no intersections
+            # Note: min_anchor_idx is included (not +1) to capture anchor bar events
             if min_anchor_idx < bar_index:
                 retro_fan_ids = [fid for fid in self._pending_retro_events.keys() if fid in self._persisted_fans]
-                for b_idx in range(min_anchor_idx + 1, bar_index):
+                for b_idx in range(min_anchor_idx, bar_index):
                     r_events = retro_events_by_bar.get(b_idx, [])
                     r_candle = candles[b_idx]
                     r_prev_candle = candles[b_idx - 1] if b_idx > 0 else None
@@ -545,10 +546,10 @@ class AngularPriceCoverageStudy:
                 evt_enum = EventType[state_event.event_type]
             except KeyError:
                 try:
-                    # Then try by value (e.g. EventType("TOUCH"))
+                    # Then try by value (e.g. EventType("CROSS_UP"))
                     evt_enum = EventType(state_event.event_type)
                 except ValueError:
-                    evt_enum = EventType.TOUCH
+                    evt_enum = EventType.CROSS_UP
                 
             # Get zone context using historical state
             last_zone = self.zone_tracker.get_zone_at_bar(state_event.fan_id, bar_index)
@@ -559,15 +560,15 @@ class AngularPriceCoverageStudy:
             z_extremes = {'highest_close': last_zone.zone_highest_close, 'lowest_close': last_zone.zone_lowest_close} if last_zone else None
             b_in_zone = last_zone.bars_in_zone if last_zone else None
 
-            # Advance target progression if breach confirmed (do this BEFORE logging so the event shows the NEW targets)
+            # Record first contact for target progression
+            # TARGET_HIT fires on the VERY FIRST contact with any angle line - regardless of event type
             target_hit = None
-            if state_event.event_type == 'BREACH_CONFIRMED':
-                target_hit = self.target_progression.on_breach_confirmed(
-                    fan_id=state_event.fan_id,
-                    angle_name=state_event.fraction,
-                    bar_index=bar_index,
-                    price=state_event.price,
-                )
+            target_hit = self.target_progression.on_angle_contact(
+                fan_id=state_event.fan_id,
+                angle_name=str(state_event.fraction),
+                bar_index=bar_index,
+                price=state_event.price,
+            )
 
             # Update last_touched_line on ANY intersection event
             # For CROSS events, nextAngleLine will be set to the NEXT line in sequence
@@ -658,6 +659,21 @@ class AngularPriceCoverageStudy:
                 )
                 self.log(f"[Tracking] Target HIT: {target_hit.fan_id} {target_hit.target_name}")
                 target_info = get_target_info_for_event(target_hit.fan_id)
+
+                # Intra-bar BREACH_CONFIRMED: If TARGET_HIT fires on line N+1 and the previous line N
+                # had a pending breach (CROSS_UP/CROSS_DOWN) created in the same bar, confirm it immediately.
+                # This handles the case where price crosses line N and touches line N+1 in the same bar.
+                self._confirm_pending_breach_if_valid(
+                    fan_id=target_hit.fan_id,
+                    target_name=target_hit.target_name,
+                    bar_index=bar_index,
+                    timestamp=timestamp,
+                    c_open=c_open, c_high=c_high, c_low=c_low, c_close=close_price,
+                    active_angle_prices=active_angle_prices, is_cluster=is_cluster,
+                    last_zone=last_zone,
+                    ui_events=ui_events,
+                    state_event=state_event
+                )
 
                 ui_events.append({
                     'time': timestamp,
@@ -811,21 +827,45 @@ class AngularPriceCoverageStudy:
                 # Clean up tracking modules
                 self.zone_tracker.remove_fan(fan_id)
                 self.fan_validator.remove_fan(fan_id)
+
+                # TARGET_FAILED: Get pending progression info BEFORE removing fan state
+                pending_state = None
+                if self.target_progression.has_pending_progression(fan_id):
+                    pending_state = self.target_progression._fan_states.get(fan_id)
+
                 self.target_progression.remove_fan(fan_id)
                 self.state_machine.remove_fan(fan_id)
-                
+
                 # CRITICAL FIX: Release pivots so they can form new fans with new labels
                 # This ensures that H1-L1 fan (deactivated) + new H pivot = H2-L1 fan (not H1-L1)
                 if fan_id in self._persisted_fans:
                     fan_data = self._persisted_fans[fan_id]
-                    
-                    # Log FAN_DEACTIVATED event
                     anchor_time = fan_data.get('anchor', {}).get('time', 0)
                     anchor_price = fan_data.get('anchor', {}).get('price', 0)
                     target_time = fan_data.get('target', {}).get('time', 0)
                     target_price = fan_data.get('target', {}).get('price', 0)
                     fan_priority = fan_data.get('priority_label', fan_id)
-                    
+
+                    # TARGET_FAILED: Emit if there was an in-flight progression when fan got invalidated
+                    # (breach confirmed on origin_angle but next target wasn't reached)
+                    if pending_state:
+                        self.event_logger.log_event(
+                            timestamp=anchor_time,
+                            event_type=EventType.TARGET_FAILED,
+                            angle_name=pending_state.origin_angle,
+                            price=anchor_price,
+                            direction='down' if fan_data.get('anchor', {}).get('type') == 'high' else 'up',
+                            details={
+                                'fan_id': fan_id,
+                                'fan_label': fan_priority,
+                                'deactivation_reason': 'fan_invalidated',
+                                'pending_target': pending_state.current_target,
+                                'targets_hit': pending_state.targets_hit,
+                            }
+                        )
+                        self.log(f"[Tracking] Target FAILED: {fan_id} ({pending_state.origin_angle}) - fan invalidated with pending progression")
+
+                    # Log FAN_DEACTIVATED event
                     if anchor_time:
                         try:
                             self.event_logger.log_event(
@@ -923,7 +963,7 @@ class AngularPriceCoverageStudy:
                 # CRITICAL FIX: Perform Retroactive Sweep
                 # When a new fan is created, we must look back to the anchor bar
                 # and retroactively detect all historical intersections with the new angle lines.
-                # This builds correct state machine context (e.g., distinguishing FAKE_OUT from CROSS_DOWN).
+                # This builds correct state machine context for retro events.
                 anchor_bar_idx = fan_data['anchor'].get('bar_index', 0)
                 current_bar_idx = current_bar_index
                 
@@ -994,13 +1034,120 @@ class AngularPriceCoverageStudy:
         # Update state
         self._active_marker_ids = current_marker_ids
 
+    def _confirm_pending_breach_if_valid(
+        self,
+        fan_id: str,
+        target_name: str,
+        bar_index: int,
+        timestamp: int,
+        c_open: float, c_high: float, c_low: float, c_close: float,
+        active_angle_prices: str,
+        is_cluster: bool,
+        last_zone: Any,
+        ui_events: list,
+        state_event: Any
+    ):
+        """
+        Intra-bar BREACH_CONFIRMED for the previous line when TARGET_HIT fires on the next line.
+
+        When a TARGET_HIT fires on line N+1 (e.g. 0.25) and the same bar previously created
+        a pending breach on line N (e.g. 0.5 via CROSS_UP), confirm that pending breach
+        immediately so the BREACH_CONFIRMED fires in the same bar as the cross.
+        """
+        state_machine_state = self.state_machine.pending_breaches
+
+        # Build the state_key for the previous line's pending breach
+        # We need to find which line was crossed before the target was hit
+        # After 0.5, the sequence branches: horizontal OR 0.25, whichever is hit first
+        # Both are reached from 0.5, so prev_line is always 0.5 when target is in post-half branch
+        if target_name in ('horizontal', '0.25'):
+            prev_line = '0.5'
+        elif target_name in ('0.875', '0.75'):
+            target_sequence = ['0.875', '0.75', '0.5']
+            target_idx = target_sequence.index(target_name)
+            prev_line = target_sequence[target_idx - 1]
+        elif target_name == '0.5':
+            prev_line = '0.75'
+        else:
+            return  # main or unknown - no intra-bar confirmation
+
+        # Search pending_breaches for this fan and previous line
+        # fraction in pending_breaches may be stored as float or string, so normalize comparison
+        prev_state_key = None
+        prev_line_str = str(prev_line)
+        for key in state_machine_state:
+            if key.startswith(f"{fan_id}_"):
+                state = state_machine_state[key]
+                stored_frac = state.get('fraction')
+                frac_str = str(stored_frac) if stored_frac is not None else None
+                if state.get('first_breach_bar') == bar_index and frac_str == prev_line_str:
+                    prev_state_key = key
+                    self.log(f"[Tracking] Intra-bar BREACH_CONFIRMED: found pending on {key} fraction={frac_str} bar={bar_index}")
+                    break
+
+        if not prev_state_key:
+            self.log(f"[Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan={fan_id} prev_line={prev_line} bar={bar_index}")
+            return
+
+        state = state_machine_state[prev_state_key]
+
+        # Confirm the pending breach
+        self.event_logger.log_event(
+            timestamp=timestamp,
+            event_type=EventType.BREACH_CONFIRMED,
+            angle_name=prev_line,
+            price=c_close,
+            direction='up' if state.get('direction') == 'up' else 'down',
+            open_price=c_open,
+            high_price=c_high,
+            low_price=c_low,
+            close_price=c_close,
+            active_angle_prices=active_angle_prices,
+            cluster_state=is_cluster,
+            current_zone=last_zone.zone if last_zone else None,
+            zone_highest_close=last_zone.zone_highest_close if last_zone else None,
+            zone_lowest_close=last_zone.zone_lowest_close if last_zone else None,
+            details={
+                'fan_id': fan_id,
+                'intra_bar': True
+            }
+        )
+
+        # Remove from pending_breaches so it's not confirmed again
+        del self.state_machine.pending_breaches[prev_state_key]
+
+        self.log(f"[Tracking] BREACH_CONFIRMED (intra-bar): {fan_id} {prev_line} via target progression")
+
+        # Also append to ui_events so it reaches the frontend price interactions table
+        ui_events.append({
+            'time': timestamp,
+            'fan': state_event.priority_label if hasattr(state_event, 'priority_label') else fan_id,
+            'fanIdentity': state_event.fan_identity if hasattr(state_event, 'fan_identity') else fan_id.split('_')[-1],
+            'fraction': prev_line,
+            'price': c_close,
+            'type': 'BREACH_CONFIRMED',
+            'details': 'Intra-bar confirmation via target progression',
+            'open': c_open,
+            'high': c_high,
+            'low': c_low,
+            'close': c_close,
+            'activeAngles': active_angle_prices,
+            'cluster': is_cluster,
+            'zone': last_zone.zone if last_zone else None,
+            'zoneExtremes': {
+                'highest_close': last_zone.zone_highest_close if last_zone else None,
+                'lowest_close': last_zone.zone_lowest_close if last_zone else None
+            },
+            'nextAngleLine': ''
+        })
+
     def _get_horizontal_target_price(self, fan_obj) -> Optional[float]:
         """
         Extract the horizontal target price from a fan's lines.
-        The horizontal target line has fraction=None.
+        The horizontal target line has fraction=None (uniquely identified).
         """
         for line in fan_obj.lines:
-            if line.fraction is None and 'horizontal' in line.id.lower():
+            if line.fraction is None:
                 return line.end_price
         return None
 

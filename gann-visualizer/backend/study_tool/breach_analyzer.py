@@ -28,18 +28,6 @@ class BreachConfirmation:
         return self.__dict__
 
 @dataclass
-class FakeOutEvent:
-    fan_id: str
-    angle_name: str
-    attempted_direction: str
-    reversal_bar: int
-    first_breach_bar: int  # The bar where the original cross occurred
-    bars_elapsed: int
-
-    def to_dict(self):
-        return self.__dict__
-
-@dataclass
 class RestEvent:
     fan_id: str
     angle_name: str
@@ -70,8 +58,7 @@ class BreachAnalyzer:
     ) -> Dict[str, List[Any]]:
         
         results = {
-            'confirmations': [], 
-            'fake_outs': [], 
+            'confirmations': [],
             'rest_events': []
         }
         
@@ -202,15 +189,7 @@ class BreachAnalyzer:
                     ))
                     keys_to_remove.append(state_key)
                 elif close_price < current_line_price:
-                    # Reversal (Fake-out)
-                    results['fake_outs'].append(FakeOutEvent(
-                        fan_id=fan_id,
-                        angle_name=str(state['fraction']) if state['fraction'] else "Horizontal",
-                        attempted_direction='up',
-                        reversal_bar=bar_index,
-                        first_breach_bar=state['first_breach_bar'],
-                        bars_elapsed=bars_elapsed
-                    ))
+                    # Reversal - pending breach cancelled
                     keys_to_remove.append(state_key)
                     
             elif state['direction'] == 'down':
@@ -229,15 +208,7 @@ class BreachAnalyzer:
                     ))
                     keys_to_remove.append(state_key)
                 elif close_price > current_line_price:
-                    # Reversal (Fake-out)
-                    results['fake_outs'].append(FakeOutEvent(
-                        fan_id=fan_id,
-                        angle_name=str(state['fraction']) if state['fraction'] else "Horizontal",
-                        attempted_direction='down',
-                        reversal_bar=bar_index,
-                        first_breach_bar=state['first_breach_bar'],
-                        bars_elapsed=bars_elapsed
-                    ))
+                    # Reversal - pending breach cancelled
                     keys_to_remove.append(state_key)
 
         # Cleanup resolved states

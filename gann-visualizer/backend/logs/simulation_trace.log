@@ -1,13 +1,13 @@
 === SIMULATION DECISION TRACE LOG ===
-Possible Event Types:
+Event Type Definitions:
 - CROSS_UP: Price opens below/on and closes above the line
 - CROSS_DOWN: Price opens above/on and closes below the line
 - SUPPORT_TEST: Candle opens and closes above line, but low wick touches/pierces line
 - RESISTANCE_TEST: Candle opens and closes below line, but high wick touches/pierces line
-- BREACH_CONFIRMED: Price closes beyond the extreme of the original breakout candle
-- FAKE_OUT: Price reverses and closes back across the original breach price
+- BREACH_CONFIRMED: Price closes beyond the more extreme of (BEC close OR ZEC extreme). For multi-line crosses, all except furthest line get immediate intrabar confirmation.
+  UP: max(BEC_close, ZEC_high). DOWN: min(BEC_close, ZEC_low)
 - SUPPORT_BOUNCE: Price bounces up by threshold % after a SUPPORT_TEST
 - RESISTANCE_REJECTION: Price rejects down by threshold % after a RESISTANCE_TEST
-- REST_ON_ANGLE: Price consolidates near line for N consecutive bars
+- TARGET_HIT: First contact with an angle line in the target progression sequence. Only fires once per line; subsequent contacts are ignored.
 =================================================
 

@@ -68,11 +68,7 @@ class IntersectionDetector:
                 # 1. Skip if candle is BEFORE the line's start
                 if c_time < line.start_time:
                     continue
-                    
-                # Skip the origin candle itself
-                if c_time == line.start_time:
-                    continue
-                
+
                 # Dedup check
                 tracking_key = f"{fan.id}_{line.id}_{c_time}"
                 if tracking_key in self._processed_hits:
@@ -176,8 +172,8 @@ class IntersectionDetector:
         import datetime
         events = []
         
-        # Process all bars from anchor+1 to current-1 (exclude anchor and current bar)
-        for bar_idx in range(anchor_bar_idx + 1, current_bar_idx):
+        # Process all bars from anchor to current-1 (include anchor bar, exclude current bar)
+        for bar_idx in range(anchor_bar_idx, current_bar_idx):
             if bar_idx >= len(candles):
                 break
                 
@@ -207,10 +203,6 @@ class IntersectionDetector:
                 if c_time < line.start_time:
                     continue
                     
-                # Skip the origin candle itself
-                if c_time == line.start_time:
-                    continue
-                
                 # Dedup check
                 tracking_key = f"{fan.id}_{line.id}_{c_time}"
                 if tracking_key in self._processed_hits:
