@@ -9,8 +9,7 @@ import os
 
 class PatternType(Enum):
     DOJI = "doji"
-    HAMMER = "hammer"
-    HANGING_MAN = "hanging_man"
+    PINBAR = "pinbar"
     SHOOTING_STAR = "shooting_star"
     INVERTED_HAMMER = "inverted_hammer"
     SPINNING_TOP = "spinning_top"
@@ -84,8 +83,8 @@ class CandlestickPatternDetector:
         name_lower = pattern_name.lower()
         mapping = {
             'doji': PatternType.DOJI,
-            'hammer': PatternType.HAMMER,
-            'hanging man': PatternType.HANGING_MAN,
+            'hammer': PatternType.PINBAR,
+            'hanging man': PatternType.PINBAR,
             'shooting star': PatternType.SHOOTING_STAR,
             'inverted hammer': PatternType.INVERTED_HAMMER,
             'spinning top': PatternType.SPINNING_TOP,
@@ -122,15 +121,11 @@ class CandlestickPatternDetector:
                 and lower_wick / total_range < self.MARUBOZU_WICK_RATIO):
             return PatternType.MARUBOZU
 
-        # Hammer / Hanging Man: small body at top, long lower wick (2x+ body), minimal upper wick
-        # Both have identical geometry. Caller applies trend filter:
-        #   - HAMMER: appears in uptrend -> bullish reversal signal
-        #   - HANGING_MAN: appears in downtrend -> bearish reversal signal
-        # For rule-based fallback we return HANGING_MAN. Caller must upgrade to HAMMER
-        # if price is in a confirmed uptrend (not implemented in this detector).
+        # Pinbar: small body at top, long lower wick (2x+ body), minimal upper wick
+        # Valid in both uptrends and downtrends — direction determined by context.
         if (lower_wick >= self.WICK_TO_BODY_MULTIPLIER * body
                 and upper_wick < body):
-            return PatternType.HANGING_MAN
+            return PatternType.PINBAR
 
         # Shooting Star / Inverted Hammer: upper wick >= 2x body, lower wick < body
         # Distinguish by where the body closes within the range:

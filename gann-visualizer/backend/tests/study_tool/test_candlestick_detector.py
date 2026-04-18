@@ -19,19 +19,15 @@ def test_doji_detection():
     assert result == PatternType.DOJI
 
 
-def test_hammer_detection():
-    """Hanging Man: small body, lower wick at least 2x body, minimal upper wick.
+def test_pinbar_detection():
+    """Pinbar: small body at top, long lower wick (2x+ body), minimal upper wick.
 
-    Note: Rule-based detector returns HANGING_MAN (same geometry as HAMMER).
-    Caller applies trend filter to distinguish HAMMER (uptrend) from
-    HANGING_MAN (downtrend/bearish top). This test documents the rule-based
-    behavior - returns HANGING_MAN since caller-side trend filter is not
-    implemented in the detector itself.
+    Same shape as hammer/hanging man — reversal signal regardless of trend direction.
     """
     detector = CandlestickPatternDetector(os.path.join(tempfile.gettempdir(), "test_candle_patterns.log"))
     ohlc = {'open': 100.0, 'high': 100.5, 'low': 95.0, 'close': 99.0}
     result = detector.detect(ohlc)
-    assert result == PatternType.HANGING_MAN
+    assert result == PatternType.PINBAR
 
 
 def test_no_pattern():
