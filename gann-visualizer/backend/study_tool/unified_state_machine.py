@@ -6,6 +6,7 @@ import datetime
 from typing import Dict, List, Any, Optional
 from dataclasses import dataclass
 from .event_logger import EventType
+from .candlestick_detector import CandlestickPatternDetector
 
 @dataclass
 class EventOutput:
@@ -19,7 +20,7 @@ class EventOutput:
     direction: Optional[str] = None
 
 class UnifiedStateMachine:
-    def __init__(self, config: Dict[str, Any]):
+    def __init__(self, config: Dict[str, Any], event_logger=None):
         self.config = config
         self.rest_tolerance = config.get('rest_tolerance_percent', 0.15) / 100.0
         self.rest_required_bars = config.get('rest_required_bars', 3)
@@ -68,18 +69,47 @@ class UnifiedStateMachine:
         self.pending_tests: Dict[str, Dict[str, Any]] = {}
         self.rest_counters: Dict[str, Dict[str, Any]] = {}
 
+        # Candlestick pattern detector
+        pattern_log_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        pattern_log_path = os.path.join(pattern_log_dir, "logs", "candle_patterns.log")
+        self.pattern_detector = CandlestickPatternDetector(pattern_log_path)
+
+        # Event logger for candle pattern events
+        self.event_logger = event_logger
+
     def _log_trace(self, bar_index: int, c_time: int, c_open: float, c_high: float, c_low: float, c_close: float, evaluations: List[str], is_retro: bool = False):
         """Write a structured one-liner trace for the current bar."""
         dt_str = datetime.datetime.fromtimestamp(c_time).strftime('%Y-%m-%d %H:%M')
         retro_str = "[RETRO] " if is_retro else ""
+
+        # Detect candlestick pattern
+        ohlc = {'open': c_open, 'high': c_high, 'low': c_low, 'close': c_close}
+        pattern = self.pattern_detector.detect(ohlc)
+        pattern_str = f"[Pattern: {pattern.name}]" if pattern.name != "NO_PATTERN" else ""
+
         header = f"{retro_str}[Bar {bar_index}] [{dt_str}] [O:{c_open:.2f}, H:{c_high:.2f}, L:{c_low:.2f}, C:{c_close:.2f}]"
-        
+
         with open(self.trace_log_path, 'a', encoding='utf-8') as f:
             if not evaluations:
-                f.write(f"{header} -> [No Intersection Detected] -> No Event\n")
+                f.write(f"{header} {pattern_str} -> [No Intersection Detected] -> No Event\n")
             else:
                 for eval_str in evaluations:
-                    f.write(f"{header} -> {eval_str}\n")
+                    f.write(f"{header} {pattern_str} -> {eval_str}\n")
+
+        # Log candle pattern event if event_logger is provided
+        if self.event_logger is not None:
+            self.event_logger.log_candle_pattern(
+                timestamp=c_time,
+                price=c_close,
+                pattern_name=pattern.name,
+                pattern_details={
+                    'open': c_open,
+                    'high': c_high,
+                    'low': c_low,
+                    'close': c_close,
+                    'bar_index': bar_index
+                }
+            )
 
     def process_bar(
         self,
