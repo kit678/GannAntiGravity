@@ -1,0 +1,1402 @@
+2026-04-19 01:09:17,769 - Initialized AngularPriceCoverageStudy v4.0. Config: {'left_bars': 5, 'right_bars': 5, 'line_extension_bars': 100, 'fraction_colors': {0.125: '#FF5252', 0.25: '#FF5252', 0.375: '#FF5252', 0.5: '#2196F3', 0.625: '#4CAF50', 0.75: '#4CAF50', 0.875: '#4CAF50', 1.0: '#FFFFFF'}, 'main_color': '#FFFFFF', 'main_line_width': 1, 'fraction_line_width': 2, 'scale_ratio': 3.6603, 'breach_mode': 'wick', 'show_intersection_labels': False, 'max_historical_fans': 3, 'bounce_threshold_percent': 0.3, 'rejection_lookback_bars': 5, 'rest_required_bars': 3, 'symbol': '^NSEI', 'resolution': '4', 'successive_closes_required': 2, 'run_mode': 'simulation'}
+2026-04-19 01:09:17,769 - [Study] First process_bar at index 0. Running initialize_history.
+2026-04-19 01:09:17,769 - [Study] initialize_history called with 0 candles
+2026-04-19 01:09:17,769 - [Study] Not enough candles for pivot detection
+2026-04-19 01:09:17,868 - [Study] Creating new fan: Fan_H1_L1 (P1 (H1-L1))
+2026-04-19 01:09:17,890 - [Tracking] Fan validated: Fan_H1_L1 via breach at bar 20
+2026-04-19 01:09:17,896 - [Tracking] Target HIT: Fan_H1_L1 0.875
+2026-04-19 01:09:17,896 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H1_L1 prev_line=0.5 bar=20
+2026-04-19 01:09:17,925 - [Tracking] Target HIT: Fan_H1_L1 0.75
+2026-04-19 01:09:17,925 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H1_L1 prev_line=0.875 bar=24
+2026-04-19 01:09:17,933 - [Tracking] Target HIT: Fan_H1_L1 0.5
+2026-04-19 01:09:17,933 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H1_L1 prev_line=0.75 bar=25
+2026-04-19 01:09:17,972 - [Study] Creating new fan: Fan_L2_H1 (P1 (L2-H1))
+2026-04-19 01:09:17,974 - [Study] Updating fan priority: Fan_H1_L1 -> P2 (H1-L1)
+2026-04-19 01:09:17,981 - [Tracking] Fan validated: Fan_L2_H1 via reversal at bar 28
+2026-04-19 01:09:17,987 - [Tracking] Target HIT: Fan_L2_H1 0.875
+2026-04-19 01:09:17,987 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_L2_H1 prev_line=0.5 bar=28
+2026-04-19 01:09:17,996 - [Tracking] Target HIT: Fan_L2_H1 0.75
+2026-04-19 01:09:17,996 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_L2_H1 prev_line=0.875 bar=30
+2026-04-19 01:09:18,006 - [Tracking] Target HIT: Fan_L2_H1 0.5
+2026-04-19 01:09:18,006 - [Tracking] Intra-bar BREACH_CONFIRMED: found pending on Fan_L2_H1_Fan_L2_H1_f1 fraction=0.75 bar=31
+2026-04-19 01:09:18,006 - [Tracking] BREACH_CONFIRMED (intra-bar): Fan_L2_H1 0.75 via target progression
+2026-04-19 01:09:18,023 - [Tracking] Target HIT: Fan_L2_H1 horizontal
+2026-04-19 01:09:18,024 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_L2_H1 prev_line=0.5 bar=33
+2026-04-19 01:09:18,086 - [Study] Removing invalidated/excess fan: Fan_H1_L1
+2026-04-19 01:09:18,086 - [Tracking] Target FAILED: Fan_H1_L1 (0.5) - fan invalidated with pending progression
+2026-04-19 01:09:18,086 - [Study] Removing invalidated/excess fan: Fan_L2_H1
+2026-04-19 01:09:18,086 - [Tracking] Target FAILED: Fan_L2_H1 (horizontal) - fan invalidated with pending progression
+2026-04-19 01:09:18,112 - [Study] Creating new fan: Fan_H2_L2 (P2 (H2-L2))
+2026-04-19 01:09:18,113 - [Study] Creating new fan: Fan_H2_L1 (P3 (H2-L1))
+2026-04-19 01:09:18,114 - [Study] Creating new fan: Fan_H2_L3 (P1 (H2-L3))
+2026-04-19 01:09:18,116 - [Tracking] Fan validated: Fan_H2_L1 via touch at bar 40
+2026-04-19 01:09:18,123 - [Tracking] Target HIT: Fan_H2_L1 0.875
+2026-04-19 01:09:18,123 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H2_L1 prev_line=0.5 bar=40
+2026-04-19 01:09:18,124 - [Tracking] Fan validated: Fan_H2_L2 via touch at bar 41
+2026-04-19 01:09:18,124 - [Tracking] Fan validated: Fan_H2_L3 via breach at bar 41
+2026-04-19 01:09:18,132 - [Tracking] Target HIT: Fan_H2_L2 0.875
+2026-04-19 01:09:18,132 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H2_L2 prev_line=0.5 bar=41
+2026-04-19 01:09:18,132 - [Tracking] Target HIT: Fan_H2_L3 0.875
+2026-04-19 01:09:18,132 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H2_L3 prev_line=0.5 bar=41
+2026-04-19 01:09:18,132 - [Tracking] Target HIT: Fan_H2_L3 0.75
+2026-04-19 01:09:18,132 - [Tracking] Intra-bar BREACH_CONFIRMED: found pending on Fan_H2_L3_Fan_H2_L3_f0 fraction=0.875 bar=41
+2026-04-19 01:09:18,132 - [Tracking] BREACH_CONFIRMED (intra-bar): Fan_H2_L3 0.875 via target progression
+2026-04-19 01:09:18,144 - [Tracking] Target HIT: Fan_H2_L1 0.75
+2026-04-19 01:09:18,144 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H2_L1 prev_line=0.875 bar=43
+2026-04-19 01:09:18,145 - [Tracking] Target HIT: Fan_H2_L2 0.75
+2026-04-19 01:09:18,145 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H2_L2 prev_line=0.875 bar=43
+2026-04-19 01:09:18,145 - [Tracking] Target HIT: Fan_H2_L3 0.5
+2026-04-19 01:09:18,145 - [Tracking] Intra-bar BREACH_CONFIRMED: found pending on Fan_H2_L3_Fan_H2_L3_f1 fraction=0.75 bar=43
+2026-04-19 01:09:18,145 - [Tracking] BREACH_CONFIRMED (intra-bar): Fan_H2_L3 0.75 via target progression
+2026-04-19 01:09:18,145 - [Tracking] Target HIT: Fan_H2_L3 0.25
+2026-04-19 01:09:18,145 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H2_L3 prev_line=0.5 bar=43
+2026-04-19 01:09:18,246 - [Study] Removing invalidated/excess fan: Fan_H2_L1
+2026-04-19 01:09:18,246 - [Tracking] Target FAILED: Fan_H2_L1 (0.75) - fan invalidated with pending progression
+2026-04-19 01:09:18,247 - [Study] Updating fan priority: Fan_H2_L2 -> P3 (H2-L2)
+2026-04-19 01:09:18,247 - [Study] Creating new fan: Fan_L4_H2 (P1 (L4-H2))
+2026-04-19 01:09:18,248 - [Study] Updating fan priority: Fan_H2_L3 -> P2 (H2-L3)
+2026-04-19 01:09:18,255 - [Tracking] Fan validated: Fan_L4_H2 via touch at bar 47
+2026-04-19 01:09:18,260 - [Tracking] Target HIT: Fan_L4_H2 0.875
+2026-04-19 01:09:18,260 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_L4_H2 prev_line=0.5 bar=47
+2026-04-19 01:09:18,274 - [Tracking] Target HIT: Fan_L4_H2 0.75
+2026-04-19 01:09:18,274 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_L4_H2 prev_line=0.875 bar=49
+2026-04-19 01:09:18,346 - [Study] Removing invalidated/excess fan: Fan_H2_L2
+2026-04-19 01:09:18,347 - [Tracking] Target FAILED: Fan_H2_L2 (0.75) - fan invalidated with pending progression
+2026-04-19 01:09:18,347 - [Study] Creating new fan: Fan_H3_L4 (P1 (H3-L4))
+2026-04-19 01:09:18,348 - [Study] Updating fan priority: Fan_L4_H2 -> P2 (L4-H2)
+2026-04-19 01:09:18,348 - [Study] Updating fan priority: Fan_H2_L3 -> P3 (H2-L3)
+2026-04-19 01:09:18,349 - [Tracking] Fan validated: Fan_H3_L4 via reversal at bar 52
+2026-04-19 01:09:18,354 - [Tracking] Target HIT: Fan_H3_L4 0.875
+2026-04-19 01:09:18,355 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H3_L4 prev_line=0.5 bar=52
+2026-04-19 01:09:18,360 - [Tracking] Target HIT: Fan_H3_L4 0.75
+2026-04-19 01:09:18,360 - [Tracking] Intra-bar BREACH_CONFIRMED: found pending on Fan_H3_L4_Fan_H3_L4_f0 fraction=0.875 bar=53
+2026-04-19 01:09:18,360 - [Tracking] BREACH_CONFIRMED (intra-bar): Fan_H3_L4 0.875 via target progression
+2026-04-19 01:09:18,365 - [Tracking] Target HIT: Fan_H3_L4 0.5
+2026-04-19 01:09:18,366 - [Tracking] Intra-bar BREACH_CONFIRMED: found pending on Fan_H3_L4_Fan_H3_L4_f1 fraction=0.75 bar=54
+2026-04-19 01:09:18,366 - [Tracking] BREACH_CONFIRMED (intra-bar): Fan_H3_L4 0.75 via target progression
+2026-04-19 01:09:18,372 - [Tracking] Target HIT: Fan_H3_L4 horizontal
+2026-04-19 01:09:18,372 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H3_L4 prev_line=0.5 bar=55
+2026-04-19 01:09:18,397 - [Study] Removing invalidated/excess fan: Fan_H3_L4
+2026-04-19 01:09:18,397 - [Tracking] Target FAILED: Fan_H3_L4 (horizontal) - fan invalidated with pending progression
+2026-04-19 01:09:18,397 - [Study] Creating new fan: Fan_H2_L2 (P3 (H2-L2))
+2026-04-19 01:09:18,398 - [Study] Updating fan priority: Fan_L4_H2 -> P1 (L4-H2)
+2026-04-19 01:09:18,398 - [Study] Updating fan priority: Fan_H2_L3 -> P2 (H2-L3)
+2026-04-19 01:09:18,490 - [Tracking] Target HIT: Fan_L4_H2 0.5
+2026-04-19 01:09:18,490 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_L4_H2 prev_line=0.75 bar=58
+2026-04-19 01:09:18,510 - [Tracking] Target HIT: Fan_L4_H2 0.25
+2026-04-19 01:09:18,510 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_L4_H2 prev_line=0.5 bar=60
+2026-04-19 01:09:18,541 - [Study] Removing invalidated/excess fan: Fan_H2_L3
+2026-04-19 01:09:18,541 - [Study] Removing invalidated/excess fan: Fan_L4_H2
+2026-04-19 01:09:18,542 - [Study] Removing invalidated/excess fan: Fan_H2_L2
+2026-04-19 01:09:18,602 - [Study] Creating new fan: Fan_H4_L3 (P3 (H4-L3))
+2026-04-19 01:09:18,605 - [Study] Creating new fan: Fan_H4_L4 (P2 (H4-L4))
+2026-04-19 01:09:18,607 - [Study] Creating new fan: Fan_H4_L5 (P1 (H4-L5))
+2026-04-19 01:09:18,608 - [Tracking] Fan validated: Fan_H4_L3 via breach at bar 67
+2026-04-19 01:09:18,609 - [Tracking] Fan validated: Fan_H4_L4 via breach at bar 67
+2026-04-19 01:09:18,614 - [Tracking] Target HIT: Fan_H4_L3 0.875
+2026-04-19 01:09:18,614 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H4_L3 prev_line=0.5 bar=67
+2026-04-19 01:09:18,614 - [Tracking] Target HIT: Fan_H4_L3 0.75
+2026-04-19 01:09:18,614 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H4_L3 prev_line=0.875 bar=67
+2026-04-19 01:09:18,615 - [Tracking] Target HIT: Fan_H4_L4 0.875
+2026-04-19 01:09:18,615 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H4_L4 prev_line=0.5 bar=67
+2026-04-19 01:09:18,616 - [Tracking] Fan validated: Fan_H4_L5 via breach at bar 68
+2026-04-19 01:09:18,621 - [Tracking] Target HIT: Fan_H4_L5 0.875
+2026-04-19 01:09:18,621 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H4_L5 prev_line=0.5 bar=68
+2026-04-19 01:09:18,627 - [Tracking] Target HIT: Fan_H4_L3 0.5
+2026-04-19 01:09:18,627 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H4_L3 prev_line=0.75 bar=69
+2026-04-19 01:09:18,628 - [Tracking] Target HIT: Fan_H4_L3 horizontal
+2026-04-19 01:09:18,628 - [Tracking] Intra-bar BREACH_CONFIRMED: found pending on Fan_H4_L3_Fan_H4_L3_f2 fraction=0.5 bar=69
+2026-04-19 01:09:18,628 - [Tracking] BREACH_CONFIRMED (intra-bar): Fan_H4_L3 0.5 via target progression
+2026-04-19 01:09:18,628 - [Tracking] Target HIT: Fan_H4_L4 0.75
+2026-04-19 01:09:18,628 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H4_L4 prev_line=0.875 bar=69
+2026-04-19 01:09:18,628 - [Tracking] Target HIT: Fan_H4_L5 0.75
+2026-04-19 01:09:18,628 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H4_L5 prev_line=0.875 bar=69
+2026-04-19 01:09:18,661 - [Study] Removing invalidated/excess fan: Fan_H4_L3
+2026-04-19 01:09:18,661 - [Tracking] Target FAILED: Fan_H4_L3 (horizontal) - fan invalidated with pending progression
+2026-04-19 01:09:18,661 - [Study] Creating new fan: Fan_L6_H4 (P1 (L6-H4))
+2026-04-19 01:09:18,663 - [Study] Updating fan priority: Fan_H4_L4 -> P3 (H4-L4)
+2026-04-19 01:09:18,663 - [Study] Updating fan priority: Fan_H4_L5 -> P2 (H4-L5)
+2026-04-19 01:09:18,671 - [Tracking] Fan validated: Fan_L6_H4 via reversal at bar 71
+2026-04-19 01:09:18,675 - [Tracking] Target HIT: Fan_L6_H4 0.875
+2026-04-19 01:09:18,676 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_L6_H4 prev_line=0.5 bar=71
+2026-04-19 01:09:18,696 - [Tracking] Target HIT: Fan_L6_H4 0.75
+2026-04-19 01:09:18,697 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_L6_H4 prev_line=0.875 bar=74
+2026-04-19 01:09:18,752 - [Tracking] Target HIT: Fan_L6_H4 0.5
+2026-04-19 01:09:18,752 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_L6_H4 prev_line=0.75 bar=78
+2026-04-19 01:09:18,753 - [Tracking] Target HIT: Fan_L6_H4 0.25
+2026-04-19 01:09:18,753 - [Tracking] Intra-bar BREACH_CONFIRMED: found pending on Fan_L6_H4_Fan_L6_H4_f2 fraction=0.5 bar=78
+2026-04-19 01:09:18,753 - [Tracking] BREACH_CONFIRMED (intra-bar): Fan_L6_H4 0.5 via target progression
+2026-04-19 01:09:18,810 - [Study] Removing invalidated/excess fan: Fan_H4_L5
+2026-04-19 01:09:18,810 - [Tracking] Target FAILED: Fan_H4_L5 (0.75) - fan invalidated with pending progression
+2026-04-19 01:09:18,811 - [Study] Removing invalidated/excess fan: Fan_H4_L4
+2026-04-19 01:09:18,811 - [Tracking] Target FAILED: Fan_H4_L4 (0.75) - fan invalidated with pending progression
+2026-04-19 01:09:18,811 - [Study] Removing invalidated/excess fan: Fan_L6_H4
+2026-04-19 01:09:18,921 - [Study] Creating new fan: Fan_H5_L4 (P3 (H5-L4))
+2026-04-19 01:09:18,922 - [Study] Creating new fan: Fan_H5_L6 (P1 (H5-L6))
+2026-04-19 01:09:18,923 - [Study] Creating new fan: Fan_H5_L5 (P2 (H5-L5))
+2026-04-19 01:09:18,955 - [Study] Removing invalidated/excess fan: Fan_H5_L6
+2026-04-19 01:09:18,955 - [Study] Removing invalidated/excess fan: Fan_H5_L5
+2026-04-19 01:09:18,955 - [Study] Removing invalidated/excess fan: Fan_H5_L4
+2026-04-19 01:09:18,989 - [Study] Creating new fan: Fan_H6_L4 (P3 (H6-L4))
+2026-04-19 01:09:18,990 - [Study] Creating new fan: Fan_H6_L5 (P2 (H6-L5))
+2026-04-19 01:09:18,991 - [Study] Creating new fan: Fan_H6_L6 (P1 (H6-L6))
+2026-04-19 01:09:19,068 - [Study] Removing invalidated/excess fan: Fan_H6_L4
+2026-04-19 01:09:19,068 - [Study] Updating fan priority: Fan_H6_L5 -> P3 (H6-L5)
+2026-04-19 01:09:19,068 - [Study] Creating new fan: Fan_L7_H6 (P1 (L7-H6))
+2026-04-19 01:09:19,070 - [Study] Updating fan priority: Fan_H6_L6 -> P2 (H6-L6)
+2026-04-19 01:09:19,070 - [Tracking] Fan validated: Fan_L7_H6 via touch at bar 108
+2026-04-19 01:09:19,075 - [Tracking] Target HIT: Fan_L7_H6 0.875
+2026-04-19 01:09:19,075 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_L7_H6 prev_line=0.5 bar=108
+2026-04-19 01:09:19,089 - [Tracking] Target HIT: Fan_L7_H6 0.75
+2026-04-19 01:09:19,090 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_L7_H6 prev_line=0.875 bar=111
+2026-04-19 01:09:19,102 - [Tracking] Target HIT: Fan_L7_H6 0.5
+2026-04-19 01:09:19,102 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_L7_H6 prev_line=0.75 bar=113
+2026-04-19 01:09:19,128 - [Tracking] Target HIT: Fan_L7_H6 horizontal
+2026-04-19 01:09:19,128 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_L7_H6 prev_line=0.5 bar=115
+2026-04-19 01:09:19,143 - [Study] Removing invalidated/excess fan: Fan_H6_L6
+2026-04-19 01:09:19,143 - [Study] Removing invalidated/excess fan: Fan_H6_L5
+2026-04-19 01:09:19,143 - [Study] Removing invalidated/excess fan: Fan_L7_H6
+2026-04-19 01:09:19,143 - [Tracking] Target FAILED: Fan_L7_H6 (horizontal) - fan invalidated with pending progression
+2026-04-19 01:09:19,216 - [Study] Creating new fan: Fan_H7_L7 (P1 (H7-L7))
+2026-04-19 01:09:19,218 - [Study] Creating new fan: Fan_H7_L5 (P3 (H7-L5))
+2026-04-19 01:09:19,219 - [Study] Creating new fan: Fan_H7_L6 (P2 (H7-L6))
+2026-04-19 01:09:19,234 - [Tracking] Fan validated: Fan_H7_L7 via reversal at bar 126
+2026-04-19 01:09:19,239 - [Tracking] Target HIT: Fan_H7_L7 0.875
+2026-04-19 01:09:19,239 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H7_L7 prev_line=0.5 bar=126
+2026-04-19 01:09:19,251 - [Tracking] Target HIT: Fan_H7_L7 0.75
+2026-04-19 01:09:19,251 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H7_L7 prev_line=0.875 bar=128
+2026-04-19 01:09:19,303 - [Tracking] Target HIT: Fan_H7_L7 0.5
+2026-04-19 01:09:19,303 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H7_L7 prev_line=0.75 bar=133
+2026-04-19 01:09:19,346 - [Study] Removing invalidated/excess fan: Fan_H7_L5
+2026-04-19 01:09:19,346 - [Study] Updating fan priority: Fan_H7_L7 -> P2 (H7-L7)
+2026-04-19 01:09:19,346 - [Study] Creating new fan: Fan_L8_H7 (P1 (L8-H7))
+2026-04-19 01:09:19,348 - [Study] Updating fan priority: Fan_H7_L6 -> P3 (H7-L6)
+2026-04-19 01:09:19,354 - [Tracking] Fan validated: Fan_L8_H7 via touch at bar 135
+2026-04-19 01:09:19,357 - [Tracking] Target HIT: Fan_L8_H7 0.875
+2026-04-19 01:09:19,357 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_L8_H7 prev_line=0.5 bar=135
+2026-04-19 01:09:19,358 - [Tracking] Target HIT: Fan_L8_H7 0.75
+2026-04-19 01:09:19,358 - [Tracking] Intra-bar BREACH_CONFIRMED: found pending on Fan_L8_H7_Fan_L8_H7_f0 fraction=0.875 bar=135
+2026-04-19 01:09:19,358 - [Tracking] BREACH_CONFIRMED (intra-bar): Fan_L8_H7 0.875 via target progression
+2026-04-19 01:09:19,394 - [Tracking] Target HIT: Fan_L8_H7 0.5
+2026-04-19 01:09:19,395 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_L8_H7 prev_line=0.75 bar=140
+2026-04-19 01:09:19,410 - [Study] Removing invalidated/excess fan: Fan_L8_H7
+2026-04-19 01:09:19,411 - [Tracking] Target FAILED: Fan_L8_H7 (0.5) - fan invalidated with pending progression
+2026-04-19 01:09:19,411 - [Study] Updating fan priority: Fan_H7_L7 -> P1 (H7-L7)
+2026-04-19 01:09:19,411 - [Study] Creating new fan: Fan_H7_L5 (P3 (H7-L5))
+2026-04-19 01:09:19,412 - [Study] Updating fan priority: Fan_H7_L6 -> P2 (H7-L6)
+2026-04-19 01:09:19,491 - [Tracking] Target HIT: Fan_H7_L7 0.25
+2026-04-19 01:09:19,491 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H7_L7 prev_line=0.5 bar=142
+2026-04-19 01:09:19,526 - [Study] Removing invalidated/excess fan: Fan_H7_L6
+2026-04-19 01:09:19,526 - [Study] Removing invalidated/excess fan: Fan_H7_L5
+2026-04-19 01:09:19,526 - [Study] Creating new fan: Fan_L9_H7 (P2 (L9-H7))
+2026-04-19 01:09:19,528 - [Study] Updating fan priority: Fan_H7_L7 -> P3 (H7-L7)
+2026-04-19 01:09:19,528 - [Study] Creating new fan: Fan_L9_H8 (P1 (L9-H8))
+2026-04-19 01:09:19,529 - [Tracking] Fan validated: Fan_L9_H7 via breach at bar 142
+2026-04-19 01:09:19,535 - [Tracking] Target HIT: Fan_L9_H7 0.875
+2026-04-19 01:09:19,535 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_L9_H7 prev_line=0.5 bar=142
+2026-04-19 01:09:19,540 - [Tracking] Fan validated: Fan_L9_H8 via breach at bar 144
+2026-04-19 01:09:19,543 - [Tracking] Target HIT: Fan_L9_H8 0.875
+2026-04-19 01:09:19,543 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_L9_H8 prev_line=0.5 bar=144
+2026-04-19 01:09:19,547 - [Tracking] Target HIT: Fan_L9_H7 0.75
+2026-04-19 01:09:19,547 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_L9_H7 prev_line=0.875 bar=145
+2026-04-19 01:09:19,547 - [Tracking] Target HIT: Fan_L9_H8 0.75
+2026-04-19 01:09:19,547 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_L9_H8 prev_line=0.875 bar=145
+2026-04-19 01:09:19,552 - [Tracking] Target HIT: Fan_L9_H8 0.5
+2026-04-19 01:09:19,553 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_L9_H8 prev_line=0.75 bar=146
+2026-04-19 01:09:19,563 - [Study] Removing invalidated/excess fan: Fan_L9_H8
+2026-04-19 01:09:19,563 - [Tracking] Target FAILED: Fan_L9_H8 (0.5) - fan invalidated with pending progression
+2026-04-19 01:09:19,563 - [Study] Updating fan priority: Fan_L9_H7 -> P1 (L9-H7)
+2026-04-19 01:09:19,563 - [Study] Updating fan priority: Fan_H7_L7 -> P2 (H7-L7)
+2026-04-19 01:09:19,563 - [Study] Creating new fan: Fan_H7_L6 (P3 (H7-L6))
+2026-04-19 01:09:19,679 - [Tracking] Target HIT: Fan_L9_H7 0.5
+2026-04-19 01:09:19,680 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_L9_H7 prev_line=0.75 bar=148
+2026-04-19 01:09:19,680 - [Tracking] Target HIT: Fan_L9_H7 horizontal
+2026-04-19 01:09:19,680 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_L9_H7 prev_line=0.5 bar=148
+2026-04-19 01:09:19,816 - [Study] Removing invalidated/excess fan: Fan_H7_L7
+2026-04-19 01:09:19,817 - [Study] Removing invalidated/excess fan: Fan_L9_H7
+2026-04-19 01:09:19,817 - [Tracking] Target FAILED: Fan_L9_H7 (horizontal) - fan invalidated with pending progression
+2026-04-19 01:09:19,817 - [Study] Removing invalidated/excess fan: Fan_H7_L6
+2026-04-19 01:09:19,857 - [Study] Creating new fan: Fan_H9_L7 (P2 (H9-L7))
+2026-04-19 01:09:19,859 - [Study] Creating new fan: Fan_H9_L6 (P3 (H9-L6))
+2026-04-19 01:09:19,860 - [Study] Creating new fan: Fan_H9_L9 (P1 (H9-L9))
+2026-04-19 01:09:19,862 - [Tracking] Fan validated: Fan_H9_L7 via breach at bar 159
+2026-04-19 01:09:19,862 - [Tracking] Fan validated: Fan_H9_L9 via reversal at bar 159
+2026-04-19 01:09:19,867 - [Tracking] Target HIT: Fan_H9_L7 0.875
+2026-04-19 01:09:19,868 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H9_L7 prev_line=0.5 bar=159
+2026-04-19 01:09:19,868 - [Tracking] Target HIT: Fan_H9_L9 0.875
+2026-04-19 01:09:19,868 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H9_L9 prev_line=0.5 bar=159
+2026-04-19 01:09:19,874 - [Tracking] Target HIT: Fan_H9_L7 0.75
+2026-04-19 01:09:19,874 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H9_L7 prev_line=0.875 bar=160
+2026-04-19 01:09:19,874 - [Tracking] Target HIT: Fan_H9_L9 0.75
+2026-04-19 01:09:19,875 - [Tracking] Intra-bar BREACH_CONFIRMED: found pending on Fan_H9_L9_Fan_H9_L9_f0 fraction=0.875 bar=160
+2026-04-19 01:09:19,875 - [Tracking] BREACH_CONFIRMED (intra-bar): Fan_H9_L9 0.875 via target progression
+2026-04-19 01:09:19,932 - [Tracking] Target HIT: Fan_H9_L9 0.5
+2026-04-19 01:09:19,932 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H9_L9 prev_line=0.75 bar=165
+2026-04-19 01:09:19,972 - [Tracking] Target HIT: Fan_H9_L7 0.5
+2026-04-19 01:09:19,973 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H9_L7 prev_line=0.75 bar=167
+2026-04-19 01:09:20,023 - [Study] Removing invalidated/excess fan: Fan_H9_L6
+2026-04-19 01:09:20,023 - [Study] Updating fan priority: Fan_H9_L7 -> P3 (H9-L7)
+2026-04-19 01:09:20,023 - [Study] Creating new fan: Fan_L10_H9 (P1 (L10-H9))
+2026-04-19 01:09:20,025 - [Study] Updating fan priority: Fan_H9_L9 -> P2 (H9-L9)
+2026-04-19 01:09:20,025 - [Tracking] Fan validated: Fan_L10_H9 via reversal at bar 167
+2026-04-19 01:09:20,034 - [Tracking] Target HIT: Fan_L10_H9 0.875
+2026-04-19 01:09:20,034 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_L10_H9 prev_line=0.5 bar=167
+2026-04-19 01:09:20,051 - [Tracking] Target HIT: Fan_L10_H9 0.75
+2026-04-19 01:09:20,051 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_L10_H9 prev_line=0.875 bar=169
+2026-04-19 01:09:20,086 - [Tracking] Target HIT: Fan_L10_H9 0.5
+2026-04-19 01:09:20,086 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_L10_H9 prev_line=0.75 bar=173
+2026-04-19 01:09:20,119 - [Tracking] Target HIT: Fan_L10_H9 horizontal
+2026-04-19 01:09:20,120 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_L10_H9 prev_line=0.5 bar=175
+2026-04-19 01:09:20,239 - [Study] Removing invalidated/excess fan: Fan_H9_L7
+2026-04-19 01:09:20,239 - [Tracking] Target FAILED: Fan_H9_L7 (0.5) - fan invalidated with pending progression
+2026-04-19 01:09:20,240 - [Study] Updating fan priority: Fan_L10_H9 -> P2 (L10-H9)
+2026-04-19 01:09:20,240 - [Study] Updating fan priority: Fan_H9_L9 -> P3 (H9-L9)
+2026-04-19 01:09:20,240 - [Study] Creating new fan: Fan_H10_L10 (P1 (H10-L10))
+2026-04-19 01:09:20,242 - [Tracking] Fan validated: Fan_H10_L10 via reversal at bar 176
+2026-04-19 01:09:20,252 - [Tracking] Target HIT: Fan_H10_L10 0.875
+2026-04-19 01:09:20,252 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H10_L10 prev_line=0.5 bar=176
+2026-04-19 01:09:20,252 - [Tracking] Target HIT: Fan_H10_L10 0.75
+2026-04-19 01:09:20,252 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H10_L10 prev_line=0.875 bar=176
+2026-04-19 01:09:20,270 - [Tracking] Target HIT: Fan_H10_L10 0.5
+2026-04-19 01:09:20,270 - [Tracking] Intra-bar BREACH_CONFIRMED: found pending on Fan_H10_L10_Fan_H10_L10_f1 fraction=0.75 bar=179
+2026-04-19 01:09:20,270 - [Tracking] BREACH_CONFIRMED (intra-bar): Fan_H10_L10 0.75 via target progression
+2026-04-19 01:09:20,270 - [Tracking] Target HIT: Fan_H10_L10 horizontal
+2026-04-19 01:09:20,271 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H10_L10 prev_line=0.5 bar=179
+2026-04-19 01:09:20,342 - [Study] Removing invalidated/excess fan: Fan_H9_L9
+2026-04-19 01:09:20,342 - [Tracking] Target FAILED: Fan_H9_L9 (0.5) - fan invalidated with pending progression
+2026-04-19 01:09:20,342 - [Study] Updating fan priority: Fan_H10_L10 -> P2 (H10-L10)
+2026-04-19 01:09:20,342 - [Study] Updating fan priority: Fan_L10_H9 -> P3 (L10-H9)
+2026-04-19 01:09:20,342 - [Study] Creating new fan: Fan_L11_H10 (P1 (L11-H10))
+2026-04-19 01:09:20,345 - [Tracking] Fan validated: Fan_L11_H10 via breach at bar 179
+2026-04-19 01:09:20,354 - [Tracking] Target HIT: Fan_L11_H10 0.875
+2026-04-19 01:09:20,354 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_L11_H10 prev_line=0.5 bar=179
+2026-04-19 01:09:20,433 - [Study] Removing invalidated/excess fan: Fan_H10_L10
+2026-04-19 01:09:20,433 - [Tracking] Target FAILED: Fan_H10_L10 (horizontal) - fan invalidated with pending progression
+2026-04-19 01:09:20,433 - [Study] Removing invalidated/excess fan: Fan_L11_H10
+2026-04-19 01:09:20,433 - [Tracking] Target FAILED: Fan_L11_H10 (0.875) - fan invalidated with pending progression
+2026-04-19 01:09:20,434 - [Study] Creating new fan: Fan_H9_L7 (P3 (H9-L7))
+2026-04-19 01:09:20,435 - [Study] Updating fan priority: Fan_L10_H9 -> P1 (L10-H9)
+2026-04-19 01:09:20,435 - [Study] Creating new fan: Fan_H9_L9 (P2 (H9-L9))
+2026-04-19 01:09:20,598 - [Study] Removing invalidated/excess fan: Fan_L10_H9
+2026-04-19 01:09:20,598 - [Tracking] Target FAILED: Fan_L10_H9 (horizontal) - fan invalidated with pending progression
+2026-04-19 01:09:20,599 - [Study] Removing invalidated/excess fan: Fan_H9_L9
+2026-04-19 01:09:20,599 - [Study] Removing invalidated/excess fan: Fan_H9_L7
+2026-04-19 01:09:20,599 - [Study] Creating new fan: Fan_H9_L5 (P2 (H9-L5))
+2026-04-19 01:09:20,602 - [Study] Creating new fan: Fan_H9_L6 (P1 (H9-L6))
+2026-04-19 01:09:20,604 - [Study] Creating new fan: Fan_H9_L4 (P3 (H9-L4))
+2026-04-19 01:09:20,746 - [Tracking] Fan validated: Fan_H9_L5 via reversal at bar 187
+2026-04-19 01:09:20,746 - [Tracking] Fan validated: Fan_H9_L6 via reversal at bar 187
+2026-04-19 01:09:20,746 - [Tracking] Fan validated: Fan_H9_L4 via reversal at bar 187
+2026-04-19 01:09:20,750 - [Tracking] Target HIT: Fan_H9_L4 0.875
+2026-04-19 01:09:20,750 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H9_L4 prev_line=0.5 bar=187
+2026-04-19 01:09:20,751 - [Tracking] Target HIT: Fan_H9_L5 0.875
+2026-04-19 01:09:20,751 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H9_L5 prev_line=0.5 bar=187
+2026-04-19 01:09:20,751 - [Tracking] Target HIT: Fan_H9_L6 0.875
+2026-04-19 01:09:20,751 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H9_L6 prev_line=0.5 bar=187
+2026-04-19 01:09:20,793 - [Study] Removing invalidated/excess fan: Fan_H9_L5
+2026-04-19 01:09:20,794 - [Tracking] Target FAILED: Fan_H9_L5 (0.875) - fan invalidated with pending progression
+2026-04-19 01:09:20,794 - [Study] Removing invalidated/excess fan: Fan_H9_L4
+2026-04-19 01:09:20,794 - [Tracking] Target FAILED: Fan_H9_L4 (0.875) - fan invalidated with pending progression
+2026-04-19 01:09:20,794 - [Study] Creating new fan: Fan_L12_H9 (P2 (L12-H9))
+2026-04-19 01:09:20,796 - [Study] Updating fan priority: Fan_H9_L6 -> P3 (H9-L6)
+2026-04-19 01:09:20,796 - [Study] Creating new fan: Fan_L12_H11 (P1 (L12-H11))
+2026-04-19 01:09:20,798 - [Tracking] Fan validated: Fan_L12_H9 via reversal at bar 187
+2026-04-19 01:09:20,805 - [Tracking] Target HIT: Fan_L12_H9 0.875
+2026-04-19 01:09:20,805 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_L12_H9 prev_line=0.5 bar=187
+2026-04-19 01:09:20,814 - [Tracking] Fan validated: Fan_L12_H11 via breach at bar 189
+2026-04-19 01:09:20,818 - [Tracking] Target HIT: Fan_L12_H11 0.875
+2026-04-19 01:09:20,819 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_L12_H11 prev_line=0.5 bar=189
+2026-04-19 01:09:20,825 - [Tracking] Target HIT: Fan_L12_H11 0.75
+2026-04-19 01:09:20,825 - [Tracking] Intra-bar BREACH_CONFIRMED: found pending on Fan_L12_H11_Fan_L12_H11_f0 fraction=0.875 bar=190
+2026-04-19 01:09:20,825 - [Tracking] BREACH_CONFIRMED (intra-bar): Fan_L12_H11 0.875 via target progression
+2026-04-19 01:09:20,884 - [Study] Removing invalidated/excess fan: Fan_L12_H11
+2026-04-19 01:09:20,884 - [Tracking] Target FAILED: Fan_L12_H11 (0.75) - fan invalidated with pending progression
+2026-04-19 01:09:20,884 - [Study] Removing invalidated/excess fan: Fan_L12_H9
+2026-04-19 01:09:20,885 - [Tracking] Target FAILED: Fan_L12_H9 (0.875) - fan invalidated with pending progression
+2026-04-19 01:09:20,885 - [Study] Creating new fan: Fan_H9_L5 (P2 (H9-L5))
+2026-04-19 01:09:20,886 - [Study] Updating fan priority: Fan_H9_L6 -> P1 (H9-L6)
+2026-04-19 01:09:20,887 - [Study] Creating new fan: Fan_H9_L4 (P3 (H9-L4))
+2026-04-19 01:09:21,032 - [Tracking] Fan validated: Fan_H9_L5 via breach at bar 193
+2026-04-19 01:09:21,033 - [Tracking] Fan validated: Fan_H9_L4 via breach at bar 193
+2026-04-19 01:09:21,041 - [Tracking] Target HIT: Fan_H9_L4 0.875
+2026-04-19 01:09:21,041 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H9_L4 prev_line=0.5 bar=193
+2026-04-19 01:09:21,041 - [Tracking] Target HIT: Fan_H9_L5 0.875
+2026-04-19 01:09:21,041 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H9_L5 prev_line=0.5 bar=193
+2026-04-19 01:09:21,147 - [Study] Removing invalidated/excess fan: Fan_H9_L5
+2026-04-19 01:09:21,147 - [Tracking] Target FAILED: Fan_H9_L5 (0.875) - fan invalidated with pending progression
+2026-04-19 01:09:21,147 - [Study] Removing invalidated/excess fan: Fan_H9_L4
+2026-04-19 01:09:21,147 - [Tracking] Target FAILED: Fan_H9_L4 (0.875) - fan invalidated with pending progression
+2026-04-19 01:09:21,147 - [Study] Creating new fan: Fan_L13_H9 (P2 (L13-H9))
+2026-04-19 01:09:21,148 - [Study] Updating fan priority: Fan_H9_L6 -> P3 (H9-L6)
+2026-04-19 01:09:21,149 - [Study] Creating new fan: Fan_L13_H11 (P1 (L13-H11))
+2026-04-19 01:09:21,158 - [Tracking] Fan validated: Fan_L13_H9 via reversal at bar 199
+2026-04-19 01:09:21,166 - [Tracking] Target HIT: Fan_L13_H9 0.875
+2026-04-19 01:09:21,166 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_L13_H9 prev_line=0.5 bar=199
+2026-04-19 01:09:21,178 - [Tracking] Fan validated: Fan_L13_H11 via breach at bar 202
+2026-04-19 01:09:21,181 - [Tracking] Target HIT: Fan_L13_H11 0.875
+2026-04-19 01:09:21,182 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_L13_H11 prev_line=0.5 bar=202
+2026-04-19 01:09:21,182 - [Tracking] Target HIT: Fan_L13_H9 0.75
+2026-04-19 01:09:21,182 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_L13_H9 prev_line=0.875 bar=202
+2026-04-19 01:09:21,304 - [Study] Removing invalidated/excess fan: Fan_H9_L6
+2026-04-19 01:09:21,304 - [Tracking] Target FAILED: Fan_H9_L6 (0.875) - fan invalidated with pending progression
+2026-04-19 01:09:21,305 - [Study] Updating fan priority: Fan_L13_H9 -> P3 (L13-H9)
+2026-04-19 01:09:21,305 - [Study] Updating fan priority: Fan_L13_H11 -> P2 (L13-H11)
+2026-04-19 01:09:21,305 - [Study] Creating new fan: Fan_H12_L13 (P1 (H12-L13))
+2026-04-19 01:09:21,314 - [Tracking] Fan validated: Fan_H12_L13 via reversal at bar 208
+2026-04-19 01:09:21,322 - [Tracking] Target HIT: Fan_H12_L13 0.875
+2026-04-19 01:09:21,322 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H12_L13 prev_line=0.5 bar=208
+2026-04-19 01:09:21,332 - [Tracking] Target HIT: Fan_H12_L13 0.75
+2026-04-19 01:09:21,333 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H12_L13 prev_line=0.875 bar=209
+2026-04-19 01:09:21,386 - [Tracking] Target HIT: Fan_L13_H11 0.75
+2026-04-19 01:09:21,386 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_L13_H11 prev_line=0.875 bar=213
+2026-04-19 01:09:21,391 - [Study] Removing invalidated/excess fan: Fan_L13_H9
+2026-04-19 01:09:21,392 - [Tracking] Target FAILED: Fan_L13_H9 (0.75) - fan invalidated with pending progression
+2026-04-19 01:09:21,392 - [Study] Creating new fan: Fan_L14_H12 (P1 (L14-H12))
+2026-04-19 01:09:21,393 - [Study] Updating fan priority: Fan_L13_H11 -> P3 (L13-H11)
+2026-04-19 01:09:21,393 - [Study] Updating fan priority: Fan_H12_L13 -> P2 (H12-L13)
+2026-04-19 01:09:21,405 - [Tracking] Fan validated: Fan_L14_H12 via breach at bar 211
+2026-04-19 01:09:21,411 - [Tracking] Target HIT: Fan_L14_H12 0.875
+2026-04-19 01:09:21,411 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_L14_H12 prev_line=0.5 bar=211
+2026-04-19 01:09:21,416 - [Tracking] Target HIT: Fan_L14_H12 0.75
+2026-04-19 01:09:21,417 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_L14_H12 prev_line=0.875 bar=212
+2026-04-19 01:09:21,424 - [Tracking] Target HIT: Fan_L14_H12 0.5
+2026-04-19 01:09:21,424 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_L14_H12 prev_line=0.75 bar=213
+2026-04-19 01:09:21,424 - [Tracking] Target HIT: Fan_L14_H12 0.25
+2026-04-19 01:09:21,424 - [Tracking] Intra-bar BREACH_CONFIRMED: found pending on Fan_L14_H12_Fan_L14_H12_f2 fraction=0.5 bar=213
+2026-04-19 01:09:21,424 - [Tracking] BREACH_CONFIRMED (intra-bar): Fan_L14_H12 0.5 via target progression
+2026-04-19 01:09:21,529 - [Tracking] Target HIT: Fan_H12_L13 0.5
+2026-04-19 01:09:21,529 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H12_L13 prev_line=0.75 bar=218
+2026-04-19 01:09:21,571 - [Study] Removing invalidated/excess fan: Fan_H12_L13
+2026-04-19 01:09:21,571 - [Tracking] Target FAILED: Fan_H12_L13 (0.5) - fan invalidated with pending progression
+2026-04-19 01:09:21,571 - [Study] Removing invalidated/excess fan: Fan_L14_H12
+2026-04-19 01:09:21,572 - [Study] Creating new fan: Fan_L13_H9 (P2 (L13-H9))
+2026-04-19 01:09:21,573 - [Study] Creating new fan: Fan_H9_L6 (P3 (H9-L6))
+2026-04-19 01:09:21,575 - [Study] Updating fan priority: Fan_L13_H11 -> P1 (L13-H11)
+2026-04-19 01:09:21,905 - [Tracking] Target HIT: Fan_L13_H11 0.5
+2026-04-19 01:09:21,905 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_L13_H11 prev_line=0.75 bar=226
+2026-04-19 01:09:22,064 - [Study] Removing invalidated/excess fan: Fan_L13_H11
+2026-04-19 01:09:22,064 - [Tracking] Target FAILED: Fan_L13_H11 (0.5) - fan invalidated with pending progression
+2026-04-19 01:09:22,064 - [Study] Removing invalidated/excess fan: Fan_L13_H9
+2026-04-19 01:09:22,064 - [Study] Removing invalidated/excess fan: Fan_H9_L6
+2026-04-19 01:09:22,065 - [Study] Creating new fan: Fan_H13_L14 (P2 (H13-L14))
+2026-04-19 01:09:22,066 - [Study] Creating new fan: Fan_H13_L13 (P3 (H13-L13))
+2026-04-19 01:09:22,068 - [Study] Creating new fan: Fan_H13_L15 (P1 (H13-L15))
+2026-04-19 01:09:22,070 - [Tracking] Fan validated: Fan_H13_L14 via breach at bar 231
+2026-04-19 01:09:22,070 - [Tracking] Fan validated: Fan_H13_L13 via touch at bar 231
+2026-04-19 01:09:22,070 - [Tracking] Fan validated: Fan_H13_L15 via breach at bar 231
+2026-04-19 01:09:22,076 - [Tracking] Target HIT: Fan_H13_L13 0.875
+2026-04-19 01:09:22,076 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H13_L13 prev_line=0.5 bar=231
+2026-04-19 01:09:22,077 - [Tracking] Target HIT: Fan_H13_L14 0.875
+2026-04-19 01:09:22,077 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H13_L14 prev_line=0.5 bar=231
+2026-04-19 01:09:22,077 - [Tracking] Target HIT: Fan_H13_L15 0.875
+2026-04-19 01:09:22,077 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H13_L15 prev_line=0.5 bar=231
+2026-04-19 01:09:22,088 - [Tracking] Target HIT: Fan_H13_L14 0.75
+2026-04-19 01:09:22,088 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H13_L14 prev_line=0.875 bar=233
+2026-04-19 01:09:22,088 - [Tracking] Target HIT: Fan_H13_L15 0.75
+2026-04-19 01:09:22,088 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H13_L15 prev_line=0.875 bar=233
+2026-04-19 01:09:22,094 - [Tracking] Target HIT: Fan_H13_L13 0.75
+2026-04-19 01:09:22,094 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H13_L13 prev_line=0.875 bar=234
+2026-04-19 01:09:22,131 - [Tracking] Target HIT: Fan_H13_L14 0.5
+2026-04-19 01:09:22,132 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H13_L14 prev_line=0.75 bar=237
+2026-04-19 01:09:22,132 - [Tracking] Target HIT: Fan_H13_L15 0.5
+2026-04-19 01:09:22,132 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H13_L15 prev_line=0.75 bar=237
+2026-04-19 01:09:22,192 - [Tracking] Target HIT: Fan_H13_L13 0.5
+2026-04-19 01:09:22,192 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H13_L13 prev_line=0.75 bar=239
+2026-04-19 01:09:22,192 - [Tracking] Target HIT: Fan_H13_L14 horizontal
+2026-04-19 01:09:22,193 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H13_L14 prev_line=0.5 bar=239
+2026-04-19 01:09:22,193 - [Tracking] Target HIT: Fan_H13_L15 horizontal
+2026-04-19 01:09:22,193 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H13_L15 prev_line=0.5 bar=239
+2026-04-19 01:09:22,197 - [Study] Removing invalidated/excess fan: Fan_H13_L15
+2026-04-19 01:09:22,197 - [Tracking] Target FAILED: Fan_H13_L15 (horizontal) - fan invalidated with pending progression
+2026-04-19 01:09:22,197 - [Study] Removing invalidated/excess fan: Fan_H13_L14
+2026-04-19 01:09:22,197 - [Tracking] Target FAILED: Fan_H13_L14 (horizontal) - fan invalidated with pending progression
+2026-04-19 01:09:22,197 - [Study] Creating new fan: Fan_L13_H9 (P3 (L13-H9))
+2026-04-19 01:09:22,200 - [Study] Creating new fan: Fan_L13_H11 (P2 (L13-H11))
+2026-04-19 01:09:22,202 - [Study] Updating fan priority: Fan_H13_L13 -> P1 (H13-L13)
+2026-04-19 01:09:22,392 - [Tracking] Target HIT: Fan_H13_L13 horizontal
+2026-04-19 01:09:22,392 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H13_L13 prev_line=0.5 bar=240
+2026-04-19 01:09:22,485 - [Study] Removing invalidated/excess fan: Fan_L13_H9
+2026-04-19 01:09:22,486 - [Study] Updating fan priority: Fan_H13_L13 -> P2 (H13-L13)
+2026-04-19 01:09:22,486 - [Study] Updating fan priority: Fan_L13_H11 -> P3 (L13-H11)
+2026-04-19 01:09:22,486 - [Study] Creating new fan: Fan_L16_H13 (P1 (L16-H13))
+2026-04-19 01:09:22,493 - [Tracking] Fan validated: Fan_L16_H13 via touch at bar 241
+2026-04-19 01:09:22,496 - [Tracking] Target HIT: Fan_L16_H13 0.875
+2026-04-19 01:09:22,497 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_L16_H13 prev_line=0.5 bar=241
+2026-04-19 01:09:22,521 - [Tracking] Target HIT: Fan_L16_H13 0.75
+2026-04-19 01:09:22,521 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_L16_H13 prev_line=0.875 bar=245
+2026-04-19 01:09:22,543 - [Study] Removing invalidated/excess fan: Fan_L16_H13
+2026-04-19 01:09:22,543 - [Tracking] Target FAILED: Fan_L16_H13 (0.75) - fan invalidated with pending progression
+2026-04-19 01:09:22,543 - [Study] Creating new fan: Fan_L13_H9 (P3 (L13-H9))
+2026-04-19 01:09:22,544 - [Study] Updating fan priority: Fan_L13_H11 -> P2 (L13-H11)
+2026-04-19 01:09:22,544 - [Study] Updating fan priority: Fan_H13_L13 -> P1 (H13-L13)
+2026-04-19 01:09:22,809 - [Study] Removing invalidated/excess fan: Fan_H13_L13
+2026-04-19 01:09:22,810 - [Tracking] Target FAILED: Fan_H13_L13 (horizontal) - fan invalidated with pending progression
+2026-04-19 01:09:22,810 - [Study] Removing invalidated/excess fan: Fan_L13_H11
+2026-04-19 01:09:22,810 - [Study] Removing invalidated/excess fan: Fan_L13_H9
+2026-04-19 01:09:22,810 - [Study] Creating new fan: Fan_H9_L5 (P2 (H9-L5))
+2026-04-19 01:09:22,812 - [Study] Creating new fan: Fan_H9_L6 (P1 (H9-L6))
+2026-04-19 01:09:22,814 - [Study] Creating new fan: Fan_H9_L4 (P3 (H9-L4))
+2026-04-19 01:09:23,320 - [Study] Removing invalidated/excess fan: Fan_H9_L6
+2026-04-19 01:09:23,320 - [Study] Removing invalidated/excess fan: Fan_H9_L5
+2026-04-19 01:09:23,321 - [Study] Removing invalidated/excess fan: Fan_H9_L4
+2026-04-19 01:09:23,321 - [Study] Creating new fan: Fan_L17_H13 (P1 (L17-H13))
+2026-04-19 01:09:23,322 - [Study] Creating new fan: Fan_L17_H9 (P3 (L17-H9))
+2026-04-19 01:09:23,323 - [Study] Creating new fan: Fan_L17_H11 (P2 (L17-H11))
+2026-04-19 01:09:23,334 - [Tracking] Fan validated: Fan_L17_H13 via reversal at bar 256
+2026-04-19 01:09:23,335 - [Tracking] Fan validated: Fan_L17_H9 via reversal at bar 256
+2026-04-19 01:09:23,340 - [Tracking] Target HIT: Fan_L17_H13 0.875
+2026-04-19 01:09:23,340 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_L17_H13 prev_line=0.5 bar=256
+2026-04-19 01:09:23,340 - [Tracking] Target HIT: Fan_L17_H9 0.875
+2026-04-19 01:09:23,340 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_L17_H9 prev_line=0.5 bar=256
+2026-04-19 01:09:23,349 - [Tracking] Fan validated: Fan_L17_H11 via breach at bar 259
+2026-04-19 01:09:23,355 - [Tracking] Target HIT: Fan_L17_H11 0.875
+2026-04-19 01:09:23,355 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_L17_H11 prev_line=0.5 bar=259
+2026-04-19 01:09:23,376 - [Tracking] Target HIT: Fan_L17_H13 0.75
+2026-04-19 01:09:23,376 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_L17_H13 prev_line=0.875 bar=260
+2026-04-19 01:09:23,422 - [Study] Removing invalidated/excess fan: Fan_L17_H13
+2026-04-19 01:09:23,422 - [Tracking] Target FAILED: Fan_L17_H13 (0.75) - fan invalidated with pending progression
+2026-04-19 01:09:23,422 - [Study] Removing invalidated/excess fan: Fan_L17_H11
+2026-04-19 01:09:23,422 - [Tracking] Target FAILED: Fan_L17_H11 (0.875) - fan invalidated with pending progression
+2026-04-19 01:09:23,422 - [Study] Removing invalidated/excess fan: Fan_L17_H9
+2026-04-19 01:09:23,422 - [Tracking] Target FAILED: Fan_L17_H9 (0.875) - fan invalidated with pending progression
+2026-04-19 01:09:23,422 - [Study] Creating new fan: Fan_H9_L5 (P2 (H9-L5))
+2026-04-19 01:09:23,425 - [Study] Creating new fan: Fan_H9_L6 (P1 (H9-L6))
+2026-04-19 01:09:23,427 - [Study] Creating new fan: Fan_H9_L4 (P3 (H9-L4))
+2026-04-19 01:09:24,015 - [Study] Removing invalidated/excess fan: Fan_H9_L6
+2026-04-19 01:09:24,015 - [Study] Removing invalidated/excess fan: Fan_H9_L5
+2026-04-19 01:09:24,015 - [Study] Removing invalidated/excess fan: Fan_H9_L4
+2026-04-19 01:09:24,015 - [Study] Creating new fan: Fan_L18_H14 (P1 (L18-H14))
+2026-04-19 01:09:24,017 - [Study] Creating new fan: Fan_L18_H13 (P2 (L18-H13))
+2026-04-19 01:09:24,018 - [Study] Creating new fan: Fan_L18_H11 (P3 (L18-H11))
+2026-04-19 01:09:24,031 - [Tracking] Fan validated: Fan_L18_H14 via breach at bar 268
+2026-04-19 01:09:24,036 - [Tracking] Target HIT: Fan_L18_H14 0.875
+2026-04-19 01:09:24,037 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_L18_H14 prev_line=0.5 bar=268
+2026-04-19 01:09:24,037 - [Tracking] Fan validated: Fan_L18_H13 via breach at bar 269
+2026-04-19 01:09:24,037 - [Tracking] Fan validated: Fan_L18_H11 via reversal at bar 269
+2026-04-19 01:09:24,041 - [Tracking] Target HIT: Fan_L18_H11 0.875
+2026-04-19 01:09:24,041 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_L18_H11 prev_line=0.5 bar=269
+2026-04-19 01:09:24,041 - [Tracking] Target HIT: Fan_L18_H13 0.875
+2026-04-19 01:09:24,041 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_L18_H13 prev_line=0.5 bar=269
+2026-04-19 01:09:24,041 - [Tracking] Target HIT: Fan_L18_H14 0.75
+2026-04-19 01:09:24,041 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_L18_H14 prev_line=0.875 bar=269
+2026-04-19 01:09:24,110 - [Tracking] Target HIT: Fan_L18_H11 0.75
+2026-04-19 01:09:24,110 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_L18_H11 prev_line=0.875 bar=273
+2026-04-19 01:09:24,110 - [Tracking] Target HIT: Fan_L18_H13 0.75
+2026-04-19 01:09:24,110 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_L18_H13 prev_line=0.875 bar=273
+2026-04-19 01:09:24,110 - [Tracking] Target HIT: Fan_L18_H14 0.5
+2026-04-19 01:09:24,110 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_L18_H14 prev_line=0.75 bar=273
+2026-04-19 01:09:24,110 - [Tracking] Target HIT: Fan_L18_H14 horizontal
+2026-04-19 01:09:24,110 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_L18_H14 prev_line=0.5 bar=273
+2026-04-19 01:09:24,116 - [Study] Removing invalidated/excess fan: Fan_L18_H14
+2026-04-19 01:09:24,116 - [Tracking] Target FAILED: Fan_L18_H14 (horizontal) - fan invalidated with pending progression
+2026-04-19 01:09:24,116 - [Study] Updating fan priority: Fan_L18_H11 -> P2 (L18-H11)
+2026-04-19 01:09:24,116 - [Study] Creating new fan: Fan_L18_H9 (P3 (L18-H9))
+2026-04-19 01:09:24,118 - [Study] Updating fan priority: Fan_L18_H13 -> P1 (L18-H13)
+2026-04-19 01:09:24,134 - [Tracking] Fan validated: Fan_L18_H9 via reversal at bar 269
+2026-04-19 01:09:24,140 - [Tracking] Target HIT: Fan_L18_H9 0.875
+2026-04-19 01:09:24,140 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_L18_H9 prev_line=0.5 bar=269
+2026-04-19 01:09:24,157 - [Tracking] Target HIT: Fan_L18_H9 0.75
+2026-04-19 01:09:24,157 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_L18_H9 prev_line=0.875 bar=273
+2026-04-19 01:09:24,245 - [Study] Removing invalidated/excess fan: Fan_L18_H9
+2026-04-19 01:09:24,245 - [Tracking] Target FAILED: Fan_L18_H9 (0.75) - fan invalidated with pending progression
+2026-04-19 01:09:24,245 - [Study] Updating fan priority: Fan_L18_H11 -> P3 (L18-H11)
+2026-04-19 01:09:24,246 - [Study] Creating new fan: Fan_H15_L18 (P1 (H15-L18))
+2026-04-19 01:09:24,247 - [Study] Updating fan priority: Fan_L18_H13 -> P2 (L18-H13)
+2026-04-19 01:09:24,248 - [Tracking] Fan validated: Fan_H15_L18 via reversal at bar 274
+2026-04-19 01:09:24,253 - [Tracking] Target HIT: Fan_H15_L18 0.875
+2026-04-19 01:09:24,254 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H15_L18 prev_line=0.5 bar=274
+2026-04-19 01:09:24,303 - [Tracking] Target HIT: Fan_H15_L18 0.75
+2026-04-19 01:09:24,304 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H15_L18 prev_line=0.875 bar=280
+2026-04-19 01:09:24,310 - [Study] Removing invalidated/excess fan: Fan_L18_H13
+2026-04-19 01:09:24,311 - [Tracking] Target FAILED: Fan_L18_H13 (0.75) - fan invalidated with pending progression
+2026-04-19 01:09:24,312 - [Study] Removing invalidated/excess fan: Fan_H15_L18
+2026-04-19 01:09:24,312 - [Tracking] Target FAILED: Fan_H15_L18 (0.75) - fan invalidated with pending progression
+2026-04-19 01:09:24,312 - [Study] Updating fan priority: Fan_L18_H11 -> P1 (L18-H11)
+2026-04-19 01:09:24,312 - [Study] Creating new fan: Fan_H9_L6 (P3 (H9-L6))
+2026-04-19 01:09:24,315 - [Study] Creating new fan: Fan_L18_H9 (P2 (L18-H9))
+2026-04-19 01:09:24,840 - [Tracking] Target HIT: Fan_L18_H11 0.5
+2026-04-19 01:09:24,840 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_L18_H11 prev_line=0.75 bar=281
+2026-04-19 01:09:24,840 - [Tracking] Target HIT: Fan_L18_H11 0.25
+2026-04-19 01:09:24,840 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_L18_H11 prev_line=0.5 bar=281
+2026-04-19 01:09:24,956 - [Study] Removing invalidated/excess fan: Fan_L18_H9
+2026-04-19 01:09:24,956 - [Study] Removing invalidated/excess fan: Fan_H9_L6
+2026-04-19 01:09:24,956 - [Study] Updating fan priority: Fan_L18_H11 -> P3 (L18-H11)
+2026-04-19 01:09:24,956 - [Study] Creating new fan: Fan_H16_L19 (P1 (H16-L19))
+2026-04-19 01:09:24,957 - [Study] Creating new fan: Fan_H16_L18 (P2 (H16-L18))
+2026-04-19 01:09:25,010 - [Study] Removing invalidated/excess fan: Fan_H16_L19
+2026-04-19 01:09:25,010 - [Study] Removing invalidated/excess fan: Fan_H16_L18
+2026-04-19 01:09:25,010 - [Study] Updating fan priority: Fan_L18_H11 -> P1 (L18-H11)
+2026-04-19 01:09:25,010 - [Study] Creating new fan: Fan_H9_L6 (P3 (H9-L6))
+2026-04-19 01:09:25,013 - [Study] Creating new fan: Fan_L18_H9 (P2 (L18-H9))
+2026-04-19 01:09:25,682 - [Study] Removing invalidated/excess fan: Fan_L18_H11
+2026-04-19 01:09:25,682 - [Study] Creating new fan: Fan_H9_L5 (P3 (H9-L5))
+2026-04-19 01:09:25,686 - [Study] Updating fan priority: Fan_H9_L6 -> P2 (H9-L6)
+2026-04-19 01:09:25,686 - [Study] Updating fan priority: Fan_L18_H9 -> P1 (L18-H9)
+2026-04-19 01:09:26,297 - [Study] Removing invalidated/excess fan: Fan_L18_H9
+2026-04-19 01:09:26,297 - [Study] Removing invalidated/excess fan: Fan_H9_L6
+2026-04-19 01:09:26,297 - [Study] Removing invalidated/excess fan: Fan_H9_L5
+2026-04-19 01:09:26,355 - [Study] Creating new fan: Fan_H17_L18 (P3 (H17-L18))
+2026-04-19 01:09:26,356 - [Study] Creating new fan: Fan_H17_L20 (P1 (H17-L20))
+2026-04-19 01:09:26,357 - [Study] Creating new fan: Fan_H17_L19 (P2 (H17-L19))
+2026-04-19 01:09:26,388 - [Tracking] Fan validated: Fan_H17_L20 via reversal at bar 302
+2026-04-19 01:09:26,391 - [Tracking] Target HIT: Fan_H17_L20 0.875
+2026-04-19 01:09:26,392 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H17_L20 prev_line=0.5 bar=302
+2026-04-19 01:09:26,426 - [Tracking] Target HIT: Fan_H17_L20 0.75
+2026-04-19 01:09:26,427 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H17_L20 prev_line=0.875 bar=305
+2026-04-19 01:09:26,440 - [Tracking] Fan validated: Fan_H17_L19 via reversal at bar 306
+2026-04-19 01:09:26,444 - [Tracking] Target HIT: Fan_H17_L19 0.875
+2026-04-19 01:09:26,444 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H17_L19 prev_line=0.5 bar=306
+2026-04-19 01:09:26,556 - [Study] Removing invalidated/excess fan: Fan_H17_L18
+2026-04-19 01:09:26,556 - [Study] Updating fan priority: Fan_H17_L20 -> P2 (H17-L20)
+2026-04-19 01:09:26,556 - [Study] Updating fan priority: Fan_H17_L19 -> P3 (H17-L19)
+2026-04-19 01:09:26,556 - [Study] Creating new fan: Fan_L21_H17 (P1 (L21-H17))
+2026-04-19 01:09:26,563 - [Tracking] Fan validated: Fan_L21_H17 via touch at bar 307
+2026-04-19 01:09:26,568 - [Tracking] Target HIT: Fan_L21_H17 0.875
+2026-04-19 01:09:26,568 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_L21_H17 prev_line=0.5 bar=307
+2026-04-19 01:09:26,568 - [Tracking] Target HIT: Fan_L21_H17 0.75
+2026-04-19 01:09:26,568 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_L21_H17 prev_line=0.875 bar=307
+2026-04-19 01:09:26,576 - [Tracking] Target HIT: Fan_L21_H17 0.5
+2026-04-19 01:09:26,576 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_L21_H17 prev_line=0.75 bar=309
+2026-04-19 01:09:26,582 - [Tracking] Target HIT: Fan_L21_H17 horizontal
+2026-04-19 01:09:26,582 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_L21_H17 prev_line=0.5 bar=310
+2026-04-19 01:09:26,631 - [Study] Removing invalidated/excess fan: Fan_L21_H17
+2026-04-19 01:09:26,631 - [Tracking] Target FAILED: Fan_L21_H17 (horizontal) - fan invalidated with pending progression
+2026-04-19 01:09:26,631 - [Study] Creating new fan: Fan_H17_L18 (P3 (H17-L18))
+2026-04-19 01:09:26,633 - [Study] Updating fan priority: Fan_H17_L20 -> P1 (H17-L20)
+2026-04-19 01:09:26,633 - [Study] Updating fan priority: Fan_H17_L19 -> P2 (H17-L19)
+2026-04-19 01:09:26,701 - [Tracking] Fan validated: Fan_H17_L18 via breach at bar 311
+2026-04-19 01:09:26,706 - [Tracking] Target HIT: Fan_H17_L18 0.875
+2026-04-19 01:09:26,706 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H17_L18 prev_line=0.5 bar=311
+2026-04-19 01:09:26,724 - [Tracking] Target HIT: Fan_H17_L20 0.5
+2026-04-19 01:09:26,724 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H17_L20 prev_line=0.75 bar=314
+2026-04-19 01:09:26,797 - [Tracking] Target HIT: Fan_H17_L19 0.75
+2026-04-19 01:09:26,797 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H17_L19 prev_line=0.875 bar=318
+2026-04-19 01:09:26,920 - [Study] Removing invalidated/excess fan: Fan_H17_L19
+2026-04-19 01:09:26,920 - [Tracking] Target FAILED: Fan_H17_L19 (0.75) - fan invalidated with pending progression
+2026-04-19 01:09:26,920 - [Study] Removing invalidated/excess fan: Fan_H17_L18
+2026-04-19 01:09:26,920 - [Tracking] Target FAILED: Fan_H17_L18 (0.875) - fan invalidated with pending progression
+2026-04-19 01:09:26,920 - [Study] Creating new fan: Fan_L22_H18 (P1 (L22-H18))
+2026-04-19 01:09:26,922 - [Study] Updating fan priority: Fan_H17_L20 -> P3 (H17-L20)
+2026-04-19 01:09:26,922 - [Study] Creating new fan: Fan_L22_H17 (P2 (L22-H17))
+2026-04-19 01:09:26,924 - [Tracking] Fan validated: Fan_L22_H18 via reversal at bar 319
+2026-04-19 01:09:26,924 - [Tracking] Fan validated: Fan_L22_H17 via reversal at bar 319
+2026-04-19 01:09:26,932 - [Tracking] Target HIT: Fan_L22_H17 0.875
+2026-04-19 01:09:26,933 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_L22_H17 prev_line=0.5 bar=319
+2026-04-19 01:09:26,933 - [Tracking] Target HIT: Fan_L22_H18 0.875
+2026-04-19 01:09:26,933 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_L22_H18 prev_line=0.5 bar=319
+2026-04-19 01:09:26,939 - [Tracking] Target HIT: Fan_L22_H18 0.75
+2026-04-19 01:09:26,939 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_L22_H18 prev_line=0.875 bar=320
+2026-04-19 01:09:26,949 - [Tracking] Target HIT: Fan_L22_H18 0.5
+2026-04-19 01:09:26,949 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_L22_H18 prev_line=0.75 bar=322
+2026-04-19 01:09:26,954 - [Tracking] Target HIT: Fan_L22_H18 horizontal
+2026-04-19 01:09:26,955 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_L22_H18 prev_line=0.5 bar=323
+2026-04-19 01:09:27,071 - [Study] Removing invalidated/excess fan: Fan_L22_H18
+2026-04-19 01:09:27,071 - [Tracking] Target FAILED: Fan_L22_H18 (horizontal) - fan invalidated with pending progression
+2026-04-19 01:09:27,071 - [Study] Updating fan priority: Fan_H17_L20 -> P2 (H17-L20)
+2026-04-19 01:09:27,071 - [Study] Creating new fan: Fan_H17_L19 (P3 (H17-L19))
+2026-04-19 01:09:27,073 - [Study] Updating fan priority: Fan_L22_H17 -> P1 (L22-H17)
+2026-04-19 01:09:27,349 - [Study] Removing invalidated/excess fan: Fan_H17_L19
+2026-04-19 01:09:27,350 - [Study] Creating new fan: Fan_H19_L22 (P1 (H19-L22))
+2026-04-19 01:09:27,352 - [Study] Updating fan priority: Fan_H17_L20 -> P3 (H17-L20)
+2026-04-19 01:09:27,352 - [Study] Updating fan priority: Fan_L22_H17 -> P2 (L22-H17)
+2026-04-19 01:09:27,352 - [Tracking] Fan validated: Fan_H19_L22 via breach at bar 328
+2026-04-19 01:09:27,360 - [Tracking] Target HIT: Fan_H19_L22 0.875
+2026-04-19 01:09:27,361 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H19_L22 prev_line=0.5 bar=328
+2026-04-19 01:09:27,369 - [Tracking] Target HIT: Fan_H19_L22 0.75
+2026-04-19 01:09:27,369 - [Tracking] Intra-bar BREACH_CONFIRMED: found pending on Fan_H19_L22_Fan_H19_L22_f0 fraction=0.875 bar=329
+2026-04-19 01:09:27,369 - [Tracking] BREACH_CONFIRMED (intra-bar): Fan_H19_L22 0.875 via target progression
+2026-04-19 01:09:27,474 - [Tracking] Target HIT: Fan_H19_L22 0.5
+2026-04-19 01:09:27,474 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H19_L22 prev_line=0.75 bar=335
+2026-04-19 01:09:27,561 - [Study] Removing invalidated/excess fan: Fan_H17_L20
+2026-04-19 01:09:27,561 - [Tracking] Target FAILED: Fan_H17_L20 (0.5) - fan invalidated with pending progression
+2026-04-19 01:09:27,561 - [Study] Updating fan priority: Fan_L22_H17 -> P3 (L22-H17)
+2026-04-19 01:09:27,561 - [Study] Updating fan priority: Fan_H19_L22 -> P2 (H19-L22)
+2026-04-19 01:09:27,561 - [Study] Creating new fan: Fan_L23_H19 (P1 (L23-H19))
+2026-04-19 01:09:27,563 - [Tracking] Fan validated: Fan_L23_H19 via breach at bar 335
+2026-04-19 01:09:27,573 - [Tracking] Target HIT: Fan_L23_H19 0.875
+2026-04-19 01:09:27,573 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_L23_H19 prev_line=0.5 bar=335
+2026-04-19 01:09:27,573 - [Tracking] Target HIT: Fan_L23_H19 0.75
+2026-04-19 01:09:27,573 - [Tracking] Intra-bar BREACH_CONFIRMED: found pending on Fan_L23_H19_Fan_L23_H19_f0 fraction=0.875 bar=335
+2026-04-19 01:09:27,573 - [Tracking] BREACH_CONFIRMED (intra-bar): Fan_L23_H19 0.875 via target progression
+2026-04-19 01:09:27,588 - [Tracking] Target HIT: Fan_L23_H19 0.5
+2026-04-19 01:09:27,588 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_L23_H19 prev_line=0.75 bar=337
+2026-04-19 01:09:27,597 - [Tracking] Target HIT: Fan_L23_H19 horizontal
+2026-04-19 01:09:27,597 - [Tracking] Intra-bar BREACH_CONFIRMED: found pending on Fan_L23_H19_Fan_L23_H19_f2 fraction=0.5 bar=338
+2026-04-19 01:09:27,597 - [Tracking] BREACH_CONFIRMED (intra-bar): Fan_L23_H19 0.5 via target progression
+2026-04-19 01:09:27,728 - [Study] Removing invalidated/excess fan: Fan_L22_H17
+2026-04-19 01:09:27,728 - [Tracking] Target FAILED: Fan_L22_H17 (0.875) - fan invalidated with pending progression
+2026-04-19 01:09:27,728 - [Study] Updating fan priority: Fan_H19_L22 -> P3 (H19-L22)
+2026-04-19 01:09:27,728 - [Study] Updating fan priority: Fan_L23_H19 -> P2 (L23-H19)
+2026-04-19 01:09:27,729 - [Study] Creating new fan: Fan_H20_L23 (P1 (H20-L23))
+2026-04-19 01:09:27,740 - [Tracking] Fan validated: Fan_H20_L23 via breach at bar 340
+2026-04-19 01:09:27,745 - [Tracking] Target HIT: Fan_H20_L23 0.875
+2026-04-19 01:09:27,745 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H20_L23 prev_line=0.5 bar=340
+2026-04-19 01:09:27,745 - [Tracking] Target HIT: Fan_H20_L23 0.75
+2026-04-19 01:09:27,745 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H20_L23 prev_line=0.875 bar=340
+2026-04-19 01:09:27,751 - [Tracking] Target HIT: Fan_H20_L23 0.5
+2026-04-19 01:09:27,751 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H20_L23 prev_line=0.75 bar=341
+2026-04-19 01:09:27,826 - [Study] Removing invalidated/excess fan: Fan_H20_L23
+2026-04-19 01:09:27,826 - [Tracking] Target FAILED: Fan_H20_L23 (0.5) - fan invalidated with pending progression
+2026-04-19 01:09:27,826 - [Study] Creating new fan: Fan_L22_H17 (P3 (L22-H17))
+2026-04-19 01:09:27,828 - [Study] Updating fan priority: Fan_H19_L22 -> P2 (H19-L22)
+2026-04-19 01:09:27,828 - [Study] Updating fan priority: Fan_L23_H19 -> P1 (L23-H19)
+2026-04-19 01:09:28,074 - [Study] Removing invalidated/excess fan: Fan_H19_L22
+2026-04-19 01:09:28,074 - [Tracking] Target FAILED: Fan_H19_L22 (0.5) - fan invalidated with pending progression
+2026-04-19 01:09:28,074 - [Study] Removing invalidated/excess fan: Fan_L23_H19
+2026-04-19 01:09:28,074 - [Tracking] Target FAILED: Fan_L23_H19 (horizontal) - fan invalidated with pending progression
+2026-04-19 01:09:28,074 - [Study] Creating new fan: Fan_H17_L20 (P2 (H17-L20))
+2026-04-19 01:09:28,076 - [Study] Creating new fan: Fan_H17_L19 (P3 (H17-L19))
+2026-04-19 01:09:28,078 - [Study] Updating fan priority: Fan_L22_H17 -> P1 (L22-H17)
+2026-04-19 01:09:28,337 - [Study] Removing invalidated/excess fan: Fan_L22_H17
+2026-04-19 01:09:28,338 - [Study] Removing invalidated/excess fan: Fan_H17_L20
+2026-04-19 01:09:28,338 - [Study] Removing invalidated/excess fan: Fan_H17_L19
+2026-04-19 01:09:28,407 - [Study] Creating new fan: Fan_H21_L20 (P1 (H21-L20))
+2026-04-19 01:09:28,409 - [Study] Creating new fan: Fan_H21_L19 (P2 (H21-L19))
+2026-04-19 01:09:28,410 - [Study] Creating new fan: Fan_H21_L18 (P3 (H21-L18))
+2026-04-19 01:09:28,422 - [Tracking] Fan validated: Fan_H21_L20 via reversal at bar 353
+2026-04-19 01:09:28,429 - [Tracking] Target HIT: Fan_H21_L20 0.875
+2026-04-19 01:09:28,429 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H21_L20 prev_line=0.5 bar=353
+2026-04-19 01:09:28,437 - [Tracking] Fan validated: Fan_H21_L19 via reversal at bar 355
+2026-04-19 01:09:28,441 - [Tracking] Target HIT: Fan_H21_L19 0.875
+2026-04-19 01:09:28,441 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H21_L19 prev_line=0.5 bar=355
+2026-04-19 01:09:28,442 - [Tracking] Target HIT: Fan_H21_L20 0.75
+2026-04-19 01:09:28,442 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H21_L20 prev_line=0.875 bar=355
+2026-04-19 01:09:28,443 - [Tracking] Fan validated: Fan_H21_L18 via reversal at bar 356
+2026-04-19 01:09:28,447 - [Tracking] Target HIT: Fan_H21_L18 0.875
+2026-04-19 01:09:28,447 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H21_L18 prev_line=0.5 bar=356
+2026-04-19 01:09:28,447 - [Tracking] Target HIT: Fan_H21_L19 0.75
+2026-04-19 01:09:28,447 - [Tracking] Intra-bar BREACH_CONFIRMED: found pending on Fan_H21_L19_Fan_H21_L19_f0 fraction=0.875 bar=356
+2026-04-19 01:09:28,447 - [Tracking] BREACH_CONFIRMED (intra-bar): Fan_H21_L19 0.875 via target progression
+2026-04-19 01:09:28,447 - [Tracking] Target HIT: Fan_H21_L20 0.5
+2026-04-19 01:09:28,448 - [Tracking] Intra-bar BREACH_CONFIRMED: found pending on Fan_H21_L20_Fan_H21_L20_f1 fraction=0.75 bar=356
+2026-04-19 01:09:28,448 - [Tracking] BREACH_CONFIRMED (intra-bar): Fan_H21_L20 0.75 via target progression
+2026-04-19 01:09:28,448 - [Tracking] Target HIT: Fan_H21_L20 horizontal
+2026-04-19 01:09:28,448 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H21_L20 prev_line=0.5 bar=356
+2026-04-19 01:09:28,558 - [Study] Removing invalidated/excess fan: Fan_H21_L18
+2026-04-19 01:09:28,558 - [Tracking] Target FAILED: Fan_H21_L18 (0.875) - fan invalidated with pending progression
+2026-04-19 01:09:28,558 - [Study] Updating fan priority: Fan_H21_L20 -> P2 (H21-L20)
+2026-04-19 01:09:28,559 - [Study] Updating fan priority: Fan_H21_L19 -> P3 (H21-L19)
+2026-04-19 01:09:28,559 - [Study] Creating new fan: Fan_L25_H21 (P1 (L25-H21))
+2026-04-19 01:09:28,561 - [Tracking] Fan validated: Fan_L25_H21 via breach at bar 356
+2026-04-19 01:09:28,569 - [Tracking] Target HIT: Fan_L25_H21 0.875
+2026-04-19 01:09:28,569 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_L25_H21 prev_line=0.5 bar=356
+2026-04-19 01:09:28,853 - [Study] Removing invalidated/excess fan: Fan_H21_L20
+2026-04-19 01:09:28,853 - [Tracking] Target FAILED: Fan_H21_L20 (horizontal) - fan invalidated with pending progression
+2026-04-19 01:09:28,853 - [Study] Removing invalidated/excess fan: Fan_H21_L19
+2026-04-19 01:09:28,853 - [Tracking] Target FAILED: Fan_H21_L19 (0.75) - fan invalidated with pending progression
+2026-04-19 01:09:28,853 - [Study] Removing invalidated/excess fan: Fan_L25_H21
+2026-04-19 01:09:28,853 - [Tracking] Target FAILED: Fan_L25_H21 (0.875) - fan invalidated with pending progression
+2026-04-19 01:09:28,953 - [Study] Creating new fan: Fan_H22_L6 (P1 (H22-L6))
+2026-04-19 01:09:28,954 - [Study] Creating new fan: Fan_H22_L5 (P2 (H22-L5))
+2026-04-19 01:09:28,956 - [Study] Creating new fan: Fan_H22_L4 (P3 (H22-L4))
+2026-04-19 01:09:29,013 - [Tracking] Fan validated: Fan_H22_L6 via touch at bar 375
+2026-04-19 01:09:29,013 - [Tracking] Fan validated: Fan_H22_L5 via touch at bar 375
+2026-04-19 01:09:29,013 - [Tracking] Fan validated: Fan_H22_L4 via touch at bar 375
+2026-04-19 01:09:29,018 - [Tracking] Target HIT: Fan_H22_L4 0.875
+2026-04-19 01:09:29,019 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H22_L4 prev_line=0.5 bar=375
+2026-04-19 01:09:29,019 - [Tracking] Target HIT: Fan_H22_L5 0.875
+2026-04-19 01:09:29,019 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H22_L5 prev_line=0.5 bar=375
+2026-04-19 01:09:29,019 - [Tracking] Target HIT: Fan_H22_L6 0.875
+2026-04-19 01:09:29,019 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H22_L6 prev_line=0.5 bar=375
+2026-04-19 01:09:29,093 - [Study] Removing invalidated/excess fan: Fan_H22_L4
+2026-04-19 01:09:29,093 - [Tracking] Target FAILED: Fan_H22_L4 (0.875) - fan invalidated with pending progression
+2026-04-19 01:09:29,093 - [Study] Updating fan priority: Fan_H22_L6 -> P2 (H22-L6)
+2026-04-19 01:09:29,093 - [Study] Creating new fan: Fan_L26_H22 (P1 (L26-H22))
+2026-04-19 01:09:29,095 - [Study] Updating fan priority: Fan_H22_L5 -> P3 (H22-L5)
+2026-04-19 01:09:29,095 - [Tracking] Fan validated: Fan_L26_H22 via touch at bar 375
+2026-04-19 01:09:29,103 - [Tracking] Target HIT: Fan_L26_H22 0.875
+2026-04-19 01:09:29,103 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_L26_H22 prev_line=0.5 bar=375
+2026-04-19 01:09:29,103 - [Tracking] Target HIT: Fan_L26_H22 0.75
+2026-04-19 01:09:29,103 - [Tracking] Intra-bar BREACH_CONFIRMED: found pending on Fan_L26_H22_Fan_L26_H22_f0 fraction=0.875 bar=375
+2026-04-19 01:09:29,103 - [Tracking] BREACH_CONFIRMED (intra-bar): Fan_L26_H22 0.875 via target progression
+2026-04-19 01:09:29,583 - [Study] Removing invalidated/excess fan: Fan_H22_L5
+2026-04-19 01:09:29,584 - [Tracking] Target FAILED: Fan_H22_L5 (0.875) - fan invalidated with pending progression
+2026-04-19 01:09:29,584 - [Study] Updating fan priority: Fan_H22_L6 -> P3 (H22-L6)
+2026-04-19 01:09:29,584 - [Study] Creating new fan: Fan_H23_L26 (P1 (H23-L26))
+2026-04-19 01:09:29,585 - [Study] Updating fan priority: Fan_L26_H22 -> P2 (L26-H22)
+2026-04-19 01:09:29,629 - [Tracking] Fan validated: Fan_H23_L26 via reversal at bar 406
+2026-04-19 01:09:29,636 - [Tracking] Target HIT: Fan_H23_L26 0.875
+2026-04-19 01:09:29,637 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H23_L26 prev_line=0.5 bar=406
+2026-04-19 01:09:29,645 - [Study] Removing invalidated/excess fan: Fan_H23_L26
+2026-04-19 01:09:29,646 - [Tracking] Target FAILED: Fan_H23_L26 (0.875) - fan invalidated with pending progression
+2026-04-19 01:09:29,646 - [Study] Updating fan priority: Fan_H22_L6 -> P2 (H22-L6)
+2026-04-19 01:09:29,646 - [Study] Updating fan priority: Fan_L26_H22 -> P1 (L26-H22)
+2026-04-19 01:09:29,646 - [Study] Creating new fan: Fan_H22_L5 (P3 (H22-L5))
+2026-04-19 01:09:30,394 - [Study] Removing invalidated/excess fan: Fan_H22_L6
+2026-04-19 01:09:30,394 - [Tracking] Target FAILED: Fan_H22_L6 (0.875) - fan invalidated with pending progression
+2026-04-19 01:09:30,394 - [Study] Removing invalidated/excess fan: Fan_H22_L5
+2026-04-19 01:09:30,395 - [Study] Creating new fan: Fan_H24_L26 (P2 (H24-L26))
+2026-04-19 01:09:30,396 - [Study] Creating new fan: Fan_H24_L27 (P1 (H24-L27))
+2026-04-19 01:09:30,398 - [Study] Updating fan priority: Fan_L26_H22 -> P3 (L26-H22)
+2026-04-19 01:09:30,413 - [Tracking] Fan validated: Fan_H24_L27 via breach at bar 428
+2026-04-19 01:09:30,422 - [Tracking] Target HIT: Fan_H24_L27 0.875
+2026-04-19 01:09:30,422 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H24_L27 prev_line=0.5 bar=428
+2026-04-19 01:09:30,429 - [Tracking] Fan validated: Fan_H24_L26 via reversal at bar 430
+2026-04-19 01:09:30,432 - [Tracking] Target HIT: Fan_H24_L26 0.875
+2026-04-19 01:09:30,433 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H24_L26 prev_line=0.5 bar=430
+2026-04-19 01:09:30,433 - [Tracking] Target HIT: Fan_H24_L27 0.75
+2026-04-19 01:09:30,433 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H24_L27 prev_line=0.875 bar=430
+2026-04-19 01:09:30,499 - [Tracking] Target HIT: Fan_H24_L27 0.5
+2026-04-19 01:09:30,499 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H24_L27 prev_line=0.75 bar=432
+2026-04-19 01:09:30,614 - [Study] Removing invalidated/excess fan: Fan_L26_H22
+2026-04-19 01:09:30,615 - [Tracking] Target FAILED: Fan_L26_H22 (0.75) - fan invalidated with pending progression
+2026-04-19 01:09:30,615 - [Study] Updating fan priority: Fan_H24_L26 -> P3 (H24-L26)
+2026-04-19 01:09:30,615 - [Study] Updating fan priority: Fan_H24_L27 -> P2 (H24-L27)
+2026-04-19 01:09:30,615 - [Study] Creating new fan: Fan_L28_H24 (P1 (L28-H24))
+2026-04-19 01:09:30,617 - [Tracking] Fan validated: Fan_L28_H24 via breach at bar 432
+2026-04-19 01:09:30,626 - [Tracking] Target HIT: Fan_L28_H24 0.875
+2026-04-19 01:09:30,626 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_L28_H24 prev_line=0.5 bar=432
+2026-04-19 01:09:30,634 - [Tracking] Target HIT: Fan_L28_H24 0.75
+2026-04-19 01:09:30,634 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_L28_H24 prev_line=0.875 bar=433
+2026-04-19 01:09:30,644 - [Tracking] Target HIT: Fan_L28_H24 0.5
+2026-04-19 01:09:30,644 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_L28_H24 prev_line=0.75 bar=435
+2026-04-19 01:09:30,650 - [Tracking] Target HIT: Fan_L28_H24 horizontal
+2026-04-19 01:09:30,650 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_L28_H24 prev_line=0.5 bar=436
+2026-04-19 01:09:30,708 - [Study] Removing invalidated/excess fan: Fan_H24_L27
+2026-04-19 01:09:30,708 - [Tracking] Target FAILED: Fan_H24_L27 (0.5) - fan invalidated with pending progression
+2026-04-19 01:09:30,708 - [Study] Removing invalidated/excess fan: Fan_H24_L26
+2026-04-19 01:09:30,708 - [Tracking] Target FAILED: Fan_H24_L26 (0.875) - fan invalidated with pending progression
+2026-04-19 01:09:30,708 - [Study] Removing invalidated/excess fan: Fan_L28_H24
+2026-04-19 01:09:30,708 - [Tracking] Target FAILED: Fan_L28_H24 (horizontal) - fan invalidated with pending progression
+2026-04-19 01:09:30,708 - [Study] Creating new fan: Fan_H22_L6 (P2 (H22-L6))
+2026-04-19 01:09:30,711 - [Study] Creating new fan: Fan_L26_H22 (P1 (L26-H22))
+2026-04-19 01:09:30,713 - [Study] Creating new fan: Fan_H22_L5 (P3 (H22-L5))
+2026-04-19 01:09:31,251 - [Study] Removing invalidated/excess fan: Fan_L26_H22
+2026-04-19 01:09:31,251 - [Study] Removing invalidated/excess fan: Fan_H22_L6
+2026-04-19 01:09:31,252 - [Study] Removing invalidated/excess fan: Fan_H22_L5
+2026-04-19 01:09:31,252 - [Study] Creating new fan: Fan_H25_L26 (P3 (H25-L26))
+2026-04-19 01:09:31,253 - [Study] Creating new fan: Fan_H25_L27 (P2 (H25-L27))
+2026-04-19 01:09:31,254 - [Study] Creating new fan: Fan_H25_L28 (P1 (H25-L28))
+2026-04-19 01:09:31,267 - [Tracking] Fan validated: Fan_H25_L27 via breach at bar 447
+2026-04-19 01:09:31,267 - [Tracking] Fan validated: Fan_H25_L28 via breach at bar 447
+2026-04-19 01:09:31,274 - [Tracking] Target HIT: Fan_H25_L27 0.875
+2026-04-19 01:09:31,274 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H25_L27 prev_line=0.5 bar=447
+2026-04-19 01:09:31,274 - [Tracking] Target HIT: Fan_H25_L28 0.875
+2026-04-19 01:09:31,274 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H25_L28 prev_line=0.5 bar=447
+2026-04-19 01:09:31,280 - [Tracking] Target HIT: Fan_H25_L27 0.75
+2026-04-19 01:09:31,280 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H25_L27 prev_line=0.875 bar=448
+2026-04-19 01:09:31,281 - [Tracking] Target HIT: Fan_H25_L28 0.75
+2026-04-19 01:09:31,281 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H25_L28 prev_line=0.875 bar=448
+2026-04-19 01:09:31,282 - [Tracking] Fan validated: Fan_H25_L26 via breach at bar 449
+2026-04-19 01:09:31,288 - [Tracking] Target HIT: Fan_H25_L26 0.875
+2026-04-19 01:09:31,288 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H25_L26 prev_line=0.5 bar=449
+2026-04-19 01:09:31,425 - [Study] Removing invalidated/excess fan: Fan_H25_L26
+2026-04-19 01:09:31,425 - [Tracking] Target FAILED: Fan_H25_L26 (0.875) - fan invalidated with pending progression
+2026-04-19 01:09:31,425 - [Study] Updating fan priority: Fan_H25_L27 -> P3 (H25-L27)
+2026-04-19 01:09:31,425 - [Study] Updating fan priority: Fan_H25_L28 -> P2 (H25-L28)
+2026-04-19 01:09:31,425 - [Study] Creating new fan: Fan_L29_H25 (P1 (L29-H25))
+2026-04-19 01:09:31,427 - [Tracking] Fan validated: Fan_L29_H25 via reversal at bar 450
+2026-04-19 01:09:31,436 - [Tracking] Target HIT: Fan_L29_H25 0.875
+2026-04-19 01:09:31,436 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_L29_H25 prev_line=0.5 bar=450
+2026-04-19 01:09:31,448 - [Tracking] Target HIT: Fan_L29_H25 0.75
+2026-04-19 01:09:31,449 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_L29_H25 prev_line=0.875 bar=452
+2026-04-19 01:09:31,454 - [Tracking] Target HIT: Fan_L29_H25 0.5
+2026-04-19 01:09:31,454 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_L29_H25 prev_line=0.75 bar=453
+2026-04-19 01:09:31,461 - [Tracking] Target HIT: Fan_L29_H25 horizontal
+2026-04-19 01:09:31,461 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_L29_H25 prev_line=0.5 bar=454
+2026-04-19 01:09:31,640 - [Study] Removing invalidated/excess fan: Fan_H25_L27
+2026-04-19 01:09:31,640 - [Tracking] Target FAILED: Fan_H25_L27 (0.75) - fan invalidated with pending progression
+2026-04-19 01:09:31,641 - [Study] Creating new fan: Fan_H26_L29 (P1 (H26-L29))
+2026-04-19 01:09:31,642 - [Study] Updating fan priority: Fan_H25_L28 -> P3 (H25-L28)
+2026-04-19 01:09:31,642 - [Study] Updating fan priority: Fan_L29_H25 -> P2 (L29-H25)
+2026-04-19 01:09:31,653 - [Tracking] Fan validated: Fan_H26_L29 via breach at bar 456
+2026-04-19 01:09:31,661 - [Tracking] Target HIT: Fan_H26_L29 0.875
+2026-04-19 01:09:31,661 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H26_L29 prev_line=0.5 bar=456
+2026-04-19 01:09:31,661 - [Tracking] Target HIT: Fan_H26_L29 0.75
+2026-04-19 01:09:31,661 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H26_L29 prev_line=0.875 bar=456
+2026-04-19 01:09:31,707 - [Study] Removing invalidated/excess fan: Fan_L29_H25
+2026-04-19 01:09:31,707 - [Tracking] Target FAILED: Fan_L29_H25 (horizontal) - fan invalidated with pending progression
+2026-04-19 01:09:31,707 - [Study] Removing invalidated/excess fan: Fan_H26_L29
+2026-04-19 01:09:31,708 - [Tracking] Target FAILED: Fan_H26_L29 (0.75) - fan invalidated with pending progression
+2026-04-19 01:09:31,708 - [Study] Creating new fan: Fan_H25_L26 (P3 (H25-L26))
+2026-04-19 01:09:31,709 - [Study] Creating new fan: Fan_H25_L27 (P2 (H25-L27))
+2026-04-19 01:09:31,711 - [Study] Updating fan priority: Fan_H25_L28 -> P1 (H25-L28)
+2026-04-19 01:09:31,751 - [Tracking] Fan validated: Fan_H25_L26 via breach at bar 456
+2026-04-19 01:09:31,756 - [Tracking] Target HIT: Fan_H25_L26 0.875
+2026-04-19 01:09:31,756 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H25_L26 prev_line=0.5 bar=456
+2026-04-19 01:09:31,809 - [Tracking] Target HIT: Fan_H25_L26 0.75
+2026-04-19 01:09:31,809 - [Tracking] Intra-bar BREACH_CONFIRMED: found pending on Fan_H25_L26_Fan_H25_L26_f0 fraction=0.875 bar=461
+2026-04-19 01:09:31,809 - [Tracking] BREACH_CONFIRMED (intra-bar): Fan_H25_L26 0.875 via target progression
+2026-04-19 01:09:31,810 - [Tracking] Target HIT: Fan_H25_L28 0.5
+2026-04-19 01:09:31,810 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H25_L28 prev_line=0.75 bar=461
+2026-04-19 01:09:32,041 - [Study] Removing invalidated/excess fan: Fan_H25_L28
+2026-04-19 01:09:32,042 - [Tracking] Target FAILED: Fan_H25_L28 (0.5) - fan invalidated with pending progression
+2026-04-19 01:09:32,042 - [Study] Removing invalidated/excess fan: Fan_H25_L27
+2026-04-19 01:09:32,042 - [Study] Removing invalidated/excess fan: Fan_H25_L26
+2026-04-19 01:09:32,042 - [Tracking] Target FAILED: Fan_H25_L26 (0.75) - fan invalidated with pending progression
+2026-04-19 01:09:32,140 - [Study] Creating new fan: Fan_H27_L28 (P2 (H27-L28))
+2026-04-19 01:09:32,141 - [Study] Creating new fan: Fan_H27_L27 (P3 (H27-L27))
+2026-04-19 01:09:32,143 - [Study] Creating new fan: Fan_H27_L30 (P1 (H27-L30))
+2026-04-19 01:09:32,145 - [Tracking] Fan validated: Fan_H27_L28 via touch at bar 469
+2026-04-19 01:09:32,145 - [Tracking] Fan validated: Fan_H27_L27 via touch at bar 469
+2026-04-19 01:09:32,152 - [Tracking] Target HIT: Fan_H27_L27 0.875
+2026-04-19 01:09:32,152 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H27_L27 prev_line=0.5 bar=469
+2026-04-19 01:09:32,152 - [Tracking] Target HIT: Fan_H27_L27 0.75
+2026-04-19 01:09:32,152 - [Tracking] Intra-bar BREACH_CONFIRMED: found pending on Fan_H27_L27_Fan_H27_L27_f0 fraction=0.875 bar=469
+2026-04-19 01:09:32,152 - [Tracking] BREACH_CONFIRMED (intra-bar): Fan_H27_L27 0.875 via target progression
+2026-04-19 01:09:32,152 - [Tracking] Target HIT: Fan_H27_L27 0.5
+2026-04-19 01:09:32,152 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H27_L27 prev_line=0.75 bar=469
+2026-04-19 01:09:32,152 - [Tracking] Target HIT: Fan_H27_L27 horizontal
+2026-04-19 01:09:32,152 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H27_L27 prev_line=0.5 bar=469
+2026-04-19 01:09:32,152 - [Tracking] Target HIT: Fan_H27_L28 0.875
+2026-04-19 01:09:32,153 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H27_L28 prev_line=0.5 bar=469
+2026-04-19 01:09:32,153 - [Tracking] Target HIT: Fan_H27_L28 0.75
+2026-04-19 01:09:32,153 - [Tracking] Intra-bar BREACH_CONFIRMED: found pending on Fan_H27_L28_Fan_H27_L28_f0 fraction=0.875 bar=469
+2026-04-19 01:09:32,153 - [Tracking] BREACH_CONFIRMED (intra-bar): Fan_H27_L28 0.875 via target progression
+2026-04-19 01:09:32,153 - [Tracking] Target HIT: Fan_H27_L28 0.5
+2026-04-19 01:09:32,153 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H27_L28 prev_line=0.75 bar=469
+2026-04-19 01:09:32,153 - [Tracking] Target HIT: Fan_H27_L28 horizontal
+2026-04-19 01:09:32,153 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H27_L28 prev_line=0.5 bar=469
+2026-04-19 01:09:32,286 - [Study] Removing invalidated/excess fan: Fan_H27_L27
+2026-04-19 01:09:32,287 - [Tracking] Target FAILED: Fan_H27_L27 (horizontal) - fan invalidated with pending progression
+2026-04-19 01:09:32,287 - [Study] Updating fan priority: Fan_H27_L28 -> P3 (H27-L28)
+2026-04-19 01:09:32,287 - [Study] Creating new fan: Fan_L31_H27 (P1 (L31-H27))
+2026-04-19 01:09:32,289 - [Study] Updating fan priority: Fan_H27_L30 -> P2 (H27-L30)
+2026-04-19 01:09:32,294 - [Tracking] Fan validated: Fan_L31_H27 via breach at bar 476
+2026-04-19 01:09:32,297 - [Tracking] Target HIT: Fan_L31_H27 0.875
+2026-04-19 01:09:32,298 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_L31_H27 prev_line=0.5 bar=476
+2026-04-19 01:09:32,298 - [Tracking] Target HIT: Fan_L31_H27 0.75
+2026-04-19 01:09:32,298 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_L31_H27 prev_line=0.875 bar=476
+2026-04-19 01:09:32,342 - [Tracking] Target HIT: Fan_L31_H27 0.5
+2026-04-19 01:09:32,342 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_L31_H27 prev_line=0.75 bar=481
+2026-04-19 01:09:32,372 - [Tracking] Target HIT: Fan_L31_H27 horizontal
+2026-04-19 01:09:32,372 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_L31_H27 prev_line=0.5 bar=482
+2026-04-19 01:09:32,465 - [Study] Removing invalidated/excess fan: Fan_H27_L30
+2026-04-19 01:09:32,466 - [Study] Removing invalidated/excess fan: Fan_H27_L28
+2026-04-19 01:09:32,466 - [Tracking] Target FAILED: Fan_H27_L28 (horizontal) - fan invalidated with pending progression
+2026-04-19 01:09:32,466 - [Study] Removing invalidated/excess fan: Fan_L31_H27
+2026-04-19 01:09:32,466 - [Tracking] Target FAILED: Fan_L31_H27 (horizontal) - fan invalidated with pending progression
+2026-04-19 01:09:32,581 - [Study] Creating new fan: Fan_H28_L28 (P3 (H28-L28))
+2026-04-19 01:09:32,583 - [Study] Creating new fan: Fan_H28_L31 (P1 (H28-L31))
+2026-04-19 01:09:32,584 - [Study] Creating new fan: Fan_H28_L30 (P2 (H28-L30))
+2026-04-19 01:09:32,609 - [Tracking] Fan validated: Fan_H28_L31 via reversal at bar 490
+2026-04-19 01:09:32,614 - [Tracking] Target HIT: Fan_H28_L31 0.875
+2026-04-19 01:09:32,614 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H28_L31 prev_line=0.5 bar=490
+2026-04-19 01:09:32,629 - [Tracking] Target HIT: Fan_H28_L31 0.75
+2026-04-19 01:09:32,629 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H28_L31 prev_line=0.875 bar=492
+2026-04-19 01:09:32,712 - [Tracking] Target HIT: Fan_H28_L31 0.5
+2026-04-19 01:09:32,712 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H28_L31 prev_line=0.75 bar=496
+2026-04-19 01:09:32,762 - [Tracking] Fan validated: Fan_H28_L28 via breach at bar 498
+2026-04-19 01:09:32,767 - [Tracking] Target HIT: Fan_H28_L28 0.875
+2026-04-19 01:09:32,767 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H28_L28 prev_line=0.5 bar=498
+2026-04-19 01:09:32,768 - [Tracking] Target HIT: Fan_H28_L31 horizontal
+2026-04-19 01:09:32,768 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H28_L31 prev_line=0.5 bar=498
+2026-04-19 01:09:32,889 - [Tracking] Fan validated: Fan_H28_L30 via breach at bar 502
+2026-04-19 01:09:32,895 - [Tracking] Target HIT: Fan_H28_L30 0.875
+2026-04-19 01:09:32,895 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H28_L30 prev_line=0.5 bar=502
+2026-04-19 01:09:32,973 - [Study] Removing invalidated/excess fan: Fan_H28_L28
+2026-04-19 01:09:32,973 - [Tracking] Target FAILED: Fan_H28_L28 (0.875) - fan invalidated with pending progression
+2026-04-19 01:09:32,973 - [Study] Updating fan priority: Fan_H28_L31 -> P2 (H28-L31)
+2026-04-19 01:09:32,973 - [Study] Updating fan priority: Fan_H28_L30 -> P3 (H28-L30)
+2026-04-19 01:09:32,973 - [Study] Creating new fan: Fan_L32_H28 (P1 (L32-H28))
+2026-04-19 01:09:32,975 - [Tracking] Fan validated: Fan_L32_H28 via reversal at bar 499
+2026-04-19 01:09:32,982 - [Tracking] Target HIT: Fan_L32_H28 0.875
+2026-04-19 01:09:32,983 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_L32_H28 prev_line=0.5 bar=499
+2026-04-19 01:09:33,027 - [Tracking] Target HIT: Fan_L32_H28 0.75
+2026-04-19 01:09:33,027 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_L32_H28 prev_line=0.875 bar=504
+2026-04-19 01:09:33,155 - [Tracking] Target HIT: Fan_L32_H28 0.5
+2026-04-19 01:09:33,155 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_L32_H28 prev_line=0.75 bar=508
+2026-04-19 01:09:33,420 - [Study] Removing invalidated/excess fan: Fan_H28_L30
+2026-04-19 01:09:33,420 - [Tracking] Target FAILED: Fan_H28_L30 (0.875) - fan invalidated with pending progression
+2026-04-19 01:09:33,420 - [Study] Creating new fan: Fan_H29_L32 (P1 (H29-L32))
+2026-04-19 01:09:33,422 - [Study] Updating fan priority: Fan_H28_L31 -> P3 (H28-L31)
+2026-04-19 01:09:33,422 - [Study] Updating fan priority: Fan_L32_H28 -> P2 (L32-H28)
+2026-04-19 01:09:33,423 - [Tracking] Fan validated: Fan_H29_L32 via breach at bar 514
+2026-04-19 01:09:33,431 - [Tracking] Target HIT: Fan_H29_L32 0.875
+2026-04-19 01:09:33,432 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H29_L32 prev_line=0.5 bar=514
+2026-04-19 01:09:33,436 - [Tracking] Target HIT: Fan_H29_L32 0.75
+2026-04-19 01:09:33,437 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H29_L32 prev_line=0.875 bar=515
+2026-04-19 01:09:33,437 - [Tracking] Target HIT: Fan_H29_L32 0.5
+2026-04-19 01:09:33,437 - [Tracking] Intra-bar BREACH_CONFIRMED: found pending on Fan_H29_L32_Fan_H29_L32_f1 fraction=0.75 bar=515
+2026-04-19 01:09:33,437 - [Tracking] BREACH_CONFIRMED (intra-bar): Fan_H29_L32 0.75 via target progression
+2026-04-19 01:09:33,475 - [Study] Removing invalidated/excess fan: Fan_H29_L32
+2026-04-19 01:09:33,475 - [Tracking] Target FAILED: Fan_H29_L32 (0.5) - fan invalidated with pending progression
+2026-04-19 01:09:33,475 - [Study] Updating fan priority: Fan_H28_L31 -> P2 (H28-L31)
+2026-04-19 01:09:33,475 - [Study] Creating new fan: Fan_H28_L30 (P3 (H28-L30))
+2026-04-19 01:09:33,477 - [Study] Updating fan priority: Fan_L32_H28 -> P1 (L32-H28)
+2026-04-19 01:09:33,706 - [Tracking] Target HIT: Fan_L32_H28 0.25
+2026-04-19 01:09:33,706 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_L32_H28 prev_line=0.5 bar=523
+2026-04-19 01:09:33,743 - [Study] Removing invalidated/excess fan: Fan_H28_L30
+2026-04-19 01:09:33,743 - [Study] Updating fan priority: Fan_H28_L31 -> P3 (H28-L31)
+2026-04-19 01:09:33,743 - [Study] Creating new fan: Fan_H30_L32 (P1 (H30-L32))
+2026-04-19 01:09:33,745 - [Study] Updating fan priority: Fan_L32_H28 -> P2 (L32-H28)
+2026-04-19 01:09:33,746 - [Tracking] Fan validated: Fan_H30_L32 via breach at bar 520
+2026-04-19 01:09:33,755 - [Tracking] Target HIT: Fan_H30_L32 0.875
+2026-04-19 01:09:33,755 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H30_L32 prev_line=0.5 bar=520
+2026-04-19 01:09:33,762 - [Tracking] Target HIT: Fan_H30_L32 0.75
+2026-04-19 01:09:33,762 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H30_L32 prev_line=0.875 bar=521
+2026-04-19 01:09:33,771 - [Tracking] Target HIT: Fan_H30_L32 0.5
+2026-04-19 01:09:33,772 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H30_L32 prev_line=0.75 bar=523
+2026-04-19 01:09:33,796 - [Tracking] Target HIT: Fan_H30_L32 horizontal
+2026-04-19 01:09:33,796 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H30_L32 prev_line=0.5 bar=525
+2026-04-19 01:09:33,933 - [Study] Removing invalidated/excess fan: Fan_H30_L32
+2026-04-19 01:09:33,933 - [Tracking] Target FAILED: Fan_H30_L32 (horizontal) - fan invalidated with pending progression
+2026-04-19 01:09:33,933 - [Study] Updating fan priority: Fan_H28_L31 -> P2 (H28-L31)
+2026-04-19 01:09:33,933 - [Study] Creating new fan: Fan_H28_L30 (P3 (H28-L30))
+2026-04-19 01:09:33,935 - [Study] Updating fan priority: Fan_L32_H28 -> P1 (L32-H28)
+2026-04-19 01:09:34,294 - [Study] Removing invalidated/excess fan: Fan_H28_L30
+2026-04-19 01:09:34,294 - [Study] Updating fan priority: Fan_H28_L31 -> P3 (H28-L31)
+2026-04-19 01:09:34,294 - [Study] Creating new fan: Fan_H31_L32 (P1 (H31-L32))
+2026-04-19 01:09:34,296 - [Study] Updating fan priority: Fan_L32_H28 -> P2 (L32-H28)
+2026-04-19 01:09:34,297 - [Tracking] Fan validated: Fan_H31_L32 via reversal at bar 530
+2026-04-19 01:09:34,305 - [Tracking] Target HIT: Fan_H31_L32 0.875
+2026-04-19 01:09:34,305 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H31_L32 prev_line=0.5 bar=530
+2026-04-19 01:09:34,305 - [Tracking] Target HIT: Fan_H31_L32 0.75
+2026-04-19 01:09:34,305 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H31_L32 prev_line=0.875 bar=530
+2026-04-19 01:09:34,311 - [Tracking] Target HIT: Fan_H31_L32 0.5
+2026-04-19 01:09:34,312 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H31_L32 prev_line=0.75 bar=531
+2026-04-19 01:09:34,312 - [Tracking] Target HIT: Fan_H31_L32 horizontal
+2026-04-19 01:09:34,312 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H31_L32 prev_line=0.5 bar=531
+2026-04-19 01:09:34,373 - [Study] Removing invalidated/excess fan: Fan_H28_L31
+2026-04-19 01:09:34,373 - [Tracking] Target FAILED: Fan_H28_L31 (horizontal) - fan invalidated with pending progression
+2026-04-19 01:09:34,373 - [Study] Creating new fan: Fan_L35_H31 (P1 (L35-H31))
+2026-04-19 01:09:34,375 - [Study] Updating fan priority: Fan_H31_L32 -> P2 (H31-L32)
+2026-04-19 01:09:34,375 - [Study] Updating fan priority: Fan_L32_H28 -> P3 (L32-H28)
+2026-04-19 01:09:34,388 - [Tracking] Fan validated: Fan_L35_H31 via breach at bar 533
+2026-04-19 01:09:34,392 - [Tracking] Target HIT: Fan_L35_H31 0.875
+2026-04-19 01:09:34,392 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_L35_H31 prev_line=0.5 bar=533
+2026-04-19 01:09:34,392 - [Tracking] Target HIT: Fan_L35_H31 0.75
+2026-04-19 01:09:34,392 - [Tracking] Intra-bar BREACH_CONFIRMED: found pending on Fan_L35_H31_Fan_L35_H31_f0 fraction=0.875 bar=533
+2026-04-19 01:09:34,392 - [Tracking] BREACH_CONFIRMED (intra-bar): Fan_L35_H31 0.875 via target progression
+2026-04-19 01:09:34,432 - [Tracking] Target HIT: Fan_L35_H31 0.5
+2026-04-19 01:09:34,432 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_L35_H31 prev_line=0.75 bar=536
+2026-04-19 01:09:34,595 - [Tracking] Target HIT: Fan_L35_H31 0.25
+2026-04-19 01:09:34,595 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_L35_H31 prev_line=0.5 bar=540
+2026-04-19 01:09:34,741 - [Study] Removing invalidated/excess fan: Fan_H31_L32
+2026-04-19 01:09:34,741 - [Tracking] Target FAILED: Fan_H31_L32 (horizontal) - fan invalidated with pending progression
+2026-04-19 01:09:34,741 - [Study] Removing invalidated/excess fan: Fan_L35_H31
+2026-04-19 01:09:34,741 - [Study] Creating new fan: Fan_H28_L31 (P2 (H28-L31))
+2026-04-19 01:09:34,743 - [Study] Creating new fan: Fan_H28_L30 (P3 (H28-L30))
+2026-04-19 01:09:34,746 - [Study] Updating fan priority: Fan_L32_H28 -> P1 (L32-H28)
+2026-04-19 01:09:35,179 - [Study] Removing invalidated/excess fan: Fan_H28_L31
+2026-04-19 01:09:35,179 - [Study] Removing invalidated/excess fan: Fan_H28_L30
+2026-04-19 01:09:35,179 - [Study] Creating new fan: Fan_H32_L35 (P1 (H32-L35))
+2026-04-19 01:09:35,181 - [Study] Creating new fan: Fan_H32_L32 (P2 (H32-L32))
+2026-04-19 01:09:35,183 - [Study] Updating fan priority: Fan_L32_H28 -> P3 (L32-H28)
+2026-04-19 01:09:35,184 - [Tracking] Fan validated: Fan_H32_L35 via reversal at bar 545
+2026-04-19 01:09:35,184 - [Tracking] Fan validated: Fan_H32_L32 via reversal at bar 545
+2026-04-19 01:09:35,191 - [Tracking] Target HIT: Fan_H32_L32 0.875
+2026-04-19 01:09:35,192 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H32_L32 prev_line=0.5 bar=545
+2026-04-19 01:09:35,192 - [Tracking] Target HIT: Fan_H32_L35 0.875
+2026-04-19 01:09:35,192 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H32_L35 prev_line=0.5 bar=545
+2026-04-19 01:09:35,238 - [Study] Removing invalidated/excess fan: Fan_L32_H28
+2026-04-19 01:09:35,238 - [Study] Creating new fan: Fan_L36_H32 (P1 (L36-H32))
+2026-04-19 01:09:35,240 - [Study] Updating fan priority: Fan_H32_L35 -> P2 (H32-L35)
+2026-04-19 01:09:35,241 - [Study] Updating fan priority: Fan_H32_L32 -> P3 (H32-L32)
+2026-04-19 01:09:35,241 - [Tracking] Fan validated: Fan_L36_H32 via breach at bar 546
+2026-04-19 01:09:35,249 - [Tracking] Target HIT: Fan_L36_H32 0.875
+2026-04-19 01:09:35,249 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_L36_H32 prev_line=0.5 bar=546
+2026-04-19 01:09:35,258 - [Tracking] Target HIT: Fan_L36_H32 0.75
+2026-04-19 01:09:35,258 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_L36_H32 prev_line=0.875 bar=547
+2026-04-19 01:09:35,259 - [Tracking] Target HIT: Fan_L36_H32 0.5
+2026-04-19 01:09:35,259 - [Tracking] Intra-bar BREACH_CONFIRMED: found pending on Fan_L36_H32_Fan_L36_H32_f1 fraction=0.75 bar=547
+2026-04-19 01:09:35,259 - [Tracking] BREACH_CONFIRMED (intra-bar): Fan_L36_H32 0.75 via target progression
+2026-04-19 01:09:35,296 - [Tracking] Target HIT: Fan_L36_H32 0.25
+2026-04-19 01:09:35,296 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_L36_H32 prev_line=0.5 bar=551
+2026-04-19 01:09:35,313 - [Study] Removing invalidated/excess fan: Fan_H32_L35
+2026-04-19 01:09:35,313 - [Tracking] Target FAILED: Fan_H32_L35 (0.875) - fan invalidated with pending progression
+2026-04-19 01:09:35,313 - [Study] Removing invalidated/excess fan: Fan_H32_L32
+2026-04-19 01:09:35,313 - [Tracking] Target FAILED: Fan_H32_L32 (0.875) - fan invalidated with pending progression
+2026-04-19 01:09:35,313 - [Study] Removing invalidated/excess fan: Fan_L36_H32
+2026-04-19 01:09:35,313 - [Study] Creating new fan: Fan_H28_L31 (P2 (H28-L31))
+2026-04-19 01:09:35,316 - [Study] Creating new fan: Fan_H28_L30 (P3 (H28-L30))
+2026-04-19 01:09:35,318 - [Study] Creating new fan: Fan_L32_H28 (P1 (L32-H28))
+2026-04-19 01:09:35,869 - [Study] Removing invalidated/excess fan: Fan_L32_H28
+2026-04-19 01:09:35,869 - [Study] Removing invalidated/excess fan: Fan_H28_L31
+2026-04-19 01:09:35,869 - [Study] Removing invalidated/excess fan: Fan_H28_L30
+2026-04-19 01:09:35,869 - [Study] Creating new fan: Fan_H33_L36 (P1 (H33-L36))
+2026-04-19 01:09:35,872 - [Study] Creating new fan: Fan_H33_L32 (P3 (H33-L32))
+2026-04-19 01:09:35,873 - [Study] Creating new fan: Fan_H33_L35 (P2 (H33-L35))
+2026-04-19 01:09:35,876 - [Tracking] Fan validated: Fan_H33_L36 via breach at bar 555
+2026-04-19 01:09:35,876 - [Tracking] Fan validated: Fan_H33_L32 via breach at bar 555
+2026-04-19 01:09:35,877 - [Tracking] Fan validated: Fan_H33_L35 via breach at bar 555
+2026-04-19 01:09:35,884 - [Tracking] Target HIT: Fan_H33_L32 0.875
+2026-04-19 01:09:35,885 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H33_L32 prev_line=0.5 bar=555
+2026-04-19 01:09:35,885 - [Tracking] Target HIT: Fan_H33_L32 0.75
+2026-04-19 01:09:35,885 - [Tracking] Intra-bar BREACH_CONFIRMED: found pending on Fan_H33_L32_Fan_H33_L32_f0 fraction=0.875 bar=555
+2026-04-19 01:09:35,885 - [Tracking] BREACH_CONFIRMED (intra-bar): Fan_H33_L32 0.875 via target progression
+2026-04-19 01:09:35,885 - [Tracking] Target HIT: Fan_H33_L35 0.875
+2026-04-19 01:09:35,885 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H33_L35 prev_line=0.5 bar=555
+2026-04-19 01:09:35,885 - [Tracking] Target HIT: Fan_H33_L35 0.75
+2026-04-19 01:09:35,885 - [Tracking] Intra-bar BREACH_CONFIRMED: found pending on Fan_H33_L35_Fan_H33_L35_f0 fraction=0.875 bar=555
+2026-04-19 01:09:35,886 - [Tracking] BREACH_CONFIRMED (intra-bar): Fan_H33_L35 0.875 via target progression
+2026-04-19 01:09:35,886 - [Tracking] Target HIT: Fan_H33_L36 0.875
+2026-04-19 01:09:35,886 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H33_L36 prev_line=0.5 bar=555
+2026-04-19 01:09:35,886 - [Tracking] Target HIT: Fan_H33_L36 0.75
+2026-04-19 01:09:35,886 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H33_L36 prev_line=0.875 bar=555
+2026-04-19 01:09:35,898 - [Tracking] Target HIT: Fan_H33_L36 0.5
+2026-04-19 01:09:35,898 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H33_L36 prev_line=0.75 bar=557
+2026-04-19 01:09:35,899 - [Tracking] Target HIT: Fan_H33_L36 horizontal
+2026-04-19 01:09:35,899 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H33_L36 prev_line=0.5 bar=557
+2026-04-19 01:09:35,906 - [Tracking] Target HIT: Fan_H33_L35 0.5
+2026-04-19 01:09:35,907 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H33_L35 prev_line=0.75 bar=558
+2026-04-19 01:09:35,981 - [Tracking] Target HIT: Fan_H33_L32 0.5
+2026-04-19 01:09:35,981 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H33_L32 prev_line=0.75 bar=561
+2026-04-19 01:09:35,981 - [Tracking] Target HIT: Fan_H33_L32 horizontal
+2026-04-19 01:09:35,981 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H33_L32 prev_line=0.5 bar=561
+2026-04-19 01:09:35,982 - [Tracking] Target HIT: Fan_H33_L35 horizontal
+2026-04-19 01:09:35,982 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H33_L35 prev_line=0.5 bar=561
+2026-04-19 01:09:35,996 - [Study] Removing invalidated/excess fan: Fan_H33_L36
+2026-04-19 01:09:35,996 - [Tracking] Target FAILED: Fan_H33_L36 (horizontal) - fan invalidated with pending progression
+2026-04-19 01:09:35,996 - [Study] Updating fan priority: Fan_H33_L35 -> P1 (H33-L35)
+2026-04-19 01:09:35,996 - [Study] Updating fan priority: Fan_H33_L32 -> P2 (H33-L32)
+2026-04-19 01:09:35,996 - [Study] Creating new fan: Fan_L32_H28 (P3 (L32-H28))
+2026-04-19 01:09:36,311 - [Study] Removing invalidated/excess fan: Fan_H33_L35
+2026-04-19 01:09:36,312 - [Tracking] Target FAILED: Fan_H33_L35 (horizontal) - fan invalidated with pending progression
+2026-04-19 01:09:36,312 - [Study] Removing invalidated/excess fan: Fan_H33_L32
+2026-04-19 01:09:36,312 - [Tracking] Target FAILED: Fan_H33_L32 (horizontal) - fan invalidated with pending progression
+2026-04-19 01:09:36,312 - [Study] Removing invalidated/excess fan: Fan_L32_H28
+2026-04-19 01:09:36,477 - [Study] Creating new fan: Fan_H34_L37 (P1 (H34-L37))
+2026-04-19 01:09:36,479 - [Study] Creating new fan: Fan_H34_L35 (P2 (H34-L35))
+2026-04-19 01:09:36,481 - [Study] Creating new fan: Fan_H34_L32 (P3 (H34-L32))
+2026-04-19 01:09:36,496 - [Tracking] Fan validated: Fan_H34_L35 via touch at bar 567
+2026-04-19 01:09:36,496 - [Tracking] Fan validated: Fan_H34_L32 via breach at bar 567
+2026-04-19 01:09:36,501 - [Tracking] Target HIT: Fan_H34_L32 0.875
+2026-04-19 01:09:36,501 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H34_L32 prev_line=0.5 bar=567
+2026-04-19 01:09:36,501 - [Tracking] Target HIT: Fan_H34_L35 0.875
+2026-04-19 01:09:36,501 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H34_L35 prev_line=0.5 bar=567
+2026-04-19 01:09:36,506 - [Tracking] Target HIT: Fan_H34_L32 0.75
+2026-04-19 01:09:36,506 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H34_L32 prev_line=0.875 bar=568
+2026-04-19 01:09:36,506 - [Tracking] Target HIT: Fan_H34_L35 0.75
+2026-04-19 01:09:36,506 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H34_L35 prev_line=0.875 bar=568
+2026-04-19 01:09:36,507 - [Tracking] Fan validated: Fan_H34_L37 via breach at bar 569
+2026-04-19 01:09:36,511 - [Tracking] Target HIT: Fan_H34_L37 0.875
+2026-04-19 01:09:36,511 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H34_L37 prev_line=0.5 bar=569
+2026-04-19 01:09:36,673 - [Tracking] Target HIT: Fan_H34_L32 0.5
+2026-04-19 01:09:36,674 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H34_L32 prev_line=0.75 bar=573
+2026-04-19 01:09:36,674 - [Tracking] Target HIT: Fan_H34_L35 0.5
+2026-04-19 01:09:36,674 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H34_L35 prev_line=0.75 bar=573
+2026-04-19 01:09:36,674 - [Tracking] Target HIT: Fan_H34_L37 0.75
+2026-04-19 01:09:36,674 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H34_L37 prev_line=0.875 bar=573
+2026-04-19 01:09:36,717 - [Tracking] Target HIT: Fan_H34_L32 horizontal
+2026-04-19 01:09:36,718 - [Tracking] Intra-bar BREACH_CONFIRMED: found pending on Fan_H34_L32_Fan_H34_L32_f2 fraction=0.5 bar=574
+2026-04-19 01:09:36,718 - [Tracking] BREACH_CONFIRMED (intra-bar): Fan_H34_L32 0.5 via target progression
+2026-04-19 01:09:36,882 - [Study] Removing invalidated/excess fan: Fan_H34_L32
+2026-04-19 01:09:36,882 - [Tracking] Target FAILED: Fan_H34_L32 (horizontal) - fan invalidated with pending progression
+2026-04-19 01:09:36,882 - [Study] Updating fan priority: Fan_H34_L37 -> P2 (H34-L37)
+2026-04-19 01:09:36,882 - [Study] Creating new fan: Fan_L38_H34 (P1 (L38-H34))
+2026-04-19 01:09:36,884 - [Study] Updating fan priority: Fan_H34_L35 -> P3 (H34-L35)
+2026-04-19 01:09:36,895 - [Tracking] Fan validated: Fan_L38_H34 via breach at bar 576
+2026-04-19 01:09:36,900 - [Tracking] Target HIT: Fan_L38_H34 0.875
+2026-04-19 01:09:36,900 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_L38_H34 prev_line=0.5 bar=576
+2026-04-19 01:09:36,923 - [Tracking] Target HIT: Fan_L38_H34 0.75
+2026-04-19 01:09:36,923 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_L38_H34 prev_line=0.875 bar=579
+2026-04-19 01:09:37,065 - [Study] Removing invalidated/excess fan: Fan_H34_L35
+2026-04-19 01:09:37,066 - [Tracking] Target FAILED: Fan_H34_L35 (0.5) - fan invalidated with pending progression
+2026-04-19 01:09:37,066 - [Study] Creating new fan: Fan_H35_L38 (P1 (H35-L38))
+2026-04-19 01:09:37,068 - [Study] Updating fan priority: Fan_H34_L37 -> P3 (H34-L37)
+2026-04-19 01:09:37,068 - [Study] Updating fan priority: Fan_L38_H34 -> P2 (L38-H34)
+2026-04-19 01:09:37,069 - [Tracking] Fan validated: Fan_H35_L38 via touch at bar 579
+2026-04-19 01:09:37,074 - [Tracking] Target HIT: Fan_H35_L38 0.875
+2026-04-19 01:09:37,074 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H35_L38 prev_line=0.5 bar=579
+2026-04-19 01:09:37,089 - [Tracking] Target HIT: Fan_H35_L38 0.75
+2026-04-19 01:09:37,090 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H35_L38 prev_line=0.875 bar=581
+2026-04-19 01:09:37,122 - [Tracking] Target HIT: Fan_H35_L38 0.5
+2026-04-19 01:09:37,122 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H35_L38 prev_line=0.75 bar=584
+2026-04-19 01:09:37,248 - [Study] Removing invalidated/excess fan: Fan_H34_L37
+2026-04-19 01:09:37,248 - [Tracking] Target FAILED: Fan_H34_L37 (0.75) - fan invalidated with pending progression
+2026-04-19 01:09:37,248 - [Study] Updating fan priority: Fan_H35_L38 -> P2 (H35-L38)
+2026-04-19 01:09:37,248 - [Study] Updating fan priority: Fan_L38_H34 -> P3 (L38-H34)
+2026-04-19 01:09:37,248 - [Study] Creating new fan: Fan_L39_H35 (P1 (L39-H35))
+2026-04-19 01:09:37,251 - [Tracking] Fan validated: Fan_L39_H35 via reversal at bar 584
+2026-04-19 01:09:37,258 - [Tracking] Target HIT: Fan_L39_H35 0.875
+2026-04-19 01:09:37,258 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_L39_H35 prev_line=0.5 bar=584
+2026-04-19 01:09:37,335 - [Study] Removing invalidated/excess fan: Fan_H35_L38
+2026-04-19 01:09:37,335 - [Tracking] Target FAILED: Fan_H35_L38 (0.5) - fan invalidated with pending progression
+2026-04-19 01:09:37,336 - [Study] Removing invalidated/excess fan: Fan_L39_H35
+2026-04-19 01:09:37,336 - [Tracking] Target FAILED: Fan_L39_H35 (0.875) - fan invalidated with pending progression
+2026-04-19 01:09:37,336 - [Study] Creating new fan: Fan_H34_L37 (P2 (H34-L37))
+2026-04-19 01:09:37,338 - [Study] Updating fan priority: Fan_L38_H34 -> P1 (L38-H34)
+2026-04-19 01:09:37,338 - [Study] Creating new fan: Fan_H34_L35 (P3 (H34-L35))
+2026-04-19 01:09:37,489 - [Tracking] Target HIT: Fan_L38_H34 0.5
+2026-04-19 01:09:37,490 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_L38_H34 prev_line=0.75 bar=590
+2026-04-19 01:09:37,705 - [Study] Removing invalidated/excess fan: Fan_H34_L35
+2026-04-19 01:09:37,705 - [Study] Updating fan priority: Fan_H34_L37 -> P3 (H34-L37)
+2026-04-19 01:09:37,705 - [Study] Updating fan priority: Fan_L38_H34 -> P2 (L38-H34)
+2026-04-19 01:09:37,706 - [Study] Creating new fan: Fan_H36_L38 (P1 (H36-L38))
+2026-04-19 01:09:37,708 - [Tracking] Fan validated: Fan_H36_L38 via breach at bar 591
+2026-04-19 01:09:37,713 - [Tracking] Target HIT: Fan_H36_L38 0.875
+2026-04-19 01:09:37,713 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H36_L38 prev_line=0.5 bar=591
+2026-04-19 01:09:37,713 - [Tracking] Target HIT: Fan_H36_L38 0.75
+2026-04-19 01:09:37,713 - [Tracking] Intra-bar BREACH_CONFIRMED: found pending on Fan_H36_L38_Fan_H36_L38_f0 fraction=0.875 bar=591
+2026-04-19 01:09:37,713 - [Tracking] BREACH_CONFIRMED (intra-bar): Fan_H36_L38 0.875 via target progression
+2026-04-19 01:09:37,721 - [Tracking] Target HIT: Fan_H36_L38 0.5
+2026-04-19 01:09:37,721 - [Tracking] Intra-bar BREACH_CONFIRMED: found pending on Fan_H36_L38_Fan_H36_L38_f1 fraction=0.75 bar=593
+2026-04-19 01:09:37,721 - [Tracking] BREACH_CONFIRMED (intra-bar): Fan_H36_L38 0.75 via target progression
+2026-04-19 01:09:37,737 - [Tracking] Target HIT: Fan_H36_L38 horizontal
+2026-04-19 01:09:37,738 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H36_L38 prev_line=0.5 bar=595
+2026-04-19 01:09:37,847 - [Study] Removing invalidated/excess fan: Fan_L38_H34
+2026-04-19 01:09:37,847 - [Tracking] Target FAILED: Fan_L38_H34 (0.5) - fan invalidated with pending progression
+2026-04-19 01:09:37,847 - [Study] Removing invalidated/excess fan: Fan_H36_L38
+2026-04-19 01:09:37,847 - [Tracking] Target FAILED: Fan_H36_L38 (horizontal) - fan invalidated with pending progression
+2026-04-19 01:09:37,848 - [Study] Updating fan priority: Fan_H34_L37 -> P1 (H34-L37)
+2026-04-19 01:09:37,848 - [Study] Creating new fan: Fan_H34_L35 (P2 (H34-L35))
+2026-04-19 01:09:37,849 - [Study] Creating new fan: Fan_H34_L32 (P3 (H34-L32))
+2026-04-19 01:09:38,181 - [Study] Removing invalidated/excess fan: Fan_H34_L37
+2026-04-19 01:09:38,182 - [Study] Updating fan priority: Fan_H34_L35 -> P1 (H34-L35)
+2026-04-19 01:09:38,182 - [Study] Creating new fan: Fan_H34_L31 (P3 (H34-L31))
+2026-04-19 01:09:38,187 - [Study] Updating fan priority: Fan_H34_L32 -> P2 (H34-L32)
+2026-04-19 01:09:38,206 - [Tracking] Fan validated: Fan_H34_L31 via breach at bar 567
+2026-04-19 01:09:38,213 - [Tracking] Target HIT: Fan_H34_L31 0.875
+2026-04-19 01:09:38,214 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H34_L31 prev_line=0.5 bar=567
+2026-04-19 01:09:38,220 - [Tracking] Target HIT: Fan_H34_L31 0.75
+2026-04-19 01:09:38,221 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H34_L31 prev_line=0.875 bar=568
+2026-04-19 01:09:38,259 - [Tracking] Target HIT: Fan_H34_L31 0.5
+2026-04-19 01:09:38,259 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H34_L31 prev_line=0.75 bar=574
+2026-04-19 01:09:38,391 - [Tracking] Target HIT: Fan_H34_L31 horizontal
+2026-04-19 01:09:38,391 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H34_L31 prev_line=0.5 bar=600
+2026-04-19 01:09:38,433 - [Study] Removing invalidated/excess fan: Fan_H34_L35
+2026-04-19 01:09:38,433 - [Study] Removing invalidated/excess fan: Fan_H34_L32
+2026-04-19 01:09:38,433 - [Study] Creating new fan: Fan_H34_L30 (P2 (H34-L30))
+2026-04-19 01:09:38,436 - [Study] Updating fan priority: Fan_H34_L31 -> P1 (H34-L31)
+2026-04-19 01:09:38,436 - [Study] Creating new fan: Fan_H34_L28 (P3 (H34-L28))
+2026-04-19 01:09:38,487 - [Tracking] Fan validated: Fan_H34_L30 via breach at bar 573
+2026-04-19 01:09:38,488 - [Tracking] Fan validated: Fan_H34_L28 via breach at bar 573
+2026-04-19 01:09:38,493 - [Tracking] Target HIT: Fan_H34_L28 0.875
+2026-04-19 01:09:38,493 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H34_L28 prev_line=0.5 bar=573
+2026-04-19 01:09:38,493 - [Tracking] Target HIT: Fan_H34_L30 0.875
+2026-04-19 01:09:38,493 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H34_L30 prev_line=0.5 bar=573
+2026-04-19 01:09:38,623 - [Tracking] Target HIT: Fan_H34_L28 0.75
+2026-04-19 01:09:38,623 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H34_L28 prev_line=0.875 bar=599
+2026-04-19 01:09:38,624 - [Tracking] Target HIT: Fan_H34_L30 0.75
+2026-04-19 01:09:38,624 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H34_L30 prev_line=0.875 bar=599
+2026-04-19 01:09:38,857 - [Study] Removing invalidated/excess fan: Fan_H34_L31
+2026-04-19 01:09:38,857 - [Tracking] Target FAILED: Fan_H34_L31 (horizontal) - fan invalidated with pending progression
+2026-04-19 01:09:38,857 - [Study] Updating fan priority: Fan_H34_L30 -> P1 (H34-L30)
+2026-04-19 01:09:38,857 - [Study] Creating new fan: Fan_H34_L27 (P3 (H34-L27))
+2026-04-19 01:09:38,860 - [Study] Updating fan priority: Fan_H34_L28 -> P2 (H34-L28)
+2026-04-19 01:09:38,899 - [Tracking] Fan validated: Fan_H34_L27 via breach at bar 573
+2026-04-19 01:09:38,904 - [Tracking] Target HIT: Fan_H34_L27 0.875
+2026-04-19 01:09:38,904 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H34_L27 prev_line=0.5 bar=573
+2026-04-19 01:09:39,024 - [Tracking] Target HIT: Fan_H34_L27 0.75
+2026-04-19 01:09:39,024 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H34_L27 prev_line=0.875 bar=600
+2026-04-19 01:09:39,243 - [Tracking] Target HIT: Fan_H34_L30 0.5
+2026-04-19 01:09:39,243 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H34_L30 prev_line=0.75 bar=618
+2026-04-19 01:09:39,345 - [Tracking] Target HIT: Fan_H34_L28 0.5
+2026-04-19 01:09:39,345 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H34_L28 prev_line=0.75 bar=621
+2026-04-19 01:09:39,674 - [Study] Removing invalidated/excess fan: Fan_H34_L28
+2026-04-19 01:09:39,674 - [Tracking] Target FAILED: Fan_H34_L28 (0.5) - fan invalidated with pending progression
+2026-04-19 01:09:39,674 - [Study] Removing invalidated/excess fan: Fan_H34_L27
+2026-04-19 01:09:39,674 - [Tracking] Target FAILED: Fan_H34_L27 (0.75) - fan invalidated with pending progression
+2026-04-19 01:09:39,674 - [Study] Creating new fan: Fan_L40_H34 (P2 (L40-H34))
+2026-04-19 01:09:39,676 - [Study] Updating fan priority: Fan_H34_L30 -> P3 (H34-L30)
+2026-04-19 01:09:39,676 - [Study] Creating new fan: Fan_L40_H36 (P1 (L40-H36))
+2026-04-19 01:09:39,718 - [Tracking] Fan validated: Fan_L40_H34 via breach at bar 630
+2026-04-19 01:09:39,718 - [Tracking] Fan validated: Fan_L40_H36 via breach at bar 630
+2026-04-19 01:09:39,724 - [Tracking] Target HIT: Fan_L40_H34 0.875
+2026-04-19 01:09:39,724 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_L40_H34 prev_line=0.5 bar=630
+2026-04-19 01:09:39,724 - [Tracking] Target HIT: Fan_L40_H36 0.875
+2026-04-19 01:09:39,724 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_L40_H36 prev_line=0.5 bar=630
+2026-04-19 01:09:39,777 - [Tracking] Target HIT: Fan_L40_H36 0.75
+2026-04-19 01:09:39,777 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_L40_H36 prev_line=0.875 bar=631
+2026-04-19 01:09:39,859 - [Tracking] Target HIT: Fan_L40_H34 0.75
+2026-04-19 01:09:39,859 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_L40_H34 prev_line=0.875 bar=633
+2026-04-19 01:09:40,077 - [Study] Removing invalidated/excess fan: Fan_H34_L30
+2026-04-19 01:09:40,078 - [Tracking] Target FAILED: Fan_H34_L30 (0.5) - fan invalidated with pending progression
+2026-04-19 01:09:40,078 - [Study] Updating fan priority: Fan_L40_H34 -> P3 (L40-H34)
+2026-04-19 01:09:40,078 - [Study] Creating new fan: Fan_H37_L40 (P1 (H37-L40))
+2026-04-19 01:09:40,080 - [Study] Updating fan priority: Fan_L40_H36 -> P2 (L40-H36)
+2026-04-19 01:09:40,088 - [Tracking] Fan validated: Fan_H37_L40 via breach at bar 634
+2026-04-19 01:09:40,094 - [Tracking] Target HIT: Fan_H37_L40 0.875
+2026-04-19 01:09:40,094 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H37_L40 prev_line=0.5 bar=634
+2026-04-19 01:09:40,099 - [Tracking] Target HIT: Fan_H37_L40 0.75
+2026-04-19 01:09:40,100 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H37_L40 prev_line=0.875 bar=635
+2026-04-19 01:09:40,163 - [Study] Removing invalidated/excess fan: Fan_L40_H34
+2026-04-19 01:09:40,163 - [Tracking] Target FAILED: Fan_L40_H34 (0.75) - fan invalidated with pending progression
+2026-04-19 01:09:40,163 - [Study] Updating fan priority: Fan_H37_L40 -> P2 (H37-L40)
+2026-04-19 01:09:40,163 - [Study] Creating new fan: Fan_L41_H37 (P1 (L41-H37))
+2026-04-19 01:09:40,165 - [Study] Updating fan priority: Fan_L40_H36 -> P3 (L40-H36)
+2026-04-19 01:09:40,174 - [Tracking] Fan validated: Fan_L41_H37 via touch at bar 636
+2026-04-19 01:09:40,181 - [Tracking] Target HIT: Fan_L41_H37 0.875
+2026-04-19 01:09:40,181 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_L41_H37 prev_line=0.5 bar=636
+2026-04-19 01:09:40,189 - [Tracking] Target HIT: Fan_L41_H37 0.75
+2026-04-19 01:09:40,189 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_L41_H37 prev_line=0.875 bar=637
+2026-04-19 01:09:40,196 - [Tracking] Target HIT: Fan_L41_H37 0.5
+2026-04-19 01:09:40,196 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_L41_H37 prev_line=0.75 bar=639
+2026-04-19 01:09:40,231 - [Tracking] Target HIT: Fan_L41_H37 0.25
+2026-04-19 01:09:40,231 - [Tracking] Intra-bar BREACH_CONFIRMED: found pending on Fan_L41_H37_Fan_L41_H37_f2 fraction=0.5 bar=640
+2026-04-19 01:09:40,231 - [Tracking] BREACH_CONFIRMED (intra-bar): Fan_L41_H37 0.5 via target progression
+2026-04-19 01:09:40,249 - [Study] Removing invalidated/excess fan: Fan_H37_L40
+2026-04-19 01:09:40,249 - [Tracking] Target FAILED: Fan_H37_L40 (0.75) - fan invalidated with pending progression
+2026-04-19 01:09:40,249 - [Study] Removing invalidated/excess fan: Fan_L41_H37
+2026-04-19 01:09:40,249 - [Study] Creating new fan: Fan_L40_H34 (P2 (L40-H34))
+2026-04-19 01:09:40,251 - [Study] Creating new fan: Fan_H34_L30 (P3 (H34-L30))
+2026-04-19 01:09:40,254 - [Study] Updating fan priority: Fan_L40_H36 -> P1 (L40-H36)
+2026-04-19 01:09:40,683 - [Tracking] Target HIT: Fan_L40_H36 0.5
+2026-04-19 01:09:40,683 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_L40_H36 prev_line=0.75 bar=643
+2026-04-19 01:09:40,935 - [Study] Removing invalidated/excess fan: Fan_L40_H34
+2026-04-19 01:09:40,935 - [Study] Removing invalidated/excess fan: Fan_H34_L30
+2026-04-19 01:09:40,935 - [Study] Creating new fan: Fan_H38_L41 (P1 (H38-L41))
+2026-04-19 01:09:40,937 - [Study] Updating fan priority: Fan_L40_H36 -> P3 (L40-H36)
+2026-04-19 01:09:40,937 - [Study] Creating new fan: Fan_H38_L40 (P2 (H38-L40))
+2026-04-19 01:09:40,956 - [Tracking] Fan validated: Fan_H38_L41 via reversal at bar 648
+2026-04-19 01:09:40,956 - [Tracking] Fan validated: Fan_H38_L40 via reversal at bar 648
+2026-04-19 01:09:40,961 - [Tracking] Target HIT: Fan_H38_L40 0.875
+2026-04-19 01:09:40,961 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H38_L40 prev_line=0.5 bar=648
+2026-04-19 01:09:40,961 - [Tracking] Target HIT: Fan_H38_L41 0.875
+2026-04-19 01:09:40,961 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H38_L41 prev_line=0.5 bar=648
+2026-04-19 01:09:40,966 - [Tracking] Target HIT: Fan_H38_L40 0.75
+2026-04-19 01:09:40,967 - [Tracking] Intra-bar BREACH_CONFIRMED: found pending on Fan_H38_L40_Fan_H38_L40_f0 fraction=0.875 bar=649
+2026-04-19 01:09:40,967 - [Tracking] BREACH_CONFIRMED (intra-bar): Fan_H38_L40 0.875 via target progression
+2026-04-19 01:09:40,967 - [Tracking] Target HIT: Fan_H38_L41 0.75
+2026-04-19 01:09:40,967 - [Tracking] Intra-bar BREACH_CONFIRMED: found pending on Fan_H38_L41_Fan_H38_L41_f0 fraction=0.875 bar=649
+2026-04-19 01:09:40,967 - [Tracking] BREACH_CONFIRMED (intra-bar): Fan_H38_L41 0.875 via target progression
+2026-04-19 01:09:40,987 - [Tracking] Target HIT: Fan_H38_L41 0.5
+2026-04-19 01:09:40,988 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H38_L41 prev_line=0.75 bar=651
+2026-04-19 01:09:41,194 - [Study] Removing invalidated/excess fan: Fan_L40_H36
+2026-04-19 01:09:41,194 - [Tracking] Target FAILED: Fan_L40_H36 (0.5) - fan invalidated with pending progression
+2026-04-19 01:09:41,195 - [Study] Creating new fan: Fan_L42_H38 (P1 (L42-H38))
+2026-04-19 01:09:41,197 - [Study] Updating fan priority: Fan_H38_L41 -> P2 (H38-L41)
+2026-04-19 01:09:41,197 - [Study] Updating fan priority: Fan_H38_L40 -> P3 (H38-L40)
+2026-04-19 01:09:41,206 - [Tracking] Fan validated: Fan_L42_H38 via reversal at bar 652
+2026-04-19 01:09:41,212 - [Tracking] Target HIT: Fan_L42_H38 0.875
+2026-04-19 01:09:41,213 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_L42_H38 prev_line=0.5 bar=652
+2026-04-19 01:09:41,225 - [Tracking] Target HIT: Fan_L42_H38 0.75
+2026-04-19 01:09:41,225 - [Tracking] Intra-bar BREACH_CONFIRMED: found pending on Fan_L42_H38_Fan_L42_H38_f0 fraction=0.875 bar=654
+2026-04-19 01:09:41,225 - [Tracking] BREACH_CONFIRMED (intra-bar): Fan_L42_H38 0.875 via target progression
+2026-04-19 01:09:41,268 - [Study] Removing invalidated/excess fan: Fan_H38_L41
+2026-04-19 01:09:41,268 - [Tracking] Target FAILED: Fan_H38_L41 (0.5) - fan invalidated with pending progression
+2026-04-19 01:09:41,268 - [Study] Removing invalidated/excess fan: Fan_L42_H38
+2026-04-19 01:09:41,268 - [Tracking] Target FAILED: Fan_L42_H38 (0.75) - fan invalidated with pending progression
+2026-04-19 01:09:41,269 - [Study] Creating new fan: Fan_L40_H34 (P3 (L40-H34))
+2026-04-19 01:09:41,270 - [Study] Creating new fan: Fan_L40_H36 (P2 (L40-H36))
+2026-04-19 01:09:41,272 - [Study] Updating fan priority: Fan_H38_L40 -> P1 (H38-L40)
+2026-04-19 01:09:41,451 - [Tracking] Target HIT: Fan_H38_L40 0.5
+2026-04-19 01:09:41,452 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H38_L40 prev_line=0.75 bar=657
+2026-04-19 01:09:41,452 - [Tracking] Target HIT: Fan_H38_L40 horizontal
+2026-04-19 01:09:41,452 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H38_L40 prev_line=0.5 bar=657
+2026-04-19 01:09:41,644 - [Study] Removing invalidated/excess fan: Fan_L40_H34
+2026-04-19 01:09:41,645 - [Study] Creating new fan: Fan_L43_H38 (P1 (L43-H38))
+2026-04-19 01:09:41,647 - [Study] Updating fan priority: Fan_L40_H36 -> P3 (L40-H36)
+2026-04-19 01:09:41,647 - [Study] Updating fan priority: Fan_H38_L40 -> P2 (H38-L40)
+2026-04-19 01:09:41,648 - [Tracking] Fan validated: Fan_L43_H38 via reversal at bar 657
+2026-04-19 01:09:41,655 - [Tracking] Target HIT: Fan_L43_H38 0.875
+2026-04-19 01:09:41,655 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_L43_H38 prev_line=0.5 bar=657
+2026-04-19 01:09:41,655 - [Tracking] Target HIT: Fan_L43_H38 0.75
+2026-04-19 01:09:41,655 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_L43_H38 prev_line=0.875 bar=657
+2026-04-19 01:09:41,655 - [Tracking] Target HIT: Fan_L43_H38 0.5
+2026-04-19 01:09:41,655 - [Tracking] Intra-bar BREACH_CONFIRMED: found pending on Fan_L43_H38_Fan_L43_H38_f1 fraction=0.75 bar=657
+2026-04-19 01:09:41,655 - [Tracking] BREACH_CONFIRMED (intra-bar): Fan_L43_H38 0.75 via target progression
+2026-04-19 01:09:41,655 - [Tracking] Target HIT: Fan_L43_H38 horizontal
+2026-04-19 01:09:41,656 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_L43_H38 prev_line=0.5 bar=657
+2026-04-19 01:09:41,809 - [Study] Removing invalidated/excess fan: Fan_L40_H36
+2026-04-19 01:09:41,809 - [Study] Creating new fan: Fan_H39_L43 (P1 (H39-L43))
+2026-04-19 01:09:41,811 - [Study] Updating fan priority: Fan_L43_H38 -> P2 (L43-H38)
+2026-04-19 01:09:41,811 - [Study] Updating fan priority: Fan_H38_L40 -> P3 (H38-L40)
+2026-04-19 01:09:41,824 - [Tracking] Fan validated: Fan_H39_L43 via reversal at bar 662
+2026-04-19 01:09:41,829 - [Tracking] Target HIT: Fan_H39_L43 0.875
+2026-04-19 01:09:41,829 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H39_L43 prev_line=0.5 bar=662
+2026-04-19 01:09:41,946 - [Study] Removing invalidated/excess fan: Fan_H39_L43
+2026-04-19 01:09:41,946 - [Tracking] Target FAILED: Fan_H39_L43 (0.875) - fan invalidated with pending progression
+2026-04-19 01:09:41,946 - [Study] Updating fan priority: Fan_L43_H38 -> P1 (L43-H38)
+2026-04-19 01:09:41,946 - [Study] Creating new fan: Fan_L40_H36 (P3 (L40-H36))
+2026-04-19 01:09:41,948 - [Study] Updating fan priority: Fan_H38_L40 -> P2 (H38-L40)
+2026-04-19 01:09:42,228 - [Study] Removing invalidated/excess fan: Fan_H38_L40
+2026-04-19 01:09:42,228 - [Tracking] Target FAILED: Fan_H38_L40 (horizontal) - fan invalidated with pending progression
+2026-04-19 01:09:42,228 - [Study] Removing invalidated/excess fan: Fan_L43_H38
+2026-04-19 01:09:42,228 - [Tracking] Target FAILED: Fan_L43_H38 (horizontal) - fan invalidated with pending progression
+2026-04-19 01:09:42,228 - [Study] Creating new fan: Fan_L40_H34 (P2 (L40-H34))
+2026-04-19 01:09:42,231 - [Study] Creating new fan: Fan_H34_L30 (P3 (H34-L30))
+2026-04-19 01:09:42,234 - [Study] Updating fan priority: Fan_L40_H36 -> P1 (L40-H36)
+2026-04-19 01:09:43,261 - [Study] Removing invalidated/excess fan: Fan_L40_H34
+2026-04-19 01:09:43,261 - [Study] Removing invalidated/excess fan: Fan_H34_L30
+2026-04-19 01:09:43,262 - [Study] Updating fan priority: Fan_L40_H36 -> P3 (L40-H36)
+2026-04-19 01:09:43,262 - [Study] Creating new fan: Fan_H40_L40 (P2 (H40-L40))
+2026-04-19 01:09:43,264 - [Study] Creating new fan: Fan_H40_L43 (P1 (H40-L43))
+2026-04-19 01:09:43,272 - [Tracking] Fan validated: Fan_H40_L40 via breach at bar 676
+2026-04-19 01:09:43,277 - [Tracking] Target HIT: Fan_H40_L40 0.875
+2026-04-19 01:09:43,277 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H40_L40 prev_line=0.5 bar=676
+2026-04-19 01:09:43,282 - [Tracking] Fan validated: Fan_H40_L43 via reversal at bar 678
+2026-04-19 01:09:43,287 - [Tracking] Target HIT: Fan_H40_L43 0.875
+2026-04-19 01:09:43,287 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H40_L43 prev_line=0.5 bar=678
+2026-04-19 01:09:43,405 - [Study] Removing invalidated/excess fan: Fan_L40_H36
+2026-04-19 01:09:43,405 - [Study] Creating new fan: Fan_L44_H40 (P1 (L44-H40))
+2026-04-19 01:09:43,407 - [Study] Updating fan priority: Fan_H40_L40 -> P3 (H40-L40)
+2026-04-19 01:09:43,407 - [Study] Updating fan priority: Fan_H40_L43 -> P2 (H40-L43)
+2026-04-19 01:09:43,414 - [Tracking] Fan validated: Fan_L44_H40 via reversal at bar 679
+2026-04-19 01:09:43,420 - [Tracking] Target HIT: Fan_L44_H40 0.875
+2026-04-19 01:09:43,420 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_L44_H40 prev_line=0.5 bar=679
+2026-04-19 01:09:43,435 - [Tracking] Target HIT: Fan_L44_H40 0.75
+2026-04-19 01:09:43,436 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_L44_H40 prev_line=0.875 bar=682
+2026-04-19 01:09:43,457 - [Tracking] Target HIT: Fan_H40_L40 0.75
+2026-04-19 01:09:43,457 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H40_L40 prev_line=0.875 bar=683
+2026-04-19 01:09:43,484 - [Study] Removing invalidated/excess fan: Fan_L44_H40
+2026-04-19 01:09:43,484 - [Tracking] Target FAILED: Fan_L44_H40 (0.75) - fan invalidated with pending progression
+2026-04-19 01:09:43,484 - [Study] Creating new fan: Fan_L40_H36 (P3 (L40-H36))
+2026-04-19 01:09:43,488 - [Study] Updating fan priority: Fan_H40_L40 -> P2 (H40-L40)
+2026-04-19 01:09:43,488 - [Study] Updating fan priority: Fan_H40_L43 -> P1 (H40-L43)
+2026-04-19 01:09:43,793 - [Tracking] Target HIT: Fan_H40_L43 0.75
+2026-04-19 01:09:43,793 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H40_L43 prev_line=0.875 bar=684
+2026-04-19 01:09:43,967 - [Study] Removing invalidated/excess fan: Fan_L40_H36
+2026-04-19 01:09:43,968 - [Study] Creating new fan: Fan_L45_H40 (P1 (L45-H40))
+2026-04-19 01:09:43,970 - [Study] Updating fan priority: Fan_H40_L40 -> P3 (H40-L40)
+2026-04-19 01:09:43,970 - [Study] Updating fan priority: Fan_H40_L43 -> P2 (H40-L43)
+2026-04-19 01:09:43,970 - [Tracking] Fan validated: Fan_L45_H40 via touch at bar 684
+2026-04-19 01:09:43,978 - [Tracking] Target HIT: Fan_L45_H40 0.875
+2026-04-19 01:09:43,979 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_L45_H40 prev_line=0.5 bar=684
+2026-04-19 01:09:43,984 - [Tracking] Target HIT: Fan_L45_H40 0.75
+2026-04-19 01:09:43,984 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_L45_H40 prev_line=0.875 bar=685
+2026-04-19 01:09:43,999 - [Tracking] Target HIT: Fan_L45_H40 0.5
+2026-04-19 01:09:43,999 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_L45_H40 prev_line=0.75 bar=687
+2026-04-19 01:09:44,078 - [Tracking] Target HIT: Fan_L45_H40 horizontal
+2026-04-19 01:09:44,078 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_L45_H40 prev_line=0.5 bar=690
+2026-04-19 01:09:44,338 - [Study] Removing invalidated/excess fan: Fan_H40_L43
+2026-04-19 01:09:44,338 - [Tracking] Target FAILED: Fan_H40_L43 (0.75) - fan invalidated with pending progression
+2026-04-19 01:09:44,338 - [Study] Removing invalidated/excess fan: Fan_H40_L40
+2026-04-19 01:09:44,339 - [Tracking] Target FAILED: Fan_H40_L40 (0.75) - fan invalidated with pending progression
+2026-04-19 01:09:44,339 - [Study] Removing invalidated/excess fan: Fan_L45_H40
+2026-04-19 01:09:44,339 - [Tracking] Target FAILED: Fan_L45_H40 (horizontal) - fan invalidated with pending progression
+2026-04-19 01:09:44,339 - [Study] Creating new fan: Fan_L40_H34 (P2 (L40-H34))
+2026-04-19 01:09:44,341 - [Study] Creating new fan: Fan_H34_L30 (P3 (H34-L30))
+2026-04-19 01:09:44,345 - [Study] Creating new fan: Fan_L40_H36 (P1 (L40-H36))
+2026-04-19 01:09:45,246 - [Study] Removing invalidated/excess fan: Fan_L40_H36
+2026-04-19 01:09:45,247 - [Study] Removing invalidated/excess fan: Fan_L40_H34
+2026-04-19 01:09:45,247 - [Study] Removing invalidated/excess fan: Fan_H34_L30
+2026-04-19 01:09:45,247 - [Study] Creating new fan: Fan_H41_L45 (P1 (H41-L45))
+2026-04-19 01:09:45,249 - [Study] Creating new fan: Fan_H41_L43 (P2 (H41-L43))
+2026-04-19 01:09:45,250 - [Study] Creating new fan: Fan_H41_L40 (P3 (H41-L40))
+2026-04-19 01:09:45,253 - [Tracking] Fan validated: Fan_H41_L45 via breach at bar 697
+2026-04-19 01:09:45,253 - [Tracking] Fan validated: Fan_H41_L40 via breach at bar 697
+2026-04-19 01:09:45,260 - [Tracking] Target HIT: Fan_H41_L40 0.875
+2026-04-19 01:09:45,260 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H41_L40 prev_line=0.5 bar=697
+2026-04-19 01:09:45,260 - [Tracking] Target HIT: Fan_H41_L45 0.875
+2026-04-19 01:09:45,260 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H41_L45 prev_line=0.5 bar=697
+2026-04-19 01:09:45,260 - [Tracking] Target HIT: Fan_H41_L45 0.75
+2026-04-19 01:09:45,260 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H41_L45 prev_line=0.875 bar=697
+2026-04-19 01:09:45,261 - [Tracking] Fan validated: Fan_H41_L43 via breach at bar 698
+2026-04-19 01:09:45,266 - [Tracking] Target HIT: Fan_H41_L40 0.75
+2026-04-19 01:09:45,266 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H41_L40 prev_line=0.875 bar=698
+2026-04-19 01:09:45,266 - [Tracking] Target HIT: Fan_H41_L43 0.875
+2026-04-19 01:09:45,266 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H41_L43 prev_line=0.5 bar=698
+2026-04-19 01:09:45,266 - [Tracking] Target HIT: Fan_H41_L45 0.5
+2026-04-19 01:09:45,266 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H41_L45 prev_line=0.75 bar=698
+2026-04-19 01:09:45,266 - [Tracking] Target HIT: Fan_H41_L45 horizontal
+2026-04-19 01:09:45,266 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H41_L45 prev_line=0.5 bar=698
+2026-04-19 01:09:45,310 - [Study] Removing invalidated/excess fan: Fan_H41_L40
+2026-04-19 01:09:45,310 - [Tracking] Target FAILED: Fan_H41_L40 (0.75) - fan invalidated with pending progression
+2026-04-19 01:09:45,310 - [Study] Creating new fan: Fan_L46_H41 (P1 (L46-H41))
+2026-04-19 01:09:45,312 - [Study] Updating fan priority: Fan_H41_L43 -> P3 (H41-L43)
+2026-04-19 01:09:45,312 - [Study] Updating fan priority: Fan_H41_L45 -> P2 (H41-L45)
+2026-04-19 01:09:45,327 - [Tracking] Fan validated: Fan_L46_H41 via breach at bar 700
+2026-04-19 01:09:45,332 - [Tracking] Target HIT: Fan_L46_H41 0.875
+2026-04-19 01:09:45,332 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_L46_H41 prev_line=0.5 bar=700
+2026-04-19 01:09:45,340 - [Tracking] Target HIT: Fan_L46_H41 0.75
+2026-04-19 01:09:45,340 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_L46_H41 prev_line=0.875 bar=702
+2026-04-19 01:09:45,463 - [Tracking] Target HIT: Fan_H41_L43 0.75
+2026-04-19 01:09:45,463 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_H41_L43 prev_line=0.875 bar=706
+2026-04-19 01:09:45,637 - [Tracking] Target HIT: Fan_L46_H41 0.5
+2026-04-19 01:09:45,637 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_L46_H41 prev_line=0.75 bar=710
+2026-04-19 01:09:46,083 - [Tracking] Target HIT: Fan_L46_H41 0.25
+2026-04-19 01:09:46,083 - [Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan=Fan_L46_H41 prev_line=0.5 bar=720
+2026-04-19 01:09:46,526 - [Study] Removing invalidated/excess fan: Fan_H41_L45
+2026-04-19 01:09:46,527 - [Tracking] Target FAILED: Fan_H41_L45 (horizontal) - fan invalidated with pending progression
+2026-04-19 01:09:46,527 - [Study] Removing invalidated/excess fan: Fan_H41_L43
+2026-04-19 01:09:46,527 - [Tracking] Target FAILED: Fan_H41_L43 (0.75) - fan invalidated with pending progression
+2026-04-19 01:09:46,527 - [Study] Removing invalidated/excess fan: Fan_L46_H41
+2026-04-19 01:09:46,527 - [Study] Creating new fan: Fan_L40_H34 (P2 (L40-H34))
+2026-04-19 01:09:46,531 - [Study] Creating new fan: Fan_H34_L30 (P3 (H34-L30))
+2026-04-19 01:09:46,534 - [Study] Creating new fan: Fan_L40_H36 (P1 (L40-H36))
+2026-04-19 01:09:47,571 - [Study] Removing invalidated/excess fan: Fan_L40_H36
+2026-04-19 01:09:47,571 - [Study] Updating fan priority: Fan_L40_H34 -> P1 (L40-H34)
+2026-04-19 01:09:47,571 - [Study] Updating fan priority: Fan_H34_L30 -> P2 (H34-L30)
+2026-04-19 01:09:47,571 - [Study] Creating new fan: Fan_H34_L28 (P3 (H34-L28))

@@ -30,11 +30,11 @@ from .cluster_detector import ClusterDetector
 
 _backend_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 _log_dir = os.path.join(
-    os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
+    os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))),
     "logs", "backend", "study_debug"
 )
 _csv_dir = os.path.join(
-    os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
+    os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))),
     "logs", "backend"
 )
 

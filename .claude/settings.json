@@ -1,7 +1,10 @@
 {
   "permissions": {
     "allow": [
-      "mcp__MiniMax__understand_image"
+      "mcp__MiniMax__understand_image",
+      "Read(//c/Users/kitsh/.claude/plugins/cache/superpowers-marketplace/superpowers/5.0.7/skills/subagent-driven-development/**)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:ta-lib.github.io)"
     ]
   }
 }

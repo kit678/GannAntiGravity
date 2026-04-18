@@ -30,7 +30,7 @@ class UnifiedStateMachine:
         
         # Setup trace logger
         log_dir = os.path.join(
-            os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
+            os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))),
             "logs", "backend"
         )
         os.makedirs(log_dir, exist_ok=True)
@@ -70,8 +70,11 @@ class UnifiedStateMachine:
         self.rest_counters: Dict[str, Dict[str, Any]] = {}
 
         # Candlestick pattern detector
-        pattern_log_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        pattern_log_path = os.path.join(pattern_log_dir, "logs", "candle_patterns.log")
+        pattern_log_dir = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))),
+            "logs", "backend"
+        )
+        pattern_log_path = os.path.join(pattern_log_dir, "candle_patterns.log")
         self.pattern_detector = CandlestickPatternDetector(pattern_log_path)
 
         # Event logger for candle pattern events

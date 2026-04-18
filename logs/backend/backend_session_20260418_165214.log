@@ -1,5 +1,0 @@
-2026-04-18 16:52:14,216 [INFO] Logging initialized. Output writing to C:\Dev\GannTesting\logs\backend\backend_session_20260418_165214.log
-2026-04-18 16:52:14,217 [INFO] Successfully loaded ticker configuration from C:\Dev\GannTesting\gann-visualizer\backend\ticker_config.json
-2026-04-18 16:52:14,217 [INFO] --- BACKEND RESTART v4 - PNL TRACKING ---
-2026-04-18 16:52:14,217 [INFO] Middleware Stack: [Middleware(BaseHTTPMiddleware, dispatch=<function cors_middleware at 0x00000231E2E6D8A0>)]
-2026-04-18 16:52:14,228 [INFO] Backend imports OK
