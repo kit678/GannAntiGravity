@@ -512,6 +512,7 @@ function App() {
                         instrumentType={instrumentType}
                         interval="1"
                         visibleFanLabels={visibleFanLabels}
+                        showPatternLegend={strategy === 'angular_coverage'}
                         onAvailableFansUpdated={setAvailableFanLabels}
                         onPlayingStateChange={setIsChartPlaying}
                         selectedInteraction={selectedInteraction}

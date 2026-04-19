@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState, useImperativeHandle, forwardRef } f
 import createChartDatafeed from './chart/ChartDatafeed';
 import { processStudyResponse } from './study_tool/StudyDrawingUtils';
 
-export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, interval = '60', onTradeLogged, dataSource = 'dhan', cycleType = '24_hour', sessionDuration = 'standard', onSymbolChange, onPlayingStateChange, selectedInteraction, ...props }, ref) => {
+export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, interval = '60', onTradeLogged, dataSource = 'dhan', cycleType = '24_hour', sessionDuration = 'standard', onSymbolChange, onPlayingStateChange, selectedInteraction, showPatternLegend = false, ...props }, ref) => {
     const chartContainerRef = useRef(null);
     const datafeedRef = useRef(null);
     const widgetRef = useRef(null);
@@ -1631,40 +1631,43 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
                 ref={chartContainerRef}
                 style={{ height: '100%', width: '100%' }}
             />
-            {/* Floating Pattern Legend */}
-            <div style={{
-                position: 'absolute',
-                top: 12,
-                left: 12,
-                zIndex: 100,
-                pointerEvents: 'none',
-                backgroundColor: 'rgba(30, 34, 45, 0.92)',
-                border: '1px solid #434651',
-                borderRadius: 8,
-                padding: '10px 14px',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 6,
-                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                minWidth: 148,
-            }}>
-                <div style={{ fontSize: 9, fontWeight: 700, color: '#787b86', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 2 }}>
-                    Patterns
-                </div>
-                {[
-                    { label: 'Pinbar',          color: '#00BCD4' },
-                    { label: 'Doji',            color: '#FFEB3B' },
-                    { label: 'Shooting Star',   color: '#E91E63' },
-                    { label: 'Inverted Hammer', color: '#AEEA00' },
-                    { label: 'Marubozu',        color: '#E0E0E0' },
-                    { label: 'Spinning Top',     color: '#F48FB1' },
-                ].map(({ label, color }) => (
-                    <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, color: '#d1d4dc' }}>
-                        <span style={{ display: 'inline-block', width: 9, height: 9, borderRadius: '50%', backgroundColor: color, flexShrink: 0 }} />
-                        {label}
+            {showPatternLegend && (
+                /* Floating Pattern Legend — upper-right corner, within chart canvas only */
+                <div style={{
+                    position: 'absolute',
+                    top: 12,
+                    right: 12,
+                    left: 'auto',
+                    zIndex: 100,
+                    pointerEvents: 'none',
+                    backgroundColor: 'rgba(30, 34, 45, 0.92)',
+                    border: '1px solid #434651',
+                    borderRadius: 8,
+                    padding: '10px 14px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 6,
+                    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                    minWidth: 148,
+                }}>
+                    <div style={{ fontSize: 9, fontWeight: 700, color: '#787b86', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 2 }}>
+                        Patterns
                     </div>
-                ))}
-            </div>
+                    {[
+                        { label: 'Pinbar',          color: '#00BCD4' },
+                        { label: 'Doji',            color: '#FFEB3B' },
+                        { label: 'Shooting Star',   color: '#E91E63' },
+                        { label: 'Inverted Hammer', color: '#AEEA00' },
+                        { label: 'Marubozu',        color: '#E0E0E0' },
+                        { label: 'Spinning Top',     color: '#F48FB1' },
+                    ].map(({ label, color }) => (
+                        <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, color: '#d1d4dc' }}>
+                            <span style={{ display: 'inline-block', width: 9, height: 9, borderRadius: '50%', backgroundColor: color, flexShrink: 0 }} />
+                            {label}
+                        </div>
+                    ))}
+                </div>
+            )}
         </div>
     );
 });
