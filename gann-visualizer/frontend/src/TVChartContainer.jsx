@@ -785,14 +785,15 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
         'INVERTED_HAMMER': 'below'
     };
 
-    const plotPatternLabel = (chart, pattern, candle) => {
+    const plotPatternLabel = (chart, pattern, candle, intervalSeconds = 60) => {
         if (!chart || !pattern || pattern === 'NO_PATTERN' || !candle) return false;
 
         const patternColor = PATTERN_COLORS[pattern];
         if (!patternColor) return false;
 
         const position = PATTERN_POSITION[pattern] || 'above';
-        const candleTime = toSeconds(candle.time);
+        // Offset by half a bar so the shape's left edge sits at bar center, centering the dot over the candle
+        const candleTime = toSeconds(candle.time) + (intervalSeconds / 2);
         const candleHigh = parseFloat(candle.high);
         const candleLow = parseFloat(candle.low);
 
@@ -825,8 +826,6 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
                     fontsize: 10,
                     bold: false,
                     size: 1,
-                    horzAlign: 'center',  // Center text on the time coordinate
-                    vertAlign: 'middle',   // Center vertically on the price coordinate
                 }
             });
             return true;
@@ -1271,8 +1270,12 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
                                 ? Math.min(datafeed.currentStep, datafeed.customData.length - 1)
                                 : 0;
                             const candle = datafeed && datafeed.customData && datafeed.customData[stepIndex];
+                            // Compute bar interval from first two candles for centering
+                            const intervalSeconds = (datafeed && datafeed.customData && datafeed.customData.length > 1)
+                                ? (toSeconds(datafeed.customData[1].time) - toSeconds(datafeed.customData[0].time))
+                                : 60;
                             if (candle) {
-                                plotPatternLabel(chart, studyData.candle_pattern, candle);
+                                plotPatternLabel(chart, studyData.candle_pattern, candle, intervalSeconds);
                             }
                         }
 
