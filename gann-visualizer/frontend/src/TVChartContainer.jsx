@@ -824,7 +824,9 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
                     backgroundColor: 'transparent',
                     fontsize: 10,
                     bold: false,
-                    size: 1
+                    size: 1,
+                    horzAlign: 'center',  // Center text on the time coordinate
+                    vertAlign: 'middle',   // Center vertically on the price coordinate
                 }
             });
             return true;
