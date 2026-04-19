@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState, useImperativeHandle, forwardRef } f
 import createChartDatafeed from './chart/ChartDatafeed';
 import { processStudyResponse } from './study_tool/StudyDrawingUtils';
 
-export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, interval = '60', onTradeLogged, dataSource = 'dhan', cycleType = '24_hour', sessionDuration = 'standard', onSymbolChange, onPlayingStateChange, selectedInteraction, showPatternLegend = false, ...props }, ref) => {
+export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, interval = '60', onTradeLogged, dataSource = 'dhan', cycleType = '24_hour', sessionDuration = 'standard', onSymbolChange, onPlayingStateChange, selectedInteraction, showPatternLegend = false, showPatternDots = false, ...props }, ref) => {
     const chartContainerRef = useRef(null);
     const datafeedRef = useRef(null);
     const widgetRef = useRef(null);
@@ -664,6 +664,32 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
     // Track pattern label markers to prevent stacking
     // Key: time bucket, Value: array of { price, time }
     const patternMarkersRef = useRef({});
+
+    // Handle pattern dots visibility toggle
+    useEffect(() => {
+        if (!widgetRef.current) return;
+
+        const chart = widgetRef.current.activeChart();
+        if (!chart) return;
+
+        // Iterate all pattern markers and toggle visibility
+        const buckets = patternMarkersRef.current;
+        Object.keys(buckets).forEach(bucketKey => {
+            const markers = buckets[bucketKey];
+            markers.forEach(marker => {
+                if (marker.shapeId) {
+                    try {
+                        const shape = chart.getShapeById(marker.shapeId);
+                        if (shape) {
+                            shape.setProperties({ visible: showPatternDots });
+                        }
+                    } catch (e) {
+                        // Shape may have been removed, ignore
+                    }
+                }
+            });
+        });
+    }, [showPatternDots]);
 
     // Plot a single trade shape - now accepts optional candles for time snapping
     const plotTradeShape = (chart, trade, candles = null) => {

@@ -49,6 +49,7 @@ function App() {
     const [pivotLeftBars, setPivotLeftBars] = useState(5)
     const [pivotRightBars, setPivotRightBars] = useState(5)
     const [showIntersectionLabels, setShowIntersectionLabels] = useState(false)
+    const [showPatternDots, setShowPatternDots] = useState(false)
 
     // Fan Visibility Settings
     // 'availableFanLabels' is dynamically populated by the chart based on actually drawn fans
@@ -456,6 +457,13 @@ function App() {
                                 </label>
                             )}
 
+                            <label title="Show candle pattern circles above/below candles" style={{ display: 'flex', alignItems: 'center' }}>
+                                <input type="checkbox"
+                                    checked={showPatternDots}
+                                    onChange={(e) => setShowPatternDots(e.target.checked)}
+                                /> Show Patterns
+                            </label>
+
                             {strategy === 'angular_coverage' && availableFanLabels.length > 0 && (
                                 <div className="fan-toggles" style={{ display: 'flex', gap: '8px', marginLeft: '10px', fontSize: '11px', alignItems: 'center' }}>
                                     <button
@@ -513,6 +521,7 @@ function App() {
                         interval="1"
                         visibleFanLabels={visibleFanLabels}
                         showPatternLegend={strategy === 'angular_coverage'}
+                        showPatternDots={showPatternDots}
                         onAvailableFansUpdated={setAvailableFanLabels}
                         onPlayingStateChange={setIsChartPlaying}
                         selectedInteraction={selectedInteraction}
