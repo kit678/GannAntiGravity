@@ -669,7 +669,13 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
     useEffect(() => {
         if (!widgetRef.current) return;
 
-        const chart = widgetRef.current.activeChart();
+        let chart;
+        try {
+            chart = widgetRef.current.activeChart();
+        } catch (innerError) {
+            console.warn('[TVChart] activeChart not ready yet, skipping pattern dots visibility update.');
+            return;
+        }
         if (!chart) return;
 
         // Iterate all pattern markers and toggle visibility
