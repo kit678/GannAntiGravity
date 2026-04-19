@@ -667,7 +667,12 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
 
     // Handle pattern dots visibility toggle
     useEffect(() => {
-        if (!widgetRef.current) return;
+        console.log('[TVChart] Pattern dots toggle changed: showPatternDots =', showPatternDots);
+
+        if (!widgetRef.current) {
+            console.log('[TVChart] widgetRef.current is null, skipping');
+            return;
+        }
 
         let chart;
         try {
@@ -676,21 +681,34 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
             console.warn('[TVChart] activeChart not ready yet, skipping pattern dots visibility update.');
             return;
         }
-        if (!chart) return;
+        if (!chart) {
+            console.log('[TVChart] chart is null, skipping');
+            return;
+        }
 
         // Iterate all pattern markers and toggle visibility
         const buckets = patternMarkersRef.current;
-        Object.keys(buckets).forEach(bucketKey => {
+        const bucketKeys = Object.keys(buckets);
+        console.log('[TVChart] Pattern markers buckets:', bucketKeys.length, bucketKeys);
+
+        if (bucketKeys.length === 0) {
+            console.log('[TVChart] No pattern markers to toggle');
+        }
+
+        bucketKeys.forEach(bucketKey => {
             const markers = buckets[bucketKey];
+            console.log(`[TVChart] Bucket ${bucketKey} has ${markers.length} markers`);
             markers.forEach(marker => {
+                console.log('[TVChart] Processing marker:', marker);
                 if (marker.shapeId) {
                     try {
                         const shape = chart.getShapeById(marker.shapeId);
+                        console.log('[TVChart] Shape found:', !!shape, 'id:', marker.shapeId);
                         if (shape) {
                             shape.setProperties({ visible: showPatternDots });
                         }
                     } catch (e) {
-                        // Shape may have been removed, ignore
+                        console.warn('[TVChart] Error toggling shape:', e.message);
                     }
                 }
             });
