@@ -1,0 +1,381 @@
+ Download the React DevTools for a better development experience: https://react.dev/link/react-devtools
+ [TVChart] useEffect triggered - dataSource: yfinance symbol: ^NSEI
+ [TVChart] TradingView already loaded, initializing directly
+ [TVChart] Initializing chart with dataSource: yfinance
+ createChartDatafeed called with source: yfinance
+ Creating ChartDatafeed wrapper, source: yfinance
+ [TVChart] selectedInteraction changed: null
+ [TVChart] activeChart not available: 
+ [TVChart] activeChart not ready yet, skipping visibility update.
+ [TVChart] Cleanup - destroying widget
+ [TVChart] Widget destroyed for clean re-init
+ [TVChart] useEffect triggered - dataSource: yfinance symbol: ^NSEI
+ [TVChart] TradingView already loaded, initializing directly
+ [TVChart] Initializing chart with dataSource: yfinance
+ createChartDatafeed called with source: yfinance
+ Creating ChartDatafeed wrapper, source: yfinance
+ [TVChart] selectedInteraction changed: null
+ [TVChart] activeChart not available: 
+ [TVChart] activeChart not ready yet, skipping visibility update.
+ [ChartDatafeed] onReady called, dataSource: yfinance
+ 2026-04-19T15:25:20.653Z:Chart.Defaults:Path `paneProperties.priceAxisProperties.log` does not exist.
+ 2026-04-19T15:25:20.670Z:Property:The state with a data type: unknown does not match a schema
+ 2026-04-19T15:25:20.720Z:Property:The state with a data type: object does not match a schema
+ [ChartDatafeed] resolveSymbol: ^NSEI dataSource: yfinance
+ [ChartDatafeed] Appended YFinance suffix: ^NSEI:YF
+ 2026-04-19T15:25:20.783Z:Chart.Defaults:Path `paneProperties.priceAxisProperties.log` does not exist.
+ [getBars] Request: ^NSEI:YF | 1 | from: 2026-04-18T20:14:20.000Z | to: 2026-04-19T15:26:20.000Z | countBack: 300 | firstDataRequest: true | customMode: false | dataSource: yfinance
+ [getBars] Making direct HTTP request with data_source=yfinance
+ [getBars] HTTP Response: Object
+ [getBars] Parsed 2996 bars from UDF response
+   Range: 2026-04-07T03:45:00.000Z to 2026-04-17T09:59:00.000Z
+ [ChartDatafeed] subscribeBars called for ^NSEI:YF_#_1 customMode: false
+ [Chart] Ready
+ [Chart] Applied and Locked backend PriceToBarRatio: 0.9151
+ [Chart] Interval Changed to: 4
+ [TVChart] Interval changed but symbol is undefined, skipping ratio update
+ [getBars] Request: ^NSEI:YF | 4 | from: 2026-04-16T10:38:26.000Z | to: 2026-04-19T15:26:26.000Z | countBack: 300 | firstDataRequest: true | customMode: false | dataSource: yfinance
+ [getBars] Making direct HTTP request with data_source=yfinance
+ [getBars] HTTP Response: Object
+ [getBars] Parsed 751 bars from UDF response
+   Range: 2026-04-07T03:45:00.000Z to 2026-04-17T09:57:00.000Z
+ [ChartDatafeed] subscribeBars called for ^NSEI:YF_#_4 customMode: false
+ [Step-by-Step] Simulation start: 2025-11-07 timestamp: 1762453800
+ [TVChart] getResolution calls -> Widget reports: 4
+ [Step-by-Step] Fetching candles: 2025-11-07 to 2026-04-19, resolution: 4, strategy: angular_coverage
+ [Step-by-Step] Fetched 751 candles (includes 5000 lookback bars for context). Initial Markers: 0
+ [Progressive Replay] Starting with 751 candles, strategy: angular_coverage instrument: spot pivotSettings: Object
+ [Progressive Replay] Replay point at index 0, starting from 0 (with context)
+ [Datafeed] Progressive replay mode: 751 candles, strategy: angular_coverage instrument: spot scaleRatio: null pivotSettings: Object
+ [ChartDatafeed] Unsubscribing from original UDF datafeed
+ [Datafeed] Clearing chart data...
+ [Progressive Replay] Chart ready - cleared existing shapes
+ [Progressive Replay] dataReady fired - Setting visible range: 4/7/2026, 9:15:00 AM to 4/7/2026, 10:15:00 AM
+ [Chart] Symbol Changed to: Object
+ Active Symbol Updated: ^NSEI
+ [getBars] Request: ^NSEI:YF | 4 | from: 2026-04-16T10:53:49.000Z | to: 2026-04-19T15:26:28.000Z | countBack: 299 | firstDataRequest: true | customMode: true | dataSource: yfinance
+ [getBars] CUSTOM MODE: Request 1776336829-1776612388. Serving 0 bars.
+ [getBars] Request: ^NSEI:YF | 4 | from: 2026-04-13T06:21:11.000Z | to: 2026-04-16T10:53:49.000Z | countBack: 299 | firstDataRequest: false | customMode: true | dataSource: yfinance
+ [getBars] CUSTOM MODE: Request 1776061271-1776336829. Serving 0 bars.
+ [getBars] Request: ^NSEI:YF | 4 | from: 2026-04-10T01:48:33.000Z | to: 2026-04-13T06:21:11.000Z | countBack: 299 | firstDataRequest: false | customMode: true | dataSource: yfinance
+ [getBars] CUSTOM MODE: Request 1775785713-1776061271. Serving 0 bars.
+ [getBars] Request: ^NSEI:YF | 4 | from: 2026-04-06T21:15:54.000Z | to: 2026-04-10T01:48:33.000Z | countBack: 299 | firstDataRequest: false | customMode: true | dataSource: yfinance
+ [getBars] CUSTOM MODE: Request 1775510154-1775785713. Serving 1 bars.
+ [getBars] Request: ^NSEI:YF | 4 | from: 2026-04-03T16:58:37.000Z | to: 2026-04-06T21:15:54.000Z | countBack: 298 | firstDataRequest: false | customMode: true | dataSource: yfinance
+ [getBars] CUSTOM MODE: Request 1775235517-1775510154. Serving 0 bars.
+ [getBars] CUSTOM MODE: Requested range is older than available data. NoData = true.
+ [ChartDatafeed] subscribeBars called for ^NSEI:YF_#_4 customMode: true
+ [ChartDatafeed] Custom mode: Managing subscription internally
+ [Progressive Replay] Fetched and locked authoritative Price-to-Bar Ratio to 3.6603
+ [Progressive Replay] Waiting for visible range to be applied...
+ [Chart] Updated and Locked PriceToBarRatio to 3.6603 for new symbol: ^NSEI
+ [Progressive Replay] Visible range set successfully
+ [Progressive Replay] Visible range handling complete, now locking scale...
+ [Progressive Replay] Explicitly locked price axis scale
+ [Progressive Replay] No initial markers/drawings found in pivotSettings
+ [Datafeed] Updating replay strategy params: angular_coverage spot 3.6603 Object
+ [Datafeed] Replay strategy updated
+ [Datafeed] Re-evaluating initial step after chart ready: 0
+ === [STUDY DEBUG] ===
+ [Study] Step: 0
+ [Study] Drawings: 0
+ [Study] Pivot Markers: 0
+ [Study] Debug Info: Object
+ ===================
+ [DEBUG] activeDrawingIds: 0 Array(0)
+ [DEBUG] fanLabelsRef before: 0
+ [DEBUG] fanLabelsRef after: 0
+ Moving to bar 1 time: 4/7/2026, 9:19:00 AM
+ [playback_step] Notifying 1 subscribers about bar 1
+ [playback_step] Pushing bar to subscriber ^NSEI:YF_#_4: time=2026-04-07T03:49:00.000Z
+ === [STUDY DEBUG] ===
+ [Study] Step: 1
+ [Study] Drawings: 0
+ [Study] Pivot Markers: 0
+ [Study] Debug Info: Object
+ ===================
+ [DEBUG] activeDrawingIds: 0 Array(0)
+ [DEBUG] fanLabelsRef before: 0
+ [DEBUG] fanLabelsRef after: 0
+ Moving to bar 2 time: 4/7/2026, 9:23:00 AM
+ [playback_step] Notifying 1 subscribers about bar 2
+ [playback_step] Pushing bar to subscriber ^NSEI:YF_#_4: time=2026-04-07T03:53:00.000Z
+ === [STUDY DEBUG] ===
+ [Study] Step: 2
+ [Study] Drawings: 0
+ [Study] Pivot Markers: 0
+ [Study] Debug Info: Object
+ ===================
+ [DEBUG] activeDrawingIds: 0 Array(0)
+ [DEBUG] fanLabelsRef before: 0
+ [DEBUG] fanLabelsRef after: 0
+ Moving to bar 3 time: 4/7/2026, 9:27:00 AM
+ [playback_step] Notifying 1 subscribers about bar 3
+ [playback_step] Pushing bar to subscriber ^NSEI:YF_#_4: time=2026-04-07T03:57:00.000Z
+ === [STUDY DEBUG] ===
+ [Study] Step: 3
+ [Study] Drawings: 0
+ [Study] Pivot Markers: 0
+ [Study] Debug Info: Object
+ ===================
+ [DEBUG] activeDrawingIds: 0 Array(0)
+ [DEBUG] fanLabelsRef before: 0
+ [DEBUG] fanLabelsRef after: 0
+ Moving to bar 4 time: 4/7/2026, 9:31:00 AM
+ [playback_step] Notifying 1 subscribers about bar 4
+ [playback_step] Pushing bar to subscriber ^NSEI:YF_#_4: time=2026-04-07T04:01:00.000Z
+ === [STUDY DEBUG] ===
+ [Study] Step: 4
+ [Study] Drawings: 0
+ [Study] Pivot Markers: 0
+ [Study] Debug Info: Object
+ ===================
+ [Pattern Debug] raw candle.time=1775534460000, stepIndex=4, intervalSeconds=240, toSeconds(candle.time)=1775534460, offset=120
+ [plotPatternLabel] candleTime=1775534460, date=4/7/2026, 9:31:00 AM
+ [plotPatternLabel] MARUBOZU dot at 4/7/2026, 9:31:00 AM, price=22900.05, color=#E0E0E0
+ [DEBUG] activeDrawingIds: 0 Array(0)
+ [DEBUG] fanLabelsRef before: 0
+ [DEBUG] fanLabelsRef after: 0
+ Moving to bar 5 time: 4/7/2026, 9:35:00 AM
+ [playback_step] Notifying 1 subscribers about bar 5
+ [playback_step] Pushing bar to subscriber ^NSEI:YF_#_4: time=2026-04-07T04:05:00.000Z
+ === [STUDY DEBUG] ===
+ [Study] Step: 5
+ [Study] Drawings: 0
+ [Study] Pivot Markers: 0
+ [Study] Debug Info: Object
+ ===================
+ [DEBUG] activeDrawingIds: 0 Array(0)
+ [DEBUG] fanLabelsRef before: 0
+ [DEBUG] fanLabelsRef after: 0
+ Moving to bar 6 time: 4/7/2026, 9:39:00 AM
+ [playback_step] Notifying 1 subscribers about bar 6
+ [playback_step] Pushing bar to subscriber ^NSEI:YF_#_4: time=2026-04-07T04:09:00.000Z
+ === [STUDY DEBUG] ===
+ [Study] Step: 6
+ [Study] Drawings: 0
+ [Study] Pivot Markers: 0
+ [Study] Debug Info: Object
+ ===================
+ [DEBUG] activeDrawingIds: 0 Array(0)
+ [DEBUG] fanLabelsRef before: 0
+ [DEBUG] fanLabelsRef after: 0
+ Moving to bar 7 time: 4/7/2026, 9:43:00 AM
+ [playback_step] Notifying 1 subscribers about bar 7
+ [playback_step] Pushing bar to subscriber ^NSEI:YF_#_4: time=2026-04-07T04:13:00.000Z
+ === [STUDY DEBUG] ===
+ [Study] Step: 7
+ [Study] Drawings: 0
+ [Study] Pivot Markers: 0
+ [Study] Debug Info: Object
+ ===================
+ [Pattern Debug] raw candle.time=1775535180000, stepIndex=7, intervalSeconds=240, toSeconds(candle.time)=1775535180, offset=120
+ [plotPatternLabel] candleTime=1775535180, date=4/7/2026, 9:43:00 AM
+ [plotPatternLabel] DOJI dot at 4/7/2026, 9:43:00 AM, price=22844.35, color=#FFEB3B
+ [DEBUG] activeDrawingIds: 0 Array(0)
+ [DEBUG] fanLabelsRef before: 0
+ [DEBUG] fanLabelsRef after: 0
+ Moving to bar 8 time: 4/7/2026, 9:47:00 AM
+ [playback_step] Notifying 1 subscribers about bar 8
+ [playback_step] Pushing bar to subscriber ^NSEI:YF_#_4: time=2026-04-07T04:17:00.000Z
+ === [STUDY DEBUG] ===
+ [Study] Step: 8
+ [Study] Drawings: 0
+ [Study] Pivot Markers: 0
+ [Study] Debug Info: Object
+ ===================
+ [Pattern Debug] raw candle.time=1775535420000, stepIndex=8, intervalSeconds=240, toSeconds(candle.time)=1775535420, offset=120
+ [plotPatternLabel] candleTime=1775535420, date=4/7/2026, 9:47:00 AM
+ [plotPatternLabel] DOJI dot at 4/7/2026, 9:47:00 AM, price=22863.00, color=#FFEB3B
+ [DEBUG] activeDrawingIds: 0 Array(0)
+ [DEBUG] fanLabelsRef before: 0
+ [DEBUG] fanLabelsRef after: 0
+ Moving to bar 9 time: 4/7/2026, 9:51:00 AM
+ [playback_step] Notifying 1 subscribers about bar 9
+ [playback_step] Pushing bar to subscriber ^NSEI:YF_#_4: time=2026-04-07T04:21:00.000Z
+ Moving to bar 10 time: 4/7/2026, 9:55:00 AM
+ [playback_step] Notifying 1 subscribers about bar 10
+ [playback_step] Pushing bar to subscriber ^NSEI:YF_#_4: time=2026-04-07T04:25:00.000Z
+ Moving to bar 11 time: 4/7/2026, 9:59:00 AM
+ [playback_step] Notifying 1 subscribers about bar 11
+ [playback_step] Pushing bar to subscriber ^NSEI:YF_#_4: time=2026-04-07T04:29:00.000Z
+ Moving to bar 12 time: 4/7/2026, 10:03:00 AM
+ [playback_step] Notifying 1 subscribers about bar 12
+ [playback_step] Pushing bar to subscriber ^NSEI:YF_#_4: time=2026-04-07T04:33:00.000Z
+ === [STUDY DEBUG] ===
+ [Study] Step: 12
+ [Study] Drawings: 0
+ [Study] Pivot Markers: 0
+ [Study] Debug Info: Object
+ ===================
+ [Pattern Debug] raw candle.time=1775536380000, stepIndex=12, intervalSeconds=240, toSeconds(candle.time)=1775536380, offset=120
+ [plotPatternLabel] candleTime=1775536380, date=4/7/2026, 10:03:00 AM
+ [plotPatternLabel] SPINNING_TOP dot at 4/7/2026, 10:03:00 AM, price=22928.35, color=#F48FB1
+ [DEBUG] activeDrawingIds: 0 Array(0)
+ [DEBUG] fanLabelsRef before: 0
+ [DEBUG] fanLabelsRef after: 0
+ === [STUDY DEBUG] ===
+ [Study] Step: 12
+ [Study] Drawings: 0
+ [Study] Pivot Markers: 0
+ [Study] Debug Info: Object
+ ===================
+ [DEBUG] activeDrawingIds: 0 Array(0)
+ [DEBUG] fanLabelsRef before: 0
+ [DEBUG] fanLabelsRef after: 0
+ === [STUDY DEBUG] ===
+ [Study] Step: 12
+ [Study] Drawings: 0
+ [Study] Pivot Markers: 0
+ [Study] Debug Info: Object
+ ===================
+ [DEBUG] activeDrawingIds: 0 Array(0)
+ [DEBUG] fanLabelsRef before: 0
+ [DEBUG] fanLabelsRef after: 0
+ === [STUDY DEBUG] ===
+ [Study] Step: 12
+ [Study] Drawings: 0
+ [Study] Pivot Markers: 0
+ [Study] Debug Info: Object
+ ===================
+ [Pattern Debug] raw candle.time=1775536380000, stepIndex=12, intervalSeconds=240, toSeconds(candle.time)=1775536380, offset=120
+ [plotPatternLabel] candleTime=1775536380, date=4/7/2026, 10:03:00 AM
+ [plotPatternLabel] SPINNING_TOP dot at 4/7/2026, 10:03:00 AM, price=22928.35, color=#F48FB1
+ [DEBUG] activeDrawingIds: 0 Array(0)
+ [DEBUG] fanLabelsRef before: 0
+ [DEBUG] fanLabelsRef after: 0
+ Moving to bar 13 time: 4/7/2026, 10:07:00 AM
+ [playback_step] Notifying 1 subscribers about bar 13
+ [playback_step] Pushing bar to subscriber ^NSEI:YF_#_4: time=2026-04-07T04:37:00.000Z
+ === [STUDY DEBUG] ===
+ [Study] Step: 13
+ [Study] Drawings: 0
+ [Study] Pivot Markers: 0
+ [Study] Debug Info: Object
+ ===================
+ [Pattern Debug] raw candle.time=1775536620000, stepIndex=13, intervalSeconds=240, toSeconds(candle.time)=1775536620, offset=120
+ [plotPatternLabel] candleTime=1775536620, date=4/7/2026, 10:07:00 AM
+ [plotPatternLabel] SPINNING_TOP dot at 4/7/2026, 10:07:00 AM, price=22912.25, color=#F48FB1
+ [DEBUG] activeDrawingIds: 0 Array(0)
+ [DEBUG] fanLabelsRef before: 0
+ [DEBUG] fanLabelsRef after: 0
+ Moving to bar 14 time: 4/7/2026, 10:11:00 AM
+ [playback_step] Notifying 1 subscribers about bar 14
+ [playback_step] Pushing bar to subscriber ^NSEI:YF_#_4: time=2026-04-07T04:41:00.000Z
+ === [STUDY DEBUG] ===
+ [Study] Step: 14
+ [Study] Drawings: 0
+ [Study] Pivot Markers: 0
+ [Study] Debug Info: Object
+ ===================
+ [DEBUG] activeDrawingIds: 0 Array(0)
+ [DEBUG] fanLabelsRef before: 0
+ [DEBUG] fanLabelsRef after: 0
+ Moving to bar 15 time: 4/7/2026, 10:15:00 AM
+ [playback_step] Notifying 1 subscribers about bar 15
+ [playback_step] Pushing bar to subscriber ^NSEI:YF_#_4: time=2026-04-07T04:45:00.000Z
+ChartDatafeed.js:677 === [STUDY DEBUG] ===
+ChartDatafeed.js:678 [Study] Step: 15
+ChartDatafeed.js:679 [Study] Drawings: 0
+ChartDatafeed.js:680 [Study] Pivot Markers: 0
+ChartDatafeed.js:696 [Study] Debug Info: Object
+ChartDatafeed.js:698 ===================
+TVChartContainer.jsx:1263 [Pattern Debug] raw candle.time=1775537100000, stepIndex=15, intervalSeconds=240, toSeconds(candle.time)=1775537100, offset=120
+TVChartContainer.jsx:788 [plotPatternLabel] candleTime=1775537100, date=4/7/2026, 10:15:00 AM
+TVChartContainer.jsx:803 [plotPatternLabel] SHOOTING_STAR dot at 4/7/2026, 10:15:00 AM, price=22950.75, color=#E91E63
+TVChartContainer.jsx:1297 [DEBUG] activeDrawingIds: 0 Array(0)
+TVChartContainer.jsx:1298 [DEBUG] fanLabelsRef before: 0
+TVChartContainer.jsx:1305 [DEBUG] fanLabelsRef after: 0
+ChartDatafeed.js:558 Moving to bar 16 time: 4/7/2026, 10:19:00 AM
+ChartDatafeed.js:582 [playback_step] Notifying 1 subscribers about bar 16
+ChartDatafeed.js:586 [playback_step] Pushing bar to subscriber ^NSEI:YF_#_4: time=2026-04-07T04:49:00.000Z
+ChartDatafeed.js:677 === [STUDY DEBUG] ===
+ChartDatafeed.js:678 [Study] Step: 16
+ChartDatafeed.js:679 [Study] Drawings: 0
+ChartDatafeed.js:680 [Study] Pivot Markers: 0
+ChartDatafeed.js:696 [Study] Debug Info: Object
+ChartDatafeed.js:698 ===================
+TVChartContainer.jsx:1263 [Pattern Debug] raw candle.time=1775537340000, stepIndex=16, intervalSeconds=240, toSeconds(candle.time)=1775537340, offset=120
+TVChartContainer.jsx:788 [plotPatternLabel] candleTime=1775537340, date=4/7/2026, 10:19:00 AM
+TVChartContainer.jsx:803 [plotPatternLabel] SHOOTING_STAR dot at 4/7/2026, 10:19:00 AM, price=22966.40, color=#E91E63
+TVChartContainer.jsx:1297 [DEBUG] activeDrawingIds: 0 Array(0)
+TVChartContainer.jsx:1298 [DEBUG] fanLabelsRef before: 0
+TVChartContainer.jsx:1305 [DEBUG] fanLabelsRef after: 0
+ChartDatafeed.js:558 Moving to bar 17 time: 4/7/2026, 10:23:00 AM
+ChartDatafeed.js:582 [playback_step] Notifying 1 subscribers about bar 17
+ChartDatafeed.js:586 [playback_step] Pushing bar to subscriber ^NSEI:YF_#_4: time=2026-04-07T04:53:00.000Z
+ChartDatafeed.js:677 === [STUDY DEBUG] ===
+ChartDatafeed.js:678 [Study] Step: 17
+ChartDatafeed.js:679 [Study] Drawings: 0
+ChartDatafeed.js:680 [Study] Pivot Markers: 0
+ChartDatafeed.js:696 [Study] Debug Info: Object
+ChartDatafeed.js:698 ===================
+TVChartContainer.jsx:1297 [DEBUG] activeDrawingIds: 0 Array(0)
+TVChartContainer.jsx:1298 [DEBUG] fanLabelsRef before: 0
+TVChartContainer.jsx:1305 [DEBUG] fanLabelsRef after: 0
+ChartDatafeed.js:558 Moving to bar 18 time: 4/7/2026, 10:27:00 AM
+ChartDatafeed.js:582 [playback_step] Notifying 1 subscribers about bar 18
+ChartDatafeed.js:586 [playback_step] Pushing bar to subscriber ^NSEI:YF_#_4: time=2026-04-07T04:57:00.000Z
+ChartDatafeed.js:677 === [STUDY DEBUG] ===
+ChartDatafeed.js:678 [Study] Step: 18
+ChartDatafeed.js:679 [Study] Drawings: 0
+ChartDatafeed.js:680 [Study] Pivot Markers: 0
+ChartDatafeed.js:696 [Study] Debug Info: Object
+ChartDatafeed.js:698 ===================
+TVChartContainer.jsx:1263 [Pattern Debug] raw candle.time=1775537820000, stepIndex=18, intervalSeconds=240, toSeconds(candle.time)=1775537820, offset=120
+TVChartContainer.jsx:788 [plotPatternLabel] candleTime=1775537820, date=4/7/2026, 10:27:00 AM
+TVChartContainer.jsx:803 [plotPatternLabel] SHOOTING_STAR dot at 4/7/2026, 10:27:00 AM, price=22945.70, color=#E91E63
+TVChartContainer.jsx:1297 [DEBUG] activeDrawingIds: 0 Array(0)
+TVChartContainer.jsx:1298 [DEBUG] fanLabelsRef before: 0
+TVChartContainer.jsx:1305 [DEBUG] fanLabelsRef after: 0
+ChartDatafeed.js:558 Moving to bar 19 time: 4/7/2026, 10:31:00 AM
+ChartDatafeed.js:582 [playback_step] Notifying 1 subscribers about bar 19
+ChartDatafeed.js:586 [playback_step] Pushing bar to subscriber ^NSEI:YF_#_4: time=2026-04-07T05:01:00.000Z
+ChartDatafeed.js:677 === [STUDY DEBUG] ===
+ChartDatafeed.js:678 [Study] Step: 19
+ChartDatafeed.js:679 [Study] Drawings: 0
+ChartDatafeed.js:680 [Study] Pivot Markers: 0
+ChartDatafeed.js:696 [Study] Debug Info: Object
+ChartDatafeed.js:698 ===================
+TVChartContainer.jsx:1297 [DEBUG] activeDrawingIds: 0 Array(0)
+TVChartContainer.jsx:1298 [DEBUG] fanLabelsRef before: 0
+TVChartContainer.jsx:1305 [DEBUG] fanLabelsRef after: 0
+ChartDatafeed.js:558 Moving to bar 20 time: 4/7/2026, 10:35:00 AM
+ChartDatafeed.js:582 [playback_step] Notifying 1 subscribers about bar 20
+ChartDatafeed.js:586 [playback_step] Pushing bar to subscriber ^NSEI:YF_#_4: time=2026-04-07T05:05:00.000Z
+ChartDatafeed.js:677 === [STUDY DEBUG] ===
+ChartDatafeed.js:678 [Study] Step: 20
+ChartDatafeed.js:679 [Study] Drawings: 0
+ChartDatafeed.js:680 [Study] Pivot Markers: 0
+ChartDatafeed.js:696 [Study] Debug Info: Object
+ChartDatafeed.js:698 ===================
+TVChartContainer.jsx:1263 [Pattern Debug] raw candle.time=1775538300000, stepIndex=20, intervalSeconds=240, toSeconds(candle.time)=1775538300, offset=120
+TVChartContainer.jsx:788 [plotPatternLabel] candleTime=1775538300, date=4/7/2026, 10:35:00 AM
+TVChartContainer.jsx:803 [plotPatternLabel] PINBAR dot at 4/7/2026, 10:35:00 AM, price=22925.55, color=#00BCD4
+TVChartContainer.jsx:1297 [DEBUG] activeDrawingIds: 0 Array(0)
+TVChartContainer.jsx:1298 [DEBUG] fanLabelsRef before: 0
+TVChartContainer.jsx:1305 [DEBUG] fanLabelsRef after: 0
+ChartDatafeed.js:558 Moving to bar 21 time: 4/7/2026, 10:39:00 AM
+ChartDatafeed.js:582 [playback_step] Notifying 1 subscribers about bar 21
+ChartDatafeed.js:586 [playback_step] Pushing bar to subscriber ^NSEI:YF_#_4: time=2026-04-07T05:09:00.000Z
+ChartDatafeed.js:677 === [STUDY DEBUG] ===
+ChartDatafeed.js:678 [Study] Step: 21
+ChartDatafeed.js:679 [Study] Drawings: 6
+ChartDatafeed.js:680 [Study] Pivot Markers: 2
+ChartDatafeed.js:684 Array(2)
+ChartDatafeed.js:696 [Study] Debug Info: Object
+ChartDatafeed.js:698 ===================
+TVChartContainer.jsx:1297 [DEBUG] activeDrawingIds: 8 Array(5)
+TVChartContainer.jsx:1298 [DEBUG] fanLabelsRef before: 6
+TVChartContainer.jsx:1305 [DEBUG] fanLabelsRef after: 6
+TVChartContainer.jsx:1349 [TVChart] Emitting 5 price interactions to App.jsx Array(5)
+App.jsx:521 [App] Received interaction: Object
+App.jsx:521 [App] Received interaction: Object
+App.jsx:521 [App] Received interaction: Object
+App.jsx:521 [App] Received interaction: Object
+App.jsx:521 [App] Received interaction: Object
+TVChartContainer.jsx:367 [TVChart] selectedInteraction changed: Object
+TVChartContainer.jsx:385 [TVChart] Chart is ready, proceeding to draw marker
+TVChartContainer.jsx:399 [TVChart] Drawing marker for interaction time: 1775537340
+TVChartContainer.jsx:435 [TVChart] Matched to candle at 1775537340 with high 22966.400390625
+TVChartContainer.jsx:568 [TVChart] Updating fan visibility: Array(1)

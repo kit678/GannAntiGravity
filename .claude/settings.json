@@ -4,7 +4,10 @@
       "mcp__MiniMax__understand_image",
       "Read(//c/Users/kitsh/.claude/plugins/cache/superpowers-marketplace/superpowers/5.0.7/skills/subagent-driven-development/**)",
       "WebFetch(domain:github.com)",
-      "WebFetch(domain:ta-lib.github.io)"
+      "WebFetch(domain:ta-lib.github.io)",
+      "WebFetch(domain:www.tradingview.com)",
+      "WebSearch",
+      "WebFetch(domain:charting-library-docs.xstaging.tv)"
     ]
   }
 }

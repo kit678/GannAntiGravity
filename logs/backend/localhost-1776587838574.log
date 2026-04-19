@@ -1,0 +1,139 @@
+ Download the React DevTools for a better development experience: https://react.dev/link/react-devtools
+ [TVChart] useEffect triggered - dataSource: yfinance symbol: ^NSEI
+ [TVChart] TradingView already loaded, initializing directly
+ [TVChart] Initializing chart with dataSource: yfinance
+ createChartDatafeed called with source: yfinance
+ Creating ChartDatafeed wrapper, source: yfinance
+ [TVChart] selectedInteraction changed: null
+ [TVChart] activeChart not available: 
+ [TVChart] activeChart not ready yet, skipping visibility update.
+ [TVChart] Cleanup - destroying widget
+ [TVChart] Widget destroyed for clean re-init
+ [TVChart] useEffect triggered - dataSource: yfinance symbol: ^NSEI
+ [TVChart] TradingView already loaded, initializing directly
+ [TVChart] Initializing chart with dataSource: yfinance
+ createChartDatafeed called with source: yfinance
+ Creating ChartDatafeed wrapper, source: yfinance
+ [TVChart] selectedInteraction changed: null
+ [TVChart] activeChart not available: 
+ [TVChart] activeChart not ready yet, skipping visibility update.
+ [ChartDatafeed] onReady called, dataSource: yfinance
+ 2026-04-19T08:37:03.242Z:Chart.Defaults:Path `paneProperties.priceAxisProperties.log` does not exist.
+ 2026-04-19T08:37:03.255Z:Property:The state with a data type: unknown does not match a schema
+ 2026-04-19T08:37:03.288Z:Property:The state with a data type: object does not match a schema
+ [ChartDatafeed] resolveSymbol: ^NSEI dataSource: yfinance
+ [ChartDatafeed] Appended YFinance suffix: ^NSEI:YF
+ 2026-04-19T08:37:03.328Z:Chart.Defaults:Path `paneProperties.priceAxisProperties.log` does not exist.
+ [getBars] Request: ^NSEI:YF | 1 | from: 2026-04-18T13:26:03.000Z | to: 2026-04-19T08:38:03.000Z | countBack: 300 | firstDataRequest: true | customMode: false | dataSource: yfinance
+ [getBars] Making direct HTTP request with data_source=yfinance
+ [getBars] HTTP Response: Object
+ [getBars] Parsed 2996 bars from UDF response
+   Range: 2026-04-07T03:45:00.000Z to 2026-04-17T09:59:00.000Z
+ [ChartDatafeed] subscribeBars called for ^NSEI:YF_#_1 customMode: false
+ [Chart] Ready
+TVChartContainer.jsx:164 [Chart] Applied and Locked backend PriceToBarRatio: 0.9151
+TVChartContainer.jsx:236 [Chart] Interval Changed to: 4
+TVChartContainer.jsx:240 [TVChart] Interval changed but symbol is undefined, skipping ratio update
+$RefreshSig$ @ TVChartContainer.jsx:240
+ChartDatafeed.js:314 [getBars] Request: ^NSEI:YF | 4 | from: 2026-04-16T03:50:05.000Z | to: 2026-04-19T08:38:05.000Z | countBack: 300 | firstDataRequest: true | customMode: false | dataSource: yfinance
+ChartDatafeed.js:378 [getBars] Making direct HTTP request with data_source=yfinance
+ChartDatafeed.js:397 [getBars] HTTP Response: Object
+ChartDatafeed.js:422 [getBars] Parsed 751 bars from UDF response
+ChartDatafeed.js:426   Range: 2026-04-07T03:45:00.000Z to 2026-04-17T09:57:00.000Z
+ChartDatafeed.js:451 [ChartDatafeed] subscribeBars called for ^NSEI:YF_#_4 customMode: false
+App.jsx:227 [Step-by-Step] Simulation start: 2025-11-07 timestamp: 1762453800
+TVChartContainer.jsx:903 [TVChart] getResolution calls -> Widget reports: 4
+App.jsx:243 [Step-by-Step] Fetching candles: 2025-11-07 to 2026-04-19, resolution: 4, strategy: angular_coverage
+App.jsx:282 [Step-by-Step] Fetched 751 candles (includes 5000 lookback bars for context). Initial Markers: 0
+TVChartContainer.jsx:1195 [Progressive Replay] Starting with 751 candles, strategy: angular_coverage instrument: spot pivotSettings: Object
+TVChartContainer.jsx:1213 [Progressive Replay] Replay point at index 0, starting from 0 (with context)
+ChartDatafeed.js:205 [Datafeed] Progressive replay mode: 751 candles, strategy: angular_coverage instrument: spot scaleRatio: null pivotSettings: Object
+ChartDatafeed.js:295 [ChartDatafeed] Unsubscribing from original UDF datafeed
+ChartDatafeed.js:236 [Datafeed] Clearing chart data...
+TVChartContainer.jsx:1438 [Progressive Replay] Chart ready - cleared existing shapes
+TVChartContainer.jsx:1465 [Progressive Replay] dataReady fired - Setting visible range: 4/7/2026, 9:15:00 AM to 4/7/2026, 10:15:00 AM
+TVChartContainer.jsx:191 [Chart] Symbol Changed to: Object
+App.jsx:120 Active Symbol Updated: ^NSEI
+ChartDatafeed.js:314 [getBars] Request: ^NSEI:YF | 4 | from: 2026-04-16T04:05:29.000Z | to: 2026-04-19T08:38:07.000Z | countBack: 299 | firstDataRequest: true | customMode: true | dataSource: yfinance
+ChartDatafeed.js:350 [getBars] CUSTOM MODE: Request 1776312329-1776587887. Serving 0 bars.
+ChartDatafeed.js:314 [getBars] Request: ^NSEI:YF | 4 | from: 2026-04-12T23:32:51.000Z | to: 2026-04-16T04:05:29.000Z | countBack: 299 | firstDataRequest: false | customMode: true | dataSource: yfinance
+ChartDatafeed.js:350 [getBars] CUSTOM MODE: Request 1776036771-1776312329. Serving 0 bars.
+ChartDatafeed.js:314 [getBars] Request: ^NSEI:YF | 4 | from: 2026-04-09T19:00:12.000Z | to: 2026-04-12T23:32:51.000Z | countBack: 299 | firstDataRequest: false | customMode: true | dataSource: yfinance
+ChartDatafeed.js:350 [getBars] CUSTOM MODE: Request 1775761212-1776036771. Serving 0 bars.
+ChartDatafeed.js:314 [getBars] Request: ^NSEI:YF | 4 | from: 2026-04-06T14:27:34.000Z | to: 2026-04-09T19:00:12.000Z | countBack: 299 | firstDataRequest: false | customMode: true | dataSource: yfinance
+ChartDatafeed.js:350 [getBars] CUSTOM MODE: Request 1775485654-1775761212. Serving 1 bars.
+ChartDatafeed.js:314 [getBars] Request: ^NSEI:YF | 4 | from: 2026-04-03T10:10:17.000Z | to: 2026-04-06T14:27:34.000Z | countBack: 298 | firstDataRequest: false | customMode: true | dataSource: yfinance
+ChartDatafeed.js:350 [getBars] CUSTOM MODE: Request 1775211017-1775485654. Serving 0 bars.
+ChartDatafeed.js:366 [getBars] CUSTOM MODE: Requested range is older than available data. NoData = true.
+ChartDatafeed.js:451 [ChartDatafeed] subscribeBars called for ^NSEI:YF_#_4 customMode: true
+ChartDatafeed.js:462 [ChartDatafeed] Custom mode: Managing subscription internally
+TVChartContainer.jsx:1509 [Progressive Replay] Fetched and locked authoritative Price-to-Bar Ratio to 3.6603
+TVChartContainer.jsx:1523 [Progressive Replay] Waiting for visible range to be applied...
+TVChartContainer.jsx:218 [Chart] Updated and Locked PriceToBarRatio to 3.6603 for new symbol: ^NSEI
+TVChartContainer.jsx:1473 [Progressive Replay] Visible range set successfully
+TVChartContainer.jsx:1525 [Progressive Replay] Visible range handling complete, now locking scale...
+TVChartContainer.jsx:1535 [Progressive Replay] Explicitly locked price axis scale
+TVChartContainer.jsx:1598 [Progressive Replay] No initial markers/drawings found in pivotSettings
+ChartDatafeed.js:271 [Datafeed] Updating replay strategy params: angular_coverage spot 3.6603 Object
+ChartDatafeed.js:280 [Datafeed] Replay strategy updated
+ChartDatafeed.js:288 [Datafeed] Re-evaluating initial step after chart ready: 0
+ChartDatafeed.js:677 === [STUDY DEBUG] ===
+ChartDatafeed.js:678 [Study] Step: 0
+ChartDatafeed.js:679 [Study] Drawings: 0
+ChartDatafeed.js:680 [Study] Pivot Markers: 0
+ChartDatafeed.js:696 [Study] Debug Info: Object
+ChartDatafeed.js:698 ===================
+TVChartContainer.jsx:1313 [DEBUG] activeDrawingIds: 0 Array(0)
+TVChartContainer.jsx:1314 [DEBUG] fanLabelsRef before: 0
+TVChartContainer.jsx:1321 [DEBUG] fanLabelsRef after: 0
+ChartDatafeed.js:558 Moving to bar 1 time: 4/7/2026, 9:19:00 AM
+ChartDatafeed.js:582 [playback_step] Notifying 1 subscribers about bar 1
+ChartDatafeed.js:586 [playback_step] Pushing bar to subscriber ^NSEI:YF_#_4: time=2026-04-07T03:49:00.000Z
+ChartDatafeed.js:677 === [STUDY DEBUG] ===
+ChartDatafeed.js:678 [Study] Step: 1
+ChartDatafeed.js:679 [Study] Drawings: 0
+ChartDatafeed.js:680 [Study] Pivot Markers: 0
+ChartDatafeed.js:696 [Study] Debug Info: Object
+ChartDatafeed.js:698 ===================
+TVChartContainer.jsx:1313 [DEBUG] activeDrawingIds: 0 Array(0)
+TVChartContainer.jsx:1314 [DEBUG] fanLabelsRef before: 0
+TVChartContainer.jsx:1321 [DEBUG] fanLabelsRef after: 0
+ChartDatafeed.js:558 Moving to bar 2 time: 4/7/2026, 9:23:00 AM
+ChartDatafeed.js:582 [playback_step] Notifying 1 subscribers about bar 2
+ChartDatafeed.js:586 [playback_step] Pushing bar to subscriber ^NSEI:YF_#_4: time=2026-04-07T03:53:00.000Z
+ChartDatafeed.js:677 === [STUDY DEBUG] ===
+ChartDatafeed.js:678 [Study] Step: 2
+ChartDatafeed.js:679 [Study] Drawings: 0
+ChartDatafeed.js:680 [Study] Pivot Markers: 0
+ChartDatafeed.js:696 [Study] Debug Info: Object
+ChartDatafeed.js:698 ===================
+TVChartContainer.jsx:1313 [DEBUG] activeDrawingIds: 0 Array(0)
+TVChartContainer.jsx:1314 [DEBUG] fanLabelsRef before: 0
+TVChartContainer.jsx:1321 [DEBUG] fanLabelsRef after: 0
+ChartDatafeed.js:558 Moving to bar 3 time: 4/7/2026, 9:27:00 AM
+ChartDatafeed.js:582 [playback_step] Notifying 1 subscribers about bar 3
+ChartDatafeed.js:586 [playback_step] Pushing bar to subscriber ^NSEI:YF_#_4: time=2026-04-07T03:57:00.000Z
+ChartDatafeed.js:677 === [STUDY DEBUG] ===
+ChartDatafeed.js:678 [Study] Step: 3
+ChartDatafeed.js:679 [Study] Drawings: 0
+ChartDatafeed.js:680 [Study] Pivot Markers: 0
+ChartDatafeed.js:696 [Study] Debug Info: Object
+ChartDatafeed.js:698 ===================
+TVChartContainer.jsx:1313 [DEBUG] activeDrawingIds: 0 Array(0)
+TVChartContainer.jsx:1314 [DEBUG] fanLabelsRef before: 0
+TVChartContainer.jsx:1321 [DEBUG] fanLabelsRef after: 0
+ChartDatafeed.js:558 Moving to bar 4 time: 4/7/2026, 9:31:00 AM
+ChartDatafeed.js:582 [playback_step] Notifying 1 subscribers about bar 4
+ChartDatafeed.js:586 [playback_step] Pushing bar to subscriber ^NSEI:YF_#_4: time=2026-04-07T04:01:00.000Z
+ChartDatafeed.js:677 === [STUDY DEBUG] ===
+ChartDatafeed.js:678 [Study] Step: 4
+ChartDatafeed.js:679 [Study] Drawings: 0
+ChartDatafeed.js:680 [Study] Pivot Markers: 0
+ChartDatafeed.js:696 [Study] Debug Info: Object
+ChartDatafeed.js:698 ===================
+TVChartContainer.jsx:1279 [Pattern Debug] raw candle.time=1775534460000, stepIndex=4, intervalSeconds=240, toSeconds(candle.time)=1775534460, offset=120
+TVChartContainer.jsx:798 [plotPatternLabel] raw=1775534460, +offset(240/2=120) = 1775534580, date=4/7/2026, 9:33:00 AM
+TVChartContainer.jsx:819 [plotPatternLabel] MARUBOZU dot at 4/7/2026, 9:33:00 AM, price=22906.80, color=#E0E0E0
+TVChartContainer.jsx:1313 [DEBUG] activeDrawingIds: 0 Array(0)
+TVChartContainer.jsx:1314 [DEBUG] fanLabelsRef before: 0
+TVChartContainer.jsx:1321 [DEBUG] fanLabelsRef after: 0

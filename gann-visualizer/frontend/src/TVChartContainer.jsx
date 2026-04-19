@@ -361,10 +361,25 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
 
     // Track the currently drawn interaction markers
     const interactionMarkersRef = useRef([]);
+    // Track the last processed interaction to avoid duplicate processing
+    const lastProcessedInteractionRef = useRef(null);
 
     // Handle selected interaction changes
     useEffect(() => {
         console.log('[TVChart] selectedInteraction changed:', selectedInteraction);
+
+        // Skip if same interaction as last processed (compare by value, not reference)
+        const lastProcessed = lastProcessedInteractionRef.current;
+        const isSameInteraction = lastProcessed && selectedInteraction &&
+            lastProcessed.time === selectedInteraction.time &&
+            lastProcessed.price === selectedInteraction.price &&
+            lastProcessed.fanIdentity === selectedInteraction.fanIdentity;
+
+        if (isSameInteraction) {
+            console.log('[TVChart] Skipping duplicate interaction processing');
+            return;
+        }
+        lastProcessedInteractionRef.current = selectedInteraction;
         
         if (!widgetRef.current) {
             console.log('[TVChart] widgetRef.current is null');
@@ -431,8 +446,11 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
                     if (matchedCandleIndex !== -1) {
                         const matchedCandle = candles[matchedCandleIndex];
                         targetTime = candleTimesSec[matchedCandleIndex];
-                        targetPrice = matchedCandle.high;
-                        console.log(`[TVChart] Matched to candle at ${targetTime} with high ${targetPrice}`);
+                        // Add a gap between the icon and the candle high
+                        const candleRange = parseFloat(matchedCandle.high) - parseFloat(matchedCandle.low);
+                        const gapOffset = candleRange * 0.45; // 45% of candle range as gap (3x the previous 15%)
+                        targetPrice = parseFloat(matchedCandle.high) + gapOffset;
+                        console.log(`[TVChart] Matched to candle at ${targetTime} with high ${matchedCandle.high} -> icon at ${targetPrice.toFixed(2)}`);
                     }
                 }
                 
@@ -488,30 +506,22 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
                     console.warn('[TVChart] Could not adjust visible range:', e);
                 }
                 
-                // Position the marker slightly above the candle high
-                const offset = targetPrice * 0.0015; // 0.15% offset to match plotTradeShape
-                const priceForMarker = targetPrice + offset;
-                
-                // Create a combination of shapes for pixel-perfect centering:
-                // 1. arrow_down pointing exactly at the candle high (fixes the off-center icon issue)
+                // Create a combination of shapes:
+                // 1. white circle marker sitting on the candle high
                 // 2. vertical_line to perfectly mark the time axis
                 const shapesToCreate = [
                     {
-                        point: { time: targetTime, price: priceForMarker },
+                        point: { time: targetTime, price: targetPrice },
                         options: {
-                            shape: 'arrow_down',
-                            text: '',
+                            shape: 'icon',
                             lock: true,
                             disableSelection: true,
                             disableSave: true,
                             overrides: {
                                 color: '#FFFFFF',
-                                backgroundColor: '#FFFFFF', // Required to override default red
-                                borderColor: '#FFFFFF', // Some versions use borderColor for the arrow body
-                                size: 1, // Numeric size: 1 is smallest
-                                fontsize: 0,
-                                bold: false
-                            }
+                                size: 10,
+                            },
+                            icon: 0xf0ab, // Font Awesome triangle-down (different from pattern dots which use circle)
                         }
                     },
                     {
@@ -533,11 +543,16 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
                 shapesToCreate.forEach(({ point, options }) => {
                     try {
                         const shapeId = chart.createShape(point, options);
-                        
+
                         // Handle both synchronous IDs and Promises
                         if (shapeId && typeof shapeId.then === 'function') {
                             shapeId.then(id => {
-                                if (!isCancelled && id) {
+                                if (isCancelled) {
+                                    // Effect was cancelled, remove the shape immediately
+                                    if (id) {
+                                        try { chart.removeEntity(id); } catch (e) { /* ignore */ }
+                                    }
+                                } else if (id) {
                                     interactionMarkersRef.current.push(id);
                                 }
                             }).catch(err => console.error('[TVChart] Error creating interaction shape:', err));
@@ -792,12 +807,15 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
         if (!patternColor) return false;
 
         const position = PATTERN_POSITION[pattern] || 'above';
-        // Use bar START time — TradingView anchors 'text' shape at its LEFT EDGE.
-        // The start time is the bar boundary, minimizing horizontal offset.
         const candleTime = toSeconds(candle.time);
         console.log(`[plotPatternLabel] candleTime=${candleTime}, date=${new Date(candleTime * 1000).toLocaleString()}`);
         const candleHigh = parseFloat(candle.high);
         const candleLow = parseFloat(candle.low);
+
+        // Add a gap between the circle and candle high/low
+        const candleRange = candleHigh - candleLow;
+        const gapOffset = candleRange * 0.15; // 15% of candle range as gap
+        const shapePrice = position === 'below' ? candleLow - gapOffset : candleHigh + gapOffset;
 
         // Time bucket stacking prevention (same as trade shapes)
         const timeBucket = Math.floor(candleTime / 300) * 300;
@@ -805,31 +823,29 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
         if (!patternMarkersRef.current) patternMarkersRef.current = {};
         if (!patternMarkersRef.current[bucketKey]) patternMarkersRef.current[bucketKey] = [];
 
-        const existingCount = patternMarkersRef.current[bucketKey].length;
-        // Smaller offset than text labels — dot sits close to wick tip
-        const baseOffset = (candleHigh - candleLow) * 0.05 + (candleHigh * 0.0002);
-        const stackOffset = candleHigh * 0.0003 * existingCount;
-
-        const shapePrice = position === 'below'
-            ? candleLow - baseOffset - stackOffset
-            : candleHigh + baseOffset + stackOffset;
-
-        patternMarkersRef.current[bucketKey].push({ price: shapePrice, time: candleTime });
+        // Check if this exact pattern is already tracked in this bucket
+        const existingMarker = patternMarkersRef.current[bucketKey].find(m => m.pattern === pattern);
+        if (existingMarker) {
+            console.log(`[plotPatternLabel] Skipping duplicate ${pattern} dot at ${new Date(candleTime * 1000).toLocaleString()}`);
+            return false; // Already created
+        }
 
         console.log(`[plotPatternLabel] ${pattern} dot at ${new Date(candleTime * 1000).toLocaleString()}, price=${shapePrice.toFixed(2)}, color=${patternColor}`);
 
         try {
-            chart.createShape({ time: candleTime, price: shapePrice }, {
-                shape: 'text',
-                text: '\u25CF',  // Filled circle unicode
+            const shapeId = chart.createShape({ time: candleTime, price: shapePrice }, {
+                shape: 'icon',
+                lock: true,
+                disableSelection: true,
+                disableSave: true,
                 overrides: {
                     color: patternColor,
-                    backgroundColor: 'transparent',
-                    fontsize: 10,
-                    bold: false,
-                    size: 1,
-                }
+                    size: 10,
+                },
+                icon: 0xf111, // Font Awesome circle (filled)
             });
+            // Track the shape ID to prevent duplicates
+            patternMarkersRef.current[bucketKey].push({ price: shapePrice, time: candleTime, pattern, shapeId });
             return true;
         } catch (err) {
             console.warn("[plotPatternLabel] Error creating dot:", err.message);

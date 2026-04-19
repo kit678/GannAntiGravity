@@ -1,0 +1,725 @@
+react-dom_client.js?v=72609f8c:20101 Download the React DevTools for a better development experience: https://react.dev/link/react-devtools
+TVChartContainer.jsx:65 [TVChart] useEffect triggered - dataSource: yfinance symbol: ^NSEI
+TVChartContainer.jsx:282 [TVChart] TradingView already loaded, initializing directly
+TVChartContainer.jsx:88 [TVChart] Initializing chart with dataSource: yfinance
+ChartDatafeed.js:787 createChartDatafeed called with source: yfinance
+ChartDatafeed.js:6 Creating ChartDatafeed wrapper, source: yfinance
+TVChartContainer.jsx:367 [TVChart] selectedInteraction changed: null
+TVChartContainer.jsx:381 [TVChart] activeChart not available: TypeError: Cannot read properties of undefined (reading 'activeChart')
+    at Be.activeChart (charting_library.js:1:38554)
+    at TVChartContainer.jsx:379:43
+    at Object.react_stack_bottom_frame (react-dom_client.js?v=72609f8c:18565:20)
+    at runWithFiberInDEV (react-dom_client.js?v=72609f8c:995:72)
+    at commitHookEffectListMount (react-dom_client.js?v=72609f8c:9409:163)
+    at commitHookPassiveMountEffects (react-dom_client.js?v=72609f8c:9463:60)
+    at commitPassiveMountOnFiber (react-dom_client.js?v=72609f8c:11038:29)
+    at recursivelyTraversePassiveMountEffects (react-dom_client.js?v=72609f8c:11008:13)
+    at commitPassiveMountOnFiber (react-dom_client.js?v=72609f8c:11199:13)
+    at recursivelyTraversePassiveMountEffects (react-dom_client.js?v=72609f8c:11008:13)
+TVChartContainer.jsx:571 [TVChart] activeChart not ready yet, skipping visibility update.
+$RefreshSig$ @ TVChartContainer.jsx:571
+react_stack_bottom_frame @ react-dom_client.js?v=72609f8c:18565
+runWithFiberInDEV @ react-dom_client.js?v=72609f8c:995
+commitHookEffectListMount @ react-dom_client.js?v=72609f8c:9409
+commitHookPassiveMountEffects @ react-dom_client.js?v=72609f8c:9463
+commitPassiveMountOnFiber @ react-dom_client.js?v=72609f8c:11038
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=72609f8c:11008
+commitPassiveMountOnFiber @ react-dom_client.js?v=72609f8c:11199
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=72609f8c:11008
+commitPassiveMountOnFiber @ react-dom_client.js?v=72609f8c:11199
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=72609f8c:11008
+commitPassiveMountOnFiber @ react-dom_client.js?v=72609f8c:11199
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=72609f8c:11008
+commitPassiveMountOnFiber @ react-dom_client.js?v=72609f8c:11031
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=72609f8c:11008
+commitPassiveMountOnFiber @ react-dom_client.js?v=72609f8c:11199
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=72609f8c:11008
+commitPassiveMountOnFiber @ react-dom_client.js?v=72609f8c:11064
+flushPassiveEffects @ react-dom_client.js?v=72609f8c:13148
+(anonymous) @ react-dom_client.js?v=72609f8c:12774
+performWorkUntilDeadline @ react-dom_client.js?v=72609f8c:34
+<ForwardRef>
+exports.jsxDEV @ react_jsx-dev-runtime.js?v=72609f8c:245
+App @ App.jsx:503
+react_stack_bottom_frame @ react-dom_client.js?v=72609f8c:18507
+renderWithHooksAgain @ react-dom_client.js?v=72609f8c:5727
+renderWithHooks @ react-dom_client.js?v=72609f8c:5663
+updateFunctionComponent @ react-dom_client.js?v=72609f8c:7473
+beginWork @ react-dom_client.js?v=72609f8c:8523
+runWithFiberInDEV @ react-dom_client.js?v=72609f8c:995
+performUnitOfWork @ react-dom_client.js?v=72609f8c:12559
+workLoopSync @ react-dom_client.js?v=72609f8c:12422
+renderRootSync @ react-dom_client.js?v=72609f8c:12406
+performWorkOnRoot @ react-dom_client.js?v=72609f8c:11764
+performWorkOnRootViaSchedulerTask @ react-dom_client.js?v=72609f8c:13503
+performWorkUntilDeadline @ react-dom_client.js?v=72609f8c:34
+<App>
+exports.jsxDEV @ react_jsx-dev-runtime.js?v=72609f8c:245
+(anonymous) @ main.jsx:8
+TVChartContainer.jsx:298 [TVChart] Cleanup - destroying widget
+TVChartContainer.jsx:305 [TVChart] Widget destroyed for clean re-init
+TVChartContainer.jsx:65 [TVChart] useEffect triggered - dataSource: yfinance symbol: ^NSEI
+TVChartContainer.jsx:282 [TVChart] TradingView already loaded, initializing directly
+TVChartContainer.jsx:88 [TVChart] Initializing chart with dataSource: yfinance
+ChartDatafeed.js:787 createChartDatafeed called with source: yfinance
+ChartDatafeed.js:6 Creating ChartDatafeed wrapper, source: yfinance
+TVChartContainer.jsx:367 [TVChart] selectedInteraction changed: null
+TVChartContainer.jsx:381 [TVChart] activeChart not available: TypeError: Cannot read properties of undefined (reading 'activeChart')
+    at Be.activeChart (charting_library.js:1:38554)
+    at TVChartContainer.jsx:379:43
+    at Object.react_stack_bottom_frame (react-dom_client.js?v=72609f8c:18565:20)
+    at runWithFiberInDEV (react-dom_client.js?v=72609f8c:995:72)
+    at commitHookEffectListMount (react-dom_client.js?v=72609f8c:9409:163)
+    at commitHookPassiveMountEffects (react-dom_client.js?v=72609f8c:9463:60)
+    at reconnectPassiveEffects (react-dom_client.js?v=72609f8c:11271:13)
+    at recursivelyTraverseReconnectPassiveEffects (react-dom_client.js?v=72609f8c:11238:11)
+    at reconnectPassiveEffects (react-dom_client.js?v=72609f8c:11315:13)
+    at recursivelyTraverseReconnectPassiveEffects (react-dom_client.js?v=72609f8c:11238:11)
+TVChartContainer.jsx:571 [TVChart] activeChart not ready yet, skipping visibility update.
+$RefreshSig$ @ TVChartContainer.jsx:571
+react_stack_bottom_frame @ react-dom_client.js?v=72609f8c:18565
+runWithFiberInDEV @ react-dom_client.js?v=72609f8c:995
+commitHookEffectListMount @ react-dom_client.js?v=72609f8c:9409
+commitHookPassiveMountEffects @ react-dom_client.js?v=72609f8c:9463
+reconnectPassiveEffects @ react-dom_client.js?v=72609f8c:11271
+recursivelyTraverseReconnectPassiveEffects @ react-dom_client.js?v=72609f8c:11238
+reconnectPassiveEffects @ react-dom_client.js?v=72609f8c:11315
+recursivelyTraverseReconnectPassiveEffects @ react-dom_client.js?v=72609f8c:11238
+reconnectPassiveEffects @ react-dom_client.js?v=72609f8c:11315
+recursivelyTraverseReconnectPassiveEffects @ react-dom_client.js?v=72609f8c:11238
+reconnectPassiveEffects @ react-dom_client.js?v=72609f8c:11315
+recursivelyTraverseReconnectPassiveEffects @ react-dom_client.js?v=72609f8c:11238
+reconnectPassiveEffects @ react-dom_client.js?v=72609f8c:11263
+recursivelyTraverseReconnectPassiveEffects @ react-dom_client.js?v=72609f8c:11238
+reconnectPassiveEffects @ react-dom_client.js?v=72609f8c:11315
+doubleInvokeEffectsOnFiber @ react-dom_client.js?v=72609f8c:13337
+runWithFiberInDEV @ react-dom_client.js?v=72609f8c:995
+recursivelyTraverseAndDoubleInvokeEffectsInDEV @ react-dom_client.js?v=72609f8c:13310
+commitDoubleInvokeEffectsInDEV @ react-dom_client.js?v=72609f8c:13345
+flushPassiveEffects @ react-dom_client.js?v=72609f8c:13155
+(anonymous) @ react-dom_client.js?v=72609f8c:12774
+performWorkUntilDeadline @ react-dom_client.js?v=72609f8c:34
+<ForwardRef>
+exports.jsxDEV @ react_jsx-dev-runtime.js?v=72609f8c:245
+App @ App.jsx:503
+react_stack_bottom_frame @ react-dom_client.js?v=72609f8c:18507
+renderWithHooksAgain @ react-dom_client.js?v=72609f8c:5727
+renderWithHooks @ react-dom_client.js?v=72609f8c:5663
+updateFunctionComponent @ react-dom_client.js?v=72609f8c:7473
+beginWork @ react-dom_client.js?v=72609f8c:8523
+runWithFiberInDEV @ react-dom_client.js?v=72609f8c:995
+performUnitOfWork @ react-dom_client.js?v=72609f8c:12559
+workLoopSync @ react-dom_client.js?v=72609f8c:12422
+renderRootSync @ react-dom_client.js?v=72609f8c:12406
+performWorkOnRoot @ react-dom_client.js?v=72609f8c:11764
+performWorkOnRootViaSchedulerTask @ react-dom_client.js?v=72609f8c:13503
+performWorkUntilDeadline @ react-dom_client.js?v=72609f8c:34
+<App>
+exports.jsxDEV @ react_jsx-dev-runtime.js?v=72609f8c:245
+(anonymous) @ main.jsx:8
+ChartDatafeed.js:38 [ChartDatafeed] onReady called, dataSource: yfinance
+library.668013b6b41ce2feaa5c.js:815 2026-04-19T05:40:36.557Z:Chart.Defaults:Path `paneProperties.priceAxisProperties.log` does not exist.
+S @ library.668013b6b41ce2feaa5c.js:815
+(anonymous) @ library.668013b6b41ce2feaa5c.js:815
+d @ library.668013b6b41ce2feaa5c.js:238
+Ee @ library.668013b6b41ce2feaa5c.js:238
+De @ library.668013b6b41ce2feaa5c.js:238
+ke @ library.668013b6b41ce2feaa5c.js:236
+M @ library.668013b6b41ce2feaa5c.js:224
+T @ library.668013b6b41ce2feaa5c.js:225
+F @ library.668013b6b41ce2feaa5c.js:225
+be @ library.668013b6b41ce2feaa5c.js:240
+loadContent @ library.668013b6b41ce2feaa5c.js:704
+Pf @ library.668013b6b41ce2feaa5c.js:701
+Tb @ library.668013b6b41ce2feaa5c.js:795
+setTimeout
+(anonymous) @ library.668013b6b41ce2feaa5c.js:798
+Promise.then
+37150 @ library.668013b6b41ce2feaa5c.js:798
+o @ runtime.ddf792da21403fea7e07.js:1
+(anonymous) @ library.668013b6b41ce2feaa5c.js:819
+o.O @ runtime.ddf792da21403fea7e07.js:1
+(anonymous) @ library.668013b6b41ce2feaa5c.js:819
+a @ runtime.ddf792da21403fea7e07.js:9
+(anonymous) @ library.668013b6b41ce2feaa5c.js:1
+library.668013b6b41ce2feaa5c.js:815 2026-04-19T05:40:36.580Z:Property:The state with a data type: unknown does not match a schema
+S @ library.668013b6b41ce2feaa5c.js:815
+(anonymous) @ library.668013b6b41ce2feaa5c.js:815
+m @ library.668013b6b41ce2feaa5c.js:321
+addProperty @ library.668013b6b41ce2feaa5c.js:321
+merge @ library.668013b6b41ce2feaa5c.js:321
+kg @ library.668013b6b41ce2feaa5c.js:667
+_createChartWidget @ library.668013b6b41ce2feaa5c.js:711
+_addNewChartWidget @ library.668013b6b41ce2feaa5c.js:712
+setLayout @ library.668013b6b41ce2feaa5c.js:702
+loadContent @ library.668013b6b41ce2feaa5c.js:704
+Pf @ library.668013b6b41ce2feaa5c.js:701
+Tb @ library.668013b6b41ce2feaa5c.js:795
+setTimeout
+(anonymous) @ library.668013b6b41ce2feaa5c.js:798
+Promise.then
+37150 @ library.668013b6b41ce2feaa5c.js:798
+o @ runtime.ddf792da21403fea7e07.js:1
+(anonymous) @ library.668013b6b41ce2feaa5c.js:819
+o.O @ runtime.ddf792da21403fea7e07.js:1
+(anonymous) @ library.668013b6b41ce2feaa5c.js:819
+a @ runtime.ddf792da21403fea7e07.js:9
+(anonymous) @ library.668013b6b41ce2feaa5c.js:1
+library.668013b6b41ce2feaa5c.js:815 2026-04-19T05:40:36.631Z:Property:The state with a data type: object does not match a schema
+S @ library.668013b6b41ce2feaa5c.js:815
+(anonymous) @ library.668013b6b41ce2feaa5c.js:815
+m @ library.668013b6b41ce2feaa5c.js:321
+(anonymous) @ library.668013b6b41ce2feaa5c.js:533
+(anonymous) @ 8971.352a74bc5eebf8040884.js:24
+Rc @ library.668013b6b41ce2feaa5c.js:535
+z_ @ library.668013b6b41ce2feaa5c.js:605
+vm @ library.668013b6b41ce2feaa5c.js:640
+(anonymous) @ library.668013b6b41ce2feaa5c.js:683
+t @ library.668013b6b41ce2feaa5c.js:683
+_makeDefaultModel @ library.668013b6b41ce2feaa5c.js:683
+_init @ library.668013b6b41ce2feaa5c.js:682
+_requestMetadataAndProcessModel @ library.668013b6b41ce2feaa5c.js:686
+await in _requestMetadataAndProcessModel
+_onConnection @ library.668013b6b41ce2feaa5c.js:686
+_onChartSessionIsConnectedChanged @ library.668013b6b41ce2feaa5c.js:665
+setValue @ library.668013b6b41ce2feaa5c.js:73
+_onChartApiConnected @ library.668013b6b41ce2feaa5c.js:654
+onMessage @ library.668013b6b41ce2feaa5c.js:653
+_notifySessions @ library.668013b6b41ce2feaa5c.js:718
+connect @ library.668013b6b41ce2feaa5c.js:715
+(anonymous) @ library.668013b6b41ce2feaa5c.js:715
+_fireEvent @ library.668013b6b41ce2feaa5c.js:718
+start @ library.668013b6b41ce2feaa5c.js:715
+(anonymous) @ library.668013b6b41ce2feaa5c.js:792
+Promise.then
+37150 @ library.668013b6b41ce2feaa5c.js:792
+o @ runtime.ddf792da21403fea7e07.js:1
+(anonymous) @ library.668013b6b41ce2feaa5c.js:819
+o.O @ runtime.ddf792da21403fea7e07.js:1
+(anonymous) @ library.668013b6b41ce2feaa5c.js:819
+a @ runtime.ddf792da21403fea7e07.js:9
+(anonymous) @ library.668013b6b41ce2feaa5c.js:1
+ChartDatafeed.js:50 [ChartDatafeed] resolveSymbol: ^NSEI dataSource: yfinance
+ChartDatafeed.js:65 [ChartDatafeed] Appended YFinance suffix: ^NSEI:YF
+library.668013b6b41ce2feaa5c.js:815 2026-04-19T05:40:36.693Z:Chart.Defaults:Path `paneProperties.priceAxisProperties.log` does not exist.
+S @ library.668013b6b41ce2feaa5c.js:815
+(anonymous) @ library.668013b6b41ce2feaa5c.js:815
+d @ library.668013b6b41ce2feaa5c.js:238
+Ee @ library.668013b6b41ce2feaa5c.js:238
+De @ library.668013b6b41ce2feaa5c.js:238
+Sb @ library.668013b6b41ce2feaa5c.js:792
+QS.applyOverrides @ library.668013b6b41ce2feaa5c.js:793
+(anonymous) @ library.668013b6b41ce2feaa5c.js:797
+Promise.then
+(anonymous) @ library.668013b6b41ce2feaa5c.js:797
+_fireImpl @ library.668013b6b41ce2feaa5c.js:194
+(anonymous) @ library.668013b6b41ce2feaa5c.js:683
+_makeDefaultModel @ library.668013b6b41ce2feaa5c.js:684
+_init @ library.668013b6b41ce2feaa5c.js:682
+_requestMetadataAndProcessModel @ library.668013b6b41ce2feaa5c.js:686
+await in _requestMetadataAndProcessModel
+_onConnection @ library.668013b6b41ce2feaa5c.js:686
+_onChartSessionIsConnectedChanged @ library.668013b6b41ce2feaa5c.js:665
+setValue @ library.668013b6b41ce2feaa5c.js:73
+_onChartApiConnected @ library.668013b6b41ce2feaa5c.js:654
+onMessage @ library.668013b6b41ce2feaa5c.js:653
+_notifySessions @ library.668013b6b41ce2feaa5c.js:718
+connect @ library.668013b6b41ce2feaa5c.js:715
+(anonymous) @ library.668013b6b41ce2feaa5c.js:715
+_fireEvent @ library.668013b6b41ce2feaa5c.js:718
+start @ library.668013b6b41ce2feaa5c.js:715
+(anonymous) @ library.668013b6b41ce2feaa5c.js:792
+Promise.then
+37150 @ library.668013b6b41ce2feaa5c.js:792
+o @ runtime.ddf792da21403fea7e07.js:1
+(anonymous) @ library.668013b6b41ce2feaa5c.js:819
+o.O @ runtime.ddf792da21403fea7e07.js:1
+(anonymous) @ library.668013b6b41ce2feaa5c.js:819
+a @ runtime.ddf792da21403fea7e07.js:9
+(anonymous) @ library.668013b6b41ce2feaa5c.js:1
+ChartDatafeed.js:314 [getBars] Request: ^NSEI:YF | 1 | from: 2026-04-18T10:29:36.000Z | to: 2026-04-19T05:41:36.000Z | countBack: 301 | firstDataRequest: true | customMode: false | dataSource: yfinance
+ChartDatafeed.js:378 [getBars] Making direct HTTP request with data_source=yfinance
+library.668013b6b41ce2feaa5c.js:107  GET https://saveload.tradingview.com/1.1/study_templates?client=tradingview.com&user=public_user_id net::ERR_NETWORK_CHANGED
+A @ library.668013b6b41ce2feaa5c.js:107
+refreshStudyTemplateList @ library.668013b6b41ce2feaa5c.js:429
+Fa @ restricted-toolset.85a0d8dc30a084c60f7d.js:25
+za @ restricted-toolset.85a0d8dc30a084c60f7d.js:26
+Ba @ 2227.c1c4b4d4d12f9774793f.js:18
+No @ 2227.c1c4b4d4d12f9774793f.js:25
+Ei @ 2227.c1c4b4d4d12f9774793f.js:40
+ks @ 2227.c1c4b4d4d12f9774793f.js:36
+ys @ 2227.c1c4b4d4d12f9774793f.js:36
+vs @ 2227.c1c4b4d4d12f9774793f.js:36
+ss @ 2227.c1c4b4d4d12f9774793f.js:35
+jl @ 2227.c1c4b4d4d12f9774793f.js:16
+fs @ 2227.c1c4b4d4d12f9774793f.js:35
+(anonymous) @ 2227.c1c4b4d4d12f9774793f.js:41
+ec @ 2227.c1c4b4d4d12f9774793f.js:41
+n.render @ 2227.c1c4b4d4d12f9774793f.js:43
+Fe @ header-toolbar.2a1db3d6309536cde3c0.js:12
+(anonymous) @ library.668013b6b41ce2feaa5c.js:424
+Promise.then
+_startLoading @ library.668013b6b41ce2feaa5c.js:424
+_tryLoad @ library.668013b6b41ce2feaa5c.js:85
+load @ library.668013b6b41ce2feaa5c.js:85
+Tb @ library.668013b6b41ce2feaa5c.js:796
+setTimeout
+(anonymous) @ library.668013b6b41ce2feaa5c.js:798
+Promise.then
+37150 @ library.668013b6b41ce2feaa5c.js:798
+o @ runtime.ddf792da21403fea7e07.js:1
+(anonymous) @ library.668013b6b41ce2feaa5c.js:819
+o.O @ runtime.ddf792da21403fea7e07.js:1
+(anonymous) @ library.668013b6b41ce2feaa5c.js:819
+a @ runtime.ddf792da21403fea7e07.js:9
+(anonymous) @ library.668013b6b41ce2feaa5c.js:1
+library.668013b6b41ce2feaa5c.js:815 2026-04-19T05:40:37.799Z:Chart.SaveloadAdapter.Library:Failed to fetch TypeError: Failed to fetch
+    at Module.A (library.668013b6b41ce2feaa5c.js:107:493)
+    at he.refreshStudyTemplateList (library.668013b6b41ce2feaa5c.js:429:2894)
+    at new Fa (restricted-toolset.85a0d8dc30a084c60f7d.js:25:1433)
+    at new za (restricted-toolset.85a0d8dc30a084c60f7d.js:26:1581)
+    at Ba (2227.c1c4b4d4d12f9774793f.js:18:2752)
+    at No (2227.c1c4b4d4d12f9774793f.js:25:1677)
+    at Ei (2227.c1c4b4d4d12f9774793f.js:40:1601)
+    at ks (2227.c1c4b4d4d12f9774793f.js:36:2115)
+    at ys (2227.c1c4b4d4d12f9774793f.js:36:2043)
+    at vs (2227.c1c4b4d4d12f9774793f.js:36:1906)
+S @ library.668013b6b41ce2feaa5c.js:815
+(anonymous) @ library.668013b6b41ce2feaa5c.js:815
+A @ library.668013b6b41ce2feaa5c.js:107
+await in A
+refreshStudyTemplateList @ library.668013b6b41ce2feaa5c.js:429
+Fa @ restricted-toolset.85a0d8dc30a084c60f7d.js:25
+za @ restricted-toolset.85a0d8dc30a084c60f7d.js:26
+Ba @ 2227.c1c4b4d4d12f9774793f.js:18
+No @ 2227.c1c4b4d4d12f9774793f.js:25
+Ei @ 2227.c1c4b4d4d12f9774793f.js:40
+ks @ 2227.c1c4b4d4d12f9774793f.js:36
+ys @ 2227.c1c4b4d4d12f9774793f.js:36
+vs @ 2227.c1c4b4d4d12f9774793f.js:36
+ss @ 2227.c1c4b4d4d12f9774793f.js:35
+jl @ 2227.c1c4b4d4d12f9774793f.js:16
+fs @ 2227.c1c4b4d4d12f9774793f.js:35
+(anonymous) @ 2227.c1c4b4d4d12f9774793f.js:41
+ec @ 2227.c1c4b4d4d12f9774793f.js:41
+n.render @ 2227.c1c4b4d4d12f9774793f.js:43
+Fe @ header-toolbar.2a1db3d6309536cde3c0.js:12
+(anonymous) @ library.668013b6b41ce2feaa5c.js:424
+Promise.then
+_startLoading @ library.668013b6b41ce2feaa5c.js:424
+_tryLoad @ library.668013b6b41ce2feaa5c.js:85
+load @ library.668013b6b41ce2feaa5c.js:85
+Tb @ library.668013b6b41ce2feaa5c.js:796
+setTimeout
+(anonymous) @ library.668013b6b41ce2feaa5c.js:798
+Promise.then
+37150 @ library.668013b6b41ce2feaa5c.js:798
+o @ runtime.ddf792da21403fea7e07.js:1
+(anonymous) @ library.668013b6b41ce2feaa5c.js:819
+o.O @ runtime.ddf792da21403fea7e07.js:1
+(anonymous) @ library.668013b6b41ce2feaa5c.js:819
+a @ runtime.ddf792da21403fea7e07.js:9
+(anonymous) @ library.668013b6b41ce2feaa5c.js:1
+library.668013b6b41ce2feaa5c.js:107  Uncaught (in promise) TypeError: Failed to fetch
+    at Module.A (library.668013b6b41ce2feaa5c.js:107:493)
+    at he.refreshStudyTemplateList (library.668013b6b41ce2feaa5c.js:429:2894)
+    at new Fa (restricted-toolset.85a0d8dc30a084c60f7d.js:25:1433)
+    at new za (restricted-toolset.85a0d8dc30a084c60f7d.js:26:1581)
+    at Ba (2227.c1c4b4d4d12f9774793f.js:18:2752)
+    at No (2227.c1c4b4d4d12f9774793f.js:25:1677)
+    at Ei (2227.c1c4b4d4d12f9774793f.js:40:1601)
+    at ks (2227.c1c4b4d4d12f9774793f.js:36:2115)
+    at ys (2227.c1c4b4d4d12f9774793f.js:36:2043)
+    at vs (2227.c1c4b4d4d12f9774793f.js:36:1906)
+A @ library.668013b6b41ce2feaa5c.js:107
+refreshStudyTemplateList @ library.668013b6b41ce2feaa5c.js:429
+Fa @ restricted-toolset.85a0d8dc30a084c60f7d.js:25
+za @ restricted-toolset.85a0d8dc30a084c60f7d.js:26
+Ba @ 2227.c1c4b4d4d12f9774793f.js:18
+No @ 2227.c1c4b4d4d12f9774793f.js:25
+Ei @ 2227.c1c4b4d4d12f9774793f.js:40
+ks @ 2227.c1c4b4d4d12f9774793f.js:36
+ys @ 2227.c1c4b4d4d12f9774793f.js:36
+vs @ 2227.c1c4b4d4d12f9774793f.js:36
+ss @ 2227.c1c4b4d4d12f9774793f.js:35
+jl @ 2227.c1c4b4d4d12f9774793f.js:16
+fs @ 2227.c1c4b4d4d12f9774793f.js:35
+(anonymous) @ 2227.c1c4b4d4d12f9774793f.js:41
+ec @ 2227.c1c4b4d4d12f9774793f.js:41
+n.render @ 2227.c1c4b4d4d12f9774793f.js:43
+Fe @ header-toolbar.2a1db3d6309536cde3c0.js:12
+(anonymous) @ library.668013b6b41ce2feaa5c.js:424
+Promise.then
+_startLoading @ library.668013b6b41ce2feaa5c.js:424
+_tryLoad @ library.668013b6b41ce2feaa5c.js:85
+load @ library.668013b6b41ce2feaa5c.js:85
+Tb @ library.668013b6b41ce2feaa5c.js:796
+setTimeout
+(anonymous) @ library.668013b6b41ce2feaa5c.js:798
+Promise.then
+37150 @ library.668013b6b41ce2feaa5c.js:798
+o @ runtime.ddf792da21403fea7e07.js:1
+(anonymous) @ library.668013b6b41ce2feaa5c.js:819
+o.O @ runtime.ddf792da21403fea7e07.js:1
+(anonymous) @ library.668013b6b41ce2feaa5c.js:819
+a @ runtime.ddf792da21403fea7e07.js:9
+(anonymous) @ library.668013b6b41ce2feaa5c.js:1
+ChartDatafeed.js:397 [getBars] HTTP Response: {s: 'ok', t: Array(2996), o: Array(2996), h: Array(2996), l: Array(2996), …}
+ChartDatafeed.js:422 [getBars] Parsed 2996 bars from UDF response
+ChartDatafeed.js:426   Range: 2026-04-07T03:45:00.000Z to 2026-04-17T09:59:00.000Z
+ChartDatafeed.js:451 [ChartDatafeed] subscribeBars called for ^NSEI:YF_#_1 customMode: false
+TVChartContainer.jsx:139 [Chart] Ready
+TVChartContainer.jsx:164 [Chart] Applied and Locked backend PriceToBarRatio: 0.9151
+TVChartContainer.jsx:236 [Chart] Interval Changed to: 4
+TVChartContainer.jsx:240 [TVChart] Interval changed but symbol is undefined, skipping ratio update
+$RefreshSig$ @ TVChartContainer.jsx:240
+_fireImpl @ library.668013b6b41ce2feaa5c.js:194
+_notifyIntervalChanged @ library.668013b6b41ce2feaa5c.js:370
+_applySymbolParamsChanges @ library.668013b6b41ce2feaa5c.js:370
+setSymbolParams @ library.668013b6b41ce2feaa5c.js:363
+(anonymous) @ library.668013b6b41ce2feaa5c.js:527
+redo @ library.668013b6b41ce2feaa5c.js:527
+a @ library.668013b6b41ce2feaa5c.js:698
+_pushUndoCommand @ library.668013b6b41ce2feaa5c.js:650
+setResolution @ library.668013b6b41ce2feaa5c.js:649
+setResolution @ library.668013b6b41ce2feaa5c.js:669
+_applyResolution @ library.668013b6b41ce2feaa5c.js:713
+setResolution @ library.668013b6b41ce2feaa5c.js:703
+_setGroupInterval @ library.668013b6b41ce2feaa5c.js:90
+_watchedIntervalListener @ library.668013b6b41ce2feaa5c.js:88
+setValue @ library.668013b6b41ce2feaa5c.js:73
+(anonymous) @ library.668013b6b41ce2feaa5c.js:90
+setValue @ library.668013b6b41ce2feaa5c.js:73
+setIntervalAndLogInitiator @ library.668013b6b41ce2feaa5c.js:92
+Pe._handleSelectInterval @ restricted-toolset.85a0d8dc30a084c60f7d.js:12
+onClick @ 6193.15a1126a4ea5d5a80cbc.js:3
+Oe @ 2227.c1c4b4d4d12f9774793f.js:6
+$e @ 2227.c1c4b4d4d12f9774793f.js:6
+(anonymous) @ 2227.c1c4b4d4d12f9774793f.js:13
+Ir @ 2227.c1c4b4d4d12f9774793f.js:13
+Ur @ 2227.c1c4b4d4d12f9774793f.js:13
+(anonymous) @ 2227.c1c4b4d4d12f9774793f.js:15
+cs @ 2227.c1c4b4d4d12f9774793f.js:35
+Le @ 2227.c1c4b4d4d12f9774793f.js:6
+Hr @ 2227.c1c4b4d4d12f9774793f.js:13
+Kn @ 2227.c1c4b4d4d12f9774793f.js:8
+Qn @ 2227.c1c4b4d4d12f9774793f.js:8
+ChartDatafeed.js:314 [getBars] Request: ^NSEI:YF | 4 | from: 2026-04-16T00:53:49.000Z | to: 2026-04-19T05:41:49.000Z | countBack: 300 | firstDataRequest: true | customMode: false | dataSource: yfinance
+ChartDatafeed.js:378 [getBars] Making direct HTTP request with data_source=yfinance
+ChartDatafeed.js:397 [getBars] HTTP Response: {s: 'ok', t: Array(751), o: Array(751), h: Array(751), l: Array(751), …}
+ChartDatafeed.js:422 [getBars] Parsed 751 bars from UDF response
+ChartDatafeed.js:426   Range: 2026-04-07T03:45:00.000Z to 2026-04-17T09:57:00.000Z
+ChartDatafeed.js:451 [ChartDatafeed] subscribeBars called for ^NSEI:YF_#_4 customMode: false
+App.jsx:227 [Step-by-Step] Simulation start: 2025-11-07 timestamp: 1762453800
+TVChartContainer.jsx:899 [TVChart] getResolution calls -> Widget reports: 4
+App.jsx:243 [Step-by-Step] Fetching candles: 2025-11-07 to 2026-04-19, resolution: 4, strategy: angular_coverage
+App.jsx:282 [Step-by-Step] Fetched 751 candles (includes 5000 lookback bars for context). Initial Markers: 0
+TVChartContainer.jsx:1191 [Progressive Replay] Starting with 751 candles, strategy: angular_coverage instrument: spot pivotSettings: {leftBars: 5, rightBars: 5, showIntersectionLabels: false, initialMarkers: Array(0), initialDrawings: Array(0)}
+TVChartContainer.jsx:1209 [Progressive Replay] Replay point at index 0, starting from 0 (with context)
+ChartDatafeed.js:205 [Datafeed] Progressive replay mode: 751 candles, strategy: angular_coverage instrument: spot scaleRatio: null pivotSettings: {leftBars: 5, rightBars: 5, showIntersectionLabels: false, initialMarkers: Array(0), initialDrawings: Array(0)}
+ChartDatafeed.js:295 [ChartDatafeed] Unsubscribing from original UDF datafeed
+ChartDatafeed.js:236 [Datafeed] Clearing chart data...
+TVChartContainer.jsx:1429 [Progressive Replay] Chart ready - cleared existing shapes
+TVChartContainer.jsx:1456 [Progressive Replay] dataReady fired - Setting visible range: 4/7/2026, 9:15:00 AM to 4/7/2026, 10:15:00 AM
+TVChartContainer.jsx:191 [Chart] Symbol Changed to: {name: 'NIFTY 50', base_name: Array(1), ticker: '^NSEI:YF', description: 'NIFTY 50', long_description: undefined, …}
+App.jsx:120 Active Symbol Updated: ^NSEI
+ChartDatafeed.js:314 [getBars] Request: ^NSEI:YF | 4 | from: 2026-04-16T20:21:15.000Z | to: 2026-04-19T05:41:53.000Z | countBack: 224 | firstDataRequest: true | customMode: true | dataSource: yfinance
+ChartDatafeed.js:350 [getBars] CUSTOM MODE: Request 1776370875-1776577313. Serving 0 bars.
+ChartDatafeed.js:314 [getBars] Request: ^NSEI:YF | 4 | from: 2026-04-14T11:00:36.000Z | to: 2026-04-16T20:21:15.000Z | countBack: 224 | firstDataRequest: false | customMode: true | dataSource: yfinance
+ChartDatafeed.js:350 [getBars] CUSTOM MODE: Request 1776164436-1776370875. Serving 0 bars.
+ChartDatafeed.js:314 [getBars] Request: ^NSEI:YF | 4 | from: 2026-04-12T01:39:58.000Z | to: 2026-04-14T11:00:36.000Z | countBack: 224 | firstDataRequest: false | customMode: true | dataSource: yfinance
+ChartDatafeed.js:350 [getBars] CUSTOM MODE: Request 1775957998-1776164436. Serving 0 bars.
+ChartDatafeed.js:314 [getBars] Request: ^NSEI:YF | 4 | from: 2026-04-09T16:19:19.000Z | to: 2026-04-12T01:39:58.000Z | countBack: 224 | firstDataRequest: false | customMode: true | dataSource: yfinance
+ChartDatafeed.js:350 [getBars] CUSTOM MODE: Request 1775751559-1775957998. Serving 0 bars.
+ChartDatafeed.js:314 [getBars] Request: ^NSEI:YF | 4 | from: 2026-04-07T06:58:41.000Z | to: 2026-04-09T16:19:19.000Z | countBack: 224 | firstDataRequest: false | customMode: true | dataSource: yfinance
+ChartDatafeed.js:350 [getBars] CUSTOM MODE: Request 1775545121-1775751559. Serving 0 bars.
+ChartDatafeed.js:314 [getBars] Request: ^NSEI:YF | 4 | from: 2026-04-04T21:38:03.000Z | to: 2026-04-07T06:58:41.000Z | countBack: 224 | firstDataRequest: false | customMode: true | dataSource: yfinance
+ChartDatafeed.js:350 [getBars] CUSTOM MODE: Request 1775338683-1775545121. Serving 1 bars.
+ChartDatafeed.js:314 [getBars] Request: ^NSEI:YF | 4 | from: 2026-04-02T12:32:46.000Z | to: 2026-04-04T21:38:03.000Z | countBack: 223 | firstDataRequest: false | customMode: true | dataSource: yfinance
+ChartDatafeed.js:350 [getBars] CUSTOM MODE: Request 1775133166-1775338683. Serving 0 bars.
+ChartDatafeed.js:366 [getBars] CUSTOM MODE: Requested range is older than available data. NoData = true.
+ChartDatafeed.js:451 [ChartDatafeed] subscribeBars called for ^NSEI:YF_#_4 customMode: true
+ChartDatafeed.js:462 [ChartDatafeed] Custom mode: Managing subscription internally
+TVChartContainer.jsx:1500 [Progressive Replay] Fetched and locked authoritative Price-to-Bar Ratio to 3.6603
+TVChartContainer.jsx:1514 [Progressive Replay] Waiting for visible range to be applied...
+TVChartContainer.jsx:218 [Chart] Updated and Locked PriceToBarRatio to 3.6603 for new symbol: ^NSEI
+TVChartContainer.jsx:1464 [Progressive Replay] Visible range set successfully
+TVChartContainer.jsx:1516 [Progressive Replay] Visible range handling complete, now locking scale...
+TVChartContainer.jsx:1526 [Progressive Replay] Explicitly locked price axis scale
+TVChartContainer.jsx:1589 [Progressive Replay] No initial markers/drawings found in pivotSettings
+ChartDatafeed.js:271 [Datafeed] Updating replay strategy params: angular_coverage spot 3.6603 {leftBars: 5, rightBars: 5, showIntersectionLabels: false, initialMarkers: Array(0), initialDrawings: Array(0)}
+ChartDatafeed.js:280 [Datafeed] Replay strategy updated
+ChartDatafeed.js:288 [Datafeed] Re-evaluating initial step after chart ready: 0
+ChartDatafeed.js:677 === [STUDY DEBUG] ===
+ChartDatafeed.js:678 [Study] Step: 0
+ChartDatafeed.js:679 [Study] Drawings: 0
+ChartDatafeed.js:680 [Study] Pivot Markers: 0
+ChartDatafeed.js:696 [Study] Debug Info: {}
+ChartDatafeed.js:698 ===================
+TVChartContainer.jsx:1304 [DEBUG] activeDrawingIds: 0 []
+TVChartContainer.jsx:1305 [DEBUG] fanLabelsRef before: 0
+TVChartContainer.jsx:1312 [DEBUG] fanLabelsRef after: 0
+ChartDatafeed.js:558 Moving to bar 1 time: 4/7/2026, 9:19:00 AM
+ChartDatafeed.js:582 [playback_step] Notifying 1 subscribers about bar 1
+ChartDatafeed.js:586 [playback_step] Pushing bar to subscriber ^NSEI:YF_#_4: time=2026-04-07T03:49:00.000Z
+ChartDatafeed.js:677 === [STUDY DEBUG] ===
+ChartDatafeed.js:678 [Study] Step: 1
+ChartDatafeed.js:679 [Study] Drawings: 0
+ChartDatafeed.js:680 [Study] Pivot Markers: 0
+ChartDatafeed.js:696 [Study] Debug Info: {}
+ChartDatafeed.js:698 ===================
+TVChartContainer.jsx:1304 [DEBUG] activeDrawingIds: 0 []
+TVChartContainer.jsx:1305 [DEBUG] fanLabelsRef before: 0
+TVChartContainer.jsx:1312 [DEBUG] fanLabelsRef after: 0
+ChartDatafeed.js:558 Moving to bar 2 time: 4/7/2026, 9:23:00 AM
+ChartDatafeed.js:582 [playback_step] Notifying 1 subscribers about bar 2
+ChartDatafeed.js:586 [playback_step] Pushing bar to subscriber ^NSEI:YF_#_4: time=2026-04-07T03:53:00.000Z
+ChartDatafeed.js:677 === [STUDY DEBUG] ===
+ChartDatafeed.js:678 [Study] Step: 2
+ChartDatafeed.js:679 [Study] Drawings: 0
+ChartDatafeed.js:680 [Study] Pivot Markers: 0
+ChartDatafeed.js:696 [Study] Debug Info: {}
+ChartDatafeed.js:698 ===================
+TVChartContainer.jsx:1304 [DEBUG] activeDrawingIds: 0 []
+TVChartContainer.jsx:1305 [DEBUG] fanLabelsRef before: 0
+TVChartContainer.jsx:1312 [DEBUG] fanLabelsRef after: 0
+ChartDatafeed.js:558 Moving to bar 3 time: 4/7/2026, 9:27:00 AM
+ChartDatafeed.js:582 [playback_step] Notifying 1 subscribers about bar 3
+ChartDatafeed.js:586 [playback_step] Pushing bar to subscriber ^NSEI:YF_#_4: time=2026-04-07T03:57:00.000Z
+ChartDatafeed.js:677 === [STUDY DEBUG] ===
+ChartDatafeed.js:678 [Study] Step: 3
+ChartDatafeed.js:679 [Study] Drawings: 0
+ChartDatafeed.js:680 [Study] Pivot Markers: 0
+ChartDatafeed.js:696 [Study] Debug Info: {}
+ChartDatafeed.js:698 ===================
+TVChartContainer.jsx:1304 [DEBUG] activeDrawingIds: 0 []
+TVChartContainer.jsx:1305 [DEBUG] fanLabelsRef before: 0
+TVChartContainer.jsx:1312 [DEBUG] fanLabelsRef after: 0
+ChartDatafeed.js:558 Moving to bar 4 time: 4/7/2026, 9:31:00 AM
+ChartDatafeed.js:582 [playback_step] Notifying 1 subscribers about bar 4
+ChartDatafeed.js:586 [playback_step] Pushing bar to subscriber ^NSEI:YF_#_4: time=2026-04-07T04:01:00.000Z
+ChartDatafeed.js:677 === [STUDY DEBUG] ===
+ChartDatafeed.js:678 [Study] Step: 4
+ChartDatafeed.js:679 [Study] Drawings: 0
+ChartDatafeed.js:680 [Study] Pivot Markers: 0
+ChartDatafeed.js:696 [Study] Debug Info: {}
+ChartDatafeed.js:698 ===================
+TVChartContainer.jsx:1304 [DEBUG] activeDrawingIds: 0 []
+TVChartContainer.jsx:1305 [DEBUG] fanLabelsRef before: 0
+TVChartContainer.jsx:1312 [DEBUG] fanLabelsRef after: 0
+ChartDatafeed.js:558 Moving to bar 5 time: 4/7/2026, 9:35:00 AM
+ChartDatafeed.js:582 [playback_step] Notifying 1 subscribers about bar 5
+ChartDatafeed.js:586 [playback_step] Pushing bar to subscriber ^NSEI:YF_#_4: time=2026-04-07T04:05:00.000Z
+ChartDatafeed.js:677 === [STUDY DEBUG] ===
+ChartDatafeed.js:678 [Study] Step: 5
+ChartDatafeed.js:679 [Study] Drawings: 0
+ChartDatafeed.js:680 [Study] Pivot Markers: 0
+ChartDatafeed.js:696 [Study] Debug Info: {}
+ChartDatafeed.js:698 ===================
+TVChartContainer.jsx:1304 [DEBUG] activeDrawingIds: 0 []
+TVChartContainer.jsx:1305 [DEBUG] fanLabelsRef before: 0
+TVChartContainer.jsx:1312 [DEBUG] fanLabelsRef after: 0
+ChartDatafeed.js:558 Moving to bar 6 time: 4/7/2026, 9:39:00 AM
+ChartDatafeed.js:582 [playback_step] Notifying 1 subscribers about bar 6
+ChartDatafeed.js:586 [playback_step] Pushing bar to subscriber ^NSEI:YF_#_4: time=2026-04-07T04:09:00.000Z
+ChartDatafeed.js:677 === [STUDY DEBUG] ===
+ChartDatafeed.js:678 [Study] Step: 6
+ChartDatafeed.js:679 [Study] Drawings: 0
+ChartDatafeed.js:680 [Study] Pivot Markers: 0
+ChartDatafeed.js:696 [Study] Debug Info: {}
+ChartDatafeed.js:698 ===================
+TVChartContainer.jsx:1304 [DEBUG] activeDrawingIds: 0 []
+TVChartContainer.jsx:1305 [DEBUG] fanLabelsRef before: 0
+TVChartContainer.jsx:1312 [DEBUG] fanLabelsRef after: 0
+ChartDatafeed.js:558 Moving to bar 7 time: 4/7/2026, 9:43:00 AM
+ChartDatafeed.js:582 [playback_step] Notifying 1 subscribers about bar 7
+ChartDatafeed.js:586 [playback_step] Pushing bar to subscriber ^NSEI:YF_#_4: time=2026-04-07T04:13:00.000Z
+ChartDatafeed.js:677 === [STUDY DEBUG] ===
+ChartDatafeed.js:678 [Study] Step: 7
+ChartDatafeed.js:679 [Study] Drawings: 0
+ChartDatafeed.js:680 [Study] Pivot Markers: 0
+ChartDatafeed.js:696 [Study] Debug Info: {}
+ChartDatafeed.js:698 ===================
+TVChartContainer.jsx:1304 [DEBUG] activeDrawingIds: 0 []
+TVChartContainer.jsx:1305 [DEBUG] fanLabelsRef before: 0
+TVChartContainer.jsx:1312 [DEBUG] fanLabelsRef after: 0
+ChartDatafeed.js:558 Moving to bar 8 time: 4/7/2026, 9:47:00 AM
+ChartDatafeed.js:582 [playback_step] Notifying 1 subscribers about bar 8
+ChartDatafeed.js:586 [playback_step] Pushing bar to subscriber ^NSEI:YF_#_4: time=2026-04-07T04:17:00.000Z
+ChartDatafeed.js:677 === [STUDY DEBUG] ===
+ChartDatafeed.js:678 [Study] Step: 8
+ChartDatafeed.js:679 [Study] Drawings: 0
+ChartDatafeed.js:680 [Study] Pivot Markers: 0
+ChartDatafeed.js:696 [Study] Debug Info: {}
+ChartDatafeed.js:698 ===================
+TVChartContainer.jsx:1304 [DEBUG] activeDrawingIds: 0 []
+TVChartContainer.jsx:1305 [DEBUG] fanLabelsRef before: 0
+TVChartContainer.jsx:1312 [DEBUG] fanLabelsRef after: 0
+ChartDatafeed.js:558 Moving to bar 9 time: 4/7/2026, 9:51:00 AM
+ChartDatafeed.js:582 [playback_step] Notifying 1 subscribers about bar 9
+ChartDatafeed.js:586 [playback_step] Pushing bar to subscriber ^NSEI:YF_#_4: time=2026-04-07T04:21:00.000Z
+ChartDatafeed.js:677 === [STUDY DEBUG] ===
+ChartDatafeed.js:678 [Study] Step: 9
+ChartDatafeed.js:679 [Study] Drawings: 0
+ChartDatafeed.js:680 [Study] Pivot Markers: 0
+ChartDatafeed.js:696 [Study] Debug Info: {}
+ChartDatafeed.js:698 ===================
+TVChartContainer.jsx:1304 [DEBUG] activeDrawingIds: 0 []
+TVChartContainer.jsx:1305 [DEBUG] fanLabelsRef before: 0
+TVChartContainer.jsx:1312 [DEBUG] fanLabelsRef after: 0
+ChartDatafeed.js:558 Moving to bar 10 time: 4/7/2026, 9:55:00 AM
+ChartDatafeed.js:582 [playback_step] Notifying 1 subscribers about bar 10
+ChartDatafeed.js:586 [playback_step] Pushing bar to subscriber ^NSEI:YF_#_4: time=2026-04-07T04:25:00.000Z
+ChartDatafeed.js:677 === [STUDY DEBUG] ===
+ChartDatafeed.js:678 [Study] Step: 10
+ChartDatafeed.js:679 [Study] Drawings: 0
+ChartDatafeed.js:680 [Study] Pivot Markers: 0
+ChartDatafeed.js:696 [Study] Debug Info: {}
+ChartDatafeed.js:698 ===================
+TVChartContainer.jsx:1304 [DEBUG] activeDrawingIds: 0 []
+TVChartContainer.jsx:1305 [DEBUG] fanLabelsRef before: 0
+TVChartContainer.jsx:1312 [DEBUG] fanLabelsRef after: 0
+ChartDatafeed.js:558 Moving to bar 11 time: 4/7/2026, 9:59:00 AM
+ChartDatafeed.js:582 [playback_step] Notifying 1 subscribers about bar 11
+ChartDatafeed.js:586 [playback_step] Pushing bar to subscriber ^NSEI:YF_#_4: time=2026-04-07T04:29:00.000Z
+ChartDatafeed.js:677 === [STUDY DEBUG] ===
+ChartDatafeed.js:678 [Study] Step: 11
+ChartDatafeed.js:679 [Study] Drawings: 0
+ChartDatafeed.js:680 [Study] Pivot Markers: 0
+ChartDatafeed.js:696 [Study] Debug Info: {}
+ChartDatafeed.js:698 ===================
+TVChartContainer.jsx:1304 [DEBUG] activeDrawingIds: 0 []
+TVChartContainer.jsx:1305 [DEBUG] fanLabelsRef before: 0
+TVChartContainer.jsx:1312 [DEBUG] fanLabelsRef after: 0
+ChartDatafeed.js:558 Moving to bar 12 time: 4/7/2026, 10:03:00 AM
+ChartDatafeed.js:582 [playback_step] Notifying 1 subscribers about bar 12
+ChartDatafeed.js:586 [playback_step] Pushing bar to subscriber ^NSEI:YF_#_4: time=2026-04-07T04:33:00.000Z
+ChartDatafeed.js:677 === [STUDY DEBUG] ===
+ChartDatafeed.js:678 [Study] Step: 12
+ChartDatafeed.js:679 [Study] Drawings: 0
+ChartDatafeed.js:680 [Study] Pivot Markers: 0
+ChartDatafeed.js:696 [Study] Debug Info: {}
+ChartDatafeed.js:698 ===================
+TVChartContainer.jsx:1304 [DEBUG] activeDrawingIds: 0 []
+TVChartContainer.jsx:1305 [DEBUG] fanLabelsRef before: 0
+TVChartContainer.jsx:1312 [DEBUG] fanLabelsRef after: 0
+ChartDatafeed.js:558 Moving to bar 13 time: 4/7/2026, 10:07:00 AM
+ChartDatafeed.js:582 [playback_step] Notifying 1 subscribers about bar 13
+ChartDatafeed.js:586 [playback_step] Pushing bar to subscriber ^NSEI:YF_#_4: time=2026-04-07T04:37:00.000Z
+ChartDatafeed.js:677 === [STUDY DEBUG] ===
+ChartDatafeed.js:678 [Study] Step: 13
+ChartDatafeed.js:679 [Study] Drawings: 0
+ChartDatafeed.js:680 [Study] Pivot Markers: 0
+ChartDatafeed.js:696 [Study] Debug Info: {}
+ChartDatafeed.js:698 ===================
+TVChartContainer.jsx:1304 [DEBUG] activeDrawingIds: 0 []
+TVChartContainer.jsx:1305 [DEBUG] fanLabelsRef before: 0
+TVChartContainer.jsx:1312 [DEBUG] fanLabelsRef after: 0
+ChartDatafeed.js:558 Moving to bar 14 time: 4/7/2026, 10:11:00 AM
+ChartDatafeed.js:582 [playback_step] Notifying 1 subscribers about bar 14
+ChartDatafeed.js:586 [playback_step] Pushing bar to subscriber ^NSEI:YF_#_4: time=2026-04-07T04:41:00.000Z
+ChartDatafeed.js:677 === [STUDY DEBUG] ===
+ChartDatafeed.js:678 [Study] Step: 14
+ChartDatafeed.js:679 [Study] Drawings: 0
+ChartDatafeed.js:680 [Study] Pivot Markers: 0
+ChartDatafeed.js:696 [Study] Debug Info: {}
+ChartDatafeed.js:698 ===================
+TVChartContainer.jsx:1304 [DEBUG] activeDrawingIds: 0 []
+TVChartContainer.jsx:1305 [DEBUG] fanLabelsRef before: 0
+TVChartContainer.jsx:1312 [DEBUG] fanLabelsRef after: 0
+ChartDatafeed.js:558 Moving to bar 15 time: 4/7/2026, 10:15:00 AM
+ChartDatafeed.js:582 [playback_step] Notifying 1 subscribers about bar 15
+ChartDatafeed.js:586 [playback_step] Pushing bar to subscriber ^NSEI:YF_#_4: time=2026-04-07T04:45:00.000Z
+ChartDatafeed.js:677 === [STUDY DEBUG] ===
+ChartDatafeed.js:678 [Study] Step: 15
+ChartDatafeed.js:679 [Study] Drawings: 0
+ChartDatafeed.js:680 [Study] Pivot Markers: 0
+ChartDatafeed.js:696 [Study] Debug Info: {}
+ChartDatafeed.js:698 ===================
+TVChartContainer.jsx:1304 [DEBUG] activeDrawingIds: 0 []
+TVChartContainer.jsx:1305 [DEBUG] fanLabelsRef before: 0
+TVChartContainer.jsx:1312 [DEBUG] fanLabelsRef after: 0
+ChartDatafeed.js:558 Moving to bar 16 time: 4/7/2026, 10:19:00 AM
+ChartDatafeed.js:582 [playback_step] Notifying 1 subscribers about bar 16
+ChartDatafeed.js:586 [playback_step] Pushing bar to subscriber ^NSEI:YF_#_4: time=2026-04-07T04:49:00.000Z
+ChartDatafeed.js:677 === [STUDY DEBUG] ===
+ChartDatafeed.js:678 [Study] Step: 16
+ChartDatafeed.js:679 [Study] Drawings: 0
+ChartDatafeed.js:680 [Study] Pivot Markers: 0
+ChartDatafeed.js:696 [Study] Debug Info: {}
+ChartDatafeed.js:698 ===================
+TVChartContainer.jsx:1304 [DEBUG] activeDrawingIds: 0 []
+TVChartContainer.jsx:1305 [DEBUG] fanLabelsRef before: 0
+TVChartContainer.jsx:1312 [DEBUG] fanLabelsRef after: 0
+ChartDatafeed.js:558 Moving to bar 17 time: 4/7/2026, 10:23:00 AM
+ChartDatafeed.js:582 [playback_step] Notifying 1 subscribers about bar 17
+ChartDatafeed.js:586 [playback_step] Pushing bar to subscriber ^NSEI:YF_#_4: time=2026-04-07T04:53:00.000Z
+ChartDatafeed.js:677 === [STUDY DEBUG] ===
+ChartDatafeed.js:678 [Study] Step: 17
+ChartDatafeed.js:679 [Study] Drawings: 0
+ChartDatafeed.js:680 [Study] Pivot Markers: 0
+ChartDatafeed.js:696 [Study] Debug Info: {}
+ChartDatafeed.js:698 ===================
+TVChartContainer.jsx:1304 [DEBUG] activeDrawingIds: 0 []
+TVChartContainer.jsx:1305 [DEBUG] fanLabelsRef before: 0
+TVChartContainer.jsx:1312 [DEBUG] fanLabelsRef after: 0
+ChartDatafeed.js:558 Moving to bar 18 time: 4/7/2026, 10:27:00 AM
+ChartDatafeed.js:582 [playback_step] Notifying 1 subscribers about bar 18
+ChartDatafeed.js:586 [playback_step] Pushing bar to subscriber ^NSEI:YF_#_4: time=2026-04-07T04:57:00.000Z
+ChartDatafeed.js:677 === [STUDY DEBUG] ===
+ChartDatafeed.js:678 [Study] Step: 18
+ChartDatafeed.js:679 [Study] Drawings: 0
+ChartDatafeed.js:680 [Study] Pivot Markers: 0
+ChartDatafeed.js:696 [Study] Debug Info: {}
+ChartDatafeed.js:698 ===================
+TVChartContainer.jsx:1304 [DEBUG] activeDrawingIds: 0 []
+TVChartContainer.jsx:1305 [DEBUG] fanLabelsRef before: 0
+TVChartContainer.jsx:1312 [DEBUG] fanLabelsRef after: 0
+ChartDatafeed.js:558 Moving to bar 19 time: 4/7/2026, 10:31:00 AM
+ChartDatafeed.js:582 [playback_step] Notifying 1 subscribers about bar 19
+ChartDatafeed.js:586 [playback_step] Pushing bar to subscriber ^NSEI:YF_#_4: time=2026-04-07T05:01:00.000Z
+ChartDatafeed.js:677 === [STUDY DEBUG] ===
+ChartDatafeed.js:678 [Study] Step: 19
+ChartDatafeed.js:679 [Study] Drawings: 0
+ChartDatafeed.js:680 [Study] Pivot Markers: 0
+ChartDatafeed.js:696 [Study] Debug Info: {}
+ChartDatafeed.js:698 ===================
+TVChartContainer.jsx:1304 [DEBUG] activeDrawingIds: 0 []
+TVChartContainer.jsx:1305 [DEBUG] fanLabelsRef before: 0
+TVChartContainer.jsx:1312 [DEBUG] fanLabelsRef after: 0
+ChartDatafeed.js:558 Moving to bar 20 time: 4/7/2026, 10:35:00 AM
+ChartDatafeed.js:582 [playback_step] Notifying 1 subscribers about bar 20
+ChartDatafeed.js:586 [playback_step] Pushing bar to subscriber ^NSEI:YF_#_4: time=2026-04-07T05:05:00.000Z
+ChartDatafeed.js:677 === [STUDY DEBUG] ===
+ChartDatafeed.js:678 [Study] Step: 20
+ChartDatafeed.js:679 [Study] Drawings: 0
+ChartDatafeed.js:680 [Study] Pivot Markers: 0
+ChartDatafeed.js:696 [Study] Debug Info: {}
+ChartDatafeed.js:698 ===================
+TVChartContainer.jsx:1304 [DEBUG] activeDrawingIds: 0 []
+TVChartContainer.jsx:1305 [DEBUG] fanLabelsRef before: 0
+TVChartContainer.jsx:1312 [DEBUG] fanLabelsRef after: 0
+ChartDatafeed.js:558 Moving to bar 21 time: 4/7/2026, 10:39:00 AM
+ChartDatafeed.js:582 [playback_step] Notifying 1 subscribers about bar 21
+ChartDatafeed.js:586 [playback_step] Pushing bar to subscriber ^NSEI:YF_#_4: time=2026-04-07T05:09:00.000Z
+ChartDatafeed.js:677 === [STUDY DEBUG] ===
+ChartDatafeed.js:678 [Study] Step: 21
+ChartDatafeed.js:679 [Study] Drawings: 6
+ChartDatafeed.js:680 [Study] Pivot Markers: 2
+ChartDatafeed.js:684 (index)idtexttypepricetimebar_index(index)idtexttypepricetimebar_index0'anchor_1775537340''H1''pivot_high'22966.400390625'4/7/2026, 10:19:00 AM'161'target_1775535180''L1''pivot_low'22793'4/7/2026, 9:43:00 AM'7Array(2)
+ChartDatafeed.js:696 [Study] Debug Info: {}
+ChartDatafeed.js:698 ===================
+TVChartContainer.jsx:1304 [DEBUG] activeDrawingIds: 8 (5) ['Fan_H1_L1_main', 'Fan_H1_L1_f0', 'Fan_H1_L1_f1', 'Fan_H1_L1_f2', 'Fan_H1_L1_f3']
+TVChartContainer.jsx:1305 [DEBUG] fanLabelsRef before: 6
+TVChartContainer.jsx:1312 [DEBUG] fanLabelsRef after: 6
+TVChartContainer.jsx:1356 [TVChart] Emitting 5 price interactions to App.jsx (5) [{…}, {…}, {…}, {…}, {…}]
+App.jsx:520 [App] Received interaction: {time: 1775537340, fan: 'P1 (H1-L1)', fanIdentity: 'H1-L1', fraction: 'main', price: 22966.400390625, …}
+App.jsx:520 [App] Received interaction: {time: 1775538300, fan: 'P1 (H1-L1)', fanIdentity: 'H1-L1', fraction: '-', price: 22919.178299261534, …}
+App.jsx:520 [App] Received interaction: {time: 1775538300, fan: 'P1 (H1-L1)', fanIdentity: 'H1-L1', fraction: '0.875', price: 22919.178299261534, …}
+App.jsx:520 [App] Received interaction: {time: 1775538300, fan: 'P1 (H1-L1)', fanIdentity: 'H1-L1', fraction: '0.875', price: 22919.178299261534, …}
+App.jsx:520 [App] Received interaction: {time: 1775538540, fan: 'P1 (H1-L1)', fanIdentity: 'H1-L1', fraction: '0.875', price: 22928.884322281654, …}
+TVChartContainer.jsx:367 [TVChart] selectedInteraction changed: {time: 1775537340, fan: 'P1 (H1-L1)', fanIdentity: 'H1-L1', fraction: 'main', price: 22966.400390625, …}
+TVChartContainer.jsx:385 [TVChart] Chart is ready, proceeding to draw marker
+TVChartContainer.jsx:399 [TVChart] Drawing marker for interaction time: 1775537340
+TVChartContainer.jsx:435 [TVChart] Matched to candle at 1775537340 with high 22966.400390625
+TVChartContainer.jsx:576 [TVChart] Updating fan visibility: ['H1-L1']
