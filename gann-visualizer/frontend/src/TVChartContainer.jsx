@@ -792,12 +792,10 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
         if (!patternColor) return false;
 
         const position = PATTERN_POSITION[pattern] || 'above';
-        // createShape with shape:'text' anchors text at its LEFT EDGE on the time axis.
-        // So we offset by intervalSeconds/4 (not /2) so the dot's left edge sits at
-        // rawTime + 60s = 9:32, making the dot's visual center ~9:33 = bar midpoint.
-        const rawTime = toSeconds(candle.time);
-        const candleTime = rawTime + (intervalSeconds / 4);
-        console.log(`[plotPatternLabel] raw=${rawTime}, +offset(${intervalSeconds}/4=${intervalSeconds/4}) = ${candleTime}, date=${new Date(candleTime * 1000).toLocaleString()}`);
+        // Use bar START time — TradingView anchors 'text' shape at its LEFT EDGE.
+        // The start time is the bar boundary, minimizing horizontal offset.
+        const candleTime = toSeconds(candle.time);
+        console.log(`[plotPatternLabel] candleTime=${candleTime}, date=${new Date(candleTime * 1000).toLocaleString()}`);
         const candleHigh = parseFloat(candle.high);
         const candleLow = parseFloat(candle.low);
 
