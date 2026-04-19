@@ -793,7 +793,9 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
 
         const position = PATTERN_POSITION[pattern] || 'above';
         // Offset by half a bar so the shape's left edge sits at bar center, centering the dot over the candle
-        const candleTime = toSeconds(candle.time) + (intervalSeconds / 2);
+        const rawTime = toSeconds(candle.time);
+        const candleTime = rawTime + (intervalSeconds / 2);
+        console.log(`[plotPatternLabel] raw=${rawTime}, +offset(${intervalSeconds}/2=${intervalSeconds/2}) = ${candleTime}, date=${new Date(candleTime * 1000).toLocaleString()}`);
         const candleHigh = parseFloat(candle.high);
         const candleLow = parseFloat(candle.low);
 
@@ -1274,6 +1276,7 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
                             const intervalSeconds = (datafeed && datafeed.customData && datafeed.customData.length > 1)
                                 ? (toSeconds(datafeed.customData[1].time) - toSeconds(datafeed.customData[0].time))
                                 : 60;
+                            console.log(`[Pattern Debug] raw candle.time=${candle?.time}, stepIndex=${stepIndex}, intervalSeconds=${intervalSeconds}, toSeconds(candle.time)=${candle ? toSeconds(candle.time) : 'N/A'}, offset=${intervalSeconds / 2}`);
                             if (candle) {
                                 plotPatternLabel(chart, studyData.candle_pattern, candle, intervalSeconds);
                             }
