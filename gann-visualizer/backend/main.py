@@ -1094,7 +1094,8 @@ async def _process_study_bar(req: EvaluateStrategyRequest):
         output_pivots = []
         output_remove = []
         output_intersection_events = []
-        
+        output_candle_pattern = None
+
         if is_sequential and _study_cache['state']:
             # FAST PATH: Restore state and process single bar
             print(f"[Study] FAST PATH at index {req.current_index}")
@@ -1112,6 +1113,7 @@ async def _process_study_bar(req: EvaluateStrategyRequest):
             output_pivots = result.get('pivot_markers', [])
             output_remove = result.get('remove_drawings', [])
             output_intersection_events = result.get('intersection_events', [])
+            output_candle_pattern = result.get('candle_pattern')
             if output_intersection_events:
                 print(f"[Study] Index {req.current_index}: Returning {len(output_intersection_events)} events")
                 for evt in output_intersection_events[:5]:  # Log first 5
@@ -1141,6 +1143,7 @@ async def _process_study_bar(req: EvaluateStrategyRequest):
                 output_drawings.extend(final_result.get('drawings', []))
                 output_remove.extend(final_result.get('remove_drawings', []))
                 output_intersection_events.extend(final_result.get('intersection_events', []))
+                output_candle_pattern = final_result.get('candle_pattern')
                 if output_intersection_events:
                     print(f"[Study] SLOW PATH Index {req.current_index}: Returning {len(output_intersection_events)} events")
                     for evt in output_intersection_events[:10]:  # Log first 10
@@ -1175,6 +1178,7 @@ async def _process_study_bar(req: EvaluateStrategyRequest):
             "pivot_markers": output_pivots,
             "remove_drawings": output_remove,
             "intersection_events": output_intersection_events,
+            "candle_pattern": output_candle_pattern,
             "debug_info": debug_info,
             "state": {}
         }
