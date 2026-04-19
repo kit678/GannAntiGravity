@@ -883,7 +883,7 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
         console.log(`[plotPatternLabel] ${pattern} dot at ${new Date(candleTime * 1000).toLocaleString()}, price=${shapePrice.toFixed(2)}, color=${patternColor}`);
 
         try {
-            const shapeId = chart.createShape({ time: candleTime, price: shapePrice }, {
+            const shapeIdOrPromise = chart.createShape({ time: candleTime, price: shapePrice }, {
                 shape: 'icon',
                 lock: true,
                 disableSelection: true,
@@ -894,8 +894,19 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
                 },
                 icon: 0xf111, // Font Awesome circle (filled)
             });
-            // Track the shape ID to prevent duplicates
-            patternMarkersRef.current[bucketKey].push({ price: shapePrice, time: candleTime, pattern, shapeId });
+
+            // Handle both synchronous IDs and Promises
+            if (shapeIdOrPromise && typeof shapeIdOrPromise.then === 'function') {
+                // It's a Promise, resolve it before storing
+                shapeIdOrPromise.then(resolvedId => {
+                    console.log(`[plotPatternLabel] Shape created with ID: ${resolvedId}`);
+                    patternMarkersRef.current[bucketKey].push({ price: shapePrice, time: candleTime, pattern, shapeId: resolvedId });
+                }).catch(err => console.warn("[plotPatternLabel] Error resolving shape promise:", err.message));
+            } else {
+                // Direct ID
+                console.log(`[plotPatternLabel] Shape created with direct ID: ${shapeIdOrPromise}`);
+                patternMarkersRef.current[bucketKey].push({ price: shapePrice, time: candleTime, pattern, shapeId: shapeIdOrPromise });
+            }
             return true;
         } catch (err) {
             console.warn("[plotPatternLabel] Error creating dot:", err.message);
