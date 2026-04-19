@@ -765,14 +765,14 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
         }
     };
 
-    // Pattern abbreviation map
-    const PATTERN_ABBREV = {
-        'PINBAR': 'PB',
-        'DOJI': 'DOJI',
-        'SHOOTING_STAR': 'SS',
-        'INVERTED_HAMMER': 'IH',
-        'MARUBOZU': 'M',
-        'SPINNING_TOP': 'ST'
+    // Pattern color map
+    const PATTERN_COLORS = {
+        'PINBAR':          '#00BCD4',  // Cyan
+        'DOJI':            '#FFEB3B',  // Yellow
+        'SHOOTING_STAR':   '#E91E63',  // Magenta
+        'INVERTED_HAMMER': '#AEEA00',  // Lime
+        'MARUBOZU':        '#E0E0E0',  // White
+        'SPINNING_TOP':    '#F48FB1',  // Pink
     };
 
     // Position logic: bearish/neutral above, bullish below
@@ -788,8 +788,8 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
     const plotPatternLabel = (chart, pattern, candle) => {
         if (!chart || !pattern || pattern === 'NO_PATTERN' || !candle) return false;
 
-        const abbrev = PATTERN_ABBREV[pattern];
-        if (!abbrev) return false;
+        const patternColor = PATTERN_COLORS[pattern];
+        if (!patternColor) return false;
 
         const position = PATTERN_POSITION[pattern] || 'above';
         const candleTime = toSeconds(candle.time);
@@ -803,8 +803,9 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
         if (!patternMarkersRef.current[bucketKey]) patternMarkersRef.current[bucketKey] = [];
 
         const existingCount = patternMarkersRef.current[bucketKey].length;
-        const baseOffset = (candleHigh - candleLow) * 0.3 + (candleHigh * 0.001);
-        const stackOffset = candleHigh * 0.001 * existingCount;
+        // Smaller offset than text labels — dot sits close to wick tip
+        const baseOffset = (candleHigh - candleLow) * 0.05 + (candleHigh * 0.0002);
+        const stackOffset = candleHigh * 0.0003 * existingCount;
 
         const shapePrice = position === 'below'
             ? candleLow - baseOffset - stackOffset
@@ -812,23 +813,23 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
 
         patternMarkersRef.current[bucketKey].push({ price: shapePrice, time: candleTime });
 
-        console.log(`[plotPatternLabel] ${pattern} (${abbrev}) at ${new Date(candleTime * 1000).toLocaleString()}, price=${shapePrice.toFixed(2)}`);
+        console.log(`[plotPatternLabel] ${pattern} dot at ${new Date(candleTime * 1000).toLocaleString()}, price=${shapePrice.toFixed(2)}, color=${patternColor}`);
 
         try {
             chart.createShape({ time: candleTime, price: shapePrice }, {
                 shape: 'text',
-                text: abbrev,
+                text: '\u25CF',  // Filled circle unicode
                 overrides: {
-                    color: '#FF9800',
-                    backgroundColor: 'rgba(255, 152, 0, 0.15)',
-                    fontsize: 9,
-                    bold: true,
+                    color: patternColor,
+                    backgroundColor: 'transparent',
+                    fontsize: 10,
+                    bold: false,
                     size: 1
                 }
             });
             return true;
         } catch (err) {
-            console.warn("[plotPatternLabel] Error creating label:", err.message);
+            console.warn("[plotPatternLabel] Error creating dot:", err.message);
             return false;
         }
     };
@@ -1630,6 +1631,40 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
                 ref={chartContainerRef}
                 style={{ height: '100%', width: '100%' }}
             />
+            {/* Floating Pattern Legend */}
+            <div style={{
+                position: 'absolute',
+                top: 12,
+                left: 12,
+                zIndex: 100,
+                pointerEvents: 'none',
+                backgroundColor: 'rgba(30, 34, 45, 0.92)',
+                border: '1px solid #434651',
+                borderRadius: 8,
+                padding: '10px 14px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 6,
+                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                minWidth: 148,
+            }}>
+                <div style={{ fontSize: 9, fontWeight: 700, color: '#787b86', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 2 }}>
+                    Patterns
+                </div>
+                {[
+                    { label: 'Pinbar',          color: '#00BCD4' },
+                    { label: 'Doji',            color: '#FFEB3B' },
+                    { label: 'Shooting Star',   color: '#E91E63' },
+                    { label: 'Inverted Hammer', color: '#AEEA00' },
+                    { label: 'Marubozu',        color: '#E0E0E0' },
+                    { label: 'Spinning Top',     color: '#F48FB1' },
+                ].map(({ label, color }) => (
+                    <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, color: '#d1d4dc' }}>
+                        <span style={{ display: 'inline-block', width: 9, height: 9, borderRadius: '50%', backgroundColor: color, flexShrink: 0 }} />
+                        {label}
+                    </div>
+                ))}
+            </div>
         </div>
     );
 });
