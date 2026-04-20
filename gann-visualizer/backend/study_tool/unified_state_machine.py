@@ -123,11 +123,13 @@ class UnifiedStateMachine:
         active_fans: dict,
         candles: list = None,
         is_retro: bool = False,
-        retro_fan_ids: list = None
+        retro_fan_ids: list = None,
+        zec_info: Dict[str, Dict[str, Any]] = None
     ) -> List[EventOutput]:
 
         results: List[EventOutput] = []
         evaluations: List[str] = []
+        zec_info = zec_info or {}
 
         c_open = float(current_candle.get('open', 0))
         c_high = float(current_candle.get('high', 0))
