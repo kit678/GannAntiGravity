@@ -288,6 +288,19 @@ class AngularPriceCoverageStudy:
         # 2.5 Process Zone Tracking for ALL active fans for the LIVE bar
         for fan_id, fan_obj in self.angle_engine.active_fans.items():
             if getattr(fan_obj, '_zone_caught_up_to', -1) < bar_index:
+                # CAPTURE ZEC BEFORE compute_snapshot overwrites _zone_extremes
+                # At this point, _zone_extremes[fan_id] still holds the PRIOR zone's extremes
+                if fan_id in self.zone_tracker._zone_extremes:
+                    extremes = self.zone_tracker._zone_extremes[fan_id]
+                    last_zone_snap = self.zone_tracker._last_zones.get(fan_id)
+                    if not hasattr(self, '_pending_zec_info'):
+                        self._pending_zec_info = {}
+                    self._pending_zec_info[fan_id] = {
+                        'zec_high': extremes.get('highest_close'),
+                        'zec_low': extremes.get('lowest_close'),
+                        'prior_zone_fraction': last_zone_snap.zone if last_zone_snap else None
+                    }
+
                 snapshot = self.zone_tracker.compute_snapshot(fan_obj, current_candle, bar_index)
                 fan_obj._zone_caught_up_to = bar_index
                 
@@ -406,7 +419,7 @@ class AngularPriceCoverageStudy:
                         print(f"Failed to log intersection: {e}")
 
         # 4. Price movement tracking pipeline (State Machine)
-        self._process_tracking_modules(current_candle, prev_candle, bar_index, events or [], ui_events, candles)
+        self._process_tracking_modules(current_candle, prev_candle, bar_index, events or [], ui_events, candles, zec_info=getattr(self, '_pending_zec_info', {}))
         
         if ui_events:
             if 'intersection_events' not in result:
@@ -429,7 +442,8 @@ class AngularPriceCoverageStudy:
         ui_events: list,
         candles: list,
         is_retro: bool = False,
-        retro_fan_ids: list = None
+        retro_fan_ids: list = None,
+        zec_info: Dict[str, Dict[str, Any]] = None
     ):
         """
         Run the price movement tracking pipeline:
@@ -438,6 +452,7 @@ class AngularPriceCoverageStudy:
         3. TargetProgression — advance targets on confirmed breaches
         4. AngleZoneTracker — compute zone snapshots
         """
+        zec_info = zec_info or {}
         timestamp = int(current_candle.get('time', current_candle.get('Time', 0)))
         close_price = float(current_candle.get('Close', current_candle.get('close', 0)))
 
@@ -550,8 +565,10 @@ class AngularPriceCoverageStudy:
         # 2. Unified State Machine (Breaches, Tests, Fake-outs, Rests, Bounces)
         state_events = self.state_machine.process_bar(
             current_candle, prev_candle, bar_index,
-            intersection_events, self.angle_engine.active_fans, candles, is_retro, retro_fan_ids
+            intersection_events, self.angle_engine.active_fans, candles, is_retro, retro_fan_ids,
+            zec_info=zec_info or {}
         )
+        self._pending_zec_info = {}
         
         for state_event in state_events:
             # Map string to EventType enum
