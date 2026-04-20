@@ -67,20 +67,30 @@ Event types are emitted by two main sources:
 ### BREACH_CONFIRMED
 - **Value**: `"breach_confirmed"`
 - **Semantic**: Price closes beyond the extreme of (BEC close OR ZEC extreme). For multi-line crosses, all except furthest line get immediate intrabar confirmation.
-- **Emission Mechanism**: `UnifiedStateMachine.process_bar()` — intra-bar logic for multiple crosses, and pending breach confirmation using BEC/ZEC
+- **Emission Mechanism**: `UnifiedStateMachine.process_bar()` — pending breach confirmation using BEC and ZEC of the prior zone
+- **Supporting Definitions**:
+  - **BEC (Breach Extreme Close)**: The `close` price of the candle that creates the pending breach (i.e., the candle that crosses the line).
+  - **ZEC (Zone Extreme Close)**: The highest close (for UP) or lowest close (for DOWN) of all candles whose closes fall within the prior zone (the zone immediately preceding the BEC's zone). Retrieved from `AngleZoneTracker._historical_zones` at the last bar where the zone was Z_PRIOR.
 - **Fires When**:
-  - UP: `c_close > max(BEC_close, ZEC_high)`
-  - DOWN: `c_close < min(BEC_close, ZEC_low)`
-  - Multi-cross: All except furthest line get immediate intrabar confirmation
-  - **Target progression intra-bar**: When `TARGET_HIT` fires on line N+1 (e.g. 0.25), if a `CROSS_UP`/`CROSS_DOWN` created a pending breach on line N (e.g. 0.5) in the same bar, the pending breach is confirmed immediately in that same bar
+  - UP: `c_close > max(BEC_close, ZEC_highest_close)`
+  - DOWN: `c_close < min(BEC_close, ZEC_lowest_close)`
 - **Note**: Core state machine event; frontend receives via ui_events with type='BREACH_CONFIRMED'
+
+### BREACH_CONFIRMED_NO_ALPHA
+- **Value**: `"BREACH_CONFIRMED_NO_ALPHA"`
+- **Semantic**: Breach confirmed but no tradeable alpha — either intra-bar stacked confirmation or next target hit before breach confirmation.
+- **Emission Mechanism**: `UnifiedStateMachine.process_bar()` — intra-bar multi-cross logic, and when next target is hit before pending breach confirms
+- **Fires When**:
+  - **Intra-bar multi-cross**: When multiple CROSS_UP/CROSS_DOWN events fire on the same bar across different lines, intermediate lines fire `BREACH_CONFIRMED_NO_ALPHA`. The furthest line fires its normal event.
+  - **Next target hit before confirmation**: When `TARGET_HIT` fires on a line before the pending breach on the prior line has confirmed, the pending breach fires `BREACH_CONFIRMED_NO_ALPHA`.
+- **Note**: Distinguishable from `BREACH_CONFIRMED` so trading algorithms can exclude these from alpha calculations.
 
 ### TARGET_HIT
 - **Value**: `"target_hit"`
 - **Semantic**: First contact with an angle line in the target progression sequence. Only fires once per line; subsequent contacts are ignored.
 - **Emission Mechanism**: `angular_coverage_study.py` via `target_progression.on_angle_contact()`
 - **Fires When**: Price first touches any angle line in the target progression sequence (0.875 → 0.75 → 0.5 → horizontal/0.25 → full_coverage)
-- **Intra-bar side effect**: When `TARGET_HIT` fires on line N+1 and the same bar created a pending breach on line N (via `CROSS_UP`/`CROSS_DOWN`), the pending breach on line N is immediately confirmed (intra-bar `BREACH_CONFIRMED`). This ensures `BREACH_CONFIRMED` and `TARGET_HIT` appear in the same bar when price crosses one line and touches the next in sequence.
+- **Intra-bar side effect**: When `TARGET_HIT` fires on line N+1 and the same bar created a pending breach on line N (via `CROSS_UP`/`CROSS_DOWN`), the pending breach on line N is immediately confirmed as `BREACH_CONFIRMED_NO_ALPHA`. This ensures `BREACH_CONFIRMED_NO_ALPHA` and `TARGET_HIT` appear in the same bar when price crosses one line and touches the next in sequence.
 
 ### TARGET_FAILED
 - **Value**: `"target_failed"`
