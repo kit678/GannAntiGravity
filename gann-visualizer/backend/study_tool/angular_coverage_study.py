@@ -1072,7 +1072,7 @@ class AngularPriceCoverageStudy:
         bar_index: int,
         timestamp: int,
         c_open: float, c_high: float, c_low: float, c_close: float,
-        active_angle_prices: str,
+        active_angle_prices: Dict[str, float],
         is_cluster: bool,
         last_zone: Any,
         ui_events: list,
