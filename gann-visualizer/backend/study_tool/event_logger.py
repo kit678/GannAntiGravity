@@ -23,6 +23,7 @@ class EventType(Enum):
     """
     # Core Event Types
     BREACH_CONFIRMED = "breach_confirmed"    # N successive closes achieved
+    BREACH_CONFIRMED_NO_ALPHA = "BREACH_CONFIRMED_NO_ALPHA"  # Intra-bar or next-target-hit, no alpha
     TARGET_HIT = "target_hit"               # Target in progression sequence reached
     TARGET_FAILED = "target_failed"         # Failed to reach target, crossed back
     FAN_VALIDATED = "fan_validated"           # Fan validated via 7/8 interaction
