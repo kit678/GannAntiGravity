@@ -402,7 +402,7 @@ class UnifiedStateMachine:
 
         return results
 
-    def _start_pending_breach(self, state_key, fan_id, line_id, direction, extreme_price, bar_index, line_price, fraction, fan_obj):
+    def _start_pending_breach(self, state_key, fan_id, line_id, direction, extreme_price, bar_index, line_price, fraction, fan_obj, bec_close: float, zec_high: float, zec_low: float, prior_zone_fraction: str):
         line_start_time = 0
         line_end_time = 0
         line_start_price = 0.0
@@ -425,7 +425,11 @@ class UnifiedStateMachine:
             'line_start_time': line_start_time,
             'line_end_time': line_end_time,
             'line_start_price': line_start_price,
-            'line_end_price': line_end_price
+            'line_end_price': line_end_price,
+            'bec_close': bec_close,
+            'zec_high': zec_high,
+            'zec_low': zec_low,
+            'prior_zone_fraction': prior_zone_fraction,
         }
 
     def _start_pending_test(self, state_key, fan_id, line_id, test_type, bar_index, line_price, fraction, candle_close):
