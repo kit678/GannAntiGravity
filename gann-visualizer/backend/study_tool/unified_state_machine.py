@@ -313,31 +313,27 @@ class UnifiedStateMachine:
             # Active momentum fake out check: Did price close back across the ORIGINAL breach price?
             # This prevents steep lines from causing passive fake outs just by sloping past a stationary price
             if state['direction'] == 'up':
-                if c_close > state['extreme_price']:
+                bec_close = state.get('bec_close', state['extreme_price'])
+                zec_high = state.get('zec_high', state['extreme_price'])
+                if c_close > max(bec_close, zec_high):
                     results.append(EventOutput(
                         fan_id=fan_id, fan_identity=fan_identity, priority_label=fan_obj.priority_label,
                         fraction=frac_name, price=c_close, event_type='BREACH_CONFIRMED',
                         details=f"UP (T+{bars_elapsed} bars)", direction='up'
                     ))
                     keys_to_remove.append(state_key)
-                    evaluations.append(f"[{fan_identity} {frac_name}] Pending Breach UP: C ({c_close:.2f}) > Extreme ({state['extreme_price']:.2f}) -> BREACH_CONFIRMED")
-                elif c_close < state['line_price_at_breach']:
-                    # Pending breach reversed - remove without emitting event (previously FAKE_OUT)
-                    keys_to_remove.append(state_key)
-                    evaluations.append(f"[{fan_identity} {frac_name}] Pending Breach UP: C ({c_close:.2f}) < Original Line Price ({state['line_price_at_breach']:.2f}) -> Reversed (pending breach cancelled)")
+                    evaluations.append(f"[{fan_identity} {frac_name}] Pending Breach UP: C ({c_close:.2f}) > max(BEC={bec_close:.2f}, ZEC={zec_high:.2f}) -> BREACH_CONFIRMED")
             elif state['direction'] == 'down':
-                if c_close < state['extreme_price']:
+                bec_close = state.get('bec_close', state['extreme_price'])
+                zec_low = state.get('zec_low', state['extreme_price'])
+                if c_close < min(bec_close, zec_low):
                     results.append(EventOutput(
                         fan_id=fan_id, fan_identity=fan_identity, priority_label=fan_obj.priority_label,
                         fraction=frac_name, price=c_close, event_type='BREACH_CONFIRMED',
                         details=f"DOWN (T+{bars_elapsed} bars)", direction='down'
                     ))
                     keys_to_remove.append(state_key)
-                    evaluations.append(f"[{fan_identity} {frac_name}] Pending Breach DOWN: C ({c_close:.2f}) < Extreme ({state['extreme_price']:.2f}) -> BREACH_CONFIRMED")
-                elif c_close > state['line_price_at_breach']:
-                    # Pending breach reversed - remove without emitting event (previously FAKE_OUT)
-                    keys_to_remove.append(state_key)
-                    evaluations.append(f"[{fan_identity} {frac_name}] Pending Breach DOWN: C ({c_close:.2f}) > Original Line Price ({state['line_price_at_breach']:.2f}) -> Reversed (pending breach cancelled)")
+                    evaluations.append(f"[{fan_identity} {frac_name}] Pending Breach DOWN: C ({c_close:.2f}) < min(BEC={bec_close:.2f}, ZEC={zec_low:.2f}) -> BREACH_CONFIRMED")
 
         for key in keys_to_remove:
             del self.pending_breaches[key]
