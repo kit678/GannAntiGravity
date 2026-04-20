@@ -271,12 +271,12 @@ class UnifiedStateMachine:
                 for state_key, event, fan_identity, frac_name, fan_obj in crosses_up_this_bar[:-1]:
                     results.append(EventOutput(
                         fan_id=event.fan_id, fan_identity=fan_identity, priority_label=fan_obj.priority_label,
-                        fraction=frac_name, price=c_close, event_type='BREACH_CONFIRMED',
-                        details="UP (Intra-bar confirmation)", direction='up'
+                        fraction=frac_name, price=c_close, event_type='BREACH_CONFIRMED_NO_ALPHA',
+                        details="UP (Intra-bar multi-cross, no alpha)", direction='up'
                     ))
                     if state_key in self.pending_breaches:
                         del self.pending_breaches[state_key]
-                    evaluations.append(f"[{fan_identity} {frac_name}] Intra-bar multi-cross -> BREACH_CONFIRMED")
+                    evaluations.append(f"[{fan_identity} {frac_name}] Intra-bar multi-cross -> BREACH_CONFIRMED_NO_ALPHA")
 
             if len(crosses_down_this_bar) > 1:
                 # Sort by line price descending
@@ -285,12 +285,12 @@ class UnifiedStateMachine:
                 for state_key, event, fan_identity, frac_name, fan_obj in crosses_down_this_bar[:-1]:
                     results.append(EventOutput(
                         fan_id=event.fan_id, fan_identity=fan_identity, priority_label=fan_obj.priority_label,
-                        fraction=frac_name, price=c_close, event_type='BREACH_CONFIRMED',
-                        details="DOWN (Intra-bar confirmation)", direction='down'
+                        fraction=frac_name, price=c_close, event_type='BREACH_CONFIRMED_NO_ALPHA',
+                        details="DOWN (Intra-bar multi-cross, no alpha)", direction='down'
                     ))
                     if state_key in self.pending_breaches:
                         del self.pending_breaches[state_key]
-                    evaluations.append(f"[{fan_identity} {frac_name}] Intra-bar multi-cross -> BREACH_CONFIRMED")
+                    evaluations.append(f"[{fan_identity} {frac_name}] Intra-bar multi-cross -> BREACH_CONFIRMED_NO_ALPHA")
 
         # 2. Update existing pending breaches
         keys_to_remove = []
