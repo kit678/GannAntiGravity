@@ -191,7 +191,21 @@ class UnifiedStateMachine:
                     hit_type = 'CROSS_UP'
                     details = 'Breakout Attempt'
                     direction = 'up'
-                    self._start_pending_breach(state_key, event.fan_id, line_id, 'up', c_close, bar_index, line_price, event.fraction, fan_obj)
+                    fan_zec = zec_info.get(event.fan_id, {})
+                    self._start_pending_breach(
+                        state_key=state_key,
+                        fan_id=event.fan_id,
+                        line_id=line_id,
+                        direction='up',
+                        extreme_price=c_close,
+                        bar_index=bar_index,
+                        line_price=line_price,
+                        fraction=event.fraction,
+                        fan_obj=fan_obj,
+                        bec_close=c_close,
+                        zec_high=fan_zec.get('zec_high', c_close),
+                        zec_low=fan_zec.get('zec_low', c_close),
+                        prior_zone_fraction=fan_zec.get('prior_zone_fraction', ''))
                     crosses_up_this_bar.append((state_key, event, fan_identity, frac_name, fan_obj))
                     if c_open <= line_price:
                         evaluations.append(f"[{fan_identity} {frac_name} @ {line_price:.2f}] O <= Line & C > Line -> CROSS_UP (Pending Breach UP)")
@@ -201,7 +215,21 @@ class UnifiedStateMachine:
                     hit_type = 'CROSS_DOWN'
                     details = 'Breakdown Attempt'
                     direction = 'down'
-                    self._start_pending_breach(state_key, event.fan_id, line_id, 'down', c_close, bar_index, line_price, event.fraction, fan_obj)
+                    fan_zec = zec_info.get(event.fan_id, {})
+                    self._start_pending_breach(
+                        state_key=state_key,
+                        fan_id=event.fan_id,
+                        line_id=line_id,
+                        direction='down',
+                        extreme_price=c_close,
+                        bar_index=bar_index,
+                        line_price=line_price,
+                        fraction=event.fraction,
+                        fan_obj=fan_obj,
+                        bec_close=c_close,
+                        zec_high=fan_zec.get('zec_high', c_close),
+                        zec_low=fan_zec.get('zec_low', c_close),
+                        prior_zone_fraction=fan_zec.get('prior_zone_fraction', ''))
                     crosses_down_this_bar.append((state_key, event, fan_identity, frac_name, fan_obj))
                     if c_open >= line_price:
                         evaluations.append(f"[{fan_identity} {frac_name} @ {line_price:.2f}] O >= Line & C < Line -> CROSS_DOWN (Pending Breach DOWN)")
