@@ -1125,7 +1125,7 @@ class AngularPriceCoverageStudy:
         # Confirm the pending breach
         self.event_logger.log_event(
             timestamp=timestamp,
-            event_type=EventType.BREACH_CONFIRMED,
+            event_type=EventType.BREACH_CONFIRMED_NO_ALPHA,
             angle_name=prev_line,
             price=c_close,
             direction='up' if state.get('direction') == 'up' else 'down',
@@ -1147,7 +1147,7 @@ class AngularPriceCoverageStudy:
         # Remove from pending_breaches so it's not confirmed again
         del self.state_machine.pending_breaches[prev_state_key]
 
-        self.log(f"[Tracking] BREACH_CONFIRMED (intra-bar): {fan_id} {prev_line} via target progression")
+        self.log(f"[Tracking] BREACH_CONFIRMED_NO_ALPHA (intra-bar via target progression): {fan_id} {prev_line} via target progression")
 
         # Also append to ui_events so it reaches the frontend price interactions table
         ui_events.append({
@@ -1156,7 +1156,7 @@ class AngularPriceCoverageStudy:
             'fanIdentity': state_event.fan_identity if hasattr(state_event, 'fan_identity') else fan_id.split('_')[-1],
             'fraction': prev_line,
             'price': c_close,
-            'type': 'BREACH_CONFIRMED',
+            'type': 'BREACH_CONFIRMED_NO_ALPHA',
             'details': 'Intra-bar confirmation via target progression',
             'open': c_open,
             'high': c_high,
