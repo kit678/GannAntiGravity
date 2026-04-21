@@ -706,6 +706,29 @@ class AngularPriceCoverageStudy:
                     state_event=state_event
                 )
 
+                # Flush deferred BREACH_CONFIRMED events now that TARGET_HIT has had a chance
+                # to set skip_section2=True on prior line's pending breach
+                deferred_results = self.state_machine.flush_deferred_breaches()
+                for evt in deferred_results:
+                    ui_events.append({
+                        'time': timestamp,
+                        'fan': evt.priority_label,
+                        'fanIdentity': evt.fan_identity,
+                        'fraction': evt.fraction,
+                        'price': evt.price,
+                        'type': evt.event_type,
+                        'details': evt.details,
+                        'open': c_open,
+                        'high': c_high,
+                        'low': c_low,
+                        'close': close_price,
+                        'activeAngles': active_angle_prices,
+                        'cluster': is_cluster,
+                        'zone': current_zone_str or "",
+                        'zoneExtremes': z_extremes or "",
+                        'nextAngleLine': ''
+                    })
+
                 ui_events.append({
                     'time': timestamp,
                     'fan': state_event.priority_label,
