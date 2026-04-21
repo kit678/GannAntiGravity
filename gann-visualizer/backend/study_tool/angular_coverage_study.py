@@ -1079,18 +1079,21 @@ class AngularPriceCoverageStudy:
         state_event: Any
     ):
         """
-        Intra-bar BREACH_CONFIRMED for the previous line when TARGET_HIT fires on the next line.
+        Confirm the previous line's pending breach when TARGET_HIT fires on the next line.
 
-        When a TARGET_HIT fires on line N+1 (e.g. 0.25) and the same bar previously created
-        a pending breach on line N (e.g. 0.5 via CROSS_UP), confirm that pending breach
-        immediately so the BREACH_CONFIRMED fires in the same bar as the cross.
+        This handles two cases:
+        1. Intra-bar (same bar): price crosses line N and touches line N+1 in the same bar.
+           In this case first_breach_bar == bar_index.
+        2. Cross-bar: pending breach on line N was created on an earlier bar, price advances
+           to line N+1 and TARGET_HIT fires before the pending breach confirms. In this
+           case first_breach_bar < bar_index, but we still confirm the prior pending breach
+           as BREACH_CONFIRMED_NO_ALPHA (no tradeable alpha since the progression advanced
+           without the prior breach resolving normally).
         """
         state_machine_state = self.state_machine.pending_breaches
 
-        # Build the state_key for the previous line's pending breach
-        # We need to find which line was crossed before the target was hit
-        # After 0.5, the sequence branches: horizontal OR 0.25, whichever is hit first
-        # Both are reached from 0.5, so prev_line is always 0.5 when target is in post-half branch
+        # Build prev_line based on which target was just hit
+        # After 0.5, both horizontal and 0.25 are reached from 0.5 (concurrent)
         if target_name in ('horizontal', '0.25'):
             prev_line = '0.5'
         elif target_name in ('0.875', '0.75'):
@@ -1102,8 +1105,8 @@ class AngularPriceCoverageStudy:
         else:
             return  # main or unknown - no intra-bar confirmation
 
-        # Search pending_breaches for this fan and previous line
-        # fraction in pending_breaches may be stored as float or string, so normalize comparison
+        # Search pending_breaches for this fan and previous line (no bar-index restriction)
+        # Removed first_breach_bar == bar_index so cross-bar TARGET_HIT also confirms
         prev_state_key = None
         prev_line_str = str(prev_line)
         for key in state_machine_state:
@@ -1111,16 +1114,20 @@ class AngularPriceCoverageStudy:
                 state = state_machine_state[key]
                 stored_frac = state.get('fraction')
                 frac_str = str(stored_frac) if stored_frac is not None else None
-                if state.get('first_breach_bar') == bar_index and frac_str == prev_line_str:
+                if frac_str == prev_line_str:
                     prev_state_key = key
-                    self.log(f"[Tracking] Intra-bar BREACH_CONFIRMED: found pending on {key} fraction={frac_str} bar={bar_index}")
+                    self.log(f"[Tracking] BREACH_CONFIRMED_NO_ALPHA: found pending on {key} "
+                             f"fraction={frac_str} bar={bar_index} (cross-bar)")
                     break
 
         if not prev_state_key:
-            self.log(f"[Tracking] Intra-bar BREACH_CONFIRMED: no pending found for fan={fan_id} prev_line={prev_line} bar={bar_index}")
+            self.log(f"[Tracking] BREACH_CONFIRMED_NO_ALPHA: no pending found for fan={fan_id} prev_line={prev_line}")
             return
 
         state = state_machine_state[prev_state_key]
+
+        # Mark it so section 2 skips its BREACH_CONFIRMED emission
+        state['skip_section2'] = True
 
         # Confirm the pending breach
         self.event_logger.log_event(
@@ -1140,14 +1147,14 @@ class AngularPriceCoverageStudy:
             zone_lowest_close=last_zone.zone_lowest_close if last_zone else None,
             details={
                 'fan_id': fan_id,
-                'intra_bar': True
+                'cross_bar': True
             }
         )
 
         # Remove from pending_breaches so it's not confirmed again
         del self.state_machine.pending_breaches[prev_state_key]
 
-        self.log(f"[Tracking] BREACH_CONFIRMED_NO_ALPHA (intra-bar via target progression): {fan_id} {prev_line} via target progression")
+        self.log(f"[Tracking] BREACH_CONFIRMED_NO_ALPHA (via target progression): {fan_id} {prev_line}")
 
         # Also append to ui_events so it reaches the frontend price interactions table
         ui_events.append({
@@ -1157,7 +1164,7 @@ class AngularPriceCoverageStudy:
             'fraction': prev_line,
             'price': c_close,
             'type': 'BREACH_CONFIRMED_NO_ALPHA',
-            'details': 'Intra-bar confirmation via target progression',
+            'details': 'Target hit before breach confirmation (cross-bar)',
             'open': c_open,
             'high': c_high,
             'low': c_low,
