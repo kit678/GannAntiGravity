@@ -325,7 +325,6 @@ class UnifiedStateMachine:
                 if c_close > max(bec_close, zec_high):
                     # Collect for deferred emission - will emit after TARGET_HIT processing
                     self.deferred_breaches.append(('up', state_key, fan_id, fan_identity, fan_obj.priority_label, frac_name, c_close, bars_elapsed))
-                    keys_to_remove.append(state_key)
                     evaluations.append(f"[{fan_identity} {frac_name}] Pending Breach UP: C ({c_close:.2f}) > max(BEC={bec_close:.2f}, ZEC={zec_high:.2f}) -> DEFERRED")
             elif state['direction'] == 'down':
                 # Skip if this pending breach will be confirmed via TARGET_HIT (cross-bar Path B)
@@ -337,7 +336,6 @@ class UnifiedStateMachine:
                 if c_close < min(bec_close, zec_low):
                     # Collect for deferred emission - will emit after TARGET_HIT processing
                     self.deferred_breaches.append(('down', state_key, fan_id, fan_identity, fan_obj.priority_label, frac_name, c_close, bars_elapsed))
-                    keys_to_remove.append(state_key)
                     evaluations.append(f"[{fan_identity} {frac_name}] Pending Breach DOWN: C ({c_close:.2f}) < min(BEC={bec_close:.2f}, ZEC={zec_low:.2f}) -> DEFERRED")
 
         for key in keys_to_remove:
