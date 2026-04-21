@@ -397,6 +397,10 @@ class UnifiedStateMachine:
         for key in keys_to_remove:
             del self.pending_tests[key]
 
+        # Flush deferred breaches after section 3 processing is complete
+        deferred_results = self.flush_deferred_breaches()
+        results.extend(deferred_results)
+
         # If there are active fans but no evaluations were generated, log the distances to explain why
         if active_fans and not evaluations:
             # If this is a retro sweep, only log distances for the new fans being retroactively evaluated
@@ -431,6 +435,43 @@ class UnifiedStateMachine:
 
         self._log_trace(bar_index, c_time, c_open, c_high, c_low, c_close, evaluations, is_retro)
 
+        return results
+
+    def flush_deferred_breaches(self) -> List[EventOutput]:
+        """
+        Emit deferred BREACH_CONFIRMED events, checking skip_section2 flag first.
+        Called by angular_coverage_study.py after TARGET_HIT processing has had
+        a chance to set skip_section2=True on pending breaches.
+        """
+        results = []
+        for entry in self.deferred_breaches:
+            direction, state_key, fan_id, fan_identity, priority_label, frac_name, price, bars_elapsed = entry
+
+            # Check skip_section2 flag - if set, breach was already confirmed as NO_ALPHA
+            state = self.pending_breaches.get(state_key)
+            if state and state.get('skip_section2'):
+                self._log_evaluation(f"[{fan_identity} {frac_name}] Deferred Breach {direction.upper()}: skip_section2=True -> SKIPPED (already NO_ALPHA)")
+                # Remove from pending_breaches since already handled
+                if state_key in self.pending_breaches:
+                    del self.pending_breaches[state_key]
+                continue
+
+            # Emit BREACH_CONFIRMED
+            results.append(EventOutput(
+                fan_id=fan_id,
+                fan_identity=fan_identity,
+                priority_label=priority_label,
+                fraction=frac_name,
+                price=price,
+                event_type='BREACH_CONFIRMED',
+                details=f"{'UP' if direction == 'up' else 'DOWN'} (T+{bars_elapsed} bars)",
+                direction=direction
+            ))
+            self._log_evaluation(f"[{fan_identity} {frac_name}] Deferred Breach {direction.upper()}: -> BREACH_CONFIRMED")
+            if state_key in self.pending_breaches:
+                del self.pending_breaches[state_key]
+
+        self.deferred_breaches.clear()
         return results
 
     def _start_pending_breach(self, state_key, fan_id, line_id, direction, extreme_price, bar_index, line_price, fraction, fan_obj, bec_close: float, zec_high: float, zec_low: float, prior_zone_fraction: str):
