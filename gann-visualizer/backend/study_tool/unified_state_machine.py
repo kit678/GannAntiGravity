@@ -457,6 +457,7 @@ class UnifiedStateMachine:
             'zec_high': zec_high,
             'zec_low': zec_low,
             'prior_zone_fraction': prior_zone_fraction,
+            'skip_section2': False,
         }
 
     def _start_pending_test(self, state_key, fan_id, line_id, test_type, bar_index, line_price, fraction, candle_close):
