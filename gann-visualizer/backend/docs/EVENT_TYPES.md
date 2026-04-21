@@ -89,7 +89,7 @@ Event types are emitted by two main sources:
 - **Value**: `"target_hit"`
 - **Semantic**: First contact with an angle line in the target progression sequence. Only fires once per line; subsequent contacts are ignored.
 - **Emission Mechanism**: `angular_coverage_study.py` via `target_progression.on_angle_contact()`
-- **Fires When**: Price first touches any angle line in the target progression sequence (0.875 → 0.75 → 0.5 → horizontal/0.25 → full_coverage)
+- **Fires When**: Price first touches any angle line in the target progression sequence (0.875 → 0.75 → 0.5 → [horizontal and 0.25 concurrently] → full_coverage). Post-0.5 targets (horizontal, 0.25) are independent and concurrent — both must be hit before full_coverage. Hit ordering is recorded in `TargetHit.details` (e.g., `"hit_before_horizontal"` on the 0.25 hit).
 - **Intra-bar side effect**: When `TARGET_HIT` fires on line N+1 and the same bar created a pending breach on line N (via `CROSS_UP`/`CROSS_DOWN`), the pending breach on line N is immediately confirmed as `BREACH_CONFIRMED_NO_ALPHA`. This ensures `BREACH_CONFIRMED_NO_ALPHA` and `TARGET_HIT` appear in the same bar when price crosses one line and touches the next in sequence.
 
 ### TARGET_FAILED
@@ -144,7 +144,7 @@ Events fire in sequence as price advances through fan angle lines:
 1. `TARGET_HIT` on 0.875 (7/8)
 2. `TARGET_HIT` on 0.75 (3/4)
 3. `TARGET_HIT` on 0.5 (1/2)
-4. `TARGET_HIT` on horizontal target OR 0.25 (1/4) — whichever is active
-5. `TARGET_HIT` on full_coverage
+4. `TARGET_HIT` on horizontal target AND/OR 0.25 (1/4) — both are active concurrently, hit in any order. Hit ordering is recorded in `TargetHit.details`.
+5. After both horizontal and 0.25 are hit → `TARGET_HIT` on full_coverage
 
 If price reverses before reaching next target: `TARGET_FAILED`

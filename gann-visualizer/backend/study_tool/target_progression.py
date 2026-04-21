@@ -5,14 +5,14 @@ Manages the sequential target list for each fan and tracks progress
 through targets as price moves.
 
 Target sequence per fan:
-    7/8 → 3/4 → 1/2 → [horizontal_target | 1/4] → full_coverage
+    7/8 → 3/4 → 1/2 → [horizontal_target, 1/4] (concurrent) → full_coverage
 
 Special rules:
 - Fan is only active for progression after FanValidator marks it validated
-- After 1/2 breach, if 1/4 is reached before horizontal target,
-  horizontal target is cancelled
-- After horizontal target breach, final target is the other pivot's price
-  (Michael Jenkins secret angle method — full angular coverage)
+- After 1/2 breach, both horizontal_target and 1/4 are active concurrently,
+  hit in any order — neither cancels the other
+- After both horizontal and 1/4 are hit, final target is full_coverage
+  (Michael Jenkins secret angle method — other pivot's price)
 """
 
 from dataclasses import dataclass, asdict, field
@@ -48,6 +48,7 @@ class FanTargetState:
     targets_hit: List[str] = field(default_factory=list)
     targets_remaining: List[str] = field(default_factory=list)
     horizontal_target_active: bool = True       # can be cancelled by 1/4
+    quarter_before_horizontal: bool = False     # 1/4 was reached before horizontal
     horizontal_target_price: Optional[float] = None  # price level of horizontal
     full_coverage_target_price: Optional[float] = None  # other pivot's price
     completed: bool = False                     # all targets hit
@@ -160,14 +161,13 @@ class TargetProgression:
         state.angles_contacted.append(angle_name)
 
         # Only process if this is the current target
-        if state.current_target is None:
+        if state.current_target is not None and state.current_target != angle_name:
             return None
 
-        if state.current_target != angle_name:
-            # Special case: 1/4 reached before horizontal
-            if angle_name == '0.25' and state.current_target == 'horizontal':
-                return self._handle_quarter_before_horizontal(state, bar_index, price)
-            return None
+        if state.current_target is None:
+            if angle_name not in state.targets_remaining:
+                return None
+            # Valid concurrent hit — fall through to record and advance
 
         # Record the hit
         hit = TargetHit(
@@ -179,7 +179,7 @@ class TargetProgression:
         self._target_hits.append(hit)
         state.targets_hit.append(angle_name)
 
-        # Remove from remaining and advance
+        # Remove from remaining BEFORE advancing — _advance_target checks targets_remaining
         if angle_name in state.targets_remaining:
             state.targets_remaining.remove(angle_name)
 
@@ -254,37 +254,39 @@ class TargetProgression:
         # Special case: after 0.5, handle post-half logic BEFORE checking remaining
         # This ensures we don't return early and skip the horizontal/1/4 logic
         if just_hit == '0.5':
-            # After 1/2, next targets are horizontal and 1/4
-            # Horizontal is the primary target; 1/4 could cancel it
+            # Both targets active concurrently; list-based tracking is source of truth
+            state.current_target = None
             if state.horizontal_target_active and state.horizontal_target_price is not None:
-                state.current_target = 'horizontal'
-                state.targets_remaining = ['horizontal']
+                state.targets_remaining = ['horizontal', '0.25']
+            else:
+                state.targets_remaining = ['0.25']
+            return
+
+        # Check specific hit types BEFORE the general targets_remaining early-return.
+        # The early-return handles non-post-half progression (0.875→0.75→0.5).
+        if just_hit == 'horizontal':
+            # Horizontal hit — if 0.25 already hit too, go to full_coverage
+            # Otherwise 0.25 remains pending
+            if '0.25' in state.targets_hit:
+                state.current_target = FINAL_TARGET
+                state.targets_remaining = [FINAL_TARGET]
             else:
                 state.current_target = '0.25'
                 state.targets_remaining = ['0.25']
             return
 
-        if state.targets_remaining:
-            state.current_target = state.targets_remaining[0]
-            return
-
-        if just_hit == 'horizontal':
-            # After horizontal breach, target is full coverage
-            # (Michael Jenkins secret angle method)
-            state.current_target = FINAL_TARGET
-            state.targets_remaining = [FINAL_TARGET]
-            return
-
         if just_hit == '0.25':
-            # 1/4 was the last target if horizontal was cancelled
+            # Record ordering metadata for replay analysis
             if 'horizontal' not in state.targets_hit:
-                # 1/4 reached but horizontal wasn't — no more targets
-                state.current_target = None
-                state.completed = True
-            else:
-                # Both horizontal and 1/4 were hit — proceed to full coverage
+                state.quarter_before_horizontal = True
+            # 0.25 hit — if horizontal already hit too, go to full_coverage
+            # Otherwise horizontal remains pending
+            if 'horizontal' in state.targets_hit:
                 state.current_target = FINAL_TARGET
                 state.targets_remaining = [FINAL_TARGET]
+            else:
+                state.current_target = 'horizontal'
+                state.targets_remaining = ['horizontal']
             return
 
         if just_hit == FINAL_TARGET:
@@ -292,38 +294,13 @@ class TargetProgression:
             state.completed = True
             return
 
+        if state.targets_remaining:
+            state.current_target = state.targets_remaining[0]
+            return
+
         # Default: no more targets
         state.current_target = None
         state.completed = True
-
-    def _handle_quarter_before_horizontal(
-        self, state: FanTargetState, bar_index: int, price: float
-    ) -> Optional[TargetHit]:
-        """
-        Handle the case where 1/4 is reached before horizontal target.
-        
-        Per strategy rules: if price reacts from 1/4 before reaching
-        the horizontal target, the horizontal target is INVALIDATED.
-        We have no further targets unless price re-engages through 1/2.
-        """
-        # Cancel horizontal target
-        state.horizontal_target_active = False
-        
-        hit = TargetHit(
-            fan_id=state.fan_id,
-            target_name='0.25',
-            hit_bar=bar_index,
-            hit_price=price,
-        )
-        self._target_hits.append(hit)
-        state.targets_hit.append('0.25')
-        
-        # No more targets — progression paused
-        state.current_target = None
-        state.targets_remaining.clear()
-        state.completed = True
-
-        return hit
 
     def get_fan_state(self, fan_id: str) -> Optional[FanTargetState]:
         """Get the current target state for a fan."""
