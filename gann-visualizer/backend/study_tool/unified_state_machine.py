@@ -311,6 +311,11 @@ class UnifiedStateMachine:
             fan_identity = fan_obj.priority_label.split('(')[-1].rstrip(')').strip() if '(' in fan_obj.priority_label else fan_obj.priority_label
             frac_name = f"{state['fraction']}" if state['fraction'] is not None else "main"
 
+            # Skip if this pending breach will be confirmed via TARGET_HIT (cross-bar Path B)
+            if state.get('skip_section2'):
+                evaluations.append(f"[{fan_identity} {frac_name}] Pending Breach UP: skip_section2=True -> SKIPPED (awaiting TARGET_HIT)")
+                continue
+
             # Active momentum fake out check: Did price close back across the ORIGINAL breach price?
             # This prevents steep lines from causing passive fake outs just by sloping past a stationary price
             if state['direction'] == 'up':
@@ -325,6 +330,10 @@ class UnifiedStateMachine:
                     keys_to_remove.append(state_key)
                     evaluations.append(f"[{fan_identity} {frac_name}] Pending Breach UP: C ({c_close:.2f}) > max(BEC={bec_close:.2f}, ZEC={zec_high:.2f}) -> BREACH_CONFIRMED")
             elif state['direction'] == 'down':
+                # Skip if this pending breach will be confirmed via TARGET_HIT (cross-bar Path B)
+                if state.get('skip_section2'):
+                    evaluations.append(f"[{fan_identity} {frac_name}] Pending Breach DOWN: skip_section2=True -> SKIPPED (awaiting TARGET_HIT)")
+                    continue
                 bec_close = state.get('bec_close', state['extreme_price'])
                 zec_low = state.get('zec_low', state['extreme_price'])
                 if c_close < min(bec_close, zec_low):
