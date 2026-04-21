@@ -397,10 +397,6 @@ class UnifiedStateMachine:
         for key in keys_to_remove:
             del self.pending_tests[key]
 
-        # Flush deferred breaches after section 3 processing is complete
-        deferred_results = self.flush_deferred_breaches()
-        results.extend(deferred_results)
-
         # If there are active fans but no evaluations were generated, log the distances to explain why
         if active_fans and not evaluations:
             # If this is a retro sweep, only log distances for the new fans being retroactively evaluated
