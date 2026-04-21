@@ -44,14 +44,14 @@ Event types are emitted by two main sources:
 - **Value**: `"SUPPORT_BOUNCE"`
 - **Semantic**: Price bounces up by threshold % after a SUPPORT_TEST
 - **Emission Mechanism**: `UnifiedStateMachine.process_bar()` — after SUPPORT_TEST, if `c_close >= line_price + threshold` within lookback bars
-- **Cancellation**: If before a bounce confirms, price closes below the `candle_close` of the triggering test candle, the pending test is cancelled without event
+- **Cancellation**: If before a bounce confirms, price closes below the `candle_close` of the **triggering SUPPORT_TEST candle** (the candle that created the pending test, stored at the time of the test), the pending test is cancelled without event
 - **Fires When**: Confirmation that price rejected down from support and bounced
 
 ### RESISTANCE_REJECTION
 - **Value**: `"RESISTANCE_REJECTION"`
 - **Semantic**: Price rejects down by threshold % after a RESISTANCE_TEST
 - **Emission Mechanism**: `UnifiedStateMachine.process_bar()` — after RESISTANCE_TEST, if `c_close <= line_price - threshold` within lookback bars
-- **Cancellation**: If before a rejection confirms, price closes above the `candle_close` of the triggering test candle, the pending test is cancelled without event
+- **Cancellation**: If before a rejection confirms, price closes above the `candle_close` of the **triggering RESISTANCE_TEST candle** (the candle that created the pending test, stored at the time of the test), the pending test is cancelled without event
 - **Fires When**: Confirmation that price rejected up from resistance and fell
 
 ### FAN_DEACTIVATED
@@ -79,17 +79,23 @@ Event types are emitted by two main sources:
 ### BREACH_CONFIRMED_NO_ALPHA
 - **Value**: `"BREACH_CONFIRMED_NO_ALPHA"`
 - **Semantic**: Breach confirmed but no tradeable alpha — either intra-bar stacked confirmation or next target hit before breach confirmation.
-- **Emission Mechanism**: `UnifiedStateMachine.process_bar()` — intra-bar multi-cross logic, and when next target is hit before pending breach confirms
-- **Fires When**:
-  - **Intra-bar multi-cross**: When multiple CROSS_UP/CROSS_DOWN events fire on the same bar across different lines, intermediate lines fire `BREACH_CONFIRMED_NO_ALPHA`. The furthest line fires its normal event.
-  - **Next target hit before confirmation**: When `TARGET_HIT` fires on a line before the pending breach on the prior line has confirmed, the pending breach fires `BREACH_CONFIRMED_NO_ALPHA`.
+- **Emission Mechanism**: `UnifiedStateMachine.process_bar()` — two distinct paths produce this event:
+
+  **Path A — Intra-bar multi-cross (same bar):**
+  When multiple `CROSS_UP`/`CROSS_DOWN` events fire on the same bar across different lines, the intermediate lines (all but the furthest) immediately confirm as `BREACH_CONFIRMED_NO_ALPHA`. The furthest line fires its normal `BREACH_CONFIRMED`.
+  - For `CROSS_UP`: lines sorted by price ascending; all except highest price confirm immediately.
+  - For `CROSS_DOWN`: lines sorted by price descending; all except lowest price confirm immediately.
+
+  **Path B — Next target hit before pending breach confirms (cross-bar):**
+  When `TARGET_HIT` fires on line N+1 and the prior line N had a pending breach created in an earlier bar (not the same bar), the pending breach on N is immediately confirmed as `BREACH_CONFIRMED_NO_ALPHA`. This reflects that the progression advanced without the prior breach resolving normally — no tradeable alpha.
+
 - **Note**: Distinguishable from `BREACH_CONFIRMED` so trading algorithms can exclude these from alpha calculations.
 
 ### TARGET_HIT
 - **Value**: `"target_hit"`
 - **Semantic**: First contact with an angle line in the target progression sequence. Only fires once per line; subsequent contacts are ignored.
 - **Emission Mechanism**: `angular_coverage_study.py` via `target_progression.on_angle_contact()`
-- **Fires When**: Price first touches any angle line in the target progression sequence (0.875 → 0.75 → 0.5 → [horizontal and 0.25 concurrently] → full_coverage). Post-0.5 targets (horizontal, 0.25) are independent and concurrent — both must be hit before full_coverage. Hit ordering is recorded in `TargetHit.details` (e.g., `"hit_before_horizontal"` on the 0.25 hit).
+- **Fires When**: Price first touches any angle line in the target progression sequence (0.875 → 0.75 → 0.5 → [horizontal and 0.25 concurrently] → full_coverage). Post-0.5 targets (horizontal, 0.25) are independent and concurrent — both must be hit before full_coverage. Hit ordering (e.g., whether 0.25 was hit before horizontal) is tracked in `FanTargetState.quarter_before_horizontal` and emitted via the `details` field in the event log.
 - **Intra-bar side effect**: When `TARGET_HIT` fires on line N+1 and the same bar created a pending breach on line N (via `CROSS_UP`/`CROSS_DOWN`), the pending breach on line N is immediately confirmed as `BREACH_CONFIRMED_NO_ALPHA`. This ensures `BREACH_CONFIRMED_NO_ALPHA` and `TARGET_HIT` appear in the same bar when price crosses one line and touches the next in sequence.
 
 ### TARGET_FAILED
@@ -97,7 +103,8 @@ Event types are emitted by two main sources:
 - **Semantic**: Fan was invalidated while a target progression was in-flight (breach confirmed on origin angle but next target was not reached before fan became invalid)
 - **Emission Mechanism**: `angular_coverage_study.py` in `_sync_fans()` — when fan is deactivated and `has_pending_progression()` returns True
 - **Fires When**: Fan gets invalidated (either price crosses anchor point, or an opposite-direction fan takes over) AND there was a breach confirmed on the origin angle but the progression was not completed
-- **Note**: Previously fired when price crossed back over the origin angle. Now fires only on fan invalidation, which is a more definitive failure signal
+- **Behavioral Note**: `TargetProgression.on_cross()` is a no-op (always returns `False`). `TARGET_FAILED` is **not** emitted when price crosses back over the origin angle. It fires only on fan invalidation, which is a more definitive failure signal.
+- **Note**: Previously fired when price crossed back over the origin angle. The behavior was changed because fan invalidation is a more definitive and less ambiguous failure signal.
 
 ### FAN_VALIDATED
 - **Value**: `"fan_validated"`
@@ -111,6 +118,22 @@ Event types are emitted by two main sources:
 - **Emission Mechanism**: `angular_coverage_study.py` — via `zone_tracker.has_zone_changed()`
 - **Fires When**: Zone tracker detects zone change for a fan
 - **Note**: Explicitly filtered out in CSV export to match frontend price interactions table
+
+---
+
+## Event Type Naming Conventions
+
+Event types use two distinct casing schemes depending on their category:
+
+| Category | Casing | Examples |
+|---|---|---|
+| **Frontend alignment types** | `SCREAMING_SNAKE_CASE` (uppercase) | `CROSS_UP`, `CROSS_DOWN`, `SUPPORT_TEST`, `RESISTANCE_TEST`, `SUPPORT_BOUNCE`, `RESISTANCE_REJECTION`, `FAN_DEACTIVATED` |
+| **Core state machine types** | `snake_case` (lowercase) | `breach_confirmed`, `target_hit`, `target_failed`, `fan_validated`, `zone_change`, `BREACH_CONFIRMED_NO_ALPHA` |
+
+This distinction matters for `EventType` enum lookups:
+- By **name**: `EventType["BREACH_CONFIRMED_NO_ALPHA"]` — always works
+- By **value**: `EventType("breach_confirmed")` — works for core types; `EventType("CROSS_UP")` works for frontend alignment types
+- The state machine returns string event types (e.g. `"CROSS_UP"`, `"breach_confirmed"`) which are resolved via the fallback logic in `angular_coverage_study.py`
 
 ---
 
@@ -144,7 +167,7 @@ Events fire in sequence as price advances through fan angle lines:
 1. `TARGET_HIT` on 0.875 (7/8)
 2. `TARGET_HIT` on 0.75 (3/4)
 3. `TARGET_HIT` on 0.5 (1/2)
-4. `TARGET_HIT` on horizontal target AND/OR 0.25 (1/4) — both are active concurrently, hit in any order. Hit ordering is recorded in `TargetHit.details`.
+4. `TARGET_HIT` on horizontal target AND/OR 0.25 (1/4) — both are active concurrently, hit in any order. Hit ordering is tracked in `FanTargetState.quarter_before_horizontal` and emitted via the event `details` field.
 5. After both horizontal and 0.25 are hit → `TARGET_HIT` on full_coverage
 
 If price reverses before reaching next target: `TARGET_FAILED`

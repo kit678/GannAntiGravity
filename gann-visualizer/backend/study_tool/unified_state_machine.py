@@ -444,7 +444,7 @@ class UnifiedStateMachine:
             # Check skip_section2 flag - if set, breach was already confirmed as NO_ALPHA
             state = self.pending_breaches.get(state_key)
             if state and state.get('skip_section2'):
-                self._log_evaluation(f"[{fan_identity} {frac_name}] Deferred Breach {direction.upper()}: skip_section2=True -> SKIPPED (already NO_ALPHA)")
+                # skip_section2=True means already confirmed as NO_ALPHA - no log needed here
                 # Remove from pending_breaches since already handled
                 if state_key in self.pending_breaches:
                     del self.pending_breaches[state_key]
@@ -461,7 +461,6 @@ class UnifiedStateMachine:
                 details=f"{'UP' if direction == 'up' else 'DOWN'} (T+{bars_elapsed} bars)",
                 direction=direction
             ))
-            self._log_evaluation(f"[{fan_identity} {frac_name}] Deferred Breach {direction.upper()}: -> BREACH_CONFIRMED")
             if state_key in self.pending_breaches:
                 del self.pending_breaches[state_key]
 

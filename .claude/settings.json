@@ -8,7 +8,8 @@
       "WebFetch(domain:www.tradingview.com)",
       "WebSearch",
       "WebFetch(domain:charting-library-docs.xstaging.tv)",
-      "WebFetch(domain:minimax-algeng-chat-tts-us.oss-us-east-1.aliyuncs.com)"
+      "WebFetch(domain:minimax-algeng-chat-tts-us.oss-us-east-1.aliyuncs.com)",
+      "Read(//c/Dev/**)"
     ]
   }
 }

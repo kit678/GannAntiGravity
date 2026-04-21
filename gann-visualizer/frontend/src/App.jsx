@@ -613,7 +613,7 @@ function App() {
                                     <p>No price interactions recorded yet. Start a step-by-step simulation with Show Intersections enabled.</p>
                                 ) : (
                                     <>
-                                        <div style={{ marginBottom: '10px', display: 'flex', gap: '10px', alignItems: 'center', justifyContent: 'space-between' }}>
+                                        <div style={{ marginBottom: '10px', display: 'flex', gap: '10px', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 10, backgroundColor: '#1e1e1e', paddingTop: '4px' }}>
                                             <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
                                                 <label style={{ fontSize: '12px' }}>
                                                     Filter by Fan:
