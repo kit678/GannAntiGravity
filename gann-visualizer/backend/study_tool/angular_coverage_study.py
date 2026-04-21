@@ -1152,6 +1152,12 @@ class AngularPriceCoverageStudy:
         # Mark it so section 2 skips its BREACH_CONFIRMED emission
         state['skip_section2'] = True
 
+        # Also clear from deferred_breaches if present (will be emitted as BREACH_CONFIRMED_NO_ALPHA instead)
+        self.state_machine.deferred_breaches = [
+            d for d in self.state_machine.deferred_breaches
+            if d[1] != prev_state_key  # d[1] is state_key in deferred tuple
+        ]
+
         # Confirm the pending breach
         self.event_logger.log_event(
             timestamp=timestamp,
