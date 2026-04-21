@@ -68,6 +68,7 @@ class UnifiedStateMachine:
         # State tracking per line: fan_id_line_id
         self.pending_breaches: Dict[str, Dict[str, Any]] = {}
         self.pending_tests: Dict[str, Dict[str, Any]] = {}
+        self.deferred_breaches: List[Tuple] = []  # deferred breach emissions
         self.rest_counters: Dict[str, Dict[str, Any]] = {}
 
         # Candlestick pattern detector
