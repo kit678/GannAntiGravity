@@ -370,6 +370,17 @@ class UnifiedStateMachine:
                         fraction=frac_name, price=c_close, event_type='BREACH_CONFIRMED_NO_ALPHA',
                         details=f"UP (path=A, intra-bar {n_confirmed}x cross)", direction='up'
                     ))
+                    self.emit_pending_breach_state(
+                        bar_index=bar_index,
+                        fan_id=event.fan_id,
+                        fraction=frac_name,
+                        direction='UP',
+                        bec_close=c_close,
+                        zec_high=c_close,
+                        zec_low=c_close,
+                        pending_bar=bar_index,
+                        outcome='BREACH_CONFIRMED_NO_ALPHA'
+                    )
                     if state_key in self.pending_breaches:
                         del self.pending_breaches[state_key]
                     evaluations.append(
@@ -389,6 +400,17 @@ class UnifiedStateMachine:
                         fraction=frac_name, price=c_close, event_type='BREACH_CONFIRMED_NO_ALPHA',
                         details=f"DOWN (path=A, intra-bar {n_confirmed}x cross)", direction='down'
                     ))
+                    self.emit_pending_breach_state(
+                        bar_index=bar_index,
+                        fan_id=event.fan_id,
+                        fraction=frac_name,
+                        direction='DOWN',
+                        bec_close=c_close,
+                        zec_high=c_close,
+                        zec_low=c_close,
+                        pending_bar=bar_index,
+                        outcome='BREACH_CONFIRMED_NO_ALPHA'
+                    )
                     if state_key in self.pending_breaches:
                         del self.pending_breaches[state_key]
                     evaluations.append(
@@ -437,6 +459,17 @@ class UnifiedStateMachine:
                     keys_to_remove.append(state_key)
                 else:
                     self.deferred_breaches.append(('up', state_key, fan_id, fan_identity, fan_obj.priority_label, frac_name, c_close, bars_elapsed))
+                    self.emit_pending_breach_state(
+                        bar_index=bar_index,
+                        fan_id=fan_id,
+                        fraction=frac_name,
+                        direction='UP',
+                        bec_close=bec_close,
+                        zec_high=zec_high,
+                        zec_low=bec_close,
+                        pending_bar=bar_index,
+                        outcome='DEFERRED'
+                    )
                     evaluations.append(f"[{fan_identity} {frac_name}] Pending Breach UP: C ({c_close:.2f}) <= max(BEC={bec_close:.2f}, ZEC={zec_high:.2f}) -> DEFERRED")
             elif state['direction'] == 'down':
                 # Skip if this pending breach will be confirmed via TARGET_HIT (cross-bar Path B)
@@ -457,6 +490,17 @@ class UnifiedStateMachine:
                     keys_to_remove.append(state_key)
                 else:
                     self.deferred_breaches.append(('down', state_key, fan_id, fan_identity, fan_obj.priority_label, frac_name, c_close, bars_elapsed))
+                    self.emit_pending_breach_state(
+                        bar_index=bar_index,
+                        fan_id=fan_id,
+                        fraction=frac_name,
+                        direction='DOWN',
+                        bec_close=bec_close,
+                        zec_high=bec_close,
+                        zec_low=zec_low,
+                        pending_bar=bar_index,
+                        outcome='DEFERRED'
+                    )
                     evaluations.append(f"[{fan_identity} {frac_name}] Pending Breach DOWN: C ({c_close:.2f}) >= min(BEC={bec_close:.2f}, ZEC={zec_low:.2f}) -> DEFERRED")
 
         for key in keys_to_remove:
@@ -502,6 +546,14 @@ class UnifiedStateMachine:
                         fraction=frac_name, price=c_close, event_type='SUPPORT_BOUNCE',
                         details=f"Bounced (T+{bars_elapsed} bars)", direction='up'
                     ))
+                    self.emit_pending_test_state(
+                        bar_index=bar_index,
+                        fan_id=fan_id,
+                        fraction=frac_name,
+                        direction='UP',
+                        trigger_close=state['candle_close'],
+                        trigger_bar=state['test_bar']
+                    )
                     keys_to_remove.append(state_key)
                     evaluations.append(
                         f"[{fan_identity} {frac_name}] "
@@ -521,6 +573,14 @@ class UnifiedStateMachine:
                         fraction=frac_name, price=c_close, event_type='RESISTANCE_REJECTION',
                         details=f"Rejected (T+{bars_elapsed} bars)", direction='down'
                     ))
+                    self.emit_pending_test_state(
+                        bar_index=bar_index,
+                        fan_id=fan_id,
+                        fraction=frac_name,
+                        direction='DOWN',
+                        trigger_close=state['candle_close'],
+                        trigger_bar=state['test_bar']
+                    )
                     keys_to_remove.append(state_key)
                     evaluations.append(
                         f"[{fan_identity} {frac_name}] "
@@ -600,6 +660,19 @@ class UnifiedStateMachine:
                 details=f"{'UP' if direction == 'up' else 'DOWN'} (T+{bars_elapsed} bars)",
                 direction=direction
             ))
+            state = self.pending_breaches.get(state_key)
+            if state:
+                self.emit_pending_breach_state(
+                    bar_index=bar_index,
+                    fan_id=state['fan_id'],
+                    fraction=state['fraction'],
+                    direction=direction.upper(),
+                    bec_close=state['bec_close'],
+                    zec_high=state['zec_high'],
+                    zec_low=state['zec_low'],
+                    pending_bar=state['first_breach_bar'],
+                    outcome='BREACH_CONFIRMED'
+                )
             if state_key in self.pending_breaches:
                 del self.pending_breaches[state_key]
 

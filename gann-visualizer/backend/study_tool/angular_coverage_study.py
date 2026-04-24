@@ -288,16 +288,18 @@ class AngularPriceCoverageStudy:
         # 2.5 Process Zone Tracking for ALL active fans for the LIVE bar
         for fan_id, fan_obj in self.angle_engine.active_fans.items():
             if getattr(fan_obj, '_zone_caught_up_to', -1) < bar_index:
-                # CAPTURE ZEC BEFORE compute_snapshot overwrites _zone_extremes
-                # At this point, _zone_extremes[fan_id] still holds the PRIOR zone's extremes
-                if fan_id in self.zone_tracker._zone_extremes:
-                    extremes = self.zone_tracker._zone_extremes[fan_id]
+                # CAPTURE ZEC BEFORE compute_snapshot overwrites _zone_extremes.
+                # At zone change, _prior_zone_extremes holds the PRIOR zone's extremes
+                # (saved before reset in compute_snapshot). Otherwise use current extremes.
+                prior_extremes = self.zone_tracker._prior_zone_extremes.get(fan_id)
+                extremes_to_capture = prior_extremes if prior_extremes else self.zone_tracker._zone_extremes.get(fan_id)
+                if extremes_to_capture:
                     last_zone_snap = self.zone_tracker._last_zones.get(fan_id)
                     if not hasattr(self, '_pending_zec_info'):
                         self._pending_zec_info = {}
                     self._pending_zec_info[fan_id] = {
-                        'zec_high': extremes.get('highest_close'),
-                        'zec_low': extremes.get('lowest_close'),
+                        'zec_high': extremes_to_capture.get('highest_close'),
+                        'zec_low': extremes_to_capture.get('lowest_close'),
                         'prior_zone_fraction': last_zone_snap.zone if last_zone_snap else None
                     }
 
@@ -373,7 +375,9 @@ class AngularPriceCoverageStudy:
                     
                     ui_events = []
                     self._process_tracking_modules(
-                        r_candle, r_prev_candle, b_idx, r_events, ui_events, candles, is_retro=True, retro_fan_ids=retro_fan_ids
+                        r_candle, r_prev_candle, b_idx, r_events, ui_events, candles,
+                        is_retro=True, retro_fan_ids=retro_fan_ids,
+                        zec_info=getattr(self, '_pending_zec_info', {})
                     )
                     
                     if ui_events:
@@ -387,6 +391,8 @@ class AngularPriceCoverageStudy:
                     
             # Clean up pending retro events
             self._pending_retro_events.clear()
+            # Clean up ZEC info after retro sweep
+            self._pending_zec_info = {}
 
         # 2.5 Dynamically extend active fans if price action is approaching their current end
         self._extend_active_fans(candles, bar_index, result)
@@ -529,13 +535,19 @@ class AngularPriceCoverageStudy:
                 current_zone=current_zone_str,
                 zone_highest_close=z_extremes.get('highest_close') if z_extremes else None,
                 zone_lowest_close=z_extremes.get('lowest_close') if z_extremes else None,
-                
+
                 next_angle_line=target_info.get('next_angle_line'),
                 details={
                     'fan_id': validation.fan_id,
                     'validation_type': validation.validation_type,
                     'validation_bar': validation.validation_bar,
                 }
+            )
+            self.state_machine.emit_fan_validated_state(
+                bar_index=bar_index,
+                fan_id=validation.fan_id,
+                origin_bar=bar_index,
+                breach_close=close_price
             )
             self.log(f"[Tracking] Fan validated: {validation.fan_id} via {validation.validation_type} at bar {bar_index}")
 
@@ -682,11 +694,18 @@ class AngularPriceCoverageStudy:
                     current_zone=current_zone_str,
                     zone_highest_close=z_extremes.get('highest_close') if z_extremes else None,
                     zone_lowest_close=z_extremes.get('lowest_close') if z_extremes else None,
-                    
+
                     details={
                         'fan_id': target_hit.fan_id,
                         'hit_bar': target_hit.hit_bar,
                     }
+                )
+                self.state_machine.emit_target_hit_state(
+                    bar_index=bar_index,
+                    fan_id=target_hit.fan_id,
+                    fraction=str(target_hit.target_name) if target_hit.target_name else 'main',
+                    target_value=str(target_hit.target_name) if target_hit.target_name else 'main',
+                    hit_bar=bar_index
                 )
                 self.log(f"[Tracking] Target HIT: {target_hit.fan_id} {target_hit.target_name}")
                 target_info = get_target_info_for_event(target_hit.fan_id)
@@ -932,6 +951,11 @@ class AngularPriceCoverageStudy:
                                     'deactivation_reason': 'completed'
                                 }
                             )
+                            self.state_machine.emit_fan_deactivated_state(
+                                bar_index=bar_index,
+                                fan_id=fan_id,
+                                reason='COMPLETED'
+                            )
                         except Exception as e:
                             print(f"Failed to log FAN_DEACTIVATED: {e}")
                     
@@ -998,6 +1022,21 @@ class AngularPriceCoverageStudy:
                 anchor_bar_idx = fan_obj.anchor_bar_index
                 current_bar_idx = current_bar_index
                 for b_idx in range(anchor_bar_idx, current_bar_idx + 1):
+                    # CAPTURE ZEC BEFORE compute_snapshot.
+                    # At zone change, _prior_zone_extremes holds PRIOR zone's extremes.
+                    # Otherwise use _zone_extremes which holds the prior bar's extremes
+                    # (not yet updated for current bar).
+                    prior_extremes = self.zone_tracker._prior_zone_extremes.get(fan_id)
+                    extremes_to_capture = prior_extremes if prior_extremes else self.zone_tracker._zone_extremes.get(fan_id)
+                    if b_idx >= anchor_bar_idx and extremes_to_capture:
+                        last_zone_snap = self.zone_tracker._last_zones.get(fan_id)
+                        if not hasattr(self, '_pending_zec_info'):
+                            self._pending_zec_info = {}
+                        self._pending_zec_info[fan_id] = {
+                            'zec_high': extremes_to_capture.get('highest_close'),
+                            'zec_low': extremes_to_capture.get('lowest_close'),
+                            'prior_zone_fraction': last_zone_snap.zone if last_zone_snap else None
+                        }
                     # We compute snapshot but don't emit ZONE_CHANGE to UI/logs during catch-up
                     # This ensures the fan has correct zone extremes before retro events are processed
                     self.zone_tracker.compute_snapshot(fan_obj, candles[b_idx], b_idx)
@@ -1184,6 +1223,26 @@ class AngularPriceCoverageStudy:
         del self.state_machine.pending_breaches[prev_state_key]
 
         self.log(f"[Tracking] BREACH_CONFIRMED_NO_ALPHA (via target progression): {fan_id} {prev_line}")
+
+        # Write Path B event to trace log directly (bar's _log_trace already called before we got here)
+        dir_str = 'UP' if state.get('direction') == 'up' else 'DOWN'
+        pending_bar = state.get('first_breach_bar', bar_index)
+        # Get the pending breach state that was stored when the breach was first deferred
+        prev_state_key = f"{fan_id}_{prev_line}"
+        state = self.state_machine.pending_breaches.get(prev_state_key, {})
+        bec = float(state.get('bec_close', c_close))
+        zec_h = float(state.get('zec_high', c_close))
+        zec_l = float(state.get('zec_low', c_close))
+
+        # Write [STATE] block directly to trace (no duplicate bar header)
+        state_str = (
+            f"[STATE] pending_breach: fan={fan_id} line={prev_line} direction={dir_str} "
+            f"bec_close={bec:.2f} zec_high={zec_h:.2f} zec_low={zec_l:.2f} "
+            f"pending_bar={pending_bar} outcome=BREACH_CONFIRMED_NO_ALPHA"
+        )
+        dt_str = datetime.fromtimestamp(timestamp).strftime('%Y-%m-%d %H:%M')
+        with open(self.state_machine.trace_log_path, 'a', encoding='utf-8') as f:
+            f.write(f"[Bar {bar_index}] [{dt_str}] [O:{c_open:.2f}, H:{c_high:.2f}, L:{c_low:.2f}, C:{c_close:.2f}]  -> {state_str}\n")
 
         # Also append to ui_events so it reaches the frontend price interactions table
         ui_events.append({
