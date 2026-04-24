@@ -458,6 +458,7 @@ class UnifiedStateMachine:
                     evaluations.append(f"[{fan_identity} {frac_name}] Pending Breach UP: C ({c_close:.2f}) > max(BEC={bec_close:.2f}, ZEC={zec_high:.2f}) -> BREACH_CONFIRMED")
                     keys_to_remove.append(state_key)
                 else:
+                    zec_low = state.get('zec_low', state['extreme_price'])
                     self.deferred_breaches.append(('up', state_key, fan_id, fan_identity, fan_obj.priority_label, frac_name, c_close, bars_elapsed, bar_index))
                     self.emit_pending_breach_state(
                         bar_index=bar_index,
@@ -466,7 +467,7 @@ class UnifiedStateMachine:
                         direction='UP',
                         bec_close=bec_close,
                         zec_high=zec_high,
-                        zec_low=bec_close,
+                        zec_low=zec_low,
                         pending_bar=bar_index,
                         outcome='DEFERRED'
                     )
@@ -489,6 +490,7 @@ class UnifiedStateMachine:
                     evaluations.append(f"[{fan_identity} {frac_name}] Pending Breach DOWN: C ({c_close:.2f}) < min(BEC={bec_close:.2f}, ZEC={zec_low:.2f}) -> BREACH_CONFIRMED")
                     keys_to_remove.append(state_key)
                 else:
+                    zec_high = state.get('zec_high', state['extreme_price'])
                     self.deferred_breaches.append(('down', state_key, fan_id, fan_identity, fan_obj.priority_label, frac_name, c_close, bars_elapsed, bar_index))
                     self.emit_pending_breach_state(
                         bar_index=bar_index,
@@ -496,7 +498,7 @@ class UnifiedStateMachine:
                         fraction=frac_name,
                         direction='DOWN',
                         bec_close=bec_close,
-                        zec_high=bec_close,
+                        zec_high=zec_high,
                         zec_low=zec_low,
                         pending_bar=bar_index,
                         outcome='DEFERRED'

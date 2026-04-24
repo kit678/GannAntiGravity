@@ -1225,11 +1225,9 @@ class AngularPriceCoverageStudy:
         self.log(f"[Tracking] BREACH_CONFIRMED_NO_ALPHA (via target progression): {fan_id} {prev_line}")
 
         # Write Path B event to trace log directly (bar's _log_trace already called before we got here)
+        # Use `state` from line 1189 (already captured before deletion)
         dir_str = 'UP' if state.get('direction') == 'up' else 'DOWN'
         pending_bar = state.get('first_breach_bar', bar_index)
-        # Get the pending breach state that was stored when the breach was first deferred
-        prev_state_key = f"{fan_id}_{prev_line}"
-        state = self.state_machine.pending_breaches.get(prev_state_key, {})
         bec = float(state.get('bec_close', c_close))
         zec_h = float(state.get('zec_high', c_close))
         zec_l = float(state.get('zec_low', c_close))
