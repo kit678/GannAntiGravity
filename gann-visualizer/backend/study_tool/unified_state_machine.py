@@ -458,7 +458,7 @@ class UnifiedStateMachine:
                     evaluations.append(f"[{fan_identity} {frac_name}] Pending Breach UP: C ({c_close:.2f}) > max(BEC={bec_close:.2f}, ZEC={zec_high:.2f}) -> BREACH_CONFIRMED")
                     keys_to_remove.append(state_key)
                 else:
-                    self.deferred_breaches.append(('up', state_key, fan_id, fan_identity, fan_obj.priority_label, frac_name, c_close, bars_elapsed))
+                    self.deferred_breaches.append(('up', state_key, fan_id, fan_identity, fan_obj.priority_label, frac_name, c_close, bars_elapsed, bar_index))
                     self.emit_pending_breach_state(
                         bar_index=bar_index,
                         fan_id=fan_id,
@@ -489,7 +489,7 @@ class UnifiedStateMachine:
                     evaluations.append(f"[{fan_identity} {frac_name}] Pending Breach DOWN: C ({c_close:.2f}) < min(BEC={bec_close:.2f}, ZEC={zec_low:.2f}) -> BREACH_CONFIRMED")
                     keys_to_remove.append(state_key)
                 else:
-                    self.deferred_breaches.append(('down', state_key, fan_id, fan_identity, fan_obj.priority_label, frac_name, c_close, bars_elapsed))
+                    self.deferred_breaches.append(('down', state_key, fan_id, fan_identity, fan_obj.priority_label, frac_name, c_close, bars_elapsed, bar_index))
                     self.emit_pending_breach_state(
                         bar_index=bar_index,
                         fan_id=fan_id,
@@ -638,7 +638,7 @@ class UnifiedStateMachine:
         """
         results = []
         for entry in self.deferred_breaches:
-            direction, state_key, fan_id, fan_identity, priority_label, frac_name, price, bars_elapsed = entry
+            direction, state_key, fan_id, fan_identity, priority_label, frac_name, price, bars_elapsed, deferred_bar_index = entry
 
             # Check skip_section2 flag - if set, breach was already confirmed as NO_ALPHA
             state = self.pending_breaches.get(state_key)
@@ -663,7 +663,7 @@ class UnifiedStateMachine:
             state = self.pending_breaches.get(state_key)
             if state:
                 self.emit_pending_breach_state(
-                    bar_index=bar_index,
+                    bar_index=deferred_bar_index,
                     fan_id=state['fan_id'],
                     fraction=state['fraction'],
                     direction=direction.upper(),
