@@ -19,10 +19,11 @@ def clear_pivot_registry(key: str = None):
 class Pivot:
     """Represents a detected pivot point"""
     time: int           # Unix timestamp (seconds)
-    price: float        # Price at pivot
+    price: float        # Price at pivot (high for pivot high, low for pivot low)
     bar_index: int      # Index in candle array
     pivot_type: str     # 'high' or 'low'
     label: str = ""    # Permanent identity (e.g., 'H1', 'L1')
+    close_price: float = None  # Closing price at pivot bar (used for fan origin price)
 
 
 class PivotDetector:
@@ -214,6 +215,7 @@ class PivotDetector:
         candidate = candles[candidate_idx]
         candidate_high = float(candidate['high'])
         candidate_low = float(candidate['low'])
+        candidate_close = float(candidate.get('close', candidate['high']))
         candidate_time = int(candidate['time'])
         
         # Check for pivot high
@@ -263,7 +265,8 @@ class PivotDetector:
                 time=candidate_time,
                 price=candidate_high,
                 bar_index=candidate_idx,
-                pivot_type='high'
+                pivot_type='high',
+                close_price=candidate_close
             )
             
             # DEBUG LOG
@@ -328,7 +331,8 @@ class PivotDetector:
                 time=candidate_time,
                 price=candidate_low,
                 bar_index=candidate_idx,
-                pivot_type='low'
+                pivot_type='low',
+                close_price=candidate_close
             )
 
             # DEBUG LOG

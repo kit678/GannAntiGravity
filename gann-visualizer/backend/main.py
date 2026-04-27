@@ -81,7 +81,63 @@ sys.stderr = StreamToLogger(logger, logging.ERROR)
 print(f"Logging initialized. Output writing to {os.path.abspath(LOG_FILE)}")
 # -----------------------------
 
-# --- CONFIGURATION LOADER ---
+# --- REPLAY EVENTS CSV ---
+import csv
+
+REPLAY_EVENTS_CSV = os.path.join(LOG_DIR, "replay_events.csv")
+
+def _write_replay_event_to_csv(event: dict):
+    """Append a single intersection event to replay_events.csv in simulation_events.csv format."""
+    if not event:
+        return
+    ist = pytz.timezone('Asia/Kolkata')
+    dt_utc = datetime.fromtimestamp(event.get('time', 0), pytz.utc)
+    dt_ist = dt_utc.astimezone(ist)
+    m = dt_ist.month
+    d = dt_ist.day
+    y = dt_ist.year
+    time_str = dt_ist.strftime("%I:%M:%S %p")
+    if time_str.startswith('0'):
+        time_str = time_str[1:]
+    dt_str = f"{m}/{d}/{y}, {time_str}"
+    details_str = str(event.get('details', '')).replace(',', ';')
+    file_exists = os.path.exists(REPLAY_EVENTS_CSV)
+    with open(REPLAY_EVENTS_CSV, 'a', newline='') as f:
+        writer = csv.writer(f)
+        if not file_exists:
+            writer.writerow(['#', 'Time', 'Fan', 'Fraction', 'Price', 'Type', 'Details',
+                             'Open', 'High', 'Low', 'Close', 'Active_Angles',
+                             'Cluster', 'Zone', 'Zone_Highest_Close', 'Zone_Lowest_Close',
+                             'Next_Angle_Line',
+                             'MFE_10', 'MAE_10', 'bars_elapsed', 'bar_index'])
+        writer.writerow([
+            '',  # row_num filled by post-processing if needed
+            dt_str,
+            event.get('fan', ''),
+            event.get('fraction', ''),
+            f"{event.get('price', 0):.2f}",
+            event.get('type', ''),
+            details_str,
+            f"{event.get('open', 0):.2f}",
+            f"{event.get('high', 0):.2f}",
+            f"{event.get('low', 0):.2f}",
+            f"{event.get('close', 0):.2f}",
+            json.dumps(event.get('activeAngles', {})),
+            event.get('cluster', False),
+            event.get('zone', ''),
+            f"{event.get('zoneExtremes', {}).get('highest_close', 0):.2f}" if event.get('zoneExtremes', {}).get('highest_close') else '',
+            f"{event.get('zoneExtremes', {}).get('lowest_close', 0):.2f}" if event.get('zoneExtremes', {}).get('lowest_close') else '',
+            event.get('nextAngleLine', ''),
+            '0', '0', 0,
+            event.get('bar_index', 0)
+        ])
+
+def _truncate_replay_events_csv():
+    """Truncate replay_events.csv for a new replay session."""
+    with open(REPLAY_EVENTS_CSV, 'w', newline='') as f:
+        pass  # empty file
+
+# -----------------------------
 CONFIG_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ticker_config.json")
 try:
     with open(CONFIG_FILE, 'r') as f:
@@ -1068,7 +1124,12 @@ async def _process_study_bar(req: EvaluateStrategyRequest):
         is_new_replay = _study_cache['index'] == -1 or _study_cache['index'] >= req.current_index
         
         study_config['is_new_replay'] = is_new_replay
-            
+
+        # Truncate replay_events.csv on new replay session
+        if is_new_replay:
+            _truncate_replay_events_csv()
+            print(f"[Replay] New session detected — replay_events.csv truncated")
+
         if req.strategy == 'pivot_points_only':
             from study_tool.pivot_points_study import PivotPointsStudy
             study = PivotPointsStudy(config=study_config)
@@ -1118,6 +1179,8 @@ async def _process_study_bar(req: EvaluateStrategyRequest):
                 print(f"[Study] Index {req.current_index}: Returning {len(output_intersection_events)} events")
                 for evt in output_intersection_events[:5]:  # Log first 5
                     print(f"  - {evt.get('type')}: {evt.get('fraction')} @ {evt.get('price')} | fan={evt.get('fan')}")
+                for evt in output_intersection_events:
+                    _write_replay_event_to_csv(evt)
                 
             # Update cache
             _study_cache['index'] = req.current_index
@@ -1148,6 +1211,8 @@ async def _process_study_bar(req: EvaluateStrategyRequest):
                     print(f"[Study] SLOW PATH Index {req.current_index}: Returning {len(output_intersection_events)} events")
                     for evt in output_intersection_events[:10]:  # Log first 10
                         print(f"  - {evt.get('type')}: {evt.get('fraction')} @ {evt.get('price')} | fan={evt.get('fan')}")
+                    for evt in output_intersection_events:
+                        _write_replay_event_to_csv(evt)
             print(f"[Study] Index {req.current_index}: Added {len(output_pivots)} pivot markers from study")
             
             # Update cache after full run

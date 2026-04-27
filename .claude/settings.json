@@ -9,7 +9,12 @@
       "WebSearch",
       "WebFetch(domain:charting-library-docs.xstaging.tv)",
       "WebFetch(domain:minimax-algeng-chat-tts-us.oss-us-east-1.aliyuncs.com)",
-      "Read(//c/Dev/**)"
+      "Read(//c/Dev/**)",
+      "Read(//c/Users/kitsh/.claude/projects/c--Dev-GannTesting/memory/**)",
+      "WebFetch(domain:raw.githubusercontent.com)"
+    ],
+    "additionalDirectories": [
+      "c:\\Users\\kitsh\\.claude\\projects\\c--Dev-GannTesting\\memory"
     ]
   }
 }

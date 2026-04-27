@@ -11,76 +11,150 @@ Event Type Definitions:
 - TARGET_HIT: First contact with an angle line in the target progression sequence. Only fires once per line; subsequent contacts are ignored.
 =================================================
 
-[Bar 0] [2026-04-09 09:15] [O:23908.65, H:23923.60, L:23816.45, C:23914.40] [Pattern: DOJI] -> [No Intersection Detected] -> No Event
-[Bar 1] [2026-04-09 09:19] [O:23913.35, H:23964.20, L:23912.90, C:23952.25]  -> [No Intersection Detected] -> No Event
-[Bar 2] [2026-04-09 09:23] [O:23950.05, H:23982.60, L:23943.20, C:23982.00]  -> [No Intersection Detected] -> No Event
-[Bar 3] [2026-04-09 09:27] [O:23981.05, H:23989.75, L:23948.20, C:23949.10]  -> [No Intersection Detected] -> No Event
-[Bar 4] [2026-04-09 09:31] [O:23948.65, H:23951.95, L:23890.95, C:23890.95]  -> [No Intersection Detected] -> No Event
-[Bar 5] [2026-04-09 09:35] [O:23891.80, H:23929.35, L:23891.65, C:23894.80] [Pattern: DOJI] -> [No Intersection Detected] -> No Event
-[Bar 6] [2026-04-09 09:39] [O:23893.50, H:23899.30, L:23861.55, C:23866.25]  -> [No Intersection Detected] -> No Event
-[Bar 7] [2026-04-09 09:43] [O:23866.45, H:23883.05, L:23851.15, C:23862.45] [Pattern: SPINNING_TOP] -> [No Intersection Detected] -> No Event
-[Bar 8] [2026-04-09 09:47] [O:23863.00, H:23865.65, L:23809.05, C:23810.50] [Pattern: MARUBOZU] -> [No Intersection Detected] -> No Event
-[Bar 9] [2026-04-09 09:51] [O:23809.55, H:23826.00, L:23795.20, C:23805.05] [Pattern: SPINNING_TOP] -> [No Intersection Detected] -> No Event
-[Bar 10] [2026-04-09 09:55] [O:23805.95, H:23806.60, L:23781.20, C:23781.35] [Pattern: MARUBOZU] -> [No Intersection Detected] -> No Event
-[Bar 11] [2026-04-09 09:59] [O:23781.70, H:23809.25, L:23760.55, C:23808.30]  -> [No Intersection Detected] -> No Event
-[Bar 12] [2026-04-09 10:03] [O:23808.90, H:23831.35, L:23805.70, C:23818.40]  -> [No Intersection Detected] -> No Event
-[Bar 13] [2026-04-09 10:07] [O:23816.60, H:23838.95, L:23807.40, C:23837.45]  -> [No Intersection Detected] -> No Event
-[Bar 14] [2026-04-09 10:11] [O:23837.55, H:23853.15, L:23831.70, C:23839.00] [Pattern: DOJI] -> [No Intersection Detected] -> No Event
-[Bar 15] [2026-04-09 10:15] [O:23839.05, H:23868.95, L:23820.85, C:23863.80]  -> [No Intersection Detected] -> No Event
-[Bar 16] [2026-04-09 10:19] [O:23862.25, H:23871.35, L:23844.55, C:23844.55]  -> [No Intersection Detected] -> No Event
-[Bar 17] [2026-04-09 10:23] [O:23844.80, H:23867.55, L:23820.20, C:23827.80]  -> [No Intersection Detected] -> No Event
-[Bar 18] [2026-04-09 10:27] [O:23828.40, H:23861.30, L:23826.80, C:23860.05] [Pattern: MARUBOZU] -> [No Intersection Detected] -> No Event
-[Bar 19] [2026-04-09 10:31] [O:23859.75, H:23863.60, L:23841.80, C:23858.45] [Pattern: DOJI] -> [No Intersection Detected] -> No Event
-[Bar 20] [2026-04-09 10:35] [O:23858.05, H:23872.20, L:23832.25, C:23832.80]  -> [No Intersection Detected] -> No Event
-[Bar 21] [2026-04-09 10:39] [O:23832.45, H:23841.15, L:23819.55, C:23822.85]  -> [No Intersection Detected] -> No Event
-[Bar 22] [2026-04-09 10:43] [O:23823.00, H:23826.10, L:23803.65, C:23823.80] [Pattern: DOJI] -> [No Intersection Detected] -> No Event
-[Bar 23] [2026-04-09 10:47] [O:23823.80, H:23829.25, L:23820.15, C:23821.60] [Pattern: INVERTED_HAMMER] -> [No Intersection Detected] -> No Event
-[Bar 24] [2026-04-09 10:51] [O:23821.05, H:23830.40, L:23811.25, C:23825.40] [Pattern: SPINNING_TOP] -> [No Intersection Detected] -> No Event
-[RETRO] [Bar 20] [2026-04-09 10:35] [O:23858.05, H:23872.20, L:23832.25, C:23832.80]  -> [H1-L1 main @ 23872.20] O <= Line & C <= Line & H >= Line -> RESISTANCE_TEST (Pending Rejection)
-[RETRO] [Bar 21] [2026-04-09 10:39] [O:23832.45, H:23841.15, L:23819.55, C:23822.85]  -> [H1-L1 0.875 @ 23836.83] PrevC > PrevLine & C < Line -> GAP CROSS_DOWN (Pending Breach DOWN)
-[RETRO] [Bar 21] [2026-04-09 10:39] [O:23832.45, H:23841.15, L:23819.55, C:23822.85]  -> [H1-L1 0.875] Near line, rest count incremented to 1
-[RETRO] [Bar 22] [2026-04-09 10:43] [O:23823.00, H:23826.10, L:23803.65, C:23823.80] [Pattern: DOJI] -> [H1-L1 0.75 @ 23818.42] O >= Line & C >= Line & L <= Line -> SUPPORT_TEST (Pending Bounce)
-[RETRO] [Bar 22] [2026-04-09 10:43] [O:23823.00, H:23826.10, L:23803.65, C:23823.80] [Pattern: DOJI] -> [H1-L1 0.75] Near line, rest count incremented to 1
-[RETRO] [Bar 23] [2026-04-09 10:47] [O:23823.80, H:23829.25, L:23820.15, C:23821.60] [Pattern: INVERTED_HAMMER] -> [H1-L1 0.75 @ 23823.68] O >= Line & C < Line -> CROSS_DOWN (Pending Breach DOWN)
-[RETRO] [Bar 23] [2026-04-09 10:47] [O:23823.80, H:23829.25, L:23820.15, C:23821.60] [Pattern: INVERTED_HAMMER] -> [H1-L1 0.75] Near line, rest count incremented to 2
-[RETRO] [Bar 23] [2026-04-09 10:47] [O:23823.80, H:23829.25, L:23820.15, C:23821.60] [Pattern: INVERTED_HAMMER] -> [H1-L1 0.75] Pending SUPPORT_TEST: C (23821.60) < Test Candle Close (23823.80) -> Cancelled
-[RETRO] [Bar 24] [2026-04-09 10:51] [O:23821.05, H:23830.40, L:23811.25, C:23825.40] [Pattern: SPINNING_TOP] -> [H1-L1 0.75 @ 23828.94] O <= Line & C <= Line & H >= Line -> RESISTANCE_TEST (Pending Rejection)
-[RETRO] [Bar 24] [2026-04-09 10:51] [O:23821.05, H:23830.40, L:23811.25, C:23825.40] [Pattern: SPINNING_TOP] -> [H1-L1 0.75] Rest count reached 3 -> REST_ON_ANGLE
-[Bar 25] [2026-04-09 10:55] [O:23825.95, H:23843.55, L:23820.85, C:23828.85] [Pattern: SPINNING_TOP] -> [H1-L1 0.75 @ 23834.20] O <= Line & C <= Line & H >= Line -> RESISTANCE_TEST (Pending Rejection)
-[Bar 25] [2026-04-09 10:55] [O:23825.95, H:23843.55, L:23820.85, C:23828.85] [Pattern: SPINNING_TOP] -> [H1-L1 0.75] Near line, rest count incremented to 4
-[Bar 26] [2026-04-09 10:59] [O:23827.85, H:23864.10, L:23825.95, C:23857.50]  -> [H1-L1 0.75 @ 23839.46] O <= Line & C > Line -> CROSS_UP (Pending Breach UP)
-[Bar 26] [2026-04-09 10:59] [O:23827.85, H:23864.10, L:23825.95, C:23857.50]  -> [H1-L1 0.75] Near line, rest count incremented to 5
-[Bar 26] [2026-04-09 10:59] [O:23827.85, H:23864.10, L:23825.95, C:23857.50]  -> [H1-L1 0.75] Pending RESISTANCE_TEST: C (23857.50) > Test Candle Close (23828.85) -> Cancelled
-[Bar 26] [2026-04-09 10:59] [O:23827.85, H:23864.10, L:23825.95, C:23857.50]  -> [Fan_H1_L1 main] Pending Test expired after 6 bars -> Removed
-[RETRO] [Bar 22] [2026-04-09 10:43] [O:23823.00, H:23826.10, L:23803.65, C:23823.80] [Pattern: DOJI] -> [L2-H1 main @ 23803.65] PrevC < PrevLine & C > Line -> GAP CROSS_UP (Pending Breach UP)
-[RETRO] [Bar 22] [2026-04-09 10:43] [O:23823.00, H:23826.10, L:23803.65, C:23823.80] [Pattern: DOJI] -> [L2-H1 main] Near line, rest count incremented to 1
-[RETRO] [Bar 23] [2026-04-09 10:47] [O:23823.80, H:23829.25, L:23820.15, C:23821.60] [Pattern: INVERTED_HAMMER] -> [L2-H1] Nearest line is 0.875 @ 23835.33 (Distance: 13.73) -> No Intersection
-[RETRO] [Bar 24] [2026-04-09 10:51] [O:23821.05, H:23830.40, L:23811.25, C:23825.40] [Pattern: SPINNING_TOP] -> [L2-H1 0.875 @ 23823.04] O <= Line & C > Line -> CROSS_UP (Pending Breach UP)
-[RETRO] [Bar 24] [2026-04-09 10:51] [O:23821.05, H:23830.40, L:23811.25, C:23825.40] [Pattern: SPINNING_TOP] -> [L2-H1 0.875] Near line, rest count incremented to 1
-[RETRO] [Bar 24] [2026-04-09 10:51] [O:23821.05, H:23830.40, L:23811.25, C:23825.40] [Pattern: SPINNING_TOP] -> [L2-H1 main] Pending Breach UP: C (23825.40) > max(BEC=23823.80, ZEC=23823.80) -> BREACH_CONFIRMED
-[RETRO] [Bar 25] [2026-04-09 10:55] [O:23825.95, H:23843.55, L:23820.85, C:23828.85] [Pattern: SPINNING_TOP] -> [L2-H1 0.75 @ 23836.39] O <= Line & C <= Line & H >= Line -> RESISTANCE_TEST (Pending Rejection)
-[RETRO] [Bar 25] [2026-04-09 10:55] [O:23825.95, H:23843.55, L:23820.85, C:23828.85] [Pattern: SPINNING_TOP] -> [L2-H1 0.75] Near line, rest count incremented to 1
-[RETRO] [Bar 25] [2026-04-09 10:55] [O:23825.95, H:23843.55, L:23820.85, C:23828.85] [Pattern: SPINNING_TOP] -> [L2-H1 0.875] Pending Breach UP: C (23828.85) > max(BEC=23825.40, ZEC=23825.40) -> BREACH_CONFIRMED
-[RETRO] [Bar 26] [2026-04-09 10:59] [O:23827.85, H:23864.10, L:23825.95, C:23857.50]  -> [L2-H1 0.75 @ 23829.23] O <= Line & C > Line -> CROSS_UP (Pending Breach UP)
-[RETRO] [Bar 26] [2026-04-09 10:59] [O:23827.85, H:23864.10, L:23825.95, C:23857.50]  -> [L2-H1 0.75] Near line, rest count incremented to 2
-[RETRO] [Bar 26] [2026-04-09 10:59] [O:23827.85, H:23864.10, L:23825.95, C:23857.50]  -> [L2-H1 0.5 @ 23852.46] O <= Line & C > Line -> CROSS_UP (Pending Breach UP)
-[RETRO] [Bar 26] [2026-04-09 10:59] [O:23827.85, H:23864.10, L:23825.95, C:23857.50]  -> [L2-H1 0.5] Near line, rest count incremented to 1
-[RETRO] [Bar 26] [2026-04-09 10:59] [O:23827.85, H:23864.10, L:23825.95, C:23857.50]  -> [L2-H1 0.25 @ 23863.78] O <= Line & C <= Line & H >= Line -> RESISTANCE_TEST (Pending Rejection)
-[RETRO] [Bar 26] [2026-04-09 10:59] [O:23827.85, H:23864.10, L:23825.95, C:23857.50]  -> [L2-H1 0.25] Near line, rest count incremented to 1
-[RETRO] [Bar 26] [2026-04-09 10:59] [O:23827.85, H:23864.10, L:23825.95, C:23857.50]  -> [L2-H1 0.75] Intra-bar multi-cross -> BREACH_CONFIRMED_NO_ALPHA
-[RETRO] [Bar 26] [2026-04-09 10:59] [O:23827.85, H:23864.10, L:23825.95, C:23857.50]  -> [L2-H1 0.75] Pending RESISTANCE_TEST: C (23857.50) > Test Candle Close (23828.85) -> Cancelled
-[Bar 27] [2026-04-09 11:03] [O:23857.55, H:23858.75, L:23828.75, C:23828.75] [Pattern: MARUBOZU] -> [H1-L1 0.75 @ 23844.72] O >= Line & C < Line -> CROSS_DOWN (Pending Breach DOWN)
-[Bar 27] [2026-04-09 11:03] [O:23857.55, H:23858.75, L:23828.75, C:23828.75] [Pattern: MARUBOZU] -> [H1-L1 0.75] Near line, rest count incremented to 6
-[Bar 27] [2026-04-09 11:03] [O:23857.55, H:23858.75, L:23828.75, C:23828.75] [Pattern: MARUBOZU] -> [L2-H1 0.5 @ 23849.17] O >= Line & C < Line -> CROSS_DOWN (Pending Breach DOWN)
-[Bar 27] [2026-04-09 11:03] [O:23857.55, H:23858.75, L:23828.75, C:23828.75] [Pattern: MARUBOZU] -> [L2-H1 0.5] Near line, rest count incremented to 2
-[Bar 28] [2026-04-09 11:07] [O:23828.55, H:23869.50, L:23828.15, C:23868.45] [Pattern: MARUBOZU] -> [H1-L1 0.75 @ 23849.98] O <= Line & C > Line -> CROSS_UP (Pending Breach UP)
-[Bar 28] [2026-04-09 11:07] [O:23828.55, H:23869.50, L:23828.15, C:23868.45] [Pattern: MARUBOZU] -> [H1-L1 0.75] Near line, rest count incremented to 7
-[Bar 28] [2026-04-09 11:07] [O:23828.55, H:23869.50, L:23828.15, C:23868.45] [Pattern: MARUBOZU] -> [L2-H1 0.5 @ 23845.88] O <= Line & C > Line -> CROSS_UP (Pending Breach UP)
-[Bar 28] [2026-04-09 11:07] [O:23828.55, H:23869.50, L:23828.15, C:23868.45] [Pattern: MARUBOZU] -> [L2-H1 0.5] Rest count reached 3 -> REST_ON_ANGLE
-[Bar 28] [2026-04-09 11:07] [O:23828.55, H:23869.50, L:23828.15, C:23868.45] [Pattern: MARUBOZU] -> [L2-H1 0.25 @ 23860.97] O <= Line & C > Line -> CROSS_UP (Pending Breach UP)
-[Bar 28] [2026-04-09 11:07] [O:23828.55, H:23869.50, L:23828.15, C:23868.45] [Pattern: MARUBOZU] -> [L2-H1 0.25] Near line but continuity broken, rest count reset to 1
-[Bar 28] [2026-04-09 11:07] [O:23828.55, H:23869.50, L:23828.15, C:23868.45] [Pattern: MARUBOZU] -> [L2-H1 horizontal @ 23865.62] O <= Line & C > Line -> CROSS_UP (Pending Breach UP)
-[Bar 28] [2026-04-09 11:07] [O:23828.55, H:23869.50, L:23828.15, C:23868.45] [Pattern: MARUBOZU] -> [L2-H1 horizontal] Near line, rest count incremented to 1
-[Bar 28] [2026-04-09 11:07] [O:23828.55, H:23869.50, L:23828.15, C:23868.45] [Pattern: MARUBOZU] -> [L2-H1 0.5] Intra-bar multi-cross -> BREACH_CONFIRMED_NO_ALPHA
-[Bar 28] [2026-04-09 11:07] [O:23828.55, H:23869.50, L:23828.15, C:23868.45] [Pattern: MARUBOZU] -> [L2-H1 0.25] Intra-bar multi-cross -> BREACH_CONFIRMED_NO_ALPHA
-[Bar 28] [2026-04-09 11:07] [O:23828.55, H:23869.50, L:23828.15, C:23868.45] [Pattern: MARUBOZU] -> [L2-H1 0.25] Pending RESISTANCE_TEST: C (23868.45) > Test Candle Close (23857.50) -> Cancelled
+[Bar 0] [2026-04-16 09:15] [O:24380.25, H:24384.75, L:24337.70, C:24376.20] [Pattern: DOJI] -> [No Intersection Detected] -> No Event
+[Bar 1] [2026-04-16 09:19] [O:24373.05, H:24397.55, L:24373.05, C:24388.20]  -> [No Intersection Detected] -> No Event
+[Bar 2] [2026-04-16 09:23] [O:24387.75, H:24400.10, L:24372.70, C:24386.75] [Pattern: DOJI] -> [No Intersection Detected] -> No Event
+[Bar 3] [2026-04-16 09:27] [O:24386.40, H:24398.25, L:24376.00, C:24388.90] [Pattern: SPINNING_TOP] -> [No Intersection Detected] -> No Event
+[Bar 4] [2026-04-16 09:31] [O:24389.35, H:24390.35, L:24353.70, C:24358.30]  -> [No Intersection Detected] -> No Event
+[Bar 5] [2026-04-16 09:35] [O:24358.15, H:24364.05, L:24312.00, C:24314.90]  -> [No Intersection Detected] -> No Event
+[Bar 6] [2026-04-16 09:39] [O:24314.05, H:24335.35, L:24301.90, C:24303.70] [Pattern: SHOOTING_STAR] -> [No Intersection Detected] -> No Event
+[Bar 7] [2026-04-16 09:43] [O:24303.00, H:24329.30, L:24293.15, C:24328.60]  -> [No Intersection Detected] -> No Event
+[Bar 8] [2026-04-16 09:47] [O:24328.00, H:24334.65, L:24315.30, C:24330.35] [Pattern: SPINNING_TOP] -> [No Intersection Detected] -> No Event
+[Bar 9] [2026-04-16 09:51] [O:24331.10, H:24337.05, L:24301.50, C:24316.55]  -> [No Intersection Detected] -> No Event
+[Bar 10] [2026-04-16 09:55] [O:24316.85, H:24316.85, L:24275.45, C:24283.35]  -> [No Intersection Detected] -> No Event
+[Bar 11] [2026-04-16 09:59] [O:24282.70, H:24290.75, L:24266.50, C:24288.50] [Pattern: PINBAR] -> [No Intersection Detected] -> No Event
+[Bar 12] [2026-04-16 10:03] [O:24288.70, H:24304.05, L:24279.65, C:24283.30] [Pattern: SHOOTING_STAR] -> [No Intersection Detected] -> No Event
+[Bar 13] [2026-04-16 10:07] [O:24281.90, H:24318.65, L:24280.90, C:24318.65] [Pattern: MARUBOZU] -> [No Intersection Detected] -> No Event
+[Bar 14] [2026-04-16 10:11] [O:24318.15, H:24319.85, L:24295.30, C:24307.60]  -> [No Intersection Detected] -> No Event
+[Bar 15] [2026-04-16 10:15] [O:24306.15, H:24324.55, L:24292.85, C:24323.40]  -> [No Intersection Detected] -> No Event
+[Bar 16] [2026-04-16 10:19] [O:24323.65, H:24328.80, L:24300.05, C:24306.45]  -> [No Intersection Detected] -> No Event
+[Bar 17] [2026-04-16 10:23] [O:24305.75, H:24315.20, L:24302.50, C:24312.35]  -> [No Intersection Detected] -> No Event
+[Bar 18] [2026-04-16 10:27] [O:24312.00, H:24317.20, L:24292.50, C:24308.80] [Pattern: SPINNING_TOP] -> [No Intersection Detected] -> No Event
+[Bar 19] [2026-04-16 10:31] [O:24308.85, H:24321.25, L:24305.70, C:24312.70] [Pattern: INVERTED_HAMMER] -> [No Intersection Detected] -> No Event
+[Bar 20] [2026-04-16 10:35] [O:24312.80, H:24325.85, L:24308.60, C:24310.65] [Pattern: SHOOTING_STAR] -> [No Intersection Detected] -> No Event
+[RETRO] [Bar 16] [2026-04-16 10:19] [O:24323.65, H:24328.80, L:24300.05, C:24306.45]  -> [H1-L1 0.875 @ 24304.74] O >= Line & C >= Line & L <= Line -> SUPPORT_TEST (Pending Bounce)
+[RETRO] [Bar 16] [2026-04-16 10:19] [O:24323.65, H:24328.80, L:24300.05, C:24306.45]  -> [H1-L1 0.875] Near line, rest count incremented to 1
+[RETRO] [Bar 16] [2026-04-16 10:19] [O:24323.65, H:24328.80, L:24300.05, C:24306.45]  -> [STATE] fan_validated: fan=Fan_H1_L1 origin_bar=16 breach_close=24306.45
+[RETRO] [Bar 17] [2026-04-16 10:23] [O:24305.75, H:24315.20, L:24302.50, C:24312.35]  -> [H1-L1 0.875 @ 24312.39] gap dir=DOWN prev_line=24304.74 prev_close=24306.45 curr_open=24305.75 curr_close=24312.35 -> GAP_CROSS_DOWN (Pending Breach DOWN)
+[RETRO] [Bar 17] [2026-04-16 10:23] [O:24305.75, H:24315.20, L:24302.50, C:24312.35]  -> [H1-L1 0.875] Near line, rest count incremented to 2
+[RETRO] [Bar 18] [2026-04-16 10:27] [O:24312.00, H:24317.20, L:24292.50, C:24308.80] [Pattern: SPINNING_TOP] -> [H1-L1 0.75 @ 24303.40] O >= Line & C >= Line & L <= Line -> SUPPORT_TEST (Pending Bounce)
+[RETRO] [Bar 18] [2026-04-16 10:27] [O:24312.00, H:24317.20, L:24292.50, C:24308.80] [Pattern: SPINNING_TOP] -> [H1-L1 0.75] Near line, rest count incremented to 1
+[RETRO] [Bar 18] [2026-04-16 10:27] [O:24312.00, H:24317.20, L:24292.50, C:24308.80] [Pattern: SPINNING_TOP] -> [H1-L1 0.875] Pending Breach DOWN: C (24308.80) >= min(BEC=24312.35, ZEC=24306.45) -> DEFERRED
+[RETRO] [Bar 18] [2026-04-16 10:27] [O:24312.00, H:24317.20, L:24292.50, C:24308.80] [Pattern: SPINNING_TOP] -> [STATE] pending_breach: fan=Fan_H1_L1 line=0.875 direction=DOWN bec_close=24312.35 zec_high=24306.45 zec_low=24306.45 pending_bar=18 outcome=DEFERRED
+[Bar 18] [2026-04-16 10:27] [O:24312.00, H:24317.20, L:24292.50, C:24308.80]  -> [STATE] pending_breach: fan=Fan_H1_L1 line=0.875 direction=DOWN bec_close=24312.35 zec_high=24306.45 zec_low=24306.45 pending_bar=17 outcome=BREACH_CONFIRMED_NO_ALPHA
+[RETRO] [Bar 19] [2026-04-16 10:31] [O:24308.85, H:24321.25, L:24305.70, C:24312.70] [Pattern: INVERTED_HAMMER] -> [H1-L1 0.75 @ 24308.67] O >= Line & C >= Line & L <= Line -> SUPPORT_TEST (Pending Bounce)
+[RETRO] [Bar 19] [2026-04-16 10:31] [O:24308.85, H:24321.25, L:24305.70, C:24312.70] [Pattern: INVERTED_HAMMER] -> [H1-L1 0.75] Near line, rest count incremented to 2
+[RETRO] [Bar 20] [2026-04-16 10:35] [O:24312.80, H:24325.85, L:24308.60, C:24310.65] [Pattern: SHOOTING_STAR] -> [H1-L1 0.75 @ 24313.94] gap dir=DOWN prev_line=24308.67 prev_close=24312.70 curr_open=24312.80 curr_close=24310.65 -> GAP_CROSS_DOWN (Pending Breach DOWN)
+[RETRO] [Bar 20] [2026-04-16 10:35] [O:24312.80, H:24325.85, L:24308.60, C:24310.65] [Pattern: SHOOTING_STAR] -> [H1-L1 0.75] Rest count reached 3 -> REST_ON_ANGLE
+[RETRO] [Bar 20] [2026-04-16 10:35] [O:24312.80, H:24325.85, L:24308.60, C:24310.65] [Pattern: SHOOTING_STAR] -> [H1-L1 0.75] Pending SUPPORT_TEST: C (24310.65) < Test Candle Close (24312.70) -> Cancelled
+[Bar 21] [2026-04-16 10:39] [O:24311.20, H:24317.10, L:24292.45, C:24311.75] [Pattern: DOJI] -> [H1-L1 0.5 @ 24293.90] O >= Line & C >= Line & L <= Line -> SUPPORT_TEST (Pending Bounce)
+[Bar 21] [2026-04-16 10:39] [O:24311.20, H:24317.10, L:24292.45, C:24311.75] [Pattern: DOJI] -> [H1-L1 0.5] Near line, rest count incremented to 1
+[Bar 21] [2026-04-16 10:39] [O:24311.20, H:24317.10, L:24292.45, C:24311.75] [Pattern: DOJI] -> [H1-L1 0.75] Pending Breach DOWN: C (24311.75) >= min(BEC=24310.65, ZEC=24308.80) -> DEFERRED
+[Bar 21] [2026-04-16 10:39] [O:24311.20, H:24317.10, L:24292.45, C:24311.75] [Pattern: DOJI] -> [STATE] pending_breach: fan=Fan_H1_L1 line=0.75 direction=DOWN bec_close=24310.65 zec_high=24312.70 zec_low=24308.80 pending_bar=21 outcome=DEFERRED
+[Bar 21] [2026-04-16 10:39] [O:24311.20, H:24317.10, L:24292.45, C:24311.75]  -> [STATE] pending_breach: fan=Fan_H1_L1 line=0.75 direction=DOWN bec_close=24310.65 zec_high=24312.70 zec_low=24308.80 pending_bar=20 outcome=BREACH_CONFIRMED_NO_ALPHA
+[Bar 22] [2026-04-16 10:43] [O:24312.10, H:24320.50, L:24306.90, C:24320.35]  -> [Fan_H1_L1 0.875] Removed test_bar=16 line=24304.74 threshold_pct=0.3 bars_elapsed=6 lookback_limit=5 -> Removed
+[Bar 23] [2026-04-16 10:47] [O:24320.00, H:24327.90, L:24311.75, C:24315.80]  -> [No Intersection Detected] -> No Event
+[Bar 23] [2026-04-16 10:47] [O:24320.00, H:24327.90, L:24311.75, C:24315.80]  -> [H1-L1] Line 0.875 @ 24358.28 (Distance: 42.48)
+[Bar 23] [2026-04-16 10:47] [O:24320.00, H:24327.90, L:24311.75, C:24315.80]  -> [H1-L1] Line 0.75 @ 24329.75 (Distance: 13.95)
+[Bar 23] [2026-04-16 10:47] [O:24320.00, H:24327.90, L:24311.75, C:24315.80]  -> [H1-L1] Line 0.5 @ 24299.38 (Distance: 16.42)
+[Bar 23] [2026-04-16 10:47] [O:24320.00, H:24327.90, L:24311.75, C:24315.80]  -> [H1-L1] Line 0.25 @ 24281.12 (Distance: 34.68)
+[Bar 23] [2026-04-16 10:47] [O:24320.00, H:24327.90, L:24311.75, C:24315.80]  -> [H1-L1] Line horizontal @ 24280.20 (Distance: 35.60)
+[Bar 24] [2026-04-16 10:51] [O:24316.00, H:24319.10, L:24311.50, C:24314.70] [Pattern: SPINNING_TOP] -> [No Intersection Detected] -> No Event
+[Bar 24] [2026-04-16 10:51] [O:24316.00, H:24319.10, L:24311.50, C:24314.70] [Pattern: SPINNING_TOP] -> [H1-L1] Line 0.875 @ 24365.93 (Distance: 51.23)
+[Bar 24] [2026-04-16 10:51] [O:24316.00, H:24319.10, L:24311.50, C:24314.70] [Pattern: SPINNING_TOP] -> [H1-L1] Line 0.75 @ 24335.02 (Distance: 20.32)
+[Bar 24] [2026-04-16 10:51] [O:24316.00, H:24319.10, L:24311.50, C:24314.70] [Pattern: SPINNING_TOP] -> [H1-L1] Line 0.5 @ 24302.12 (Distance: 12.58)
+[Bar 24] [2026-04-16 10:51] [O:24316.00, H:24319.10, L:24311.50, C:24314.70] [Pattern: SPINNING_TOP] -> [H1-L1] Line 0.25 @ 24282.34 (Distance: 32.36)
+[Bar 24] [2026-04-16 10:51] [O:24316.00, H:24319.10, L:24311.50, C:24314.70] [Pattern: SPINNING_TOP] -> [H1-L1] Line horizontal @ 24280.20 (Distance: 34.50)
+[Bar 25] [2026-04-16 10:55] [O:24315.25, H:24315.95, L:24302.15, C:24306.50]  -> [H1-L1 0.5 @ 24304.86] O >= Line & C >= Line & L <= Line -> SUPPORT_TEST (Pending Bounce)
+[Bar 25] [2026-04-16 10:55] [O:24315.25, H:24315.95, L:24302.15, C:24306.50]  -> [H1-L1 0.5] Near line but continuity broken, rest count reset to 1
+[RETRO] [Bar 21] [2026-04-16 10:39] [O:24311.20, H:24317.10, L:24292.45, C:24311.75] [Pattern: DOJI] -> [L2-H1 0.75 @ 24308.86] gap dir=UP prev_line=24312.85 prev_close=24310.65 curr_open=24311.20 curr_close=24311.75 -> GAP_CROSS_UP (Pending Breach UP)
+[RETRO] [Bar 21] [2026-04-16 10:39] [O:24311.20, H:24317.10, L:24292.45, C:24311.75] [Pattern: DOJI] -> [L2-H1 0.75] Near line, rest count incremented to 1
+[RETRO] [Bar 21] [2026-04-16 10:39] [O:24311.20, H:24317.10, L:24292.45, C:24311.75] [Pattern: DOJI] -> [L2-H1 0.875 @ 24302.30] O >= Line & C >= Line & L <= Line -> SUPPORT_TEST (Pending Bounce)
+[RETRO] [Bar 21] [2026-04-16 10:39] [O:24311.20, H:24317.10, L:24292.45, C:24311.75] [Pattern: DOJI] -> [L2-H1 0.875] Near line, rest count incremented to 1
+[RETRO] [Bar 21] [2026-04-16 10:39] [O:24311.20, H:24317.10, L:24292.45, C:24311.75] [Pattern: DOJI] -> [STATE] fan_validated: fan=Fan_L2_H1 origin_bar=21 breach_close=24311.75
+[RETRO] [Bar 22] [2026-04-16 10:43] [O:24312.10, H:24320.50, L:24306.90, C:24320.35]  -> [L2-H1 0.5 @ 24315.27] O <= Line & C >= Line -> CROSS_UP (Pending Breach UP)
+[RETRO] [Bar 22] [2026-04-16 10:43] [O:24312.10, H:24320.50, L:24306.90, C:24320.35]  -> [L2-H1 0.5] Near line, rest count incremented to 1
+[RETRO] [Bar 22] [2026-04-16 10:43] [O:24312.10, H:24320.50, L:24306.90, C:24320.35]  -> [L2-H1 horizontal @ 24317.52] O <= Line & C >= Line -> CROSS_UP (Pending Breach UP)
+[RETRO] [Bar 22] [2026-04-16 10:43] [O:24312.10, H:24320.50, L:24306.90, C:24320.35]  -> [L2-H1 horizontal] Near line, rest count incremented to 1
+[RETRO] [Bar 22] [2026-04-16 10:43] [O:24312.10, H:24320.50, L:24306.90, C:24320.35]  -> [L2-H1 0.5] path=A dir=UP crosses=1 last_cross=24317.52 close=24320.35 -> BREACH_CONFIRMED_NO_ALPHA
+[RETRO] [Bar 22] [2026-04-16 10:43] [O:24312.10, H:24320.50, L:24306.90, C:24320.35]  -> [L2-H1 0.75] Pending Breach UP: C (24320.35) > max(BEC=24311.75, ZEC=24311.75) -> BREACH_CONFIRMED (confirmed_this_bar, flush after TARGET_HIT)
+[RETRO] [Bar 22] [2026-04-16 10:43] [O:24312.10, H:24320.50, L:24306.90, C:24320.35]  -> [STATE] pending_breach: fan=Fan_L2_H1 line=0.5 direction=UP bec_close=24320.35 zec_high=24320.35 zec_low=24320.35 pending_bar=22 outcome=BREACH_CONFIRMED_NO_ALPHA
+[RETRO] [Bar 22] [2026-04-16 10:43] [O:24312.10, H:24320.50, L:24306.90, C:24320.35]  -> [STATE] pending_breach: fan=Fan_L2_H1 line=0.75 direction=UP bec_close=24311.75 zec_high=24311.75 zec_low=24311.75 pending_bar=21 outcome=BREACH_CONFIRMED
+[RETRO] [Bar 23] [2026-04-16 10:47] [O:24320.00, H:24327.90, L:24311.75, C:24315.80]  -> [L2-H1 0.25 @ 24321.54] O <= Line & C <= Line & H >= Line -> RESISTANCE_TEST (Pending Rejection)
+[RETRO] [Bar 23] [2026-04-16 10:47] [O:24320.00, H:24327.90, L:24311.75, C:24315.80]  -> [L2-H1 0.25] Near line, rest count incremented to 1
+[RETRO] [Bar 23] [2026-04-16 10:47] [O:24320.00, H:24327.90, L:24311.75, C:24315.80]  -> [L2-H1 horizontal @ 24317.52] O >= Line & C <= Line -> CROSS_DOWN (Pending Breach DOWN)
+[RETRO] [Bar 23] [2026-04-16 10:47] [O:24320.00, H:24327.90, L:24311.75, C:24315.80]  -> [L2-H1 horizontal] Near line, rest count incremented to 2
+[RETRO] [Bar 23] [2026-04-16 10:47] [O:24320.00, H:24327.90, L:24311.75, C:24315.80]  -> [L2-H1 0.5 @ 24313.01] O >= Line & C >= Line & L <= Line -> SUPPORT_TEST (Pending Bounce)
+[RETRO] [Bar 23] [2026-04-16 10:47] [O:24320.00, H:24327.90, L:24311.75, C:24315.80]  -> [L2-H1 0.5] Near line, rest count incremented to 2
+[RETRO] [Bar 24] [2026-04-16 10:51] [O:24316.00, H:24319.10, L:24311.50, C:24314.70] [Pattern: SPINNING_TOP] -> [L2-H1 horizontal @ 24317.52] O <= Line & C <= Line & H >= Line -> RESISTANCE_TEST (Pending Rejection)
+[RETRO] [Bar 24] [2026-04-16 10:51] [O:24316.00, H:24319.10, L:24311.50, C:24314.70] [Pattern: SPINNING_TOP] -> [L2-H1 horizontal] Rest count reached 3 -> REST_ON_ANGLE
+[RETRO] [Bar 24] [2026-04-16 10:51] [O:24316.00, H:24319.10, L:24311.50, C:24314.70] [Pattern: SPINNING_TOP] -> [L2-H1 horizontal] Pending Breach DOWN: C (24314.70) < min(BEC=24315.80, ZEC=24320.35) -> BREACH_CONFIRMED (confirmed_this_bar, flush after TARGET_HIT)
+[RETRO] [Bar 24] [2026-04-16 10:51] [O:24316.00, H:24319.10, L:24311.50, C:24314.70] [Pattern: SPINNING_TOP] -> [L2-H1 0.5] Pending SUPPORT_TEST: C (24314.70) < Test Candle Close (24315.80) -> Cancelled
+[RETRO] [Bar 24] [2026-04-16 10:51] [O:24316.00, H:24319.10, L:24311.50, C:24314.70] [Pattern: SPINNING_TOP] -> [STATE] pending_breach: fan=Fan_L2_H1 line=horizontal direction=DOWN bec_close=24315.80 zec_high=24320.35 zec_low=24320.35 pending_bar=23 outcome=BREACH_CONFIRMED
+[RETRO] [Bar 25] [2026-04-16 10:55] [O:24315.25, H:24315.95, L:24302.15, C:24306.50]  -> [L2-H1 0.5 @ 24308.50] O >= Line & C <= Line -> CROSS_DOWN (Ignored: Already historically breached)
+[RETRO] [Bar 25] [2026-04-16 10:55] [O:24315.25, H:24315.95, L:24302.15, C:24306.50]  -> [L2-H1 0.5] Near line but continuity broken, rest count reset to 1
+[RETRO] [Bar 25] [2026-04-16 10:55] [O:24315.25, H:24315.95, L:24302.15, C:24306.50]  -> [L2-H1 0.875] Pending SUPPORT_TEST: C (24306.50) < Test Candle Close (24311.75) -> Cancelled
+[Bar 26] [2026-04-16 10:59] [O:24306.00, H:24322.70, L:24303.55, C:24320.50]  -> [H1-L1 0.5 @ 24307.60] O <= Line & C >= Line -> CROSS_UP (Pending Breach UP)
+[Bar 26] [2026-04-16 10:59] [O:24306.00, H:24322.70, L:24303.55, C:24320.50]  -> [H1-L1 0.5] Near line, rest count incremented to 2
+[Bar 26] [2026-04-16 10:59] [O:24306.00, H:24322.70, L:24303.55, C:24320.50]  -> [L2-H1 0.5 @ 24306.25] O <= Line & C >= Line -> CROSS_UP (Ignored: Already historically breached)
+[Bar 26] [2026-04-16 10:59] [O:24306.00, H:24322.70, L:24303.55, C:24320.50]  -> [L2-H1 0.5] Near line, rest count incremented to 2
+[Bar 26] [2026-04-16 10:59] [O:24306.00, H:24322.70, L:24303.55, C:24320.50]  -> [L2-H1 horizontal @ 24317.52] O <= Line & C >= Line -> CROSS_UP (Ignored: Already historically breached)
+[Bar 26] [2026-04-16 10:59] [O:24306.00, H:24322.70, L:24303.55, C:24320.50]  -> [L2-H1 horizontal] Near line but continuity broken, rest count reset to 1
+[Bar 26] [2026-04-16 10:59] [O:24306.00, H:24322.70, L:24303.55, C:24320.50]  -> [L2-H1 0.25 @ 24318.43] O <= Line & C >= Line -> CROSS_UP (Pending Breach UP)
+[Bar 26] [2026-04-16 10:59] [O:24306.00, H:24322.70, L:24303.55, C:24320.50]  -> [L2-H1 0.25] Near line but continuity broken, rest count reset to 1
+[Bar 26] [2026-04-16 10:59] [O:24306.00, H:24322.70, L:24303.55, C:24320.50]  -> [L2-H1 0.25] Pending RESISTANCE_TEST: C (24320.50) > Test Candle Close (24315.80) -> Cancelled
+[Bar 26] [2026-04-16 10:59] [O:24306.00, H:24322.70, L:24303.55, C:24320.50]  -> [L2-H1 horizontal] Pending RESISTANCE_TEST: C (24320.50) > Test Candle Close (24314.70) -> Cancelled
+[Bar 27] [2026-04-16 11:03] [O:24320.65, H:24330.70, L:24319.15, C:24323.05] [Pattern: SHOOTING_STAR] -> [No Intersection Detected] -> No Event
+[Bar 28] [2026-04-16 11:07] [O:24323.60, H:24333.20, L:24308.60, C:24313.55]  -> [No Intersection Detected] -> No Event
+[Bar 29] [2026-04-16 11:11] [O:24313.05, H:24318.75, L:24303.65, C:24313.90] [Pattern: DOJI] -> [No Intersection Detected] -> No Event
+[Bar 30] [2026-04-16 11:15] [O:24313.20, H:24321.00, L:24294.10, C:24311.40] [Pattern: DOJI] -> [No Intersection Detected] -> No Event
+[Bar 31] [2026-04-16 11:19] [O:24308.15, H:24328.95, L:24298.55, C:24301.15] [Pattern: SHOOTING_STAR] -> [No Intersection Detected] -> No Event
+[Bar 32] [2026-04-16 11:23] [O:24301.10, H:24302.40, L:24282.75, C:24288.25]  -> [No Intersection Detected] -> No Event
+[RETRO] [Bar 28] [2026-04-16 11:07] [O:24323.60, H:24333.20, L:24308.60, C:24313.55]  -> [H2-L1 0.875 @ 24320.81] O >= Line & C <= Line -> CROSS_DOWN (Pending Breach DOWN)
+[RETRO] [Bar 28] [2026-04-16 11:07] [O:24323.60, H:24333.20, L:24308.60, C:24313.55]  -> [H2-L1 0.875] Near line, rest count incremented to 1
+[RETRO] [Bar 28] [2026-04-16 11:07] [O:24323.60, H:24333.20, L:24308.60, C:24313.55]  -> [H2-L1 0.75 @ 24310.46] O >= Line & C >= Line & L <= Line -> SUPPORT_TEST (Pending Bounce)
+[RETRO] [Bar 28] [2026-04-16 11:07] [O:24323.60, H:24333.20, L:24308.60, C:24313.55]  -> [H2-L1 0.75] Near line, rest count incremented to 1
+[RETRO] [Bar 28] [2026-04-16 11:07] [O:24323.60, H:24333.20, L:24308.60, C:24313.55]  -> [STATE] fan_validated: fan=Fan_H2_L1 origin_bar=28 breach_close=24313.55
+[Bar 28] [2026-04-16 11:07] [O:24323.60, H:24333.20, L:24308.60, C:24313.55]  -> [STATE] pending_breach: fan=Fan_H2_L1 line=0.875 direction=DOWN bec_close=24313.55 zec_high=24313.55 zec_low=24313.55 pending_bar=28 outcome=BREACH_CONFIRMED_NO_ALPHA
+[RETRO] [Bar 29] [2026-04-16 11:11] [O:24313.05, H:24318.75, L:24303.65, C:24313.90] [Pattern: DOJI] -> [H2-L1 0.75 @ 24313.05] O >= Line & C >= Line & L <= Line -> SUPPORT_TEST (Pending Bounce)
+[RETRO] [Bar 29] [2026-04-16 11:11] [O:24313.05, H:24318.75, L:24303.65, C:24313.90] [Pattern: DOJI] -> [H2-L1 0.75] Near line, rest count incremented to 2
+[RETRO] [Bar 30] [2026-04-16 11:15] [O:24313.20, H:24321.00, L:24294.10, C:24311.40] [Pattern: DOJI] -> [H2-L1 0.75 @ 24315.63] gap dir=DOWN prev_line=24313.05 prev_close=24313.90 curr_open=24313.20 curr_close=24311.40 -> GAP_CROSS_DOWN (Pending Breach DOWN)
+[RETRO] [Bar 30] [2026-04-16 11:15] [O:24313.20, H:24321.00, L:24294.10, C:24311.40] [Pattern: DOJI] -> [H2-L1 0.75] Rest count reached 3 -> REST_ON_ANGLE
+[RETRO] [Bar 30] [2026-04-16 11:15] [O:24313.20, H:24321.00, L:24294.10, C:24311.40] [Pattern: DOJI] -> [H2-L1 0.5 @ 24296.73] O >= Line & C >= Line & L <= Line -> SUPPORT_TEST (Pending Bounce)
+[RETRO] [Bar 30] [2026-04-16 11:15] [O:24313.20, H:24321.00, L:24294.10, C:24311.40] [Pattern: DOJI] -> [H2-L1 0.5] Near line, rest count incremented to 1
+[RETRO] [Bar 30] [2026-04-16 11:15] [O:24313.20, H:24321.00, L:24294.10, C:24311.40] [Pattern: DOJI] -> [H2-L1 0.75] Pending SUPPORT_TEST: C (24311.40) < Test Candle Close (24313.90) -> Cancelled
+[Bar 30] [2026-04-16 11:15] [O:24313.20, H:24321.00, L:24294.10, C:24311.40]  -> [STATE] pending_breach: fan=Fan_H2_L1 line=0.75 direction=DOWN bec_close=24311.40 zec_high=24313.90 zec_low=24313.55 pending_bar=30 outcome=BREACH_CONFIRMED_NO_ALPHA
+[RETRO] [Bar 31] [2026-04-16 11:19] [O:24308.15, H:24328.95, L:24298.55, C:24301.15] [Pattern: SHOOTING_STAR] -> [H2-L1 0.75 @ 24318.22] O <= Line & C <= Line & H >= Line -> RESISTANCE_TEST (Pending Rejection)
+[RETRO] [Bar 31] [2026-04-16 11:19] [O:24308.15, H:24328.95, L:24298.55, C:24301.15] [Pattern: SHOOTING_STAR] -> [H2-L1 0.75] Near line, rest count incremented to 4
+[RETRO] [Bar 31] [2026-04-16 11:19] [O:24308.15, H:24328.95, L:24298.55, C:24301.15] [Pattern: SHOOTING_STAR] -> [H2-L1 0.5] Pending SUPPORT_TEST: C (24301.15) < Test Candle Close (24311.40) -> Cancelled
+[RETRO] [Bar 32] [2026-04-16 11:23] [O:24301.10, H:24302.40, L:24282.75, C:24288.25]  -> [H2-L1 0.5 @ 24299.91] O >= Line & C <= Line -> CROSS_DOWN (Pending Breach DOWN)
+[RETRO] [Bar 32] [2026-04-16 11:23] [O:24301.10, H:24302.40, L:24282.75, C:24288.25]  -> [H2-L1 0.5] Near line but continuity broken, rest count reset to 1
+[RETRO] [Bar 32] [2026-04-16 11:23] [O:24301.10, H:24302.40, L:24282.75, C:24288.25]  -> [H2-L1 horizontal @ 24293.55] O >= Line & C <= Line -> CROSS_DOWN (Pending Breach DOWN)
+[RETRO] [Bar 32] [2026-04-16 11:23] [O:24301.10, H:24302.40, L:24282.75, C:24288.25]  -> [H2-L1 horizontal] Near line, rest count incremented to 1
+[RETRO] [Bar 32] [2026-04-16 11:23] [O:24301.10, H:24302.40, L:24282.75, C:24288.25]  -> [H2-L1 0.5] path=A dir=DOWN crosses=1 last_cross=24293.55 close=24288.25 -> BREACH_CONFIRMED_NO_ALPHA
+[RETRO] [Bar 32] [2026-04-16 11:23] [O:24301.10, H:24302.40, L:24282.75, C:24288.25]  -> [STATE] pending_breach: fan=Fan_H2_L1 line=0.5 direction=DOWN bec_close=24288.25 zec_high=24288.25 zec_low=24288.25 pending_bar=32 outcome=BREACH_CONFIRMED_NO_ALPHA
+[Bar 33] [2026-04-16 11:27] [O:24288.00, H:24304.25, L:24284.70, C:24300.95]  -> [H2-L1 horizontal @ 24293.55] O <= Line & C >= Line -> CROSS_UP (Pending Breach UP)
+[Bar 33] [2026-04-16 11:27] [O:24288.00, H:24304.25, L:24284.70, C:24300.95]  -> [H2-L1 horizontal] Near line, rest count incremented to 2
+[Bar 33] [2026-04-16 11:27] [O:24288.00, H:24304.25, L:24284.70, C:24300.95]  -> [H2-L1 0.5 @ 24301.50] O <= Line & C <= Line & H >= Line -> RESISTANCE_TEST (Pending Rejection)
+[Bar 33] [2026-04-16 11:27] [O:24288.00, H:24304.25, L:24284.70, C:24300.95]  -> [H2-L1 0.5] Near line, rest count incremented to 2
+[Bar 34] [2026-04-16 11:31] [O:24301.40, H:24303.40, L:24290.10, C:24299.70] [Pattern: SPINNING_TOP] -> [H2-L1 0.5 @ 24303.09] O <= Line & C <= Line & H >= Line -> RESISTANCE_TEST (Pending Rejection)
+[Bar 34] [2026-04-16 11:31] [O:24301.40, H:24303.40, L:24290.10, C:24299.70] [Pattern: SPINNING_TOP] -> [H2-L1 0.5] Rest count reached 3 -> REST_ON_ANGLE
+[Bar 34] [2026-04-16 11:31] [O:24301.40, H:24303.40, L:24290.10, C:24299.70] [Pattern: SPINNING_TOP] -> [H2-L1 horizontal @ 24293.55] O >= Line & C >= Line & L <= Line -> SUPPORT_TEST (Pending Bounce)
+[Bar 34] [2026-04-16 11:31] [O:24301.40, H:24303.40, L:24290.10, C:24299.70] [Pattern: SPINNING_TOP] -> [H2-L1 horizontal] Rest count reached 3 -> REST_ON_ANGLE
+[Bar 34] [2026-04-16 11:31] [O:24301.40, H:24303.40, L:24290.10, C:24299.70] [Pattern: SPINNING_TOP] -> [H2-L1 horizontal] Pending Breach UP: C (24299.70) <= max(BEC=24300.95, ZEC=24288.25) -> DEFERRED
+[Bar 34] [2026-04-16 11:31] [O:24301.40, H:24303.40, L:24290.10, C:24299.70] [Pattern: SPINNING_TOP] -> [STATE] pending_breach: fan=Fan_H2_L1 line=horizontal direction=UP bec_close=24300.95 zec_high=24288.25 zec_low=24288.25 pending_bar=34 outcome=DEFERRED
+[Bar 35] [2026-04-16 11:35] [O:24299.85, H:24301.05, L:24279.75, C:24284.10]  -> [H2-L1 horizontal @ 24293.55] O >= Line & C <= Line -> CROSS_DOWN (Pending Breach DOWN)
+[Bar 35] [2026-04-16 11:35] [O:24299.85, H:24301.05, L:24279.75, C:24284.10]  -> [H2-L1 horizontal] Near line, rest count incremented to 4
+[Bar 35] [2026-04-16 11:35] [O:24299.85, H:24301.05, L:24279.75, C:24284.10]  -> [H2-L1 0.25 @ 24284.77] O >= Line & C <= Line -> CROSS_DOWN (Pending Breach DOWN)
+[Bar 35] [2026-04-16 11:35] [O:24299.85, H:24301.05, L:24279.75, C:24284.10]  -> [H2-L1 0.25] Near line, rest count incremented to 1
+[Bar 35] [2026-04-16 11:35] [O:24299.85, H:24301.05, L:24279.75, C:24284.10]  -> [H2-L1 horizontal] path=A dir=DOWN crosses=1 last_cross=24284.77 close=24284.10 -> BREACH_CONFIRMED_NO_ALPHA
+[Bar 35] [2026-04-16 11:35] [O:24299.85, H:24301.05, L:24279.75, C:24284.10]  -> [H2-L1 horizontal] Pending SUPPORT_TEST: C (24284.10) < Test Candle Close (24299.70) -> Cancelled
+[Bar 35] [2026-04-16 11:35] [O:24299.85, H:24301.05, L:24279.75, C:24284.10]  -> [STATE] pending_breach: fan=Fan_H2_L1 line=horizontal direction=DOWN bec_close=24284.10 zec_high=24284.10 zec_low=24284.10 pending_bar=35 outcome=BREACH_CONFIRMED_NO_ALPHA
+[Bar 36] [2026-04-16 11:39] [O:24284.10, H:24284.10, L:24261.60, C:24262.50] [Pattern: MARUBOZU] -> [No Intersection Detected] -> No Event
+[Bar 37] [2026-04-16 11:43] [O:24262.15, H:24268.85, L:24233.05, C:24233.05]  -> [No Intersection Detected] -> No Event
+[Bar 38] [2026-04-16 11:47] [O:24233.30, H:24246.10, L:24216.45, C:24226.95] [Pattern: SPINNING_TOP] -> [No Intersection Detected] -> No Event
+[Bar 39] [2026-04-16 11:51] [O:24226.90, H:24238.05, L:24218.40, C:24237.25]  -> [No Intersection Detected] -> No Event
+[Bar 40] [2026-04-16 11:55] [O:24237.75, H:24237.75, L:24198.55, C:24205.35]  -> [No Intersection Detected] -> No Event
+[Bar 41] [2026-04-16 11:59] [O:24205.05, H:24211.25, L:24163.00, C:24164.75]  -> [No Intersection Detected] -> No Event
+[Bar 42] [2026-04-16 12:03] [O:24164.85, H:24173.45, L:24153.55, C:24169.95] [Pattern: PINBAR] -> [No Intersection Detected] -> No Event
+[Bar 43] [2026-04-16 12:07] [O:24169.45, H:24178.95, L:24153.55, C:24178.95]  -> [No Intersection Detected] -> No Event

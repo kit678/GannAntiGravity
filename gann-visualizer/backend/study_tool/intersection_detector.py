@@ -62,9 +62,9 @@ class IntersectionDetector:
                     frac_str = "horizontal"
                     hit_frac = "horizontal"
                 else:
-                    frac_str = "main"
-                    hit_frac = "main"
-                
+                    # Skip main angle line — no price interaction tracking on main
+                    continue
+
                 # 1. Skip if candle is BEFORE the line's start
                 if c_time < line.start_time:
                     continue
@@ -196,9 +196,9 @@ class IntersectionDetector:
                     frac_str = "horizontal"
                     hit_frac = "horizontal"
                 else:
-                    frac_str = "main"
-                    hit_frac = "main"
-                
+                    # Skip main angle line — no price interaction tracking on main
+                    continue
+
                 # Skip if candle is BEFORE the line's start
                 if c_time < line.start_time:
                     continue

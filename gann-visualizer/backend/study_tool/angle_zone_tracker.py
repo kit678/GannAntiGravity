@@ -85,6 +85,8 @@ class AngleZoneTracker:
         self._last_zones: Dict[str, ZoneSnapshot] = {}
         # Per-fan structural extremes for the current zone
         self._zone_extremes: Dict[str, Dict[str, float]] = {}
+        # Per-fan PRIOR zone extremes — saved before reset at zone change, used for ZEC capture
+        self._prior_zone_extremes: Dict[str, Dict[str, float]] = {}
         # Per-fan entry bar index for calculating velocity
         self._zone_entry_bars: Dict[str, int] = {}
         self._zone_changed: bool = False
@@ -165,6 +167,9 @@ class AngleZoneTracker:
             bars_spent = current_bar_idx - self._zone_entry_bars[fan.id] + 1
 
         if self._zone_changed or fan.id not in self._zone_extremes:
+            # SAVE prior zone extremes BEFORE reset — needed for ZEC capture at zone change
+            if fan.id in self._zone_extremes:
+                self._prior_zone_extremes[fan.id] = dict(self._zone_extremes[fan.id])
             # Reset extremes for new zone
             self._zone_extremes[fan.id] = {'highest_close': candle_close, 'lowest_close': candle_close}
             self._zone_entry_bars[fan.id] = current_bar_idx

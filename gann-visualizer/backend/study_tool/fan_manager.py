@@ -117,6 +117,7 @@ class FanManager:
                     'anchor': {
                         'time': anchor.time,
                         'price': anchor.price,
+                        'close_price': anchor.close_price,
                         'type': anchor.pivot_type,
                         'bar_index': anchor.bar_index,
                         'label': anchor.label
@@ -124,6 +125,7 @@ class FanManager:
                     'target': {
                         'time': target.time,
                         'price': target.price,
+                        'close_price': target.close_price,
                         'type': target.pivot_type,
                         'bar_index': target.bar_index,
                         'label': target.label

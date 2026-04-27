@@ -226,6 +226,8 @@ class AngleEngine:
         lines = []
         
         # Extract pivot data
+        # For the main angle line: use the actual pivot PRICE (high for highs, low for lows).
+        # This is the fundamental Gann fan rule: main angle joins low of low pivot with high of high pivot.
         t0 = int(from_pivot['time'])
         p0 = float(from_pivot['price'])
         t1 = int(to_pivot['time'])

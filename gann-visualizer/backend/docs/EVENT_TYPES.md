@@ -18,27 +18,39 @@ Event types are emitted by two main sources:
 
 ### CROSS_UP
 - **Value**: `"CROSS_UP"`
-- **Semantic**: Price opens at or below the line and closes above it (or gap cross above)
+- **Semantic**: Price opens at or below the line and closes above it
 - **Emission Mechanism**: `UnifiedStateMachine.process_bar()` — `c_open <= line_price AND c_close > line_price`
-- **Fires When**: Strict candle close crosses above the line (or prev_close < prev_line AND c_close > line for gap cross)
+- **Fires When**: Strict candle close crosses above the line via physical cross (open below/on, close above line)
 
 ### CROSS_DOWN
 - **Value**: `"CROSS_DOWN"`
-- **Semantic**: Price opens at or above the line and closes below it (or gap cross below)
+- **Semantic**: Price opens at or above the line and closes below it
 - **Emission Mechanism**: `UnifiedStateMachine.process_bar()` — `c_open >= line_price AND c_close < line_price`
-- **Fires When**: Strict candle close crosses below the line (or prev_close > prev_line AND c_close < line for gap cross)
+- **Fires When**: Strict candle close crosses below the line via physical cross (open above/on, close below line)
+
+### GAP_CROSS_UP
+- **Value**: `"GAP_CROSS_UP"`
+- **Semantic**: Previous candle closed below the line; today's open and close are both above the line, indicating a gap up through the line without a physical cross.
+- **Emission Mechanism**: `UnifiedStateMachine.process_bar()` — `prev_close < prev_line AND c_open > line_price AND c_close >= line_price`
+- **Fires When**: Gap up through line — prior bar closed below line, today opens and closes above line without meeting the physical cross open condition
+
+### GAP_CROSS_DOWN
+- **Value**: `"GAP_CROSS_DOWN"`
+- **Semantic**: Previous candle closed above the line; today's open and close are both below the line, indicating a gap down through the line without a physical cross.
+- **Emission Mechanism**: `UnifiedStateMachine.process_bar()` — `prev_close > prev_line AND c_open < line_price AND c_close <= line_price`
+- **Fires When**: Gap down through line — prior bar closed above line, today opens and closes below line without meeting the physical cross open condition
 
 ### SUPPORT_TEST
 - **Value**: `"SUPPORT_TEST"`
-- **Semantic**: Candle opens and closes above line, but low wick touches/pierces line
+- **Semantic**: Candle body holds above line (O>=L, C>=L), but low wick pierces below line (L<=L) while close remains above line (C>=L).
 - **Emission Mechanism**: `UnifiedStateMachine.process_bar()` — `c_open >= line_price AND c_close >= line_price AND c_low <= line_price`
-- **Fires When**: Body holds above line but wick touches the line from above
+- **Fires When**: Body holds above line but wick tests below — price is "testing" support but has not broken through
 
 ### RESISTANCE_TEST
 - **Value**: `"RESISTANCE_TEST"`
-- **Semantic**: Candle opens and closes below line, but high wick touches/pierces line
+- **Semantic**: Candle body holds below line (O<=L, C<=L), but high wick pierces above line (H>=L) while close remains below line (C<=L).
 - **Emission Mechanism**: `UnifiedStateMachine.process_bar()` — `c_open <= line_price AND c_close <= line_price AND c_high >= line_price`
-- **Fires When**: Body holds below line but wick touches the line from below
+- **Fires When**: Body holds below line but wick tests above — price is "testing" resistance but has not broken through
 
 ### SUPPORT_BOUNCE
 - **Value**: `"SUPPORT_BOUNCE"`

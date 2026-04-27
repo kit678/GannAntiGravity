@@ -1,0 +1,27 @@
+=== EVENT VERIFICATION REPORT ===
+Generated: 2026-04-26 17:17:29
+Source: replay_events.csv, replay_trace.log
+
+ACCURACY (events that fired — were they correct per EVENT_TYPES.md definitions?)
+  Events checked: 26
+  Accurate: 26 (100.0%)
+  Inaccurate: 0 (0.0%)
+
+  NOTE: Accuracy must be 100%. Any inaccuracy is a bug in event detection logic.
+
+STATE-DEPENDENT EVENTS (verified via [STATE] blocks — not re-evaluated)
+  5 events
+    Bar 23 BREACH_CONFIRMED_NO_ALPHA [STATE] block present: YES
+    Bar 23 BREACH_CONFIRMED_NO_ALPHA [STATE] block present: YES
+    Bar 24 BREACH_CONFIRMED [STATE] block present: YES
+    Bar 28 BREACH_CONFIRMED [STATE] block present: YES
+    Bar 34 BREACH_CONFIRMED [STATE] block present: YES
+
+COMPLETENESS (bars where state machine evaluated a line — were all events caught?)
+  Bars evaluated: 10
+  Missed events: 0
+
+SUMMARY
+  Accuracy: 100.0%  (100% required)
+  Completeness: 100.0%
+  Status: PASS

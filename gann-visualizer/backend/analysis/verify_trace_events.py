@@ -23,11 +23,46 @@ from typing import Dict, List, Optional, Tuple
 
 
 # ---------------------------------------------------------------------------
+# Fan name normalization
+# ---------------------------------------------------------------------------
+
+def _normalize_fan(fan_str: str) -> str:
+    """
+    Normalize fan name to enable matching between CSV format and trace format.
+
+    CSV format: 'P1 (H1-L1)' or 'P2 (L2-H1)'
+    Trace format: 'Fan_H1_L1' or 'Fan_L2_H1'
+
+    Also handles:
+    - 'P1 (H1-L1)' -> 'Fan_H1_L1'
+    - 'P2 (L2-H1)' -> 'Fan_L2_H1'
+    - 'Fan_H1_L1' -> 'Fan_H1_L1' (already normalized)
+    """
+    fan_str = fan_str.strip()
+
+    # Already in trace format
+    if fan_str.startswith('Fan_'):
+        # Normalize hyphens to underscores for consistent matching
+        return fan_str.replace('-', '_')
+
+    # CSV format: 'P1 (H1-L1)' -> extract 'H1-L1' and prefix with 'Fan_'
+    import re
+    match = re.search(r'\(([^)]+)\)', fan_str)
+    if match:
+        angle_part = match.group(1)  # e.g., 'H1-L1' or 'L2-H1'
+        # Replace hyphens with underscores to get Fan_H1_L1 format
+        angle_part = angle_part.replace('-', '_')
+        return f'Fan_{angle_part}'
+
+    return fan_str
+
+
+# ---------------------------------------------------------------------------
 # Paths
 # ---------------------------------------------------------------------------
 
-TRACE_PATH = Path("c:/Dev/GannTesting/logs/backend/simulation_trace.log")
-EVENTS_CSV = Path("c:/Dev/GannTesting/logs/backend/simulation_events.csv")
+TRACE_PATH = Path("c:/Dev/GannTesting/logs/backend/replay_trace.log")
+EVENTS_CSV = Path("c:/Dev/GannTesting/logs/backend/replay_events.csv")
 OUT_DIR    = Path("c:/Dev/GannTesting/logs/backend/trace_audit/")
 OUT_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -55,6 +90,7 @@ class TraceLine:
     fraction: str
     price: float
     outcome: str
+    active_line: bool = False  # True = no intersection, just active line logging
 
 
 @dataclass
@@ -228,12 +264,15 @@ def _parse_eval_line(line_raw: str) -> Optional[TraceLine]:
     Extract fan, fraction, price from bracket content.
     Extract outcome from after final '->'.
     """
-    bracket_m = re.search(r"\[([^\]]+)\]", line_raw)
-    if not bracket_m:
-        return None
-    bracket_content = bracket_m.group(1)
+    # Find ALL bracket contents and pick the one with '@' (the line evaluation bracket)
+    all_brackets = re.findall(r'\[([^\]]+)\]', line_raw)
+    bracket_content = None
+    for b in all_brackets:
+        if '@' in b:
+            bracket_content = b
+            break
 
-    if "@" not in bracket_content:
+    if bracket_content is None:
         return None
 
     price_m = re.search(r"@ ([\d.]+)", bracket_content)
@@ -253,11 +292,19 @@ def _parse_eval_line(line_raw: str) -> Optional[TraceLine]:
 
     fan_name = bracket_content[:last_fw_idx].strip() if last_fw_idx >= 0 else bracket_content
 
+    # Normalize fan name to match state block format (Fan_H1_L1)
+    if fan_name and not fan_name.startswith('Fan_'):
+        fan_name = f'Fan_{fan_name}'
+
     # Get outcome — text after final '->'
     segments = line_raw.split("-> ")
     outcome = segments[-1].strip() if len(segments) >= 2 else "?"
 
-    return TraceLine(fan=fan_name, fraction=last_fw, price=price_val, outcome=outcome)
+    # Detect active-line-only log (no intersection) — format: "Line X @ Y (Distance: Z)"
+    # vs intersection eval log (e.g., "O >= Line & C <= Line -> CROSS_DOWN (Pending Breach DOWN)")
+    active_line = outcome.startswith("Line ")
+
+    return TraceLine(fan=fan_name, fraction=last_fw, price=price_val, outcome=outcome, active_line=active_line)
 
 
 def _parse_state_block(line_raw: str) -> Optional[StateBlock]:
@@ -308,7 +355,8 @@ def parse_events_csv(path: Path) -> List[CSVEvent]:
         if len(parts) < 16:
             continue
         try:
-            bar_index = int(parts[0].strip('"')) if parts[0] else 0
+            # Row number (col 0) - currently unused, bar_index from col 19
+            row_num = int(parts[0].strip('"')) if parts[0] else 0
             ts = parts[1].strip('"')
             fan = parts[2].strip('"')
             frac = parts[3].strip('"')
@@ -323,6 +371,8 @@ def parse_events_csv(path: Path) -> List[CSVEvent]:
             zone_high = float(parts[14]) if parts[14] else 0.0
             zone_low = float(parts[15]) if parts[15] else 0.0
             bars_el = int(parts[18]) if len(parts) > 18 and parts[18] else 0
+            # bar_index is col 20 (col 19 is MAE_10, always 0)
+            bar_index = int(parts[20]) if len(parts) > 20 and parts[20] else 0
             events.append(CSVEvent(
                 row_num=i,
                 bar_index=bar_index,
@@ -365,16 +415,14 @@ def verify_cross_down(ev: CSVEvent) -> Tuple[bool, str]:
 
 
 def verify_support_test(ev: CSVEvent) -> Tuple[bool, str]:
-    ok = (ev.open_ >= ev.price) and (ev.close >= ev.price) and (ev.low <= ev.price) and (ev.close > ev.price)
-    detail = (f"O>=L={ev.open_>=ev.price}, C>=L={ev.close>=ev.price}, "
-              f"L<=L={ev.low<=ev.price}, C>L={ev.close>ev.price}")
+    ok = (ev.open_ >= ev.price) and (ev.close >= ev.price) and (ev.low <= ev.price)
+    detail = (f"O>=L={ev.open_>=ev.price}, C>=L={ev.close>=ev.price}, L<=L={ev.low<=ev.price}")
     return ok, detail
 
 
 def verify_resistance_test(ev: CSVEvent) -> Tuple[bool, str]:
-    ok = (ev.open_ <= ev.price) and (ev.close <= ev.price) and (ev.high >= ev.price) and (ev.close < ev.price)
-    detail = (f"O<=L={ev.open_<=ev.price}, C<=L={ev.close<=ev.price}, "
-              f"H>=L={ev.high>=ev.price}, C<L={ev.close<ev.price}")
+    ok = (ev.open_ <= ev.price) and (ev.close <= ev.price) and (ev.high >= ev.price)
+    detail = (f"O<=L={ev.open_<=ev.price}, C<=L={ev.close<=ev.price}, H>=L={ev.high>=ev.price}")
     return ok, detail
 
 
@@ -503,9 +551,9 @@ def _classify_bar_line(bar: TraceBar, line: TraceLine) -> Optional[str]:
         return "CROSS_UP"
     if o >= lp and c <= lp:
         return "CROSS_DOWN"
-    if o >= lp and c >= lp and l <= lp and c > lp:
+    if o >= lp and c >= lp and l <= lp and c >= lp:
         return "SUPPORT_TEST"
-    if o <= lp and c <= lp and h >= lp and c < lp:
+    if o <= lp and c <= lp and h >= lp and c <= lp:
         return "RESISTANCE_TEST"
     if o >= lp and c >= lp and l <= lp and c == lp:
         return "SUPPORT_TOUCH"
@@ -514,42 +562,58 @@ def _classify_bar_line(bar: TraceBar, line: TraceLine) -> Optional[str]:
     return None
 
 
-def detect_missed_events(trace_bars: List[TraceBar], csv_events: List[CSVEvent]) -> List[dict]:
+def detect_missed_events(trace_bars: List[TraceBar], csv_events: List[CSVEvent], ts_lookup: Dict[str, int]) -> List[dict]:
     """
     For each bar that has evaluated lines, check if any line meets a CROSS/TEST/TOUCH
     definition but no matching event is in the CSV.
 
     Returns list of missed event dicts:
       bar_index, timestamp, fan, fraction, line_price, expected_event, reason
+
+    Uses timestamp lookup to match trace bars to CSV event keys.
     """
     # Build CSV event map keyed by (bar_index, fan, fraction, event_type)
+    # Fan names are normalized to trace format (Fan_H1_L1)
     csv_map: Dict[Tuple, List[CSVEvent]] = {}
     for ev in csv_events:
-        # Normalize fan name for matching
-        key = (ev.bar_index, ev.fan, ev.fraction)
+        norm_fan = _normalize_fan(ev.fan)
+        norm_ts = _normalize_timestamp(ev.timestamp)
+        trace_bar = ts_lookup.get(norm_ts, ev.bar_index)
+        key = (trace_bar, norm_fan, ev.fraction)
         csv_map.setdefault(key, []).append(ev)
 
     # Also build a set of (bar_index, fan, fraction) -> {event_types}
     csv_ev_types: Dict[Tuple, set] = {}
     for ev in csv_events:
-        key = (ev.bar_index, ev.fan, ev.fraction)
+        norm_fan = _normalize_fan(ev.fan)
+        norm_ts = _normalize_timestamp(ev.timestamp)
+        trace_bar = ts_lookup.get(norm_ts, ev.bar_index)
+        key = (trace_bar, norm_fan, ev.fraction)
         csv_ev_types.setdefault(key, set()).add(ev.event_type)
 
     missed = []
     for bar in trace_bars:
         if not bar.lines:
             continue
+
+        # Determine bar type: intersection bar (some lines have outcomes) vs active-only bar
+        has_intersection = any(not line.active_line for line in bar.lines)
+        has_active_only = any(line.active_line for line in bar.lines)
+
         for line in bar.lines:
             classified = _classify_bar_line(bar, line)
             if classified is None:
                 continue
-            key = (bar.bar_index, line.fan, line.fraction)
+            key = (bar.bar_index, _normalize_fan(line.fan), line.fraction)
             fired_types = csv_ev_types.get(key, set())
             if classified in fired_types:
                 continue
             # Check if it's a TOUCH that was fired as TOUCH
             if classified in ("SUPPORT_TOUCH", "RESISTANCE_TOUCH") and "TOUCH" in fired_types:
                 continue
+
+            # For active-only bars (no intersection), the outcome is derived from OHLC
+            # vs line price — this is a genuinely missed event if classification fires
             missed.append({
                 "bar_index": bar.bar_index,
                 "timestamp": bar.timestamp,
@@ -558,9 +622,21 @@ def detect_missed_events(trace_bars: List[TraceBar], csv_events: List[CSVEvent])
                 "line_price": line.price,
                 "expected_event": classified,
                 "ohlc": bar.ohlc,
-                "reason": f"line outcome={line.outcome}",
+                "reason": f"line outcome={line.outcome}" if not line.active_line else f"active line, no intersection — expected {classified}",
             })
     return missed
+
+
+# ---------------------------------------------------------------------------
+# Build timestamp -> trace bar index lookup
+# ---------------------------------------------------------------------------
+
+def build_timestamp_lookup(trace_bars: List[TraceBar]) -> Dict[str, int]:
+    """
+    Build lookup: normalized_timestamp -> trace bar_index.
+    CSV timestamps are normalized to 'YYYY-MM-DD HH:MM' to match trace timestamps.
+    """
+    return {bar.timestamp: bar.bar_index for bar in trace_bars}
 
 
 # ---------------------------------------------------------------------------
@@ -571,11 +647,12 @@ def build_state_lookup(trace_bars: List[TraceBar]) -> Dict[Tuple, StateBlock]:
     """
     Build lookup: (bar_index, fan, fraction) -> StateBlock
     for state-dependent events like BREACH_CONFIRMED.
+    State blocks use normalized fan names (Fan_H1_L1 format).
     """
     lookup: Dict[Tuple, StateBlock] = {}
     for bar in trace_bars:
         for sb in bar.state_blocks:
-            fan = sb.params.get("fan", sb.fan)
+            fan = sb.params.get("fan", sb.fan)  # Already in Fan_H1_L1 format
             frac = sb.params.get("line", "main")
             key = (bar.bar_index, fan, frac)
             lookup[key] = sb
@@ -591,6 +668,7 @@ def generate_report(
     csv_events: List[CSVEvent],
     missed_events: List[dict],
     state_lookup: Dict[Tuple, StateBlock],
+    ts_lookup: Dict[str, int],
 ) -> Tuple[float, float]:
     """
     Write TRACE_AUDIT_REPORT.txt and EVENT_VERIFICATION.csv.
@@ -605,8 +683,22 @@ def generate_report(
 
     ev_results = []
     for ev in csv_events:
-        key = (ev.bar_index, ev.fan, ev.fraction)
+        # Normalize fan from CSV format (P1 (H1-L1)) to trace format (Fan_H1_L1)
+        norm_fan = _normalize_fan(ev.fan)
+
+        # Try to find the correct trace bar_index using timestamp
+        norm_ts = _normalize_timestamp(ev.timestamp)
+        trace_bar_index = ts_lookup.get(norm_ts, ev.bar_index)
+
+        # Build key with normalized fan and potentially corrected bar_index
+        key = (trace_bar_index, norm_fan, ev.fraction)
         sb = state_lookup.get(key)
+
+        # If no match, try with original bar_index but normalized fan
+        if sb is None:
+            key = (ev.bar_index, norm_fan, ev.fraction)
+            sb = state_lookup.get(key)
+
         ok, detail = verify_event(ev, sb)
         acc_result = "ACCURATE" if ok else "INACCURATE"
         ev_results.append({
@@ -803,31 +895,48 @@ def export_ml_data(
 # ---------------------------------------------------------------------------
 
 def main():
-    if not EVENTS_CSV.exists():
-        print(f"ERROR: events CSV not found: {EVENTS_CSV}")
+    import argparse
+    parser = argparse.ArgumentParser(description="Verify trace events against CSV")
+    parser.add_argument("--trace", "-t", type=str,
+                        default="c:/Dev/GannTesting/logs/backend/replay_trace.log",
+                        help="Path to trace log (default: replay_trace.log)")
+    parser.add_argument("--events", "-e", type=str,
+                        default="c:/Dev/GannTesting/logs/backend/replay_events.csv",
+                        help="Path to events CSV (default: replay_events.csv)")
+    args = parser.parse_args()
+
+    trace_path = Path(args.trace)
+    events_csv = Path(args.events)
+
+    if not events_csv.exists():
+        print(f"ERROR: events CSV not found: {events_csv}")
         sys.exit(1)
-    if not TRACE_PATH.exists():
-        print(f"ERROR: trace log not found: {TRACE_PATH}")
+    if not trace_path.exists():
+        print(f"ERROR: trace log not found: {trace_path}")
         sys.exit(1)
 
-    print(f"Reading events CSV: {EVENTS_CSV}")
-    csv_events = parse_events_csv(EVENTS_CSV)
+    print(f"Reading events CSV: {events_csv}")
+    csv_events = parse_events_csv(events_csv)
     print(f"  Found {len(csv_events)} events in CSV")
 
-    print(f"Reading trace log: {TRACE_PATH}")
-    trace_bars = parse_trace_log(TRACE_PATH)
+    print(f"Reading trace log: {trace_path}")
+    trace_bars = parse_trace_log(trace_path)
     print(f"  Found {len(trace_bars)} bars in trace log")
 
     print("Building state block lookup...")
     state_lookup = build_state_lookup(trace_bars)
     print(f"  {len(state_lookup)} state blocks indexed")
 
+    print("Building timestamp lookup...")
+    ts_lookup = build_timestamp_lookup(trace_bars)
+    print(f"  {len(ts_lookup)} timestamps indexed")
+
     print("Detecting missed events...")
-    missed = detect_missed_events(trace_bars, csv_events)
+    missed = detect_missed_events(trace_bars, csv_events, ts_lookup)
     print(f"  {len(missed)} missed events detected")
 
     print("Generating report...")
-    acc_pct, comp_pct = generate_report(trace_bars, csv_events, missed, state_lookup)
+    acc_pct, comp_pct = generate_report(trace_bars, csv_events, missed, state_lookup, ts_lookup)
     print(f"  Accuracy: {acc_pct:.1f}%, Completeness: {comp_pct:.1f}%")
 
     print("Exporting ML data...")

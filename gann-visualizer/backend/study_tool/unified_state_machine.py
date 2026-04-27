@@ -18,6 +18,7 @@ class EventOutput:
     event_type: str
     details: str
     direction: Optional[str] = None
+    bar_index: int = 0
 
 class UnifiedStateMachine:
     def __init__(self, config: Dict[str, Any], event_logger=None):
@@ -68,7 +69,11 @@ class UnifiedStateMachine:
         # State tracking per line: fan_id_line_id
         self.pending_breaches: Dict[str, Dict[str, Any]] = {}
         self.pending_tests: Dict[str, Dict[str, Any]] = {}
-        self.deferred_breaches: List[Tuple] = []  # deferred breach emissions
+        # Track lines that have already been confirmed as breached (to prevent duplicate breach confirmations)
+        self.historical_breaches: Dict[str, List[str]] = {}
+        # Confirmed breaches that MUST NOT be deleted until after TARGET_HIT processing.
+        # Each entry: (direction, state_key, fan_id, fan_identity, priority_label, frac_name, c_close, bars_elapsed, bar_index, outcome)
+        self.confirmed_this_bar: List[Tuple] = []
         self.rest_counters: Dict[str, Dict[str, Any]] = {}
         # Pending trace evaluations keyed by bar_index (used for events that fire
         # after _log_trace for a bar has already been written, e.g. TARGET_HIT
@@ -89,6 +94,21 @@ class UnifiedStateMachine:
 
         # Event logger for candle pattern events
         self.event_logger = event_logger
+
+    def mark_breach_confirmed(self, fan_id: str, fraction: str):
+        """Mark a specific line of a fan as historically breached."""
+        if fan_id not in self.historical_breaches:
+            self.historical_breaches[fan_id] = []
+        frac_str = str(fraction) if fraction is not None else "main"
+        if frac_str not in self.historical_breaches[fan_id]:
+            self.historical_breaches[fan_id].append(frac_str)
+
+    def is_historically_breached(self, fan_id: str, fraction: str) -> bool:
+        """Check if a specific line of a fan has already been confirmed as breached."""
+        if fan_id not in self.historical_breaches:
+            return False
+        frac_str = str(fraction) if fraction is not None else "main"
+        return frac_str in self.historical_breaches[fan_id]
 
     def append_trace_eval_for_bar(self, bar_index: int, eval_str: str):
         """
@@ -150,7 +170,7 @@ class UnifiedStateMachine:
         )
         self._bar_state_events[bar_index].append(state_str)
 
-    def _log_trace(self, bar_index: int, c_time: int, c_open: float, c_high: float, c_low: float, c_close: float, evaluations: List[str], is_retro: bool = False):
+    def _log_trace(self, bar_index: int, c_time: int, c_open: float, c_high: float, c_low: float, c_close: float, evaluations: List[str], active_lines: List[str], is_retro: bool = False):
         """Write a structured one-liner trace for the current bar."""
         dt_str = datetime.datetime.fromtimestamp(c_time).strftime('%Y-%m-%d %H:%M')
         retro_str = "[RETRO] " if is_retro else ""
@@ -173,6 +193,9 @@ class UnifiedStateMachine:
         with open(self.trace_log_path, 'a', encoding='utf-8') as f:
             if not all_evals:
                 f.write(f"{header} {pattern_str} -> [No Intersection Detected] -> No Event\n")
+                # Log active lines even when no intersection — enables completeness check
+                for line_info in active_lines:
+                    f.write(f"{header} {pattern_str} -> {line_info}\n")
                 for state_block in state_blocks:
                     f.write(f"{header} {pattern_str} -> {state_block}\n")
             else:
@@ -262,73 +285,132 @@ class UnifiedStateMachine:
                 direction = None
 
                 # Support/Resistance Tests
-                # RESISTANCE_TEST: body holds below line, wick pierces up through line
-                # If body (close) is already below line -> it's a CROSS_DOWN, not a test
-                is_resistance_test = c_open <= line_price and c_close <= line_price and c_high >= line_price and c_close > line_price
-                # SUPPORT_TEST: body holds above line, wick drops below line
-                # If body (close) is already above line -> it's a CROSS_UP, not a test
-                is_support_test = c_open >= line_price and c_close >= line_price and c_low <= line_price and c_close < line_price
+                # RESISTANCE_TEST: body holds below line (O<=L, C<=L), wick pierces up through line (H>=L), close remains below line
+                # If body close is already above line -> it's a CROSS_UP, not a test
+                is_resistance_test = c_open <= line_price and c_close <= line_price and c_high >= line_price
+                # SUPPORT_TEST: body holds above line (O>=L, C>=L), wick pierces down through line (L<=L), close remains above line
+                # If body close is already below line -> it's a CROSS_DOWN, not a test
+                is_support_test = c_open >= line_price and c_close >= line_price and c_low <= line_price
 
                 # Crosses (Physical or Gap)
-                # Use <= />= for close-boundary to handle floating-point near-exact equality
-                is_cross_up = (c_open <= line_price and c_close >= line_price) or (event.prev_price is not None and prev_close < event.prev_price and c_close >= line_price)
-                is_cross_down = (c_open >= line_price and c_close <= line_price) or (event.prev_price is not None and prev_close > event.prev_price and c_close <= line_price)
+                # Physical: open and close must be on opposite sides of the line
+                # Gap: prior bar closes above/below line, today's open and close are both above/below line
+                is_cross_up = c_open <= line_price and c_close >= line_price
+                is_gap_cross_up = event.prev_price is not None and prev_close < event.prev_price and c_open > line_price and c_close >= line_price
+                is_cross_down = c_open >= line_price and c_close <= line_price
+                is_gap_cross_down = event.prev_price is not None and prev_close > event.prev_price and c_open < line_price and c_close <= line_price
 
                 if is_cross_up:
                     hit_type = 'CROSS_UP'
                     details = 'Breakout Attempt'
                     direction = 'up'
                     fan_zec = zec_info.get(event.fan_id, {})
-                    self._start_pending_breach(
-                        state_key=state_key,
-                        fan_id=event.fan_id,
-                        line_id=line_id,
-                        direction='up',
-                        extreme_price=c_close,
-                        bar_index=bar_index,
-                        line_price=line_price,
-                        fraction=event.fraction,
-                        fan_obj=fan_obj,
-                        bec_close=c_close,
-                        zec_high=fan_zec.get('zec_high', c_close),
-                        zec_low=fan_zec.get('zec_low', c_close),
-                        prior_zone_fraction=fan_zec.get('prior_zone_fraction', ''))
-                    crosses_up_this_bar.append((state_key, event, fan_identity, frac_name, fan_obj))
-                    if c_open <= line_price:
-                        evaluations.append(f"[{fan_identity} {frac_name} @ {line_price:.2f}] O <= Line & C >= Line -> CROSS_UP (Pending Breach UP)")
+                    if self.is_historically_breached(event.fan_id, event.fraction):
+                        evaluations.append(f"[{fan_identity} {frac_name} @ {line_price:.2f}] O <= Line & C >= Line -> CROSS_UP (Ignored: Already historically breached)")
                     else:
+                        self._start_pending_breach(
+                            state_key=state_key,
+                            fan_id=event.fan_id,
+                            line_id=line_id,
+                            direction='up',
+                            extreme_price=c_close,
+                            bar_index=bar_index,
+                            line_price=line_price,
+                            fraction=event.fraction,
+                            fan_obj=fan_obj,
+                            bec_close=c_close,
+                            zec_high=fan_zec.get('zec_high', c_close),
+                            zec_low=fan_zec.get('zec_low', c_close),
+                            prior_zone_fraction=fan_zec.get('prior_zone_fraction', ''))
+                        crosses_up_this_bar.append((state_key, event, fan_identity, frac_name, fan_obj))
+                        evaluations.append(f"[{fan_identity} {frac_name} @ {line_price:.2f}] O <= Line & C >= Line -> CROSS_UP (Pending Breach UP)")
+                elif is_gap_cross_up:
+                    hit_type = 'GAP_CROSS_UP'
+                    details = 'Gap Breakout'
+                    direction = 'up'
+                    fan_zec = zec_info.get(event.fan_id, {})
+                    if self.is_historically_breached(event.fan_id, event.fraction):
                         evaluations.append(
                             f"[{fan_identity} {frac_name} @ {line_price:.2f}] "
                             f"gap dir=UP prev_line={event.prev_price:.2f} prev_close={prev_close:.2f} "
-                            f"curr_open={c_open:.2f} curr_close={c_close:.2f} -> GAP CROSS_UP (Pending Breach UP)"
+                            f"curr_open={c_open:.2f} curr_close={c_close:.2f} -> GAP_CROSS_UP (Ignored: Already historically breached)"
+                        )
+                    else:
+                        self._start_pending_breach(
+                            state_key=state_key,
+                            fan_id=event.fan_id,
+                            line_id=line_id,
+                            direction='up',
+                            extreme_price=c_close,
+                            bar_index=bar_index,
+                            line_price=line_price,
+                            fraction=event.fraction,
+                            fan_obj=fan_obj,
+                            bec_close=c_close,
+                            zec_high=fan_zec.get('zec_high', c_close),
+                            zec_low=fan_zec.get('zec_low', c_close),
+                            prior_zone_fraction=fan_zec.get('prior_zone_fraction', ''))
+                        crosses_up_this_bar.append((state_key, event, fan_identity, frac_name, fan_obj))
+                        evaluations.append(
+                            f"[{fan_identity} {frac_name} @ {line_price:.2f}] "
+                            f"gap dir=UP prev_line={event.prev_price:.2f} prev_close={prev_close:.2f} "
+                            f"curr_open={c_open:.2f} curr_close={c_close:.2f} -> GAP_CROSS_UP (Pending Breach UP)"
                         )
                 elif is_cross_down:
                     hit_type = 'CROSS_DOWN'
                     details = 'Breakdown Attempt'
                     direction = 'down'
                     fan_zec = zec_info.get(event.fan_id, {})
-                    self._start_pending_breach(
-                        state_key=state_key,
-                        fan_id=event.fan_id,
-                        line_id=line_id,
-                        direction='down',
-                        extreme_price=c_close,
-                        bar_index=bar_index,
-                        line_price=line_price,
-                        fraction=event.fraction,
-                        fan_obj=fan_obj,
-                        bec_close=c_close,
-                        zec_high=fan_zec.get('zec_high', c_close),
-                        zec_low=fan_zec.get('zec_low', c_close),
-                        prior_zone_fraction=fan_zec.get('prior_zone_fraction', ''))
-                    crosses_down_this_bar.append((state_key, event, fan_identity, frac_name, fan_obj))
-                    if c_open >= line_price:
-                        evaluations.append(f"[{fan_identity} {frac_name} @ {line_price:.2f}] O >= Line & C <= Line -> CROSS_DOWN (Pending Breach DOWN)")
+                    if self.is_historically_breached(event.fan_id, event.fraction):
+                        evaluations.append(f"[{fan_identity} {frac_name} @ {line_price:.2f}] O >= Line & C <= Line -> CROSS_DOWN (Ignored: Already historically breached)")
                     else:
+                        self._start_pending_breach(
+                            state_key=state_key,
+                            fan_id=event.fan_id,
+                            line_id=line_id,
+                            direction='down',
+                            extreme_price=c_close,
+                            bar_index=bar_index,
+                            line_price=line_price,
+                            fraction=event.fraction,
+                            fan_obj=fan_obj,
+                            bec_close=c_close,
+                            zec_high=fan_zec.get('zec_high', c_close),
+                            zec_low=fan_zec.get('zec_low', c_close),
+                            prior_zone_fraction=fan_zec.get('prior_zone_fraction', ''))
+                        crosses_down_this_bar.append((state_key, event, fan_identity, frac_name, fan_obj))
+                        evaluations.append(f"[{fan_identity} {frac_name} @ {line_price:.2f}] O >= Line & C <= Line -> CROSS_DOWN (Pending Breach DOWN)")
+                elif is_gap_cross_down:
+                    hit_type = 'GAP_CROSS_DOWN'
+                    details = 'Gap Breakdown'
+                    direction = 'down'
+                    fan_zec = zec_info.get(event.fan_id, {})
+                    if self.is_historically_breached(event.fan_id, event.fraction):
                         evaluations.append(
                             f"[{fan_identity} {frac_name} @ {line_price:.2f}] "
                             f"gap dir=DOWN prev_line={event.prev_price:.2f} prev_close={prev_close:.2f} "
-                            f"curr_open={c_open:.2f} curr_close={c_close:.2f} -> GAP CROSS_DOWN (Pending Breach DOWN)"
+                            f"curr_open={c_open:.2f} curr_close={c_close:.2f} -> GAP_CROSS_DOWN (Ignored: Already historically breached)"
+                        )
+                    else:
+                        self._start_pending_breach(
+                            state_key=state_key,
+                            fan_id=event.fan_id,
+                            line_id=line_id,
+                            direction='down',
+                            extreme_price=c_close,
+                            bar_index=bar_index,
+                            line_price=line_price,
+                            fraction=event.fraction,
+                            fan_obj=fan_obj,
+                            bec_close=c_close,
+                            zec_high=fan_zec.get('zec_high', c_close),
+                            zec_low=fan_zec.get('zec_low', c_close),
+                            prior_zone_fraction=fan_zec.get('prior_zone_fraction', ''))
+                        crosses_down_this_bar.append((state_key, event, fan_identity, frac_name, fan_obj))
+                        evaluations.append(
+                            f"[{fan_identity} {frac_name} @ {line_price:.2f}] "
+                            f"gap dir=DOWN prev_line={event.prev_price:.2f} prev_close={prev_close:.2f} "
+                            f"curr_open={c_open:.2f} curr_close={c_close:.2f} -> GAP_CROSS_DOWN (Pending Breach DOWN)"
                         )
                 elif is_support_test:
                     hit_type = 'SUPPORT_TEST'
@@ -341,8 +423,11 @@ class UnifiedStateMachine:
                     self._start_pending_test(state_key, event.fan_id, line_id, 'RESISTANCE_TEST', bar_index, line_price, event.fraction, c_close)
                     evaluations.append(f"[{fan_identity} {frac_name} @ {line_price:.2f}] O <= Line & C <= Line & H >= Line -> RESISTANCE_TEST (Pending Rejection)")
                 else:
-                    # Pure touch
-                    evaluations.append(f"[{fan_identity} {frac_name} @ {line_price:.2f}] Intersection detected but did not meet strict wick/body criteria -> TOUCH")
+                    raise RuntimeError(
+                        f"[{fan_identity} {frac_name} @ {line_price:.2f}] Intersection detected but not classified as CROSS_*, SUPPORT_TEST, or RESISTANCE_TEST "
+                        f"(O={c_open:.2f}, C={c_close:.2f}, L={c_low:.2f}, H={c_high:.2f}). "
+                        f"Line price={line_price:.2f}. This is an unhandled edge case."
+                    )
 
                 results.append(EventOutput(
                     fan_id=event.fan_id,
@@ -352,7 +437,8 @@ class UnifiedStateMachine:
                     price=line_price,
                     event_type=hit_type,
                     details=details,
-                    direction=direction
+                    direction=direction,
+                    bar_index=bar_index
                 ))
 
                 # Rest processing
@@ -365,10 +451,12 @@ class UnifiedStateMachine:
                 n_confirmed = len(crosses_up_this_bar) - 1
                 last_cross_price = crosses_up_this_bar[-1][1].price  # highest price = not confirmed
                 for state_key, event, fan_identity, frac_name, fan_obj in crosses_up_this_bar[:-1]:
+                    self.mark_breach_confirmed(event.fan_id, frac_name)
                     results.append(EventOutput(
                         fan_id=event.fan_id, fan_identity=fan_identity, priority_label=fan_obj.priority_label,
                         fraction=frac_name, price=c_close, event_type='BREACH_CONFIRMED_NO_ALPHA',
-                        details=f"UP (path=A, intra-bar {n_confirmed}x cross)", direction='up'
+                        details=f"UP (path=A, intra-bar {n_confirmed}x cross)", direction='up',
+                        bar_index=bar_index
                     ))
                     self.emit_pending_breach_state(
                         bar_index=bar_index,
@@ -395,10 +483,12 @@ class UnifiedStateMachine:
                 n_confirmed = len(crosses_down_this_bar) - 1
                 last_cross_price = crosses_down_this_bar[-1][1].price  # lowest price = not confirmed
                 for state_key, event, fan_identity, frac_name, fan_obj in crosses_down_this_bar[:-1]:
+                    self.mark_breach_confirmed(event.fan_id, frac_name)
                     results.append(EventOutput(
                         fan_id=event.fan_id, fan_identity=fan_identity, priority_label=fan_obj.priority_label,
                         fraction=frac_name, price=c_close, event_type='BREACH_CONFIRMED_NO_ALPHA',
-                        details=f"DOWN (path=A, intra-bar {n_confirmed}x cross)", direction='down'
+                        details=f"DOWN (path=A, intra-bar {n_confirmed}x cross)", direction='down',
+                        bar_index=bar_index
                     ))
                     self.emit_pending_breach_state(
                         bar_index=bar_index,
@@ -447,19 +537,33 @@ class UnifiedStateMachine:
             if state['direction'] == 'up':
                 bec_close = state.get('bec_close', state['extreme_price'])
                 zec_high = state.get('zec_high', state['extreme_price'])
+                zec_low = state.get('zec_low', state['extreme_price'])
                 # Emit BREACH_CONFIRMED immediately when price confirms the breach.
                 # Only defer if price is still within the zone (hasn't broken out yet).
                 if c_close > max(bec_close, zec_high):
-                    results.append(EventOutput(
-                        fan_id=fan_id, fan_identity=fan_identity, priority_label=fan_obj.priority_label,
-                        fraction=frac_name, price=c_close, event_type='BREACH_CONFIRMED',
-                        details=f"UP (T+{bars_elapsed} bars)", direction='up'
+                    # DO NOT emit EventOutput here — _on_target_hit() needs to find the pending_breaches
+                    # entry to set skip_section2=True before flush. flush_deferred_breaches() will emit
+                    # the correct event type (BREACH_CONFIRMED or BREACH_CONFIRMED_NO_ALPHA).
+                    # Also DO NOT delete from pending_breaches — flush_deferred_breaches handles that.
+                    self.confirmed_this_bar.append((
+                        'up', state_key, fan_id, fan_identity, fan_obj.priority_label,
+                        frac_name, c_close, bars_elapsed, bar_index
                     ))
-                    evaluations.append(f"[{fan_identity} {frac_name}] Pending Breach UP: C ({c_close:.2f}) > max(BEC={bec_close:.2f}, ZEC={zec_high:.2f}) -> BREACH_CONFIRMED")
-                    keys_to_remove.append(state_key)
+                    self.emit_pending_breach_state(
+                        bar_index=bar_index,
+                        fan_id=fan_id,
+                        fraction=frac_name,
+                        direction='UP',
+                        bec_close=bec_close,
+                        zec_high=zec_high,
+                        zec_low=zec_low,
+                        pending_bar=state['first_breach_bar'],
+                        outcome='BREACH_CONFIRMED'
+                    )
+                    evaluations.append(f"[{fan_identity} {frac_name}] Pending Breach UP: C ({c_close:.2f}) > max(BEC={bec_close:.2f}, ZEC={zec_high:.2f}) -> BREACH_CONFIRMED (confirmed_this_bar, flush after TARGET_HIT)")
+                    # NOTE: do NOT add to keys_to_remove; do NOT append EventOutput to results.
+                    # flush_deferred_breaches() will emit the correct event type.
                 else:
-                    zec_low = state.get('zec_low', state['extreme_price'])
-                    self.deferred_breaches.append(('up', state_key, fan_id, fan_identity, fan_obj.priority_label, frac_name, c_close, bars_elapsed, bar_index))
                     self.emit_pending_breach_state(
                         bar_index=bar_index,
                         fan_id=fan_id,
@@ -478,20 +582,34 @@ class UnifiedStateMachine:
                     evaluations.append(f"[{fan_identity} {frac_name}] Pending Breach DOWN: skip_section2=True -> SKIPPED (awaiting TARGET_HIT)")
                     continue
                 bec_close = state.get('bec_close', state['extreme_price'])
+                zec_high = state.get('zec_high', state['extreme_price'])
                 zec_low = state.get('zec_low', state['extreme_price'])
                 # Emit BREACH_CONFIRMED immediately when price confirms the breach.
                 # Only defer if price is still within the zone (hasn't broken out yet).
                 if c_close < min(bec_close, zec_low):
-                    results.append(EventOutput(
-                        fan_id=fan_id, fan_identity=fan_identity, priority_label=fan_obj.priority_label,
-                        fraction=frac_name, price=c_close, event_type='BREACH_CONFIRMED',
-                        details=f"DOWN (T+{bars_elapsed} bars)", direction='down'
+                    # DO NOT emit EventOutput here — _on_target_hit() needs to find the pending_breaches
+                    # entry to set skip_section2=True before flush. flush_deferred_breaches() will emit
+                    # the correct event type (BREACH_CONFIRMED or BREACH_CONFIRMED_NO_ALPHA).
+                    # Also DO NOT delete from pending_breaches — flush_deferred_breaches handles that.
+                    self.confirmed_this_bar.append((
+                        'down', state_key, fan_id, fan_identity, fan_obj.priority_label,
+                        frac_name, c_close, bars_elapsed, bar_index
                     ))
-                    evaluations.append(f"[{fan_identity} {frac_name}] Pending Breach DOWN: C ({c_close:.2f}) < min(BEC={bec_close:.2f}, ZEC={zec_low:.2f}) -> BREACH_CONFIRMED")
-                    keys_to_remove.append(state_key)
+                    self.emit_pending_breach_state(
+                        bar_index=bar_index,
+                        fan_id=fan_id,
+                        fraction=frac_name,
+                        direction='DOWN',
+                        bec_close=bec_close,
+                        zec_high=zec_high,
+                        zec_low=zec_low,
+                        pending_bar=state['first_breach_bar'],
+                        outcome='BREACH_CONFIRMED'
+                    )
+                    evaluations.append(f"[{fan_identity} {frac_name}] Pending Breach DOWN: C ({c_close:.2f}) < min(BEC={bec_close:.2f}, ZEC={zec_low:.2f}) -> BREACH_CONFIRMED (confirmed_this_bar, flush after TARGET_HIT)")
+                    # NOTE: do NOT add to keys_to_remove; do NOT append EventOutput to results.
+                    # flush_deferred_breaches() will emit the correct event type.
                 else:
-                    zec_high = state.get('zec_high', state['extreme_price'])
-                    self.deferred_breaches.append(('down', state_key, fan_id, fan_identity, fan_obj.priority_label, frac_name, c_close, bars_elapsed, bar_index))
                     self.emit_pending_breach_state(
                         bar_index=bar_index,
                         fan_id=fan_id,
@@ -546,7 +664,8 @@ class UnifiedStateMachine:
                     results.append(EventOutput(
                         fan_id=fan_id, fan_identity=fan_identity, priority_label=fan_obj.priority_label,
                         fraction=frac_name, price=c_close, event_type='SUPPORT_BOUNCE',
-                        details=f"Bounced (T+{bars_elapsed} bars)", direction='up'
+                        details=f"Bounced (T+{bars_elapsed} bars)", direction='up',
+                        bar_index=bar_index
                     ))
                     self.emit_pending_test_state(
                         bar_index=bar_index,
@@ -573,7 +692,8 @@ class UnifiedStateMachine:
                     results.append(EventOutput(
                         fan_id=fan_id, fan_identity=fan_identity, priority_label=fan_obj.priority_label,
                         fraction=frac_name, price=c_close, event_type='RESISTANCE_REJECTION',
-                        details=f"Rejected (T+{bars_elapsed} bars)", direction='down'
+                        details=f"Rejected (T+{bars_elapsed} bars)", direction='down',
+                        bar_index=bar_index
                     ))
                     self.emit_pending_test_state(
                         bar_index=bar_index,
@@ -594,64 +714,92 @@ class UnifiedStateMachine:
         for key in keys_to_remove:
             del self.pending_tests[key]
 
-        # If there are active fans but no evaluations were generated, log the distances to explain why
+        # If there are active fans but no evaluations were generated, log all active lines
+        # and their prices so the completeness checker can verify no event was missed
+        active_lines: List[str] = []
         if active_fans and not evaluations:
-            # If this is a retro sweep, only log distances for the new fans being retroactively evaluated
             fans_to_log = active_fans
             if is_retro and retro_fan_ids:
                 fans_to_log = {fid: fan for fid, fan in active_fans.items() if fid in retro_fan_ids}
-                
+
             for fan_id in sorted(fans_to_log.keys()):
                 fan_obj = fans_to_log[fan_id]
                 fan_identity = fan_obj.priority_label.split('(')[-1].rstrip(')').strip() if '(' in fan_obj.priority_label else fan_obj.priority_label
-                
-                # Find the nearest line for this fan
-                nearest_line = None
-                min_dist = float('inf')
-                
-                # Calculate current prices for all lines in this fan (skip main angle line)
+
                 for line in fan_obj.lines:
                     if line.fraction is None and "htarget" not in line.id:
-                        continue  # Skip main angle line — no price interaction tracking on main
+                        continue
                     bar_span = line.end_bar_index - line.start_bar_index
                     if bar_span > 0:
                         bars_from_origin = bar_index - line.start_bar_index
                         slope = (line.end_price - line.start_price) / bar_span
                         price_at_t = line.start_price + bars_from_origin * slope
-                        
+                        frac_str = str(line.fraction) if line.fraction is not None else "horizontal"
                         dist = abs(c_close - price_at_t)
-                        if dist < min_dist:
-                            min_dist = dist
-                            frac_str = str(line.fraction) if line.fraction is not None else "horizontal"
-                            nearest_line = f"{frac_str} @ {price_at_t:.2f}"
-                
-                if nearest_line:
-                    evaluations.append(f"[{fan_identity}] Nearest line is {nearest_line} (Distance: {min_dist:.2f}) -> No Intersection")
+                        active_lines.append(
+                            f"[{fan_identity}] Line {frac_str} @ {price_at_t:.2f} (Distance: {dist:.2f})"
+                        )
 
-        self._log_trace(bar_index, c_time, c_open, c_high, c_low, c_close, evaluations, is_retro)
+        self._log_trace(bar_index, c_time, c_open, c_high, c_low, c_close, evaluations, active_lines, is_retro)
 
         return results
 
-    def flush_deferred_breaches(self) -> List[EventOutput]:
+    def flush_confirmed_breaches(self) -> List[EventOutput]:
         """
-        Emit deferred BREACH_CONFIRMED events, checking skip_section2 flag first.
-        Called by angular_coverage_study.py after TARGET_HIT processing has had
+        Emit mathematically confirmed BREACH_CONFIRMED events, checking skip_section2 flag first.
+        Called by angular_coverage_study.py after TARGET_HIT processing has had 
         a chance to set skip_section2=True on pending breaches.
         """
         results = []
-        for entry in self.deferred_breaches:
-            direction, state_key, fan_id, fan_identity, priority_label, frac_name, price, bars_elapsed, deferred_bar_index = entry
 
-            # Check skip_section2 flag - if set, breach was already confirmed as NO_ALPHA
+        # Process confirmed_this_bar — these were already mathematically confirmed in Section 2.
+        # _on_target_hit() has had a chance to set skip_section2=True on the
+        # pending_breaches entry. Check the flag and emit the correct event type.
+        for entry in self.confirmed_this_bar:
+            direction, state_key, fan_id, fan_identity, priority_label, frac_name, price, bars_elapsed, bar_index = entry
+
+            # Retrieve state for event emission fields
             state = self.pending_breaches.get(state_key)
-            if state and state.get('skip_section2'):
-                # skip_section2=True means already confirmed as NO_ALPHA - no log needed here
-                # Remove from pending_breaches since already handled
-                if state_key in self.pending_breaches:
-                    del self.pending_breaches[state_key]
+
+            # If state is None, it means _confirm_pending_breach_if_valid() already emitted
+            # the NO_ALPHA event and deleted it from pending_breaches! So we just skip it.
+            if not state:
                 continue
 
-            # Emit BREACH_CONFIRMED
+            # Check skip_section2 — if True, emit BREACH_CONFIRMED_NO_ALPHA instead
+            if state.get('skip_section2'):
+                self.mark_breach_confirmed(fan_id, frac_name)
+                results.append(EventOutput(
+                    fan_id=fan_id,
+                    fan_identity=fan_identity,
+                    priority_label=priority_label,
+                    fraction=frac_name,
+                    price=price,
+                    event_type='BREACH_CONFIRMED_NO_ALPHA',
+                    details=f"{'UP' if direction == 'up' else 'DOWN'} (T+{bars_elapsed} bars, path=B cross-bar)",
+                    direction=direction,
+                    bar_index=bar_index
+                ))
+                # Write corrected state_block to trace (Section 2 traced it as BREACH_CONFIRMED — fix it)
+                import datetime
+                dt_str = datetime.datetime.now().strftime('%Y-%m-%d %H:%M')    
+                dir_str = direction.upper()
+                pending_bar = state.get('first_breach_bar', bar_index)
+                bec = float(state.get('bec_close', price))
+                zec_h = float(state.get('zec_high', price))
+                zec_l = float(state.get('zec_low', price))
+                state_str = (
+                    f"[STATE] pending_breach: fan={fan_id} line={frac_name} direction={dir_str} "
+                    f"bec_close={bec:.2f} zec_high={zec_h:.2f} zec_low={zec_l:.2f} "
+                    f"pending_bar={pending_bar} outcome=BREACH_CONFIRMED_NO_ALPHA"
+                )
+                with open(self.trace_log_path, 'a', encoding='utf-8') as f:    
+                    f.write(f"[Bar {bar_index}] [{dt_str}]  -> {state_str}\n") 
+                del self.pending_breaches[state_key]
+                continue
+
+            # No skip — emit BREACH_CONFIRMED normally
+            self.mark_breach_confirmed(fan_id, frac_name)
             results.append(EventOutput(
                 fan_id=fan_id,
                 fan_identity=fan_identity,
@@ -660,25 +808,12 @@ class UnifiedStateMachine:
                 price=price,
                 event_type='BREACH_CONFIRMED',
                 details=f"{'UP' if direction == 'up' else 'DOWN'} (T+{bars_elapsed} bars)",
-                direction=direction
+                direction=direction,
+                bar_index=bar_index
             ))
-            state = self.pending_breaches.get(state_key)
-            if state:
-                self.emit_pending_breach_state(
-                    bar_index=deferred_bar_index,
-                    fan_id=state['fan_id'],
-                    fraction=state['fraction'],
-                    direction=direction.upper(),
-                    bec_close=state['bec_close'],
-                    zec_high=state['zec_high'],
-                    zec_low=state['zec_low'],
-                    pending_bar=state['first_breach_bar'],
-                    outcome='BREACH_CONFIRMED'
-                )
-            if state_key in self.pending_breaches:
-                del self.pending_breaches[state_key]
+            del self.pending_breaches[state_key]
 
-        self.deferred_breaches.clear()
+        self.confirmed_this_bar.clear()
         return results
 
     def _start_pending_breach(self, state_key, fan_id, line_id, direction, extreme_price, bar_index, line_price, fraction, fan_obj, bec_close: float, zec_high: float, zec_low: float, prior_zone_fraction: str):
@@ -749,7 +884,8 @@ class UnifiedStateMachine:
                     results.append(EventOutput(
                         fan_id=fan_id, fan_identity=fan_identity, priority_label=priority_label,
                         fraction=frac_name, price=c_close, event_type='REST_ON_ANGLE',
-                        details=f"Resting (T+{self.rest_required_bars} bars)"
+                        details=f"Resting (T+{self.rest_required_bars} bars)",
+                        bar_index=bar_index
                     ))
                     evaluations.append(f"[{fan_identity} {frac_name}] Rest count reached {self.rest_required_bars} -> REST_ON_ANGLE")
                 else:
@@ -773,15 +909,20 @@ class UnifiedStateMachine:
 
         keys_to_remove = [k for k in self.rest_counters.keys() if k.startswith(f"{fan_id}_")]
         for k in keys_to_remove: del self.rest_counters[k]
+        
+        if fan_id in self.historical_breaches:
+            del self.historical_breaches[fan_id]
 
     def get_state(self) -> Dict[str, Any]:
         return {
             'pending_breaches': self.pending_breaches,
             'pending_tests': self.pending_tests,
-            'rest_counters': self.rest_counters
+            'rest_counters': self.rest_counters,
+            'historical_breaches': self.historical_breaches
         }
 
     def restore_state(self, state: Dict[str, Any]):
         self.pending_breaches = state.get('pending_breaches', {})
         self.pending_tests = state.get('pending_tests', {})
         self.rest_counters = state.get('rest_counters', {})
+        self.historical_breaches = state.get('historical_breaches', {})
