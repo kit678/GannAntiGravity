@@ -6,11 +6,11 @@
 
 ## 1. Goal
 
-Get from "4 untested hypotheses + 60-row replay log" to **a paper-traded short-term strategy with measured edge** in approximately 3 weeks of focused work.
+Get from "untested hypotheses + 60-row replay log" to **a paper-traded short-term strategy with measured edge** as fast as possible — target end of Week 2 if the priority hypotheses look strong, end of Week 3 otherwise.
 
 The strategy is the Angular Price Coverage strategy. Trading vehicles are short-term futures and weekly options on Indian indices (NIFTY/BANKNIFTY) and equities.
 
-The methodology must be lean enough to actually execute, but disciplined enough that any "winner" it surfaces is a real signal rather than noise.
+The methodology has a **priority pair** of two hypotheses that get fast-tracked through statistical testing → backtest → paper trading, while the broader hypothesis set is tested in parallel as a research stream. Lean enough to actually execute; disciplined enough that any "winner" it surfaces is a real signal rather than noise.
 
 ## 2. Decisions Captured From Brainstorming
 
@@ -23,6 +23,7 @@ The methodology must be lean enough to actually execute, but disciplined enough 
 | D5 | Validation discipline = held-out month (most recent), per-slice reporting, no pooled-only conclusions. **Dropped from MVP:** Bonferroni/BH correction, pre-registration, held-out instrument. | Q5 |
 | D6 | Multi-TF strategies (e.g., HTF interaction → LTF execution) are anticipated as a future strategy class. **Architecture must not preclude them**, but no multi-TF infrastructure built in MVP. | User note after Section 1 |
 | D7 | Lean over sophisticated. Defer parquet, regime/sequence column pre-computation, multi-TF context table, ML mining, BH correction, options backtester, corpus YAML manifest. | User feedback before approval |
+| D8 | Two **priority hypotheses** fast-tracked: (1) Multi-TF Reversal — HTF respect of 0.5 line triggers LTF entry; (2) Post-Breach Pullback Continuation — re-test of breached line as continuation entry. The four existing `Hypothesis` subclasses still tested but ranked secondary. Multi-TF support is added as a notebook-level pandas helper, NOT as engine schema/infra. | User pivot after spec v1 |
 
 ## 3. Lean MVP Plan
 
@@ -62,19 +63,29 @@ The most recent 1 month is the **held-out OOS slice** — never touched until ba
 
 ### 3.2 Phase 1 — Statistical Edge Test (Week 2)
 
-Test the 4 existing hypotheses in [strategy_analyzer.py](../../../gann-visualizer/backend/analysis/strategy_analyzer.py) on the corpus, slice-by-slice.
+Test all hypotheses on the corpus, slice-by-slice. **Priority pair tested first; remaining four tested in parallel.**
 
 **Code changes:**
 
 1. **Extend `enrich_with_forward_outcomes()`** in [event_logger.py:414](../../../gann-visualizer/backend/study_tool/event_logger.py#L414) to compute MFE/MAE at horizons **5, 10, 20, 50 bars**. Currently only 10 and 20.
-2. **Add a corpus-loop driver** — a small script (notebook or `.py`) that:
+2. **Add two new `Hypothesis` subclasses** to [strategy_analyzer.py](../../../gann-visualizer/backend/analysis/strategy_analyzer.py):
+   - `MultiTFReversalHypothesis` (priority #1)
+   - `PostBreachPullbackHypothesis` (priority #2)
+   - Specs in §3.2.1 below.
+3. **Add a multi-TF notebook helper** — a small pandas utility (~50 lines) that:
+   - Computes `bar_close_time = bar_open + timeframe_seconds` per row of an events DataFrame
+   - Performs `pd.merge_asof` between an LTF events DataFrame and an HTF events DataFrame, anchored on `bar_close_time` to prevent look-ahead leakage
+   - Returns LTF events enriched with "most recent HTF event" columns
+   - **No engine change required.** Lives in the analysis layer.
+4. **Add a corpus-loop driver** — a small script (notebook or `.py`) that:
    - Loads each slice's `events.csv` into a DataFrame
    - Runs each `Hypothesis.evaluate()` on it
    - Aggregates into one summary table: `(hypothesis, instrument, timeframe) → {sample_size, win_rate, mean_fwd_return_5/10/20/50, sharpe-of-signal}`
-3. **One Jupyter notebook** at `gann-visualizer/backend/analysis/notebooks/phase1_edge_test.ipynb` (or equivalent) that produces:
+5. **One Jupyter notebook** at `gann-visualizer/backend/analysis/notebooks/phase1_edge_test.ipynb` (or equivalent) that produces:
    - The summary table above
    - A per-hypothesis breakdown showing per-slice consistency
    - A "winners" cell that flags any hypothesis with sample-size ≥ 30, win-rate consistent across slices, and mean fwd-return positive at the 10–20 bar horizon
+   - **Priority pair results presented at the top** of the notebook for fast review
 
 **Discipline rules (MVP-light):**
 
@@ -83,38 +94,79 @@ Test the 4 existing hypotheses in [strategy_analyzer.py](../../../gann-visualize
 - **Sample-size threshold per slice:** ≥ 30 events. Below that, the slice's result is annotated "low-N" and excluded from cross-slice consistency judgement.
 - **Cross-slice consistency:** a hypothesis is a "candidate winner" only if it shows positive expected return *in the same direction* on at least 4 of the 6 slices.
 
-**Existing hypotheses tested (no new code beyond what's in [strategy_analyzer.py](../../../gann-visualizer/backend/analysis/strategy_analyzer.py)):**
+#### 3.2.1 Hypothesis Specifications
+
+**Priority #1 — `MultiTFReversalHypothesis`**
+
+Trade reversals signaled by an HTF respect of a major angle line, executed on the LTF.
+
+| Parameter | Default |
+|---|---|
+| HTF / LTF | 60m → 5m, 60m → 15m (test both pairs) |
+| HTF trigger event types | `SUPPORT_TEST`, `RESISTANCE_TEST` |
+| HTF trigger line filter | `fraction == 0.5` (start narrow with strongest line; widen to 0.75 / 0.875 in v2 if 0.5 underperforms) |
+| LTF entry window | One HTF bar duration after HTF close (12 bars at 5m, 4 bars at 15m) |
+| LTF entry trigger | First LTF bar within the window that closes in the trigger direction with body > 50% of range |
+| Direction | SUPPORT_TEST → long; RESISTANCE_TEST → short |
+| Stop | Beyond LTF entry candle's wick OR 1× LTF 14-bar ATR, whichever is tighter |
+| Target | Next HTF angle line in trade direction |
+| Holding | Intraday, max 1 session |
+
+Phase 1 measures: forward returns on the LTF after qualifying entry triggers, vs. forward returns on LTF events that did NOT have a qualifying HTF context (the control group).
+
+**Priority #2 — `PostBreachPullbackHypothesis`**
+
+Trade the re-test of a breached angle line as a continuation entry.
+
+| Parameter | Default |
+|---|---|
+| Timeframe | Single TF — test 15m and 60m independently |
+| Trigger sequence | `BREACH_CONFIRMED` on (fan F, line X) → within next N bars, `SUPPORT_TEST` (after up-breach) or `RESISTANCE_TEST` (after down-breach) on same (F, X) |
+| `N` (pullback window) | 10 bars |
+| Direction | UP-breach + SUPPORT_TEST → long; DOWN-breach + RESISTANCE_TEST → short |
+| Entry | At close of the SUPPORT_TEST/RESISTANCE_TEST bar IF the candle has a confirming pattern (`HAMMER`, `BULLISH_ENGULFING` for long; `SHOOTING_STAR`, `BEARISH_ENGULFING` for short) OR body > 50% of range |
+| Stop | Beyond line X by 1 ATR OR beyond the test candle's extreme wick, whichever is tighter |
+| Target | Next angle line above (long) / below (short) — the breach's natural target |
+| Holding | Intraday, max 1 session |
+
+Phase 1 measures: forward returns after qualifying pullback entries, vs. all `SUPPORT_TEST`/`RESISTANCE_TEST` events without preceding breach context (the control group).
+
+**Secondary — existing 4 hypotheses, tested in parallel for context:**
 
 - `StrongSRHypothesis` — angle lines as S/R
 - `TargetProgressionHypothesis` — post-breach target reach probability
 - `QuarterReversalAnomalyHypothesis` — 0.25 line reversal
 - `ConfluenceBounceHypothesis` — multi-fan-line confluence
 
-These map approximately to the four hypotheses described in the user's brief. Any mismatch is a one-line edit to the existing class, not new architecture.
+These run on the same corpus and notebook with no extra code beyond what's in [strategy_analyzer.py](../../../gann-visualizer/backend/analysis/strategy_analyzer.py). If one of them surprises us with stronger edge than the priority pair, it becomes a Phase 2 candidate.
 
-### 3.3 Phase 2 — Backtest the Survivor (Week 3)
+### 3.3 Phase 2 — Backtest the Survivor(s) (Week 2 latter half / Week 3)
 
-For up to 2 hypotheses surviving Phase 1's cross-slice consistency check:
+**Backtest the priority pair first.** If either survives Phase 1's cross-slice consistency check, a backtest module is written immediately and the strategy goes to paper trading without waiting for the secondary hypotheses to finish their Phase 1 analysis.
 
-**Code changes:**
+**Order of operations:**
 
-1. **Write a rule-based strategy module** at `gann-visualizer/backend/analysis/strategies/<hypothesis_name>.py` — vectorized over the events table, ~100–200 lines. Inputs: events DataFrame + bars CSV. Outputs: trade list (entry_time, entry_price, exit_time, exit_price, P&L_points).
-2. **Strategy spec for each survivor:**
-   - Entry signal (which event type + filters)
-   - Stop loss rule (in points or % of entry)
-   - Target rule (next angle line / fixed R-multiple)
-   - Position sizing (fixed lots — no compounding for MVP)
-3. **Run on held-out month** — single OOS peek. Output: P&L curve, max drawdown, hit rate, profit factor, expectancy in points.
-4. **Manual options translation** for top survivor:
+1. **Backtest priority survivor #1** (Multi-TF Reversal if it passes Phase 1) — 1–2 days
+2. **Backtest priority survivor #2** (Post-Breach Pullback if it passes Phase 1) — 1–2 days
+3. **Begin paper trading the stronger of the two** — Week 2 / early Week 3
+4. **Backtest any secondary survivors** in remaining time
+
+**Code changes (per surviving hypothesis):**
+
+1. **Write a rule-based strategy module** at `gann-visualizer/backend/analysis/strategies/<hypothesis_name>.py` — vectorized over the events table, ~100–200 lines. Inputs: events DataFrame + bars CSV. Outputs: trade list (entry_time, entry_price, exit_time, exit_price, P&L_points). The hypothesis spec from §3.2.1 maps directly to the strategy parameters — no further design needed.
+2. **Run on held-out month** — single OOS peek. Output: P&L curve, max drawdown, hit rate, profit factor, expectancy in points.
+3. **Manual options translation** for top survivor:
    - Pick weekly ATM or OTM-1-strike based on the strategy's directional confidence
    - Map futures stop to options stop in premium terms (no Greeks model — use rough delta intuition)
    - Theta-aware exit rule: hard exit if held > 2 trading sessions on weekly contracts
 
 **No options backtester is built.** The translation happens manually for paper trading.
 
-### 3.4 Phase 3 — Paper Trade (Week 4+)
+### 3.4 Phase 3 — Paper Trade (Week 2 / Week 3 onward)
 
-The Week 3 survivor strategy is paper-traded for 4–6 weeks on live data. The Phase 1 notebook becomes the ongoing analysis tool — new live observations append to it.
+The first priority survivor is paper-traded for 4–6 weeks on live data. **Paper trading begins as soon as the first Phase 2 backtest completes — does not wait for all hypotheses to finish testing.** Secondary hypotheses graduate to paper trading independently as they survive their own Phase 2 backtests.
+
+The Phase 1 notebook becomes the ongoing analysis tool — new live observations append to it.
 
 Decision criteria for going live:
 - Paper-trade Sharpe ≥ backtest Sharpe × 0.7 (some live degradation expected)
@@ -137,7 +189,7 @@ These apply to all phases:
 These are deferred and **not implementation targets**:
 
 - Parquet/columnar storage migration
-- Multi-TF context table and HTF→LTF strategies
+- Multi-TF **context table / engine schema** for HTF↔LTF joins. Multi-TF *strategies* ARE in scope and tested via a lean notebook-level `merge_asof` helper (no engine change). The full `multi_tf_context.parquet` table from the north-star architecture is what's deferred.
 - ML / unsupervised pattern mining
 - Automated options backtester with strikes & Greeks
 - Bonferroni / BH multiple-testing correction
@@ -155,31 +207,40 @@ Each of these is captured in the **North Star Architecture** appendix below for 
 | Risk | Mitigation |
 |---|---|
 | **Audit reveals widespread engine bugs across slices.** Phase 0 stalls. | Prioritize fixing slices in order of TF granularity (5m most likely to reveal bugs). Drop a slice if its bug is too deep to fix in 1–2 days; analyze on remaining slices. |
-| **All 4 hypotheses fail Phase 1 cross-slice consistency.** | The methodology has delivered its primary value: a definitive answer that none of the current hypotheses are tradeable as-is. Decide whether to (a) refine hypothesis parameters and re-test, (b) add new hypotheses by hand, or (c) graduate to Phase 3 (ML mining) of the north-star architecture. |
+| **Both priority hypotheses fail Phase 1 cross-slice consistency.** | First fall back to any secondary hypothesis that passes consistency — those still get backtested, just later. If all 6 fail, the methodology has still delivered its primary value: a definitive answer that none of the current hypotheses are tradeable as-is. Decide whether to (a) refine hypothesis parameters and re-test, (b) add new hypotheses by hand, or (c) graduate to Phase 3 (ML mining) of the north-star architecture. |
 | **Phase 2 backtest shows edge, but options translation kills it on bid-ask.** | Document the gap. Either move to futures-only trading (lower leverage, lower returns, simpler) or invest in a proper options backtester before risking capital. |
 | **Held-out month happens to be an unusual regime** (e.g., trending vs. ranging mismatch with in-sample). | A single OOS month is inherently noisy. If results are borderline, extend held-out to 2 months before deploying. |
 | **MFE/MAE at fixed bar horizons miss the strategy's natural exit signal.** | Phase 2 backtest replaces fixed-horizon excursion with the strategy's actual stop/target rules — this is the correction. Phase 1's MFE/MAE is a *cheap filter*, not the final judge. |
 
 **Open questions to resolve during implementation (not blocking spec approval):**
 
-- Exact mapping of user's 4 hypotheses ↔ the 4 `Hypothesis` subclasses in [strategy_analyzer.py](../../../gann-visualizer/backend/analysis/strategy_analyzer.py). May require minor edits to existing classes.
+- Exact mapping of user's 4 original hypotheses ↔ the 4 secondary `Hypothesis` subclasses in [strategy_analyzer.py](../../../gann-visualizer/backend/analysis/strategy_analyzer.py). May require minor edits to existing classes.
 - Data source for BANKNIFTY at 5m granularity over 6 months. yfinance has limits; may need Dhan or another source.
-- Specific stop/target rules for each backtest strategy in Phase 2 — to be written collaboratively when Phase 2 starts.
+- Whether HTF=60m is the right choice for the Multi-TF Reversal priority hypothesis, or whether HTF=240m (4h) better fits the user's original idea. Decide after Phase 0 corpus is generated and a quick visual check is done.
+- Whether to include `fraction == 0.875` in the Multi-TF Reversal trigger if 0.5-only sample size is too small. Decide after Phase 1 first-pass numbers.
 
 ## 7. Deliverables
 
-By end of Week 3:
+By end of Week 1:
 
 1. Multi-instrument × multi-TF event corpus at `logs/backend/runs/<instrument>/<timeframe>/<run_id>/` (CSV format).
 2. Per-slice audit reports passing the 100/100 gate.
-3. `phase1_edge_test.ipynb` notebook with the summary table and winner identification.
-4. 1–2 backtested strategy modules at `gann-visualizer/backend/analysis/strategies/`.
-5. Phase 2 backtest output on held-out month (P&L curve, drawdown, expectancy).
-6. Manual options translation document for the top survivor.
 
-By Week 4+:
+By end of Week 2:
 
-7. Paper trading log + ongoing analysis updates.
+3. Two new `Hypothesis` subclasses (`MultiTFReversalHypothesis`, `PostBreachPullbackHypothesis`) merged into [strategy_analyzer.py](../../../gann-visualizer/backend/analysis/strategy_analyzer.py).
+4. Multi-TF notebook helper for `merge_asof` joins on `bar_close_time`.
+5. `phase1_edge_test.ipynb` notebook with summary table, priority-pair results at top, and winner identification.
+6. Backtest module for the strongest priority survivor at `gann-visualizer/backend/analysis/strategies/`.
+7. Phase 2 backtest output on held-out month (P&L curve, drawdown, expectancy).
+8. Manual options translation document for the top survivor.
+9. **Paper trading begins for first survivor.**
+
+By end of Week 3 / Week 4+:
+
+10. Backtest for second priority survivor (if it passed Phase 1).
+11. Phase 1 results for secondary hypotheses (existing 4) — context for whether to widen the search.
+12. Ongoing paper-trade log and notebook updates with live observations.
 
 ---
 
