@@ -61,15 +61,21 @@ def _normalize_fan(fan_str: str) -> str:
 # Paths
 # ---------------------------------------------------------------------------
 
-TRACE_PATH = Path("c:/Dev/GannTesting/logs/backend/replay_trace.log")
-EVENTS_CSV = Path("c:/Dev/GannTesting/logs/backend/replay_events.csv")
-OUT_DIR    = Path("c:/Dev/GannTesting/logs/backend/trace_audit/")
-OUT_DIR.mkdir(parents=True, exist_ok=True)
-
-OUT_REPORT  = OUT_DIR / "TRACE_AUDIT_REPORT.txt"
-OUT_EV_CSV  = OUT_DIR / "EVENT_VERIFICATION.csv"
-OUT_EVENTS_ML = OUT_DIR / "events_ml.csv"
-OUT_BARS_ML   = OUT_DIR / "bars_ml.csv"
+def resolve_paths(run_dir: Path) -> dict:
+    """Return path dict for a given run directory.
+    Keys: trace, events, audit_dir, report, ev_csv, events_ml, bars_ml.
+    """
+    audit_dir = run_dir / "audit"
+    audit_dir.mkdir(parents=True, exist_ok=True)
+    return {
+        "trace":     run_dir / "trace.log",
+        "events":    run_dir / "events.csv",
+        "audit_dir": audit_dir,
+        "report":    audit_dir / "TRACE_AUDIT_REPORT.txt",
+        "ev_csv":    audit_dir / "EVENT_VERIFICATION.csv",
+        "events_ml": audit_dir / "events_ml.csv",
+        "bars_ml":   audit_dir / "bars_ml.csv",
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -669,6 +675,7 @@ def generate_report(
     missed_events: List[dict],
     state_lookup: Dict[Tuple, StateBlock],
     ts_lookup: Dict[str, int],
+    paths: dict,
 ) -> Tuple[float, float]:
     """
     Write TRACE_AUDIT_REPORT.txt and EVENT_VERIFICATION.csv.
@@ -738,7 +745,7 @@ def generate_report(
     )
 
     # Write EVENT_VERIFICATION.csv
-    with open(OUT_EV_CSV, "w", newline="", encoding="utf-8") as f:
+    with open(paths["ev_csv"], "w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=[
             "bar_index", "timestamp", "fan", "fraction", "event_type",
             "line_price", "ohlc", "accuracy_result", "accuracy_detail",
@@ -750,10 +757,10 @@ def generate_report(
 
     # Write TRACE_AUDIT_REPORT.txt
     now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    with open(OUT_REPORT, "w", encoding="utf-8") as f:
+    with open(paths["report"], "w", encoding="utf-8") as f:
         f.write("=== EVENT VERIFICATION REPORT ===\n")
         f.write(f"Generated: {now}\n")
-        f.write(f"Source: {EVENTS_CSV.name}, {TRACE_PATH.name}\n\n")
+        f.write(f"Source: {paths['events'].name}, {paths['trace'].name}\n\n")
 
         f.write("ACCURACY (events that fired — were they correct per EVENT_TYPES.md definitions?)\n")
         f.write(f"  Events checked: {total_checked}\n")
@@ -805,6 +812,7 @@ def export_ml_data(
     csv_events: List[CSVEvent],
     missed_events: List[dict],
     state_lookup: Dict[Tuple, StateBlock],
+    paths: dict,
 ) -> None:
     """
     Write events_ml.csv and bars_ml.csv.
@@ -812,7 +820,7 @@ def export_ml_data(
     bars_ml.csv: Negative cases — evaluated bars where no event fired.
     """
     # events_ml.csv
-    with open(OUT_EVENTS_ML, "w", newline="", encoding="utf-8") as f:
+    with open(paths["events_ml"], "w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=[
             "bar_index", "timestamp", "fan_id", "fraction", "line_price",
             "open", "high", "low", "close", "event_type", "direction",
@@ -854,7 +862,7 @@ def export_ml_data(
             })
 
     # bars_ml.csv — negative cases
-    with open(OUT_BARS_ML, "w", newline="", encoding="utf-8") as f:
+    with open(paths["bars_ml"], "w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=[
             "bar_index", "timestamp", "fan_id", "fraction", "line_price",
             "open", "high", "low", "close", "range", "body_size",
@@ -896,31 +904,32 @@ def export_ml_data(
 
 def main():
     import argparse
-    parser = argparse.ArgumentParser(description="Verify trace events against CSV")
-    parser.add_argument("--trace", "-t", type=str,
-                        default="c:/Dev/GannTesting/logs/backend/replay_trace.log",
-                        help="Path to trace log (default: replay_trace.log)")
-    parser.add_argument("--events", "-e", type=str,
-                        default="c:/Dev/GannTesting/logs/backend/replay_events.csv",
-                        help="Path to events CSV (default: replay_events.csv)")
+    parser = argparse.ArgumentParser(description="Verify trace events for a single run directory")
+    parser.add_argument("--run-dir", type=str, required=True,
+                        help="Run directory: logs/backend/runs/<instrument>/<timeframe>/<run_id>/")
     args = parser.parse_args()
 
-    trace_path = Path(args.trace)
-    events_csv = Path(args.events)
-
-    if not events_csv.exists():
-        print(f"ERROR: events CSV not found: {events_csv}")
-        sys.exit(1)
-    if not trace_path.exists():
-        print(f"ERROR: trace log not found: {trace_path}")
+    run_dir = Path(args.run_dir)
+    if not run_dir.exists():
+        print(f"ERROR: run dir not found: {run_dir}")
         sys.exit(1)
 
-    print(f"Reading events CSV: {events_csv}")
-    csv_events = parse_events_csv(events_csv)
+    paths = resolve_paths(run_dir)
+
+    if not paths["events"].exists():
+        print(f"ERROR: events CSV not found: {paths['events']}")
+        sys.exit(1)
+    if not paths["trace"].exists():
+        print(f"ERROR: trace log not found: {paths['trace']}")
+        sys.exit(1)
+
+    print(f"Run directory: {run_dir}")
+    print(f"Reading events CSV: {paths['events']}")
+    csv_events = parse_events_csv(paths["events"])
     print(f"  Found {len(csv_events)} events in CSV")
 
-    print(f"Reading trace log: {trace_path}")
-    trace_bars = parse_trace_log(trace_path)
+    print(f"Reading trace log: {paths['trace']}")
+    trace_bars = parse_trace_log(paths["trace"])
     print(f"  Found {len(trace_bars)} bars in trace log")
 
     print("Building state block lookup...")
@@ -936,17 +945,15 @@ def main():
     print(f"  {len(missed)} missed events detected")
 
     print("Generating report...")
-    acc_pct, comp_pct = generate_report(trace_bars, csv_events, missed, state_lookup, ts_lookup)
+    acc_pct, comp_pct = generate_report(trace_bars, csv_events, missed, state_lookup, ts_lookup, paths)
     print(f"  Accuracy: {acc_pct:.1f}%, Completeness: {comp_pct:.1f}%")
 
     print("Exporting ML data...")
-    export_ml_data(trace_bars, csv_events, missed, state_lookup)
+    export_ml_data(trace_bars, csv_events, missed, state_lookup, paths)
 
-    print(f"\nOutputs written to {OUT_DIR}:")
-    print(f"  {OUT_REPORT.name}")
-    print(f"  {OUT_EV_CSV.name}")
-    print(f"  {OUT_EVENTS_ML.name}")
-    print(f"  {OUT_BARS_ML.name}")
+    print(f"\nOutputs written to {paths['audit_dir']}")
+    if acc_pct < 100.0 or comp_pct < 100.0:
+        sys.exit(2)  # non-zero so corpus runners can detect failure
 
 
 if __name__ == "__main__":
