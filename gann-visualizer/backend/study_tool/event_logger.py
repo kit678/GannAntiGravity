@@ -67,6 +67,10 @@ class Event:
     # Target Progression Info
     next_angle_line: Optional[str] = None
 
+    # Identity (for multi-instrument / multi-timeframe corpora)
+    instrument: Optional[str] = None
+    timeframe: Optional[str] = None
+
     # Forward-looking outcomes (populated post-simulation)
     mfe_10: Optional[float] = None  # Max Favorable Excursion (next 10 bars)
     mae_10: Optional[float] = None  # Max Adverse Excursion (next 10 bars)
@@ -91,6 +95,8 @@ class Event:
             "zone_highest_close": self.zone_highest_close,
             "zone_lowest_close": self.zone_lowest_close,
             "next_angle_line": self.next_angle_line,
+            "instrument": self.instrument,
+            "timeframe": self.timeframe,
             "mfe_10": self.mfe_10,
             "mae_10": self.mae_10,
             "mfe_20": self.mfe_20,
@@ -100,16 +106,19 @@ class Event:
 
     @classmethod
     def from_dict(cls, data: Dict) -> 'Event':
-        event = cls()
-        event.timestamp = data.get("timestamp")
-        
-        # Handle event_type conversion
+        # Resolve event_type before constructing so we can pass required args
         evt_type_val = data.get("event_type")
         try:
-            event.event_type = EventType(evt_type_val)
-        except ValueError:
-            # Fallback if somehow invalid
-            event.event_type = EventType.CROSS_UP
+            resolved_event_type = EventType(evt_type_val)
+        except (ValueError, KeyError):
+            resolved_event_type = EventType.CROSS_UP
+
+        event = cls(
+            timestamp=data.get("timestamp", 0),
+            event_type=resolved_event_type,
+        )
+        event.timestamp = data.get("timestamp")
+        event.event_type = resolved_event_type
             
         event.angle_name = data.get("angle_name")
         event.price = data.get("price")
@@ -124,6 +133,8 @@ class Event:
         event.zone_highest_close = data.get("zone_highest_close")
         event.zone_lowest_close = data.get("zone_lowest_close")
         event.next_angle_line = data.get("next_angle_line")
+        event.instrument = data.get("instrument")
+        event.timeframe = data.get("timeframe")
         event.mfe_10 = data.get("mfe_10")
         event.mae_10 = data.get("mae_10")
         event.mfe_20 = data.get("mfe_20")
