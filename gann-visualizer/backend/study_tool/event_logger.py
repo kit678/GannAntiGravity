@@ -117,9 +117,6 @@ class Event:
             timestamp=data.get("timestamp", 0),
             event_type=resolved_event_type,
         )
-        event.timestamp = data.get("timestamp")
-        event.event_type = resolved_event_type
-            
         event.angle_name = data.get("angle_name")
         event.price = data.get("price")
         event.direction = data.get("direction")
