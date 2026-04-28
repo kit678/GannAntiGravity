@@ -376,6 +376,118 @@ class PostBreachPullbackHypothesis(Hypothesis):
         }
 
 
+class MultiTFReversalHypothesis(Hypothesis):
+    """HTF respect of a major angle line triggers LTF reversal entry.
+
+    Trigger sequence:
+      1. HTF event ∈ {SUPPORT_TEST, RESISTANCE_TEST} on a fan line whose
+         fraction matches `line_filter` (default "0.5").
+      2. Within `entry_window_htf_bars` HTF-bar durations after the HTF
+         close, an LTF bar that:
+           - closes in the trigger direction (long if HTF SUPPORT_TEST,
+             short if HTF RESISTANCE_TEST), AND
+           - has body/range ratio ≥ `body_ratio_min`.
+
+    See spec §3.2.1 priority #1 for the full hypothesis specification.
+
+    Note: this class takes TWO DataFrames (LTF events, HTF events) — unlike
+    the single-DataFrame hypotheses. The base Hypothesis.evaluate(df) signature
+    is preserved for compatibility but here `df` is the LTF DataFrame and
+    HTF events are passed as a second positional argument.
+    """
+    def __init__(self):
+        super().__init__(
+            name="Multi-TF Reversal",
+            description="HTF respect of a major angle line triggers LTF reversal entry.",
+        )
+        self.set_parameters(
+            htf="60",
+            ltf="5",
+            line_filter="0.5",
+            entry_window_htf_bars=1,
+            body_ratio_min=0.5,
+            min_mfe_reward_ratio=2.0,
+        )
+
+    def evaluate(self, ltf: pd.DataFrame, htf: pd.DataFrame = None) -> Dict[str, Any]:
+        from analysis.multi_tf_helper import compute_bar_close_time, merge_asof_htf_to_ltf, timeframe_seconds
+
+        if htf is None or ltf.empty or htf.empty:
+            return {"sample_size": 0, "win_rate": 0.0, "avg_mfe_10": 0.0, "avg_mae_10": 0.0}
+
+        line_filter = str(self.parameters["line_filter"])
+        body_ratio_min = float(self.parameters["body_ratio_min"])
+        entry_window_htf_bars = int(self.parameters["entry_window_htf_bars"])
+        ratio = float(self.parameters["min_mfe_reward_ratio"])
+        htf_tf = str(self.parameters["htf"])
+        htf_bar_seconds = timeframe_seconds(htf_tf)
+
+        # Filter HTF to qualifying triggers only (right line + right event type)
+        htf_filtered = htf[
+            (htf["Type"].isin(["SUPPORT_TEST", "RESISTANCE_TEST"]))
+            & (htf["Fraction"].astype(str) == line_filter)
+        ].copy()
+        if htf_filtered.empty:
+            return {"sample_size": 0, "win_rate": 0.0, "avg_mfe_10": 0.0, "avg_mae_10": 0.0}
+
+        # Compute bar_close_time on both
+        ltf_bc = compute_bar_close_time(ltf)
+        htf_bc = compute_bar_close_time(htf_filtered)
+
+        # Multi-instrument 'by' parameter if column present in both
+        join_by = "Instrument" if ("Instrument" in ltf.columns and "Instrument" in htf.columns) else None
+
+        merged = merge_asof_htf_to_ltf(ltf_bc, htf_bc, by=join_by)
+
+        # Apply window: LTF bar_close_time must be within entry_window_htf_bars
+        # of the HTF event's bar_close_time. Note: the merged index is
+        # bar_close_time (LTF close); htf_bar_close_time is a column.
+        if "htf_bar_close_time" in merged.columns:
+            window_seconds = entry_window_htf_bars * htf_bar_seconds
+            # LTF bar_close_time is the index; htf_bar_close_time is a column.
+            time_gap = merged.index - merged["htf_bar_close_time"]
+            in_window = (time_gap >= 0) & (time_gap <= window_seconds)
+        else:
+            in_window = pd.Series([False] * len(merged), index=merged.index)
+
+        # Body ratio filter
+        rng = (merged["High"] - merged["Low"]).replace(0, 1e-9)
+        body = (merged["Close"] - merged["Open"]).abs()
+        body_ok = (body / rng) >= body_ratio_min
+
+        # Direction filter: HTF SUPPORT_TEST → look long → LTF must close > open
+        # HTF RESISTANCE_TEST → look short → LTF must close < open
+        htf_type = merged["htf_event_type"] if "htf_event_type" in merged.columns else pd.Series([None] * len(merged), index=merged.index)
+        long_signal = (htf_type == "SUPPORT_TEST") & (merged["Close"] > merged["Open"])
+        short_signal = (htf_type == "RESISTANCE_TEST") & (merged["Close"] < merged["Open"])
+        direction_ok = long_signal | short_signal
+
+        qualifying = merged[in_window & body_ok & direction_ok]
+
+        if qualifying.empty:
+            return {"sample_size": 0, "win_rate": 0.0, "avg_mfe_10": 0.0, "avg_mae_10": 0.0}
+
+        wins = 0
+        total_mfe = 0.0
+        total_mae = 0.0
+        for _, row in qualifying.iterrows():
+            mfe = float(row.get("MFE_10", 0.0) or 0.0)
+            mae = float(row.get("MAE_10", 0.0) or 0.0)
+            safe_mae = max(mae, 0.1)
+            if mfe > safe_mae * ratio:
+                wins += 1
+            total_mfe += mfe
+            total_mae += mae
+
+        n = len(qualifying)
+        return {
+            "sample_size": n,
+            "win_rate": wins / n,
+            "avg_mfe_10": total_mfe / n,
+            "avg_mae_10": total_mae / n,
+        }
+
+
 class StrategyAnalyzer:
     def __init__(self, csv_path: str, output_dir: str = None):
         self.csv_path = csv_path

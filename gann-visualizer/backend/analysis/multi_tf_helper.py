@@ -72,14 +72,22 @@ def merge_asof_htf_to_ltf(
     if "bar_close_time" not in htf.columns:
         raise KeyError("htf must have 'bar_close_time' — call compute_bar_close_time first")
 
+    # Set bar_close_time as index so merge_asof uses it cleanly.
+    # We keep it as a column in the output by resetting afterward.
     ltf_sorted = ltf.sort_values("bar_close_time").reset_index(drop=True)
     htf_sorted = htf.sort_values("bar_close_time").reset_index(drop=True)
 
-    # Rename HTF columns (except join keys) with htf_ prefix
+    # Rename HTF columns (except join keys) with htf_ prefix.
+    # bar_close_time is excluded from keep_as_is so it gets renamed here;
+    # it becomes htf_bar_close_time (right index post-merge). We need it
+    # also as a column for the time_gap filter, so save it before renaming.
     # "Type" is aliased to "htf_event_type" for clarity at join sites.
-    keep_as_is = {"bar_close_time"}
+    keep_as_is = set()
     if by is not None:
         keep_as_is.add(by)
+
+    # Save bar_close_time values before the rename consumes the column.
+    _bct_values = htf_sorted["bar_close_time"].values.copy()
 
     rename_map = {}
     for c in htf_sorted.columns:
@@ -87,14 +95,24 @@ def merge_asof_htf_to_ltf(
             continue
         if c in _COLUMN_ALIASES:
             rename_map[c] = _COLUMN_ALIASES[c]
+        elif c == "bar_close_time":
+            rename_map[c] = "htf_bar_close_time"
         else:
             rename_map[c] = f"htf_{c.lower()}"
     htf_renamed = htf_sorted.rename(columns=rename_map)
 
+    # Re-attach bar_close_time values as a named column so they survive set_index.
+    htf_renamed["htf_bar_close_time"] = _bct_values
+
+    # Use index-based merge_asof. Left index is bar_close_time (LTF close).
+    # Right index is htf_bar_close_time (HTF close). The merge is an
+    # asof join: for each LTF close, find the most recent HTF close ≤ it.
+    # drop=False keeps htf_bar_close_time as both an index and a column.
     return pd.merge_asof(
-        ltf_sorted,
-        htf_renamed,
-        on="bar_close_time",
+        ltf_sorted.set_index("bar_close_time"),
+        htf_renamed.set_index("htf_bar_close_time", drop=False),
+        left_index=True,
+        right_index=True,
         by=by,
         direction="backward",
         allow_exact_matches=True,

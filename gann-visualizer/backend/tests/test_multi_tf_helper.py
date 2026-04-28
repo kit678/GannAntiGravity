@@ -51,11 +51,11 @@ def test_merge_asof_attaches_most_recent_htf_event_no_lookahead():
 
     out = merge_asof_htf_to_ltf(ltf, htf)
     # LTF closing at 11:10 -> no HTF bar has closed yet (first HTF closes at 12:00) -> NaN
-    assert pd.isna(out.loc[0, "htf_event_type"])
+    assert pd.isna(out.iloc[0]["htf_event_type"])
     # LTF closing at 12:10 -> most recent closed HTF bar closes at 12:00 (SUPPORT_TEST)
-    assert out.loc[1, "htf_event_type"] == "SUPPORT_TEST"
+    assert out.iloc[1]["htf_event_type"] == "SUPPORT_TEST"
     # LTF closing at 13:10 -> most recent closed HTF bar closes at 13:00 (RESISTANCE_TEST)
-    assert out.loc[2, "htf_event_type"] == "RESISTANCE_TEST"
+    assert out.iloc[2]["htf_event_type"] == "RESISTANCE_TEST"
 
 
 def test_merge_asof_only_pairs_same_instrument():
@@ -78,7 +78,7 @@ def test_merge_asof_only_pairs_same_instrument():
     ltf = compute_bar_close_time(ltf)
 
     out = merge_asof_htf_to_ltf(ltf, htf, by="Instrument")
-    assert pd.isna(out.loc[0, "htf_event_type"])
+    assert pd.isna(out.iloc[0]["htf_event_type"])
 
 
 def test_compute_bar_close_time_raises_for_missing_tf_col():
@@ -113,4 +113,4 @@ def test_merge_asof_exact_match_boundary():
     out = merge_asof_htf_to_ltf(ltf, htf)
     # allow_exact_matches=True means the HTF event at bar_close_time=12:00
     # IS visible to the LTF event that also closes at 12:00
-    assert out.loc[0, "htf_event_type"] == "SUPPORT_TEST"
+    assert out.iloc[0]["htf_event_type"] == "SUPPORT_TEST"
