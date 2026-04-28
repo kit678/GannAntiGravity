@@ -46,7 +46,6 @@ def _normalize_fan(fan_str: str) -> str:
         return fan_str.replace('-', '_')
 
     # CSV format: 'P1 (H1-L1)' -> extract 'H1-L1' and prefix with 'Fan_'
-    import re
     match = re.search(r'\(([^)]+)\)', fan_str)
     if match:
         angle_part = match.group(1)  # e.g., 'H1-L1' or 'L2-H1'
