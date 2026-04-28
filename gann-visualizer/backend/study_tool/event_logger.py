@@ -72,10 +72,14 @@ class Event:
     timeframe: Optional[str] = None
 
     # Forward-looking outcomes (populated post-simulation)
-    mfe_10: Optional[float] = None  # Max Favorable Excursion (next 10 bars)
-    mae_10: Optional[float] = None  # Max Adverse Excursion (next 10 bars)
-    mfe_20: Optional[float] = None  # Max Favorable Excursion (next 20 bars)
-    mae_20: Optional[float] = None  # Max Adverse Excursion (next 20 bars)
+    mfe_5: Optional[float] = None
+    mae_5: Optional[float] = None
+    mfe_10: Optional[float] = None
+    mae_10: Optional[float] = None
+    mfe_20: Optional[float] = None
+    mae_20: Optional[float] = None
+    mfe_50: Optional[float] = None
+    mae_50: Optional[float] = None
 
     def to_dict(self) -> Dict:
         return {
@@ -97,10 +101,14 @@ class Event:
             "next_angle_line": self.next_angle_line,
             "instrument": self.instrument,
             "timeframe": self.timeframe,
+            "mfe_5": self.mfe_5,
+            "mae_5": self.mae_5,
             "mfe_10": self.mfe_10,
             "mae_10": self.mae_10,
             "mfe_20": self.mfe_20,
             "mae_20": self.mae_20,
+            "mfe_50": self.mfe_50,
+            "mae_50": self.mae_50,
             "details": self.details or {}
         }
 
@@ -132,10 +140,14 @@ class Event:
         event.next_angle_line = data.get("next_angle_line")
         event.instrument = data.get("instrument")
         event.timeframe = data.get("timeframe")
+        event.mfe_5 = data.get("mfe_5")
+        event.mae_5 = data.get("mae_5")
         event.mfe_10 = data.get("mfe_10")
         event.mae_10 = data.get("mae_10")
         event.mfe_20 = data.get("mfe_20")
         event.mae_20 = data.get("mae_20")
+        event.mfe_50 = data.get("mfe_50")
+        event.mae_50 = data.get("mae_50")
         event.details = data.get("details", {})
         return event
 
@@ -475,8 +487,10 @@ class EventLogger:
                     
                 return mfe, mae
 
+            event.mfe_5, event.mae_5 = calc_excursions(5)
             event.mfe_10, event.mae_10 = calc_excursions(10)
             event.mfe_20, event.mae_20 = calc_excursions(20)
+            event.mfe_50, event.mae_50 = calc_excursions(50)
 
     def export_csv(self, filepath: str):
         """
