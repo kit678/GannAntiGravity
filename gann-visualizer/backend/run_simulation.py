@@ -234,8 +234,6 @@ def run_simulation(symbol="^NSEI", resolution="4", data_source="yfinance", from_
     )
     run_dir.mkdir(parents=True, exist_ok=True)
     csv_path = str(run_dir / "events.csv")
-    log_dir = str(run_dir)  # back-compat alias
-    
     # Enrich with forward-looking outcomes before exporting
     logging.info("Enriching events with forward-looking outcomes (MFE/MAE)...")
     study.event_logger.enrich_with_forward_outcomes(candles)
@@ -302,6 +300,8 @@ def run_simulation(symbol="^NSEI", resolution="4", data_source="yfinance", from_
                 # Get enriched data - match by timestamp and price
                 event_key = (event['time'], event.get('price', 0))
                 enriched = enriched_events.get(event_key, {})
+                if not enriched:
+                    logging.debug(f"No enriched data for event at time={event.get('time')} price={event.get('price', 0):.2f}")
                 mfe_5  = enriched.get('mfe_5',  0)
                 mae_5  = enriched.get('mae_5',  0)
                 mfe_10 = enriched.get('mfe_10', 0)
