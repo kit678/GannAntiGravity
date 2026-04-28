@@ -305,6 +305,77 @@ class ConfluenceBounceHypothesis(Hypothesis):
             "detailed_log": self.detailed_log
         }
 
+class PostBreachPullbackHypothesis(Hypothesis):
+    """Continuation entry: enter on the re-test of a breached angle line.
+
+    Trigger sequence (single TF):
+      1. BREACH_CONFIRMED on (fan F, line X) in direction D
+      2. Within next N bars: SUPPORT_TEST (D=up) or RESISTANCE_TEST (D=down)
+         on the same (F, X)
+
+    See spec section 3.2.1 priority #2.
+    """
+    def __init__(self):
+        super().__init__(
+            name="Post-Breach Pullback Continuation",
+            description="Re-test of a breached line is a continuation entry in the breach direction.",
+        )
+        self.set_parameters(pullback_window_bars=10, min_mfe_reward_ratio=2.0)
+
+    def evaluate(self, df: pd.DataFrame) -> Dict[str, Any]:
+        if df.empty:
+            return {"sample_size": 0, "win_rate": 0.0, "avg_mfe_10": 0.0, "avg_mae_10": 0.0}
+
+        breaches = df[df["Type"] == "BREACH_CONFIRMED"].copy()
+        if breaches.empty:
+            return {"sample_size": 0, "win_rate": 0.0, "avg_mfe_10": 0.0, "avg_mae_10": 0.0}
+
+        tests = df[df["Type"].isin(["SUPPORT_TEST", "RESISTANCE_TEST"])].copy()
+
+        N = int(self.parameters["pullback_window_bars"])
+        ratio = float(self.parameters["min_mfe_reward_ratio"])
+        qualifying_entries = []
+
+        for _, brc in breaches.iterrows():
+            direction = str(brc.get("Direction", "")).lower()
+            same_line_mask = (
+                (tests["Fan"] == brc["Fan"])
+                & (tests["Fraction"] == brc["Fraction"])
+                & (tests["bar_index"] > brc["bar_index"])
+                & (tests["bar_index"] <= brc["bar_index"] + N)
+            )
+            candidates = tests[same_line_mask]
+
+            for _, test in candidates.iterrows():
+                if direction == "up" and test["Type"] == "SUPPORT_TEST":
+                    qualifying_entries.append(test)
+                elif direction == "down" and test["Type"] == "RESISTANCE_TEST":
+                    qualifying_entries.append(test)
+
+        if not qualifying_entries:
+            return {"sample_size": 0, "win_rate": 0.0, "avg_mfe_10": 0.0, "avg_mae_10": 0.0}
+
+        wins = 0
+        total_mfe = 0.0
+        total_mae = 0.0
+        for entry in qualifying_entries:
+            mfe = float(entry.get("MFE_10", 0.0) or 0.0)
+            mae = float(entry.get("MAE_10", 0.0) or 0.0)
+            safe_mae = max(mae, 0.1)
+            if mfe > safe_mae * ratio:
+                wins += 1
+            total_mfe += mfe
+            total_mae += mae
+
+        n = len(qualifying_entries)
+        return {
+            "sample_size": n,
+            "win_rate": wins / n,
+            "avg_mfe_10": total_mfe / n,
+            "avg_mae_10": total_mae / n,
+        }
+
+
 class StrategyAnalyzer:
     def __init__(self, csv_path: str, output_dir: str = None):
         self.csv_path = csv_path
