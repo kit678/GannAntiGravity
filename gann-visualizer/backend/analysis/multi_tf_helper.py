@@ -17,6 +17,8 @@ _TF_SECONDS = {
     "D": 86400, "1D": 86400,
 }
 
+_COLUMN_ALIASES = {"Type": "htf_event_type"}
+
 
 def timeframe_seconds(tf: str) -> int:
     """Convert '5', '5m', '60', '1D' etc. to seconds."""
@@ -57,6 +59,7 @@ def merge_asof_htf_to_ltf(
 
     Both DataFrames must have 'bar_close_time' (call compute_bar_close_time first).
     HTF columns are prefixed with 'htf_' to avoid name collisions.
+    Note: the HTF `Type` column is renamed to `htf_event_type` for clarity.
 
     Parameters
     ----------
@@ -77,8 +80,6 @@ def merge_asof_htf_to_ltf(
     keep_as_is = {"bar_close_time"}
     if by is not None:
         keep_as_is.add(by)
-
-    _COLUMN_ALIASES = {"Type": "htf_event_type"}
 
     rename_map = {}
     for c in htf_sorted.columns:
