@@ -548,11 +548,17 @@ class EventLogger:
                 "Zone_Highest_Close": round(event.zone_highest_close, 2) if event.zone_highest_close is not None else "",
                 "Zone_Lowest_Close": round(event.zone_lowest_close, 2) if event.zone_lowest_close is not None else "",
                 "Next_Angle_Line": event.next_angle_line or "",
+                "Instrument": event.instrument or "",
+                "Timeframe": event.timeframe or "",
                 # Keep these for analysis but place them after main columns
-                "MFE_10": round(event.mfe_10, 2) if event.mfe_10 is not None else "",
-                "MAE_10": round(event.mae_10, 2) if event.mae_10 is not None else "",
-                "MFE_20": round(event.mfe_20, 2) if event.mfe_20 is not None else "",
-                "MAE_20": round(event.mae_20, 2) if event.mae_20 is not None else "",
+                "MFE_5":  round(event.mfe_5,  4) if event.mfe_5  is not None else "",
+                "MAE_5":  round(event.mae_5,  4) if event.mae_5  is not None else "",
+                "MFE_10": round(event.mfe_10, 4) if event.mfe_10 is not None else "",
+                "MAE_10": round(event.mae_10, 4) if event.mae_10 is not None else "",
+                "MFE_20": round(event.mfe_20, 4) if event.mfe_20 is not None else "",
+                "MAE_20": round(event.mae_20, 4) if event.mae_20 is not None else "",
+                "MFE_50": round(event.mfe_50, 4) if event.mfe_50 is not None else "",
+                "MAE_50": round(event.mae_50, 4) if event.mae_50 is not None else "",
                 "Raw_Timestamp": event.timestamp,
                 "Direction": event.direction or ""
             }
@@ -565,7 +571,10 @@ class EventLogger:
                           "Open", "High", "Low", "Close", "Active_Angles",
                           "Cluster", "Zone", "Zone_Highest_Close", "Zone_Lowest_Close",
                           "Next_Angle_Line",
-                          "MFE_10", "MAE_10", "MFE_20", "MAE_20", "Raw_Timestamp", "Direction"]
+                          "Instrument", "Timeframe",
+                          "MFE_5", "MAE_5", "MFE_10", "MAE_10",
+                          "MFE_20", "MAE_20", "MFE_50", "MAE_50",
+                          "Raw_Timestamp", "Direction"]
             
             with open(path, 'w', newline='') as f:
                 writer = csv.DictWriter(f, fieldnames=fieldnames)
