@@ -3,6 +3,7 @@ import os
 import json
 import logging
 import argparse
+import shutil
 from datetime import datetime, timedelta
 import pandas as pd
 import numpy as np
@@ -14,6 +15,7 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from study_tool.angular_coverage_study import AngularPriceCoverageStudy
 from study_tool.event_logger import EventType
 from main import get_data_client, get_dynamic_scale_ratio
+from scripts.run_paths import build_run_dir, build_run_id
 
 def setup_logging():
     """Set up logging to both console and a file in the logs directory."""
@@ -220,26 +222,43 @@ def run_simulation(symbol="^NSEI", resolution="4", data_source="yfinance", from_
     logging.info(f"Processed {len(candles)}/{len(candles)} bars...")
     logging.info("Simulation complete.")
     
-    # Export logs
-    log_dir = os.path.join(
-        os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
-        "logs", "backend"
+    # Build partitioned run directory
+    repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    runs_base = os.path.join(repo_root, "logs", "backend", "runs")
+    run_id = build_run_id()
+    run_dir = build_run_dir(
+        base=runs_base,
+        instrument=symbol,
+        timeframe=resolution,
+        run_id=run_id,
     )
-    os.makedirs(log_dir, exist_ok=True)
-    csv_path = os.path.join(log_dir, "simulation_events.csv")
+    run_dir.mkdir(parents=True, exist_ok=True)
+    csv_path = str(run_dir / "events.csv")
+    log_dir = str(run_dir)  # back-compat alias
     
     # Enrich with forward-looking outcomes before exporting
     logging.info("Enriching events with forward-looking outcomes (MFE/MAE)...")
     study.event_logger.enrich_with_forward_outcomes(candles)
-    
+
+    for ev in study.event_logger.events:
+        ev.instrument = symbol
+        ev.timeframe = resolution
+
     # Create a lookup for enriched events by timestamp and price
     enriched_events = {}
     for event in study.event_logger.events:
         key = (event.timestamp, event.price)
         enriched_events[key] = {
-            'mfe_10': getattr(event, 'mfe_10', 0),
-            'mae_10': getattr(event, 'mae_10', 0),
-            'bars_elapsed': getattr(event, 'bars_elapsed', 0)
+            'mfe_5':  getattr(event, 'mfe_5',  0) or 0,
+            'mae_5':  getattr(event, 'mae_5',  0) or 0,
+            'mfe_10': getattr(event, 'mfe_10', 0) or 0,
+            'mae_10': getattr(event, 'mae_10', 0) or 0,
+            'mfe_20': getattr(event, 'mfe_20', 0) or 0,
+            'mae_20': getattr(event, 'mae_20', 0) or 0,
+            'mfe_50': getattr(event, 'mfe_50', 0) or 0,
+            'mae_50': getattr(event, 'mae_50', 0) or 0,
+            'bars_elapsed': getattr(event, 'bars_elapsed', 0) or 0,
+            'direction': getattr(event, 'direction', '') or '',
         }
     
     # Write the exact frontend intersection events to CSV
@@ -254,7 +273,10 @@ def run_simulation(symbol="^NSEI", resolution="4", data_source="yfinance", from_
                              'Open', 'High', 'Low', 'Close', 'Active_Angles',
                              'Cluster', 'Zone', 'Zone_Highest_Close', 'Zone_Lowest_Close',
                              'Next_Angle_Line',
-                             'MFE_10', 'MAE_10', 'bars_elapsed'])
+                             'Instrument', 'Timeframe',
+                             'MFE_5', 'MAE_5', 'MFE_10', 'MAE_10',
+                             'MFE_20', 'MAE_20', 'MFE_50', 'MAE_50',
+                             'Raw_Timestamp', 'Direction', 'bar_index', 'bars_elapsed'])
             
             # Use IST timezone for formatting to match frontend
             ist = pytz.timezone('Asia/Kolkata')
@@ -280,10 +302,18 @@ def run_simulation(symbol="^NSEI", resolution="4", data_source="yfinance", from_
                 # Get enriched data - match by timestamp and price
                 event_key = (event['time'], event.get('price', 0))
                 enriched = enriched_events.get(event_key, {})
+                mfe_5  = enriched.get('mfe_5',  0)
+                mae_5  = enriched.get('mae_5',  0)
                 mfe_10 = enriched.get('mfe_10', 0)
                 mae_10 = enriched.get('mae_10', 0)
+                mfe_20 = enriched.get('mfe_20', 0)
+                mae_20 = enriched.get('mae_20', 0)
+                mfe_50 = enriched.get('mfe_50', 0)
+                mae_50 = enriched.get('mae_50', 0)
                 bars_elapsed = enriched.get('bars_elapsed', 0)
-                
+                direction = enriched.get('direction', '')
+                bar_idx = event.get('bar_index', '')
+
                 writer.writerow([
                     i + 1,
                     dt_str,
@@ -302,9 +332,20 @@ def run_simulation(symbol="^NSEI", resolution="4", data_source="yfinance", from_
                     f"{event.get('zoneExtremes', {}).get('highest_close', 0):.2f}" if event.get('zoneExtremes', {}).get('highest_close') else '',
                     f"{event.get('zoneExtremes', {}).get('lowest_close', 0):.2f}" if event.get('zoneExtremes', {}).get('lowest_close') else '',
                     event.get('nextAngleLine', ''),
+                    symbol,
+                    resolution,
+                    f"{mfe_5:.4f}"  if mfe_5  else "0",
+                    f"{mae_5:.4f}"  if mae_5  else "0",
                     f"{mfe_10:.4f}" if mfe_10 else "0",
                     f"{mae_10:.4f}" if mae_10 else "0",
-                    bars_elapsed
+                    f"{mfe_20:.4f}" if mfe_20 else "0",
+                    f"{mae_20:.4f}" if mae_20 else "0",
+                    f"{mfe_50:.4f}" if mfe_50 else "0",
+                    f"{mae_50:.4f}" if mae_50 else "0",
+                    int(event['time']),
+                    direction,
+                    bar_idx,
+                    bars_elapsed,
                 ])
                 
         logging.info(f"Exported {len(all_intersection_events)} identical frontend events to {csv_path}")
@@ -321,7 +362,18 @@ def run_simulation(symbol="^NSEI", resolution="4", data_source="yfinance", from_
     logging.info(f"\nConfirmed Breaches: {len(breaches)}")
     if breaches:
         logging.info(f"Sample breach: {breaches[0].to_dict()}")
-        
+
+    # Mirror session artifacts into the run directory for reproducibility
+    try:
+        session_log = os.path.join(repo_root, "logs", "backend", "simulation_run.log")
+        trace_log   = os.path.join(repo_root, "logs", "backend", "replay_trace.log")
+        if os.path.exists(session_log):
+            shutil.copy2(session_log, run_dir / "simulation_run.log")
+        if os.path.exists(trace_log):
+            shutil.copy2(trace_log, run_dir / "trace.log")
+    except Exception as e:
+        logging.warning(f"Failed to mirror logs to run dir: {e}")
+
     logging.info(f"Simulation run finished. Log saved to {log_file}")
 
 if __name__ == "__main__":
