@@ -285,20 +285,23 @@ class UnifiedStateMachine:
                 direction = None
 
                 # Support/Resistance Tests
+                # Add a 0.01 buffer to match the intersection_detector's physical hit buffer for horizontal lines
+                buffer = 0.015
                 # RESISTANCE_TEST: body holds below line (O<=L, C<=L), wick pierces up through line (H>=L), close remains below line
                 # If body close is already above line -> it's a CROSS_UP, not a test
-                is_resistance_test = c_open <= line_price and c_close <= line_price and c_high >= line_price
+                is_resistance_test = c_open <= line_price + buffer and c_close <= line_price + buffer and c_high >= line_price - buffer
                 # SUPPORT_TEST: body holds above line (O>=L, C>=L), wick pierces down through line (L<=L), close remains above line
                 # If body close is already below line -> it's a CROSS_DOWN, not a test
-                is_support_test = c_open >= line_price and c_close >= line_price and c_low <= line_price
+                is_support_test = c_open >= line_price - buffer and c_close >= line_price - buffer and c_low <= line_price + buffer
 
                 # Crosses (Physical or Gap)
                 # Physical: open and close must be on opposite sides of the line
                 # Gap: prior bar closes above/below line, today's open and close are both above/below line
-                is_cross_up = c_open <= line_price and c_close >= line_price
-                is_gap_cross_up = event.prev_price is not None and prev_close < event.prev_price and c_open > line_price and c_close >= line_price
-                is_cross_down = c_open >= line_price and c_close <= line_price
-                is_gap_cross_down = event.prev_price is not None and prev_close > event.prev_price and c_open < line_price and c_close <= line_price
+                is_cross_up = c_open <= line_price + buffer and c_close >= line_price - buffer
+                is_gap_cross_up = event.prev_price is not None and prev_close < event.prev_price and c_open > line_price and c_close >= line_price - buffer
+                
+                is_cross_down = c_open >= line_price - buffer and c_close <= line_price + buffer
+                is_gap_cross_down = event.prev_price is not None and prev_close > event.prev_price and c_open < line_price and c_close <= line_price + buffer
 
                 if is_cross_up:
                     hit_type = 'CROSS_UP'

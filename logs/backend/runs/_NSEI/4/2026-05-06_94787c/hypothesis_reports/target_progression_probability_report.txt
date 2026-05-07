@@ -1,0 +1,117 @@
+=== TARGET PROGRESSION PROBABILITY VERBOSE REPORT ===
+=== REPRODUCTION INSTRUCTIONS ===
+To replicate these results on the frontend, use the following parameters:
+Symbol:     ^NSEI
+Timeframe:  4m
+Start Date: 2026-04-28
+End Date:   2026-05-06
+============================================================
+
+Overall Sample Size: 20
+Overall Win Rate:    50.00%
+
+Live Sample Size:    20
+Live Win Rate:       50.00%
+
+Retro Sample Size:   0
+Retro Win Rate:      0.00%
+============================================================
+
+=== LIVE EVENTS ===
+These events would have been fully tradable in real-time without future lookahead.
+============================================================
+TARGET ATTEMPT: 4/28/2026, 11:19:00 AM | P3 (H5-L2) (0.875) -> 0.75 @ Price: 24130.15
+      Following Breach: 4/28/2026, 11:03:00 AM (0.875) | Dir: DOWN | Price: 24146.35
+      Outcome: MISS
+------------------------------------------------------------
+TARGET ATTEMPT: 4/28/2026, 11:31:00 AM | P1 (H5-L4) (0.5) -> horizontal @ Price: 24045.71
+      Following Breach: 4/28/2026, 11:27:00 AM (0.5) | Dir: DOWN | Price: 24052.7
+      Outcome: WIN
+      Metrics: MFE: 48.09, MAE: 16.41
+------------------------------------------------------------
+TARGET ATTEMPT: 4/28/2026, 11:59:00 AM | P1 (H5-L4) (0.5) -> 0.25 @ Price: 24049.37
+      Following Breach: 4/28/2026, 11:27:00 AM (0.5) | Dir: DOWN | Price: 24052.7
+      Outcome: WIN
+      Metrics: MFE: 56.82, MAE: 8.08
+------------------------------------------------------------
+TARGET ATTEMPT: 4/28/2026, 12:31:00 PM | P1 (H5-L4) (horizontal) -> full_coverage @ Price: 24001.35
+      Following Breach: 4/28/2026, 12:03:00 PM (horizontal) | Dir: DOWN | Price: 24031.55
+      Outcome: WIN
+      Metrics: MFE: 39.10, MAE: 1.65
+------------------------------------------------------------
+TARGET ATTEMPT: 4/28/2026, 1:35:00 PM | P1 (L6-H6) (0.75) -> 0.5 @ Price: 23989.25
+      Following Breach: 4/28/2026, 10:23:00 AM (0.75) | Dir: UP | Price: 24177.85
+      Outcome: MISS
+------------------------------------------------------------
+TARGET ATTEMPT: 4/28/2026, 1:35:00 PM | P2 (L6-H5) (0.875) -> 0.75 @ Price: 23989.25
+      Following Breach: 4/28/2026, 1:03:00 PM (0.875) | Dir: UP | Price: 24023.35
+      Outcome: MISS
+------------------------------------------------------------
+TARGET ATTEMPT: 4/29/2026, 3:19:00 PM | P1 (H13-L10) (0.75) -> 0.5 @ Price: 24154.37
+      Following Breach: 4/29/2026, 2:07:00 PM (0.75) | Dir: DOWN | Price: 24207.6
+      Outcome: WIN
+      Metrics: MFE: 289.12, MAE: 15.08
+------------------------------------------------------------
+TARGET ATTEMPT: 4/30/2026, 12:43:00 PM | P2 (L16-H14) (0.875) -> 0.75 @ Price: 23921.4
+      Following Breach: 4/30/2026, 12:11:00 PM (0.875) | Dir: UP | Price: 23899.75
+      Outcome: WIN
+      Metrics: MFE: 56.75, MAE: 13.35
+------------------------------------------------------------
+TARGET ATTEMPT: 4/30/2026, 12:59:00 PM | P3 (L16-H13) (0.875) -> 0.75 @ Price: 23942.16
+      Following Breach: 4/30/2026, 12:23:00 PM (0.875) | Dir: UP | Price: 23904.05
+      Outcome: WIN
+      Metrics: MFE: 71.14, MAE: 34.11
+------------------------------------------------------------
+TARGET ATTEMPT: 4/30/2026, 2:39:00 PM | P1 (H17-L16) (0.875) -> 0.75 @ Price: 24075.6
+      Following Breach: 4/30/2026, 2:19:00 PM (0.875) | Dir: DOWN | Price: 23993.45
+      Outcome: MISS
+------------------------------------------------------------
+TARGET ATTEMPT: 5/4/2026, 1:15:00 PM | P1 (L21-H21) (0.875) -> 0.75 @ Price: 24099.85
+      Following Breach: 5/4/2026, 9:15:00 AM (0.875) | Dir: UP | Price: 24192.8
+      Outcome: MISS
+------------------------------------------------------------
+TARGET ATTEMPT: 5/4/2026, 1:15:00 PM | P2 (L21-H19) (0.875) -> 0.75 @ Price: 24099.85
+      Following Breach: 5/4/2026, 9:15:00 AM (0.875) | Dir: UP | Price: 24192.8
+      Outcome: MISS
+------------------------------------------------------------
+TARGET ATTEMPT: 5/5/2026, 11:43:00 AM | P1 (L24-H24) (0.875) -> 0.75 @ Price: 23911.8
+      Following Breach: 5/5/2026, 11:31:00 AM (0.875) | Dir: UP | Price: 23950.85
+      Outcome: MISS
+------------------------------------------------------------
+TARGET ATTEMPT: 5/5/2026, 11:43:00 AM | P2 (L24-H23) (0.875) -> 0.75 @ Price: 23911.8
+      Following Breach: 5/5/2026, 11:31:00 AM (0.875) | Dir: UP | Price: 23950.85
+      Outcome: MISS
+------------------------------------------------------------
+TARGET ATTEMPT: 5/6/2026, 9:59:00 AM | P1 (H29-L28) (0.875) -> 0.75 @ Price: 24127.53
+      Following Breach: 5/6/2026, 9:43:00 AM (0.875) | Dir: DOWN | Price: 24138.1
+      Outcome: WIN
+      Metrics: MFE: 31.03, MAE: 27.87
+------------------------------------------------------------
+TARGET ATTEMPT: 5/6/2026, 10:51:00 AM | P1 (H29-L28) (0.75) -> 0.5 @ Price: 24100.18
+      Following Breach: 5/6/2026, 10:03:00 AM (0.75) | Dir: DOWN | Price: 24099.05
+      Outcome: WIN
+      Metrics: MFE: 26.63, MAE: 17.17
+------------------------------------------------------------
+TARGET ATTEMPT: 5/6/2026, 11:35:00 AM | P1 (L29-H29) (0.875) -> 0.75 @ Price: 24069.7
+      Following Breach: 5/6/2026, 11:27:00 AM (0.875) | Dir: UP | Price: 24113.0
+      Outcome: MISS
+------------------------------------------------------------
+TARGET ATTEMPT: 5/6/2026, 12:15:00 PM | P1 (H29-L28) (0.5) -> 0.25 @ Price: 24071.0
+      Following Breach: 5/6/2026, 10:59:00 AM (0.5) | Dir: DOWN | Price: 24093.5
+      Outcome: WIN
+      Metrics: MFE: 72.00, MAE: 6.25
+------------------------------------------------------------
+TARGET ATTEMPT: 5/6/2026, 12:43:00 PM | P1 (H29-L28) (0.5) -> horizontal @ Price: 24020.96
+      Following Breach: 5/6/2026, 10:59:00 AM (0.5) | Dir: DOWN | Price: 24093.5
+      Outcome: WIN
+      Metrics: MFE: 64.85, MAE: 21.96
+------------------------------------------------------------
+TARGET ATTEMPT: 5/6/2026, 1:11:00 PM | P1 (H29-L28) (horizontal) -> full_coverage @ Price: 24040.65
+      Following Breach: 5/6/2026, 12:51:00 PM (horizontal) | Dir: DOWN | Price: 24011.6
+      Outcome: MISS
+------------------------------------------------------------
+
+
+=== RETROACTIVE EVENTS ===
+These events occurred during the 5-bar unconfirmed pivot window and were retroactively inserted.
+============================================================

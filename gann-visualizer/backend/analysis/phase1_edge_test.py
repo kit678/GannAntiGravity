@@ -121,10 +121,10 @@ def run_phase1(corpus_base: str, out_path: str) -> None:
                 logging.exception(f"Hypothesis {hcls.__name__} failed on {rd}: {e}")
 
     # 2. Multi-TF Reversal: pair each LTF with the highest-TF HTF for the same instrument
-    # Pairs to try: (5, 60), (15, 60). Skip if either side is missing.
+    # Pairs to try: (4, 60), (5, 60), (15, 60). Skip if either side is missing.
     for inst, tf_runs in by_inst.items():
         tf_to_run = dict(tf_runs)
-        for ltf_tf in ("5", "15"):
+        for ltf_tf in ("4", "5", "15"):
             for htf_tf in ("60",):
                 if ltf_tf not in tf_to_run or htf_tf not in tf_to_run:
                     continue

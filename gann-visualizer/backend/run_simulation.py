@@ -4,7 +4,7 @@ import json
 import logging
 import argparse
 import shutil
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import pandas as pd
 import numpy as np
 import pytz
@@ -13,6 +13,22 @@ import pytz
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from study_tool.angular_coverage_study import AngularPriceCoverageStudy
+
+# Warmup constants: must match main.py WARMUP_DAYS exactly for corpus ↔ frontend parity.
+# This is the authoritative source for simulation lookback — not the old lookback_bars formula.
+WARMUP_DAYS = {
+    "1":  30,
+    "4":  30,
+    "5":  75,
+    "15": 120,
+    "30": 120,
+    "60": 250,
+    "240": 250,
+    "1D": 365,
+    "D":  365,
+    "W":  730,
+    "M":  1825,
+}
 from study_tool.event_logger import EventType
 from main import get_data_client, get_dynamic_scale_ratio
 from scripts.run_paths import build_run_dir, build_run_id
@@ -63,32 +79,56 @@ def get_frontend_parity_data(symbol="^NSEI", resolution="4", data_source="yfinan
     if not to_date:
         to_date = datetime.now().strftime("%Y-%m-%d")
         
-    # Simulate frontend's "first available candle" by going back as far as YFinance allows for 4m (60 days)
-    # The frontend calculates lookback_days based on lookback_bars
-    lookback_days = max(1, lookback_bars // 90) # ~90 bars per day for 4m
-    lookback_days = int(lookback_days * 4.0) + 30
-    
-    if data_source == 'yfinance':
-        if resolution in ['1', '4']:
-            lookback_days = min(lookback_days, 60)
-            
-    if not from_date:
-        # If no from_date is provided, we want to fetch the maximum allowed history
-        # and start the simulation from the very first candle we get.
-        # We don't need to add lookback_days to this because we are already fetching the max history.
-        from_dt = datetime.now() - timedelta(days=lookback_days)
-        start_str = from_dt.strftime("%Y-%m-%d")
-        # Set target_from_dt to the same start date so we don't filter out any events
-        target_from_dt = from_dt
-    else:
+    # Use from_date-anchored warmup strategy (matches main.py /fetch_candles exactly).
+    # The user's chosen from_date is always the reference point.
+    # Subtract WARMUP_DAYS[resolution] calendar days to get the warmup start.
+    if from_date:
         from_dt = datetime.strptime(from_date, "%Y-%m-%d")
         target_from_dt = from_dt
-        adjusted_from_dt = from_dt - timedelta(days=lookback_days)
-        start_str = adjusted_from_dt.strftime("%Y-%m-%d")
+        from_dt_utc = from_dt.astimezone(timezone.utc)
+        warmup_days = WARMUP_DAYS.get(resolution, 250)
+        ideal_warmup_from_dt = from_dt_utc - timedelta(days=warmup_days)
+
+        # Check if YFinance can provide this warmup depth
+        SOURCE_HISTORY_LIMITS = {
+            "yfinance_1m": 8,
+            "yfinance_4m": 8,
+            "yfinance_other": 700,
+        }
+        source_key = f"yfinance_{resolution}" if data_source == "yfinance" else "unlimited"
+        if data_source == 'yfinance' and resolution not in ['1', '4']:
+            source_key = "yfinance_other"
+        elif data_source == 'yfinance' and resolution == '4':
+            source_key = "yfinance_4m"
+        elif data_source == 'yfinance':
+            source_key = "yfinance_1m"
+
+        source_max_days = SOURCE_HISTORY_LIMITS.get(source_key, 700)
+
+        if warmup_days > source_max_days:
+            # Source can't provide enough warmup — use today-anchored fetch
+            warmup_from_dt = datetime.now() - timedelta(days=source_max_days)
+            logging.warning(f"[Simulation] {data_source} {resolution}m has ~{source_max_days} days "
+                           f"of history (requested {warmup_days} days warmup). Using today-anchored fetch.")
+        else:
+            warmup_from_dt = ideal_warmup_from_dt
+
+        start_str = warmup_from_dt.strftime("%Y-%m-%d")
+    else:
+        # No from_date provided — fetch maximum available history (today-anchored)
+        target_from_dt = datetime.now()
+        lookback_days = WARMUP_DAYS.get(resolution, 250)
+        if data_source == 'yfinance' and resolution in ['1', '4']:
+            lookback_days = min(lookback_days, 8)
+        from_dt = datetime.now() - timedelta(days=lookback_days)
+        start_str = from_dt.strftime("%Y-%m-%d")
+        target_from_dt = from_dt
         
     end_str = to_date
-    
-    logging.info(f"Calculated date range: {start_str} to {end_str} (lookback: {lookback_days} days)")
+
+    # log warmup_days consistently whether from_date was provided or not
+    _log_days = warmup_days if from_date else lookback_days
+    logging.info(f"Calculated date range: {start_str} to {end_str} (lookback: {_log_days} days)")
     
     df = client.fetch_data(symbol, start_str, end_str, interval=resolution)
     
@@ -271,7 +311,7 @@ def run_simulation(symbol="^NSEI", resolution="4", data_source="yfinance", from_
                              'Open', 'High', 'Low', 'Close', 'Active_Angles',
                              'Cluster', 'Zone', 'Zone_Highest_Close', 'Zone_Lowest_Close',
                              'Next_Angle_Line',
-                             'Instrument', 'Timeframe',
+                             'Instrument', 'Timeframe', 'Start_Date',
                              'MFE_5', 'MAE_5', 'MFE_10', 'MAE_10',
                              'MFE_20', 'MAE_20', 'MFE_50', 'MAE_50',
                              'Raw_Timestamp', 'Direction', 'bar_index', 'bars_elapsed'])
@@ -334,6 +374,7 @@ def run_simulation(symbol="^NSEI", resolution="4", data_source="yfinance", from_
                     event.get('nextAngleLine', ''),
                     symbol,
                     resolution,
+                    from_date,
                     f"{mfe_5:.4f}"  if mfe_5  else "0",
                     f"{mae_5:.4f}"  if mae_5  else "0",
                     f"{mfe_10:.4f}" if mfe_10 else "0",

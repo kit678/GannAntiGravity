@@ -35,7 +35,13 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
         // Apply visibility to existing shapes
         if (widgetRef.current && studyShapesRef.current && fanLabelsRef.current) {
             try {
-                const chart = widgetRef.current.activeChart();
+                let chart;
+                try {
+                    chart = widgetRef.current.activeChart();
+                } catch (e) {
+                    console.warn("[TVChartContainer] activeChart not ready yet");
+                    return;
+                }
                 const visibleLabels = visibleFanLabelsRef.current;
                 
                 Object.entries(studyShapesRef.current).forEach(([drawingId, shapeId]) => {
@@ -92,44 +98,42 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
             datafeedRef.current = customDatafeed;
 
             const widget = new window.TradingView.widget({
-                symbol: symbol,
-                interval: interval,
-                timezone: 'Asia/Kolkata',
-                fullscreen: false,
-                container: chartContainerRef.current,
-                datafeed: customDatafeed,
-                library_path: '/charting_library/',
-                locale: 'en',
-                disabled_features: ['use_localstorage_for_settings', 'header_compare', 'create_volume_indicator_by_default'],
-                enabled_features: ['study_templates', 'header_symbol_search', 'symbol_search_hot_key'],
-                symbol_search_request_delay: 500,
-                charts_storage_url: 'https://saveload.tradingview.com',
-                charts_storage_api_version: '1.1',
-                client_id: 'tradingview.com',
-                user_id: 'public_user_id',
-                theme: 'Dark',
-                autosize: true,
-                supported_resolutions: ["1", "4", "5", "15", "30", "60", "240", "D", "W", "M"],
-                favorites: {
-                    intervals: ["1", "4", "5", "15", "30", "60", "240", "D"]
-                },
-                time_scale: {
-                    right_offset: 5,
-                    visible_range: {}
-                },
+            symbol: symbol,
+            interval: interval,
+            timezone: 'Asia/Kolkata',
+            fullscreen: false,
+            container: chartContainerRef.current,
+            datafeed: customDatafeed,
+            library_path: '/charting_library/',
+            locale: 'en',
+            disabled_features: ['use_localstorage_for_settings', 'header_compare', 'create_volume_indicator_by_default'],
+            enabled_features: ['study_templates', 'header_symbol_search', 'symbol_search_hot_key'],
+            symbol_search_request_delay: 500,
+            charts_storage_url: 'https://saveload.tradingview.com',
+            charts_storage_api_version: '1.1',
+            client_id: 'tradingview.com',
+            user_id: 'public_user_id',
+            theme: 'Dark',
+            autosize: true,
+            supported_resolutions: ["1", "4", "5", "15", "30", "60", "240", "D", "W", "M"],
+            favorites: {
+                intervals: ["1", "4", "5", "15", "30", "60", "240", "D"]
+            },
+            time_scale: {
+                right_offset: 5
+            },
                 time_frames: [
-                    { text: "1y", resolution: "D", description: "1 Year" },
-                    { text: "6m", resolution: "D", description: "6 Months" },
-                    { text: "3m", resolution: "D", description: "3 Months" },
-                    { text: "1m", resolution: "240", description: "1 Month" },
-                    { text: "5d", resolution: "60", description: "5 Days" },
-                    { text: "1d", resolution: "15", description: "1 Day" },
-                ],
-                overrides: {
-                    "scalesProperties.showSymbolLabels": true,
-                    "mainSeriesProperties.candleStyle.drawBorder": true,
-                    "paneProperties.priceAxisProperties.log": false,
-                },
+                { text: "1y", resolution: "D", description: "1 Year" },
+                { text: "6m", resolution: "D", description: "6 Months" },
+                { text: "3m", resolution: "D", description: "3 Months" },
+                { text: "1m", resolution: "240", description: "1 Month" },
+                { text: "5d", resolution: "60", description: "5 Days" },
+                { text: "1d", resolution: "15", description: "1 Day" },
+            ],
+            overrides: {
+                "scalesProperties.showSymbolLabels": true,
+                "mainSeriesProperties.candleStyle.drawBorder": true,
+            },
             });
 
             widgetRef.current = widget;
@@ -139,7 +143,13 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
                 console.log("[Chart] Ready");
 
                 // Apply dynamic Price-to-Bar Ratio via backend mapping
-                const chart = widget.activeChart();
+                let chart;
+                try {
+                    chart = widget.activeChart();
+                } catch (e) {
+                    console.warn("[Chart] activeChart not ready yet on chartReady event");
+                    return;
+                }
                 const currentResolution = chart.resolution();
                 // Clean the symbol if it contains YF
                 let cleanSymbol = symbol;
@@ -174,10 +184,10 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
 
                 // Actively remove any Bollinger Bands that might have been loaded from a saved layout
                 try {
-                    const allStudies = widget.activeChart().getAllStudies();
+                    const allStudies = chart.getAllStudies();
                     allStudies.forEach(study => {
                         if (study.name && study.name.toLowerCase().includes('bollinger')) {
-                            widget.activeChart().removeEntity(study.id);
+                            chart.removeEntity(study.id);
                             console.log("[Chart] Actively removed Bollinger Bands from saved layout");
                         }
                     });
@@ -185,9 +195,8 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
                     console.warn("[Chart] Failed to remove Bollinger Bands:", e);
                 }
 
-                // Subscribe to Symbol Changes to keep parent in sync
                 try {
-                    widget.activeChart().onSymbolChanged().subscribe(null, (symbolInfo) => {
+                    chart.onSymbolChanged().subscribe(null, (symbolInfo) => {
                         console.log("[Chart] Symbol Changed to:", symbolInfo);
 
                         // Extract cleanly if it has suffix. Always prefer ticker.
@@ -200,19 +209,25 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
                         if (onSymbolChange) onSymbolChange(cleanName);
 
                         // Automatically sync backend aspect ratio mapping for newly searched symbol
-                        const currentResolution = widget.activeChart().resolution();
-                        fetch(`http://localhost:8005/api/scale_ratio?symbol=${encodeURIComponent(cleanName)}&resolution=${encodeURIComponent(currentResolution)}&cycle_type=${encodeURIComponent(cycleType)}&session_duration=${encodeURIComponent(sessionDuration)}`)
+                        let currentRes;
+                        try {
+                            currentRes = chart.resolution();
+                        } catch (e) {
+                            return;
+                        }
+                        
+                        fetch(`http://localhost:8005/api/scale_ratio?symbol=${encodeURIComponent(cleanName)}&resolution=${encodeURIComponent(currentRes)}&cycle_type=${encodeURIComponent(cycleType)}&session_duration=${encodeURIComponent(sessionDuration)}`)
                             .then(res => res.json())
                             .then(data => {
                                 if (data && data.scale_ratio) {
                                     try {
-                                        widget.activeChart().setPriceToBarRatio(data.scale_ratio, { disableUndo: true });
+                                        chart.setPriceToBarRatio(data.scale_ratio, { disableUndo: true });
                                         try {
-                                            if (typeof widget.activeChart().setPriceToBarRatioLocked === 'function') {
-                                                widget.activeChart().setPriceToBarRatioLocked(true, { disableUndo: true });
+                                            if (typeof chart.setPriceToBarRatioLocked === 'function') {
+                                                chart.setPriceToBarRatioLocked(true, { disableUndo: true });
                                             } else {
-                                                widget.activeChart().getPriceScale().setMode({ autoScale: false });
-                                                widget.activeChart().executeActionById("priceScaleLockRatio");
+                                                chart.getPriceScale().setMode({ autoScale: false });
+                                                chart.executeActionById("priceScaleLockRatio");
                                             }
                                         } catch (_e) { }
                                         console.log(`[Chart] Updated and Locked PriceToBarRatio to ${data.scale_ratio} for new symbol: ${cleanName}`);
@@ -232,10 +247,16 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
 
                 // Subscribe to Interval (Resolution) Changes to keep ratio in sync
                 try {
-                    widget.activeChart().onIntervalChanged().subscribe(null, (interval, timeframeObj) => {
+                    chart.onIntervalChanged().subscribe(null, (interval, timeframeObj) => {
                         console.log("[Chart] Interval Changed to:", interval);
                         
-                        let cleanName = widget.activeChart().symbolExt ? widget.activeChart().symbolExt().symbol : widget.activeChart().symbol();
+                        let cleanName;
+                        try {
+                            cleanName = chart.symbolExt ? chart.symbolExt().symbol : chart.symbol();
+                        } catch (e) {
+                            return;
+                        }
+                        
                         if (!cleanName) {
                             console.warn("[TVChart] Interval changed but symbol is undefined, skipping ratio update");
                             return;
@@ -250,13 +271,13 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
                             .then(data => {
                                 if (data && data.scale_ratio) {
                                     try {
-                                        widget.activeChart().setPriceToBarRatio(data.scale_ratio, { disableUndo: true });
+                                        chart.setPriceToBarRatio(data.scale_ratio, { disableUndo: true });
                                         try {
-                                            if (typeof widget.activeChart().setPriceToBarRatioLocked === 'function') {
-                                                widget.activeChart().setPriceToBarRatioLocked(true, { disableUndo: true });
+                                            if (typeof chart.setPriceToBarRatioLocked === 'function') {
+                                                chart.setPriceToBarRatioLocked(true, { disableUndo: true });
                                             } else {
-                                                widget.activeChart().getPriceScale().setMode({ autoScale: false });
-                                                widget.activeChart().executeActionById("priceScaleLockRatio");
+                                                chart.getPriceScale().setMode({ autoScale: false });
+                                                chart.executeActionById("priceScaleLockRatio");
                                             }
                                         } catch (_e) { }
                                         console.log(`[Chart] Updated and Locked PriceToBarRatio to ${data.scale_ratio} for new interval: ${interval}`);
@@ -278,7 +299,7 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
         }
 
         // Check if TradingView library is already loaded
-        if (window.TradingView && window.Datafeeds) {
+        if (window.TradingView && window.Datafeeds && window.Datafeeds.UDFCompatibleDatafeed) {
             console.log('[TVChart] TradingView already loaded, initializing directly');
             initChart();
         } else {
@@ -301,6 +322,12 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
             // Properly destroy widget to ensure clean re-initialization
             if (widgetRef.current) {
                 try {
+                    // Try to catch the "activeChart not ready" error gracefully on destruction too
+                    let chartReady = false;
+                    try {
+                        chartReady = !!widgetRef.current.activeChart();
+                    } catch(e) {}
+                    
                     widgetRef.current.remove();
                     console.log('[TVChart] Widget destroyed for clean re-init');
                 } catch (e) {
@@ -324,7 +351,14 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
     useEffect(() => {
         if (!widgetRef.current) return;
         try {
-            const chart = widgetRef.current.activeChart();
+            let chart;
+            try {
+                chart = widgetRef.current.activeChart();
+            } catch (e) {
+                console.warn("[Chart] activeChart not available for config change update", e);
+                return;
+            }
+            
             const currentResolution = chart.resolution();
             let cleanSymbol = chart.symbolExt ? chart.symbolExt().symbol : chart.symbol();
             
@@ -364,22 +398,28 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
     // Track the last processed interaction to avoid duplicate processing
     const lastProcessedInteractionRef = useRef(null);
 
-    // Handle selected interaction changes
+    // Re-draw selected interaction
     useEffect(() => {
         console.log('[TVChart] selectedInteraction changed:', selectedInteraction);
 
         // Skip if same interaction as last processed (compare by value, not reference)
         const lastProcessed = lastProcessedInteractionRef.current;
-        const isSameInteraction = lastProcessed && selectedInteraction &&
-            lastProcessed.time === selectedInteraction.time &&
-            lastProcessed.price === selectedInteraction.price &&
-            lastProcessed.fanIdentity === selectedInteraction.fanIdentity;
+        
+        // Always reset on null to clear markers
+        if (!selectedInteraction) {
+            lastProcessedInteractionRef.current = null;
+        } else {
+            const isSameInteraction = lastProcessed && 
+                lastProcessed.time === selectedInteraction.time &&
+                lastProcessed.price === selectedInteraction.price &&
+                lastProcessed.fanIdentity === selectedInteraction.fanIdentity;
 
-        if (isSameInteraction) {
-            console.log('[TVChart] Skipping duplicate interaction processing');
-            return;
+            if (isSameInteraction) {
+                console.log('[TVChart] Skipping duplicate interaction processing');
+                return;
+            }
+            lastProcessedInteractionRef.current = selectedInteraction;
         }
-        lastProcessedInteractionRef.current = selectedInteraction;
         
         if (!widgetRef.current) {
             console.log('[TVChart] widgetRef.current is null');
@@ -489,7 +529,9 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
                             const newFrom = candleTimesSec[newFromIndex];
                             const newTo = candleTimesSec[newToIndex];
                             
-                            chart.setVisibleRange({ from: newFrom, to: newTo });
+                            if (newFrom && newTo && newFrom < newTo) {
+                                chart.setVisibleRange({ from: newFrom, to: newTo });
+                            }
                         }
                     } else if (visibleRange) {
                         // Fallback if candles array is not available
@@ -499,42 +541,30 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
                         if (barPosition < 0.1 || barPosition > 0.9) {
                             const newFrom = targetTime - rangeWidth / 2;
                             const newTo = targetTime + rangeWidth / 2;
-                            chart.setVisibleRange({ from: newFrom, to: newTo });
+                            if (newFrom < newTo) {
+                                chart.setVisibleRange({ from: newFrom, to: newTo });
+                            }
                         }
                     }
                 } catch (e) {
                     console.warn('[TVChart] Could not adjust visible range:', e);
                 }
                 
-                // Create a combination of shapes:
-                // 1. white circle marker sitting on the candle high
-                // 2. vertical_line to perfectly mark the time axis
+                // Create a single prominent marker sitting above the candle high
+                // (Removed invalid 'icon' and 'vertical_line' shape types that cause crashes)
                 const shapesToCreate = [
                     {
                         point: { time: targetTime, price: targetPrice },
                         options: {
-                            shape: 'icon',
+                            shape: 'arrow_down',
                             lock: true,
                             disableSelection: true,
                             disableSave: true,
                             overrides: {
-                                color: '#FFFFFF',
-                                size: 10,
-                            },
-                            icon: 0xf0ab, // Font Awesome triangle-down (different from pattern dots which use circle)
-                        }
-                    },
-                    {
-                        point: { time: targetTime, price: targetPrice },
-                        options: {
-                            shape: 'vertical_line',
-                            lock: true,
-                            disableSelection: true,
-                            disableSave: true,
-                            overrides: {
-                                linecolor: 'rgba(255, 255, 255, 0.4)',
-                                linewidth: 1,
-                                linestyle: 2 // dashed
+                                color: '#FFEB3B', // High visibility color (Yellow/Gold)
+                                backgroundColor: '#FFEB3B',
+                                borderColor: '#FFEB3B',
+                                size: 1, // Full size for visibility
                             }
                         }
                     }
@@ -577,16 +607,15 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
     useEffect(() => {
         if (!widgetRef.current) return;
 
+        let chart;
         try {
-            // Defensively check if activeChart is available.
-            let chart;
-            try {
-                chart = widgetRef.current.activeChart();
-            } catch (innerError) {
-                console.warn('[TVChart] activeChart not ready yet, skipping visibility update.');
-                return; // Early return if chart is still initializing
-            }
+            chart = widgetRef.current.activeChart();
+        } catch (innerError) {
+            console.warn('[TVChart] activeChart not ready yet, skipping visibility update.');
+            return; // Early return if chart is still initializing
+        }
 
+        try {
             const visibleLabels = props.visibleFanLabels || [];
             console.log('[TVChart] Updating fan visibility:', visibleLabels);
 
@@ -703,7 +732,6 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
                 if (marker.shapeId) {
                     try {
                         const shape = chart.getShapeById(marker.shapeId);
-                        console.log('[TVChart] Shape found:', !!shape, 'id:', marker.shapeId);
                         if (shape) {
                             shape.setProperties({ visible: showPatternDots });
                         }
@@ -883,16 +911,18 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
         console.log(`[plotPatternLabel] ${pattern} dot at ${new Date(candleTime * 1000).toLocaleString()}, price=${shapePrice.toFixed(2)}, color=${patternColor}`);
 
         try {
+            const shapeType = position === 'below' ? 'arrow_up' : 'arrow_down';
             const shapeIdOrPromise = chart.createShape({ time: candleTime, price: shapePrice }, {
-                shape: 'icon',
+                shape: shapeType,
                 lock: true,
                 disableSelection: true,
                 disableSave: true,
                 overrides: {
                     color: patternColor,
-                    size: 10,
-                },
-                icon: 0xf111, // Font Awesome circle (filled)
+                    backgroundColor: patternColor,
+                    borderColor: patternColor,
+                    size: 1, // smaller marker for patterns
+                }
             });
 
             // Handle both synchronous IDs and Promises
@@ -901,11 +931,27 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
                 shapeIdOrPromise.then(resolvedId => {
                     console.log(`[plotPatternLabel] Shape created with ID: ${resolvedId}`);
                     patternMarkersRef.current[bucketKey].push({ price: shapePrice, time: candleTime, pattern, shapeId: resolvedId });
+                    
+                    // If showPatternDots is currently false, explicitly hide the new shape
+                    if (!showPatternDots) {
+                        try {
+                            const shape = chart.getShapeById(resolvedId);
+                            if (shape) shape.setProperties({ visible: false });
+                        } catch(e) {}
+                    }
                 }).catch(err => console.warn("[plotPatternLabel] Error resolving shape promise:", err.message));
             } else {
                 // Direct ID
                 console.log(`[plotPatternLabel] Shape created with direct ID: ${shapeIdOrPromise}`);
                 patternMarkersRef.current[bucketKey].push({ price: shapePrice, time: candleTime, pattern, shapeId: shapeIdOrPromise });
+                
+                // If showPatternDots is currently false, explicitly hide the new shape
+                if (!showPatternDots) {
+                    try {
+                        const shape = chart.getShapeById(shapeIdOrPromise);
+                        if (shape) shape.setProperties({ visible: false });
+                    } catch(e) {}
+                }
             }
             return true;
         } catch (err) {
@@ -917,6 +963,13 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
     // --- ADDED: Extract available fan identities from incoming drawings ---
     // Tracks identity -> latest display label mapping
     const fanDisplayMapRef = useRef({});
+
+    const clearAvailableFans = () => {
+        fanDisplayMapRef.current = {};
+        if (props.onAvailableFansUpdated) {
+            props.onAvailableFansUpdated([]);
+        }
+    };
 
     const updateAvailableFans = (drawings) => {
         if (!props.onAvailableFansUpdated) return;
@@ -1013,6 +1066,10 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
                 console.error("Chart not ready");
                 return;
             }
+
+            // Clear old study UI state
+            clearAvailableFans();
+            studyShapesRef.current = {};
 
             // Ensure candle times are in milliseconds for datafeed
             const normalizedCandles = candles.map(c => ({
@@ -1187,6 +1244,10 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
                 console.error("Chart not ready");
                 return;
             }
+
+            // Clear old study UI state
+            clearAvailableFans();
+            studyShapesRef.current = {};
 
             // TradingView-style replay logic:
             // 1. Show ALL candles for context (don't filter)

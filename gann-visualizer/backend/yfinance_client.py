@@ -100,6 +100,7 @@ class YFinanceClient:
         "5m": "60d",
         "15m": "60d",
         "30m": "60d",
+        "1h": "730d", # Use 730 days for 60m to prevent pagination barrages
     }
 
     def __init__(self):

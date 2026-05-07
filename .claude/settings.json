@@ -11,7 +11,8 @@
       "WebFetch(domain:minimax-algeng-chat-tts-us.oss-us-east-1.aliyuncs.com)",
       "Read(//c/Dev/**)",
       "Read(//c/Users/kitsh/.claude/projects/c--Dev-GannTesting/memory/**)",
-      "WebFetch(domain:raw.githubusercontent.com)"
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Read(//c/Users/kitsh/.claude/plugins/cache/superpowers-marketplace/superpowers/5.0.7/skills/brainstorming/**)"
     ],
     "additionalDirectories": [
       "c:\\Users\\kitsh\\.claude\\projects\\c--Dev-GannTesting\\memory"

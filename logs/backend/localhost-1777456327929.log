@@ -1,0 +1,86 @@
+react-dom_client.js?v=72609f8c:20101 Download the React DevTools for a better development experience: https://react.dev/link/react-devtools
+TVChartContainer.jsx:65 [TVChart] useEffect triggered - dataSource: yfinance symbol: ^NSEI
+TVChartContainer.jsx:282 [TVChart] TradingView already loaded, initializing directly
+TVChartContainer.jsx:88 [TVChart] Initializing chart with dataSource: yfinance
+ChartDatafeed.js:795 createChartDatafeed called with source: yfinance
+ChartDatafeed.js:6 Creating ChartDatafeed wrapper, source: yfinance
+TVChartContainer.jsx:369 [TVChart] selectedInteraction changed: null
+TVChartContainer.jsx:396 [TVChart] activeChart not available: TypeError: Cannot read properties of undefined (reading 'activeChart')
+    at Be.activeChart (charting_library.js:1:38554)
+    at TVChartContainer.jsx:394:43
+    at Object.react_stack_bottom_frame (react-dom_client.js?v=72609f8c:18565:20)
+    at runWithFiberInDEV (react-dom_client.js?v=72609f8c:995:72)
+    at commitHookEffectListMount (react-dom_client.js?v=72609f8c:9409:163)
+    at commitHookPassiveMountEffects (react-dom_client.js?v=72609f8c:9463:60)
+    at commitPassiveMountOnFiber (react-dom_client.js?v=72609f8c:11038:29)
+    at recursivelyTraversePassiveMountEffects (react-dom_client.js?v=72609f8c:11008:13)
+    at commitPassiveMountOnFiber (react-dom_client.js?v=72609f8c:11199:13)
+    at recursivelyTraversePassiveMountEffects (react-dom_client.js?v=72609f8c:11008:13)
+TVChartContainer.jsx:576 [TVChart] activeChart not ready yet, skipping visibility update.
+$RefreshSig$ @ TVChartContainer.jsx:576
+TVChartContainer.jsx:660 [TVChart] Pattern dots toggle changed: showPatternDots = false
+TVChartContainer.jsx:671 [TVChart] activeChart not ready yet, skipping pattern dots visibility update.
+$RefreshSig$ @ TVChartContainer.jsx:671
+TVChartContainer.jsx:298 [TVChart] Cleanup - destroying widget
+TVChartContainer.jsx:305 [TVChart] Widget destroyed for clean re-init
+TVChartContainer.jsx:65 [TVChart] useEffect triggered - dataSource: yfinance symbol: ^NSEI
+TVChartContainer.jsx:282 [TVChart] TradingView already loaded, initializing directly
+TVChartContainer.jsx:88 [TVChart] Initializing chart with dataSource: yfinance
+ChartDatafeed.js:795 createChartDatafeed called with source: yfinance
+ChartDatafeed.js:6 Creating ChartDatafeed wrapper, source: yfinance
+TVChartContainer.jsx:369 [TVChart] selectedInteraction changed: null
+TVChartContainer.jsx:396 [TVChart] activeChart not available: TypeError: Cannot read properties of undefined (reading 'activeChart')
+    at Be.activeChart (charting_library.js:1:38554)
+    at TVChartContainer.jsx:394:43
+    at Object.react_stack_bottom_frame (react-dom_client.js?v=72609f8c:18565:20)
+    at runWithFiberInDEV (react-dom_client.js?v=72609f8c:995:72)
+    at commitHookEffectListMount (react-dom_client.js?v=72609f8c:9409:163)
+    at commitHookPassiveMountEffects (react-dom_client.js?v=72609f8c:9463:60)
+    at reconnectPassiveEffects (react-dom_client.js?v=72609f8c:11271:13)
+    at recursivelyTraverseReconnectPassiveEffects (react-dom_client.js?v=72609f8c:11238:11)
+    at reconnectPassiveEffects (react-dom_client.js?v=72609f8c:11315:13)
+    at recursivelyTraverseReconnectPassiveEffects (react-dom_client.js?v=72609f8c:11238:11)
+TVChartContainer.jsx:576 [TVChart] activeChart not ready yet, skipping visibility update.
+$RefreshSig$ @ TVChartContainer.jsx:576
+TVChartContainer.jsx:660 [TVChart] Pattern dots toggle changed: showPatternDots = false
+TVChartContainer.jsx:671 [TVChart] activeChart not ready yet, skipping pattern dots visibility update.
+$RefreshSig$ @ TVChartContainer.jsx:671
+ChartDatafeed.js:38 [ChartDatafeed] onReady called, dataSource: yfinance
+:8005/config:1  Failed to load resource: net::ERR_CONNECTION_REFUSED
+:8005/config:1  Failed to load resource: net::ERR_CONNECTION_REFUSED
+library.668013b6b41ce2feaa5c.js:815 2026-04-29T09:51:47.458Z:Chart.Defaults:Path `paneProperties.priceAxisProperties.log` does not exist.
+S @ library.668013b6b41ce2feaa5c.js:815
+library.668013b6b41ce2feaa5c.js:815 2026-04-29T09:51:47.473Z:Property:The state with a data type: unknown does not match a schema
+S @ library.668013b6b41ce2feaa5c.js:815
+library.668013b6b41ce2feaa5c.js:815 2026-04-29T09:51:47.518Z:Property:The state with a data type: object does not match a schema
+S @ library.668013b6b41ce2feaa5c.js:815
+ChartDatafeed.js:50 [ChartDatafeed] resolveSymbol: ^NSEI dataSource: yfinance
+ChartDatafeed.js:65 [ChartDatafeed] Appended YFinance suffix: ^NSEI:YF
+library.668013b6b41ce2feaa5c.js:815 2026-04-29T09:51:47.565Z:Chart.Defaults:Path `paneProperties.priceAxisProperties.log` does not exist.
+S @ library.668013b6b41ce2feaa5c.js:815
+:8005/symbol_info?group=NYSE:1  Failed to load resource: net::ERR_CONNECTION_REFUSED
+:8005/symbol_info?group=FOREX:1  Failed to load resource: net::ERR_CONNECTION_REFUSED
+:8005/symbol_info?group=AMEX:1  Failed to load resource: net::ERR_CONNECTION_REFUSED
+:8005/symbol_info?group=NYSE:1  Failed to load resource: net::ERR_CONNECTION_REFUSED
+:8005/symbol_info?group=FOREX:1  Failed to load resource: net::ERR_CONNECTION_REFUSED
+:8005/symbol_info?group=AMEX:1  Failed to load resource: net::ERR_CONNECTION_REFUSED
+library.668013b6b41ce2feaa5c.js:788 2026-04-29T09:51:51.844Z Error resolving for market status watcher ^NSEI:
+invalid symbol
+$S @ library.668013b6b41ce2feaa5c.js:788
+library.668013b6b41ce2feaa5c.js:788 2026-04-29T09:51:51.844Z Error resolving for market status watcher ^NSEI:
+invalid symbol
+$S @ library.668013b6b41ce2feaa5c.js:788
+TVChartContainer.jsx:139 [Chart] Ready
+:8005/api/scale_ratio?symbol=%5ENSEI&resolution=1&cycle_type=24_hour&session_duration=standard:1  Failed to load resource: net::ERR_CONNECTION_REFUSED
+TVChartContainer.jsx:171 [Chart] Failed to fetch scale ratio from backend, defaulting: TypeError: Failed to fetch
+    at Be.<anonymous> (TVChartContainer.jsx:150:17)
+    at charting_library.js:1:43632
+    at n._fireImpl (library.668013b6b41ce2feaa5c.js:194:2576)
+    at u (library.668013b6b41ce2feaa5c.js:86:1422)
+    at Module._ (library.668013b6b41ce2feaa5c.js:86:1558)
+    at s (library.668013b6b41ce2feaa5c.js:701:1270)
+    at i (library.668013b6b41ce2feaa5c.js:701:1599)
+    at n._fireImpl (library.668013b6b41ce2feaa5c.js:194:2576)
+    at ft.fireError (library.668013b6b41ce2feaa5c.js:346:2738)
+    at ft.fireSymbolError (library.668013b6b41ce2feaa5c.js:346:2795)
+$RefreshSig$ @ TVChartContainer.jsx:171

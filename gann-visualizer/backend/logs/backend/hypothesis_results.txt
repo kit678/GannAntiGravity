@@ -1,0 +1,1 @@
+hypothesis,instrument,timeframe,run_id,sample_size,win_rate,avg_mfe_10,avg_mae_10

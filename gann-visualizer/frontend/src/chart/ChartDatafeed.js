@@ -396,6 +396,14 @@ class ChartDatafeed {
             .then(data => {
                 console.log(`[getBars] HTTP Response:`, data);
 
+                // CRITICAL FIX: If the user clicked "Run Step-by-Step" while this UDF request was pending,
+                // do NOT inject these future bars into the chart, otherwise they will block the replay!
+                if (this.isCustomMode) {
+                    console.log("[getBars] Race condition averted: custom mode activated while UDF request was pending. Discarding rogue bars.");
+                    onHistoryCallback([], { noData: true });
+                    return;
+                }
+
                 // Parse UDF response format
                 // Expected: {"s":"ok","t":[...],"o":[...],"h":[...],"l":[...],"c":[...],"v":[...]}
                 // or {"s":"no_data"}

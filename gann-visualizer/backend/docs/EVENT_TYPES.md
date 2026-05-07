@@ -124,6 +124,12 @@ Event types are emitted by two main sources:
 - **Emission Mechanism**: `angular_coverage_study.py` — via validation_detect module when fan validation occurs
 - **Fires When**: Fan validation occurs via 7/8 interaction
 
+### FAN_CREATED (Implicit Render State)
+- **Semantic**: The exact bar where the fan physically renders on the chart for the trader.
+- **Emission Mechanism**: Implicitly tracked via `creation_bar_index` in `_persisted_fans`. 
+- **Fires When**: The anchor and target pivots are fully confirmed. Because `right_bars=5` delays pivot confirmation by 5 bars, the fan is created and visible to the trader exactly 5 bars *after* the target pivot physically occurs.
+- **Note on Alpha**: Any intersection event (breach, test, target hit) that occurs *on or before* the `creation_bar_index` is retroactively generated (`[Retro]`). A trader physically cannot trade these setups because the fan lines do not exist on the UI until the close of the creation bar. Only events occurring *strictly after* the creation bar are considered "Live" and tradable.
+
 ### ZONE_CHANGE
 - **Value**: `"zone_change"`
 - **Semantic**: Price moved to a new angle zone

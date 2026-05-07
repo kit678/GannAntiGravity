@@ -282,8 +282,8 @@ class AngularPriceCoverageStudy:
         # 1. Detect pivots at this bar
         self.pivot_detector.detect_pivots(candles, bar_index)
 
-        # 2. Run unified backward traversal (same logic every bar)
-        self._sync_fans(candles, bar_index, result)
+        # 2. Run unified backward traversal (same logic every bar) - BUILD PHASE ONLY
+        self._sync_fans_build(candles, bar_index, result)
         
         # 2.5 Process Zone Tracking for ALL active fans for the LIVE bar
         for fan_id, fan_obj in self.angle_engine.active_fans.items():
@@ -414,7 +414,10 @@ class AngularPriceCoverageStudy:
                 result['intersection_events'] = []
             result['intersection_events'].extend(ui_events)
 
-        # 5. Save state
+        # 5. Run unified backward traversal - TEARDOWN PHASE ONLY
+        self._sync_fans_teardown(candles, bar_index, result)
+
+        # 6. Save state
         result['state'] = self._get_state()
 
         return result
@@ -858,6 +861,36 @@ class AngularPriceCoverageStudy:
                 'nextAngleLine': ''
             })
 
+        # CRITICAL FIX: If this is the EXACT bar where the fan was created, the trader 
+        # still couldn't see the fan until the bar closed. Therefore, any target hits 
+        # or breaches that happen ON the creation bar are untradeable and must be 
+        # flagged as [Retro].
+        for ui_event in ui_events:
+            fan_id = "Fan_" + ui_event['fanIdentity'].replace("-", "_")
+            if fan_id in self._persisted_fans:
+                creation_bar = self._persisted_fans[fan_id].get('creation_bar_index', -1)
+                # If the event occurred at or before the bar where the fan was created, it's retro
+                if not ui_event['details'].startswith("[Retro]") and bar_index <= creation_bar:
+                    ui_event['details'] = f"[Retro] {ui_event['details']}"
+                    
+                    # Update it in the actual event_logger output as well so events.csv gets the [Retro] flag
+                    # This relies on the fact that event_logger.events list is updated chronologically
+                    # We just modify the last few events that match
+                    for logged_evt in reversed(self.event_logger.events):
+                        if logged_evt.timestamp == timestamp and logged_evt.event_type.value == ui_event['type']:
+                            # Ensure it has the details dict
+                            if hasattr(logged_evt, 'details') and isinstance(logged_evt.details, dict):
+                                if 'ui_details' in logged_evt.details:
+                                    if not logged_evt.details['ui_details'].startswith("[Retro]"):
+                                        logged_evt.details['ui_details'] = f"[Retro] {logged_evt.details['ui_details']}"
+                                elif 'deactivation_reason' in logged_evt.details:
+                                    pass # target failed etc
+                                # The CSV export uses logged_evt.details directly as a string or gets it from dict
+                                # In event_logger.py, export_to_csv writes `evt.details`. We need to prepend it there.
+                                if 'details_str' not in logged_evt.details:
+                                    logged_evt.details['details_str'] = ui_event['details']
+                            break
+
     def _extend_active_fans(self, candles: List[Dict[str, Any]], current_bar_index: int, result: Dict[str, Any]):
         """
         Dynamically extends fan lines if the price action is approaching the current line ends.
@@ -865,15 +898,15 @@ class AngularPriceCoverageStudy:
         """
         pass
 
-    def _sync_fans(
+    def _sync_fans_build(
         self,
         candles: List[Dict[str, Any]],
         current_bar_index: int,
         result: Dict[str, Any]
     ):
         """
-        Core sync: run FanManager, strictly update engine state,
-        remove invalidated fans, create new ones.
+        Core sync build phase: run FanManager, strictly update engine state,
+        create new fans. Does NOT remove invalidated fans yet.
         """
         # Generate raw un-capped logical fans
         logical_fans = FanManager.find_active_fans(
@@ -887,7 +920,7 @@ class AngularPriceCoverageStudy:
         logical_fans.sort(key=lambda f: f['anchor']['time'], reverse=True)
 
         # Build map of CURRENT valid fans
-        current_valid_fan_ids = set()
+        self._current_valid_fan_ids = set()
         
         # Apply Priority Labels based on sorted order
         for i, fan_data in enumerate(logical_fans):
@@ -897,7 +930,7 @@ class AngularPriceCoverageStudy:
                 break
                 
             fan_id = fan_data['fan_id']
-            current_valid_fan_ids.add(fan_id)
+            self._current_valid_fan_ids.add(fan_id)
             
             fan_data['priority'] = i
             # Embed the full fan identity in the priority label so it propagates to UI controls
@@ -905,8 +938,144 @@ class AngularPriceCoverageStudy:
             fan_data['priority_label'] = f"P{i + 1} ({fan_display_name})"
             
             # Persist fan data (create or update)
+            if fan_id not in self._persisted_fans:
+                fan_data['creation_bar_index'] = current_bar_index
+                fan_data['_coords_changed'] = False
+            else:
+                old_fan = self._persisted_fans[fan_id]
+                fan_data['creation_bar_index'] = old_fan.get('creation_bar_index', current_bar_index)
+                
+                coords_changed = (
+                    fan_data['anchor']['time'] != old_fan['anchor']['time'] or
+                    fan_data['anchor']['price'] != old_fan['anchor']['price'] or
+                    fan_data['target']['time'] != old_fan['target']['time'] or
+                    fan_data['target']['price'] != old_fan['target']['price']
+                )
+                fan_data['_coords_changed'] = coords_changed
+                
             self._persisted_fans[fan_id] = fan_data
 
+        # --- SYNC: Create or Update Valid Fans ---
+        for fan_id in self._current_valid_fan_ids:
+            fan_data = self._persisted_fans[fan_id]
+            
+            # Check if fan exists in engine
+            if fan_id in self._active_fan_keys:
+                # UPDATE existing fan (check priority change OR coordinate change)
+                engine_fan_id = self._active_fan_keys[fan_id]
+                if engine_fan_id in self.angle_engine.active_fans:
+                    fan_obj = self.angle_engine.active_fans[engine_fan_id]
+                    
+                    # If coordinates changed, we must recreate the fan lines
+                    if fan_data.get('_coords_changed', False):
+                        self.log(f"[Study] Updating fan coordinates for: {fan_id}")
+                        
+                        # Queue old lines for removal
+                        for line in fan_obj.lines:
+                            result['remove_drawings'].append(line.id)
+                        for label_id in fan_obj.label_ids:
+                            result['remove_drawings'].append(label_id)
+                        fan_obj.label_ids.clear()
+                        
+                        # We must completely replace the fan in the engine to recalculate slopes
+                        self.angle_engine.remove_fan(engine_fan_id)
+                        
+                        new_fan_obj = self.angle_engine.create_fan(
+                            from_pivot=fan_data['target'],
+                            to_pivot=fan_data['anchor'],
+                            current_candles=candles[:current_bar_index + 1],
+                            fan_id=fan_data['fan_id'],
+                            priority_label=fan_obj.priority_label
+                        )
+                        new_fan_obj.anchor_type = fan_data['anchor'].get('type', '')
+                        new_fan_obj.anchor_bar_index = fan_data['anchor'].get('bar_index', 0)
+                        
+                        # Catch up zone tracker
+                        anchor_bar_idx = new_fan_obj.anchor_bar_index
+                        for b_idx in range(anchor_bar_idx, current_bar_index + 1):
+                            self.zone_tracker.compute_snapshot(new_fan_obj, candles[b_idx], b_idx)
+                        new_fan_obj._zone_caught_up_to = current_bar_index
+                        
+                        # Re-assign object
+                        fan_obj = new_fan_obj
+                        self._active_fan_keys[fan_id] = fan_obj.id
+                        
+                        drawings = self.angle_engine.fan_to_drawing_commands(fan_obj)
+                        result['drawings'].extend(drawings)
+                        
+                    # If priority label changed, we must update drawings
+                    elif fan_obj.priority_label != fan_data['priority_label']:
+                        self.log(f"[Study] Updating fan priority: {fan_id} -> {fan_data['priority_label']}")
+                        fan_obj.priority_label = fan_data['priority_label']
+                        
+                        # Queue old lines for removal
+                        for line in fan_obj.lines:
+                            result['remove_drawings'].append(line.id)
+                        for label_id in fan_obj.label_ids:
+                            result['remove_drawings'].append(label_id)
+                        fan_obj.label_ids.clear()
+                            
+                        # Generate new lines with updated label
+                        drawings = self.angle_engine.fan_to_drawing_commands(fan_obj)
+                        result['drawings'].extend(drawings)
+                        
+                        # Re-generate intersection labels
+                        for event in fan_obj.intersections:
+                            event.priority_label = fan_obj.priority_label
+            else:
+                # CREATE new fan
+                self.log(f"[Study] Creating new fan: {fan_id} ({fan_data['priority_label']})")
+                
+                fan_obj = self.angle_engine.create_fan(
+                    from_pivot=fan_data['target'],   # Target is "from"
+                    to_pivot=fan_data['anchor'],      # Anchor is "to"
+                    current_candles=candles[:current_bar_index + 1],
+                    fan_id=fan_data['fan_id'],
+                    priority_label=fan_data['priority_label']
+                )
+                
+                fan_obj.anchor_type = fan_data['anchor'].get('type', '')
+                fan_obj.anchor_bar_index = fan_data['anchor'].get('bar_index', 0)
+                
+                # CRITICAL: Catch up AngleZoneTracker for this new fan
+                anchor_bar_idx = fan_obj.anchor_bar_index
+                current_bar_idx = current_bar_index
+                for b_idx in range(anchor_bar_idx, current_bar_idx + 1):
+                    self.zone_tracker.compute_snapshot(fan_obj, candles[b_idx], b_idx)
+                fan_obj._zone_caught_up_to = current_bar_idx
+                
+                # Store mapping
+                self._active_fan_keys[fan_id] = fan_obj.id
+                
+                # Register with tracking
+                self.fan_validator.register_fan(fan_obj.id)
+                self.target_progression.register_fan(
+                    fan_id=fan_obj.id,
+                    horizontal_target_price=self._get_horizontal_target_price(fan_obj),
+                    full_coverage_target_price=float(fan_data['target'].get('price', 0)),
+                )
+
+                # Output drawings for new fan
+                drawings = self.angle_engine.fan_to_drawing_commands(fan_obj)
+                result['drawings'].extend(drawings)
+                
+                # Setup retroactive sweep parameters (used later in _process_tracking_modules)
+                self._pending_retro_events[fan_id] = {
+                    'anchor_idx': anchor_bar_idx,
+                    'events': [] # populated by retroactive scan
+                }
+
+    def _sync_fans_teardown(
+        self,
+        candles: List[Dict[str, Any]],
+        current_bar_index: int,
+        result: Dict[str, Any]
+    ):
+        """
+        Core sync teardown phase: Remove invalidated fans AFTER they have processed the current bar.
+        """
+        current_valid_fan_ids = getattr(self, '_current_valid_fan_ids', set())
+        
         # --- SYNC: Remove Invalid Fans ---
         # Identify fans in our persisted state that are NO LONGER valid
         # (or pushed out of the top N limit)
@@ -950,63 +1119,221 @@ class AngularPriceCoverageStudy:
                     target_time = fan_data.get('target', {}).get('time', 0)
                     target_price = fan_data.get('target', {}).get('price', 0)
                     fan_priority = fan_data.get('priority_label', fan_id)
+                    
+                    current_candle = candles[current_bar_index]
+                    current_time = int(current_candle['time'])
+                    current_close = float(current_candle['close'])
+
+                    # Initialize intersection_events if missing
+                    if 'intersection_events' not in result:
+                        result['intersection_events'] = []
 
                     # TARGET_FAILED: Emit if there was an in-flight progression when fan got invalidated
                     # (breach confirmed on origin_angle but next target wasn't reached)
                     if pending_state:
-                        self.event_logger.log_event(
-                            timestamp=anchor_time,
-                            event_type=EventType.TARGET_FAILED,
-                            angle_name=pending_state.origin_angle,
-                            price=anchor_price,
-                            direction='down' if fan_data.get('anchor', {}).get('type') == 'high' else 'up',
-                            details={
-                                'fan_id': fan_id,
-                                'fan_label': fan_priority,
-                                'deactivation_reason': 'fan_invalidated',
-                                'pending_target': pending_state.current_target,
-                                'targets_hit': pending_state.targets_hit,
+                        # Check if the invalidation was actually a full_coverage hit
+                        is_full_coverage_hit = False
+                        fc_price = pending_state.full_coverage_target_price
+                        if pending_state.current_target == 'full_coverage' and fc_price is not None:
+                            c_high = float(current_candle.get('high', 0))
+                            c_low = float(current_candle.get('low', 0))
+                            fan_dir = 'up' if fan_data.get('anchor', {}).get('type') == 'low' else 'down'
+                            
+                            # Fan dir 'up' means anchor is low, target is high.
+                            # Full coverage hit if current high >= fc_price
+                            if fan_dir == 'up' and c_high >= fc_price:
+                                is_full_coverage_hit = True
+                            elif fan_dir == 'down' and c_low <= fc_price:
+                                is_full_coverage_hit = True
+
+                        if is_full_coverage_hit:
+                            # Log TARGET_HIT instead of TARGET_FAILED
+                            self.event_logger.log_event(
+                                timestamp=current_time,
+                                event_type=EventType.TARGET_HIT,
+                                angle_name='full_coverage',
+                                price=fc_price,
+                                open_price=float(current_candle['open']),
+                                high_price=float(current_candle['high']),
+                                low_price=float(current_candle['low']),
+                                close_price=current_close,
+                                active_angle_prices={},
+                                cluster_state=False,
+                                current_zone="",
+                                zone_highest_close=None,
+                                zone_lowest_close=None,
+                                next_angle_line=None,
+                                details={
+                                    'fan_id': fan_id,
+                                    'fan_label': fan_priority,
+                                    'ui_type': 'TARGET_HIT',
+                                    'ui_details': 'Full Coverage Reached',
+                                }
+                            )
+                            ui_event_dict = {
+                                'time': current_time,
+                                'fan': fan_priority,
+                                'fanIdentity': fan_id.replace("Fan_", "").replace("_", "-"),
+                                'fraction': 'full_coverage',
+                                'price': fc_price,
+                                'type': 'TARGET_HIT',
+                                'details': "Full Coverage Reached",
+                                'open': float(current_candle['open']),
+                                'high': float(current_candle['high']),
+                                'low': float(current_candle['low']),
+                                'close': current_close,
+                                'activeAngles': {},
+                                'cluster': False,
+                                'zone': "",
+                                'zoneExtremes': {},
+                                'bar_index': current_bar_index,
+                                'nextAngleLine': ""
                             }
-                        )
-                        self.log(f"[Tracking] Target FAILED: {fan_id} ({pending_state.origin_angle}) - fan invalidated with pending progression")
+                            # Apply Retro flag if needed
+                            creation_bar = fan_data.get('creation_bar_index', -1)
+                            if current_bar_index <= creation_bar:
+                                ui_event_dict['details'] = f"[Retro] {ui_event_dict['details']}"
+                                # Also update the logger
+                                for logged_evt in reversed(self.event_logger.events):
+                                    if logged_evt.timestamp == current_time and logged_evt.event_type.value == 'TARGET_HIT':
+                                        if hasattr(logged_evt, 'details') and isinstance(logged_evt.details, dict):
+                                            if 'ui_details' in logged_evt.details:
+                                                if not logged_evt.details['ui_details'].startswith("[Retro]"):
+                                                    logged_evt.details['ui_details'] = f"[Retro] {logged_evt.details['ui_details']}"
+                                            if 'details_str' not in logged_evt.details:
+                                                logged_evt.details['details_str'] = ui_event_dict['details']
+                                        break
+                                        
+                            result['intersection_events'].append(ui_event_dict)
+                            self.log(f"[Tracking] Target HIT: {fan_id} reached full_coverage!")
+                        else:
+                            self.event_logger.log_event(
+                                timestamp=current_time,
+                                event_type=EventType.TARGET_FAILED,
+                                angle_name=pending_state.origin_angle,
+                                price=current_close,
+                                direction='down' if fan_data.get('anchor', {}).get('type') == 'high' else 'up',
+                                details={
+                                    'fan_id': fan_id,
+                                    'fan_label': fan_priority,
+                                    'deactivation_reason': 'fan_invalidated',
+                                    'pending_target': pending_state.current_target,
+                                    'targets_hit': pending_state.targets_hit,
+                                }
+                            )
+                            
+                            ui_event_dict = {
+                                'time': current_time,
+                                'fan': fan_priority,
+                                'fanIdentity': fan_id.replace("Fan_", "").replace("_", "-"),
+                                'fraction': pending_state.origin_angle,
+                                'price': current_close,
+                                'type': 'TARGET_FAILED',
+                                'details': f"Progression Failed (fan invalidated)",
+                                'open': float(current_candle['open']),
+                                'high': float(current_candle['high']),
+                                'low': float(current_candle['low']),
+                                'close': current_close,
+                                'activeAngles': {},
+                                'cluster': False,
+                                'zone': "",
+                                'zoneExtremes': {},
+                                'bar_index': current_bar_index,
+                                'nextAngleLine': pending_state.current_target or ""
+                            }
+                            # Apply Retro flag if needed
+                            creation_bar = fan_data.get('creation_bar_index', -1)
+                            if current_bar_index <= creation_bar:
+                                ui_event_dict['details'] = f"[Retro] {ui_event_dict['details']}"
+                                # Also update the logger
+                                for logged_evt in reversed(self.event_logger.events):
+                                    if logged_evt.timestamp == current_time and logged_evt.event_type.value == 'TARGET_FAILED':
+                                        if hasattr(logged_evt, 'details') and isinstance(logged_evt.details, dict):
+                                            if 'ui_details' in logged_evt.details:
+                                                if not logged_evt.details['ui_details'].startswith("[Retro]"):
+                                                    logged_evt.details['ui_details'] = f"[Retro] {logged_evt.details['ui_details']}"
+                                            if 'details_str' not in logged_evt.details:
+                                                logged_evt.details['details_str'] = ui_event_dict['details']
+                                        break
+                            
+                            result['intersection_events'].append(ui_event_dict)
+                            
+                            self.log(f"[Tracking] Target FAILED: {fan_id} ({pending_state.origin_angle}) - fan invalidated with pending progression")
 
                     # Log FAN_DEACTIVATED event
                     if anchor_time:
                         try:
                             self.event_logger.log_event(
-                                timestamp=anchor_time,
+                                timestamp=current_time,
                                 event_type=EventType.FAN_DEACTIVATED,
-                                price=anchor_price,
+                                price=current_close,
                                 details={
                                     'fan_id': fan_id,
                                     'fan_label': fan_priority,
                                     'deactivation_reason': 'completed'
                                 }
                             )
+                            
+                            ui_event_dict = {
+                                'time': current_time,
+                                'fan': fan_priority,
+                                'fanIdentity': fan_id.replace("Fan_", "").replace("_", "-"),
+                                'fraction': '-',
+                                'price': current_close,
+                                'type': 'FAN_DEACTIVATED',
+                                'details': f"Fan Invalidated",
+                                'open': float(current_candle['open']),
+                                'high': float(current_candle['high']),
+                                'low': float(current_candle['low']),
+                                'close': current_close,
+                                'activeAngles': {},
+                                'cluster': False,
+                                'zone': "",
+                                'zoneExtremes': {},
+                                'bar_index': current_bar_index,
+                                'nextAngleLine': ""
+                            }
+                            # Apply Retro flag if needed
+                            creation_bar = fan_data.get('creation_bar_index', -1)
+                            if current_bar_index <= creation_bar:
+                                ui_event_dict['details'] = f"[Retro] {ui_event_dict['details']}"
+                                # Also update the logger
+                                for logged_evt in reversed(self.event_logger.events):
+                                    if logged_evt.timestamp == current_time and logged_evt.event_type.value == 'FAN_DEACTIVATED':
+                                        if hasattr(logged_evt, 'details') and isinstance(logged_evt.details, dict):
+                                            if 'ui_details' in logged_evt.details:
+                                                if not logged_evt.details['ui_details'].startswith("[Retro]"):
+                                                    logged_evt.details['ui_details'] = f"[Retro] {logged_evt.details['ui_details']}"
+                                            if 'details_str' not in logged_evt.details:
+                                                logged_evt.details['details_str'] = ui_event_dict['details']
+                                        break
+                                        
+                            result['intersection_events'].append(ui_event_dict)
+                            
                             self.state_machine.emit_fan_deactivated_state(
-                                bar_index=bar_index,
+                                bar_index=current_bar_index,
                                 fan_id=fan_id,
                                 reason='COMPLETED'
                             )
                         except Exception as e:
                             print(f"Failed to log FAN_DEACTIVATED: {e}")
-                    
-                    if 'anchor' in fan_data:
-                        anchor_time = fan_data['anchor'].get('time')
-                        anchor_type = fan_data['anchor'].get('type')
-                        if anchor_time and anchor_type:
-                            self.pivot_detector.release_pivot(anchor_time, anchor_type)
-                    if 'target' in fan_data:
-                        target_time = fan_data['target'].get('time')
-                        target_type = fan_data['target'].get('type')
-                        if target_time and target_type:
-                            self.pivot_detector.release_pivot(target_time, target_type)
-                
-                # Remove from persistence
-                del self._persisted_fans[fan_id]
 
-        # --- SYNC: Create or Update Valid Fans ---
-        for fan_id in current_valid_fan_ids:
+                    # DO NOT RELEASE PIVOTS! Releasing pivots breaks the successive filtering 
+                    # logic in PivotDetector, causing duplicate pivots to be added rather than replaced.
+                    # if 'anchor' in fan_data:
+                    #     anchor_time = fan_data['anchor'].get('time')
+                    #     anchor_type = fan_data['anchor'].get('type')
+                    #     if anchor_time and anchor_type:
+                    #         self.pivot_detector.release_pivot(anchor_time, anchor_type)
+                    # if 'target' in fan_data:
+                    #     target_time = fan_data['target'].get('time')
+                    #     target_type = fan_data['target'].get('type')
+                    #     if target_time and target_type:
+                    #         self.pivot_detector.release_pivot(target_time, target_type)
+
+                    # Remove from persistence
+                del self._persisted_fans[fan_id]
+        for fan_id in self._current_valid_fan_ids:
             fan_data = self._persisted_fans[fan_id]
             
             # Check if fan exists in engine
@@ -1106,12 +1433,12 @@ class AngularPriceCoverageStudy:
         for fan in self._persisted_fans.values():
             # Anchor marker
             a = fan['anchor']
-            a_key = f"anchor_{a['time']}"
-            if a_key not in seen:
-                seen.add(a_key)
-                current_marker_ids.add(a_key)
+            p_key_a = f"pivot_marker_{a['time']}"
+            if p_key_a not in seen:
+                seen.add(p_key_a)
+                current_marker_ids.add(p_key_a)
                 result['pivot_markers'].append({
-                    'id': a_key,
+                    'id': p_key_a,
                     'type': f"pivot_{a['type']}",
                     'time': a['time'],
                     'price': a['price'],
@@ -1121,12 +1448,12 @@ class AngularPriceCoverageStudy:
 
             # Target marker
             t = fan['target']
-            t_key = f"target_{t['time']}"
-            if t_key not in seen:
-                seen.add(t_key)
-                current_marker_ids.add(t_key)
+            p_key_t = f"pivot_marker_{t['time']}"
+            if p_key_t not in seen:
+                seen.add(p_key_t)
+                current_marker_ids.add(p_key_t)
                 result['pivot_markers'].append({
-                    'id': t_key,
+                    'id': p_key_t,
                     'type': f"pivot_{t['type']}",
                     'time': t['time'],
                     'price': t['price'],

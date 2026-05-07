@@ -33,15 +33,22 @@ class StrongSRHypothesis(Hypothesis):
             description="Angular division lines inherently act as rigid support and resistance boundaries. A S/R test will reliably lead to a significant price reversal."
         )
         self.set_parameters(min_mfe_reward_ratio=2.0)
+        self.detailed_log = []
         
     def evaluate(self, df: pd.DataFrame) -> Dict[str, Any]:
+        self.detailed_log = []
         tests = df[df['Type'].isin(['SUPPORT_TEST', 'RESISTANCE_TEST'])].copy()
         if tests.empty:
-            return {"sample_size": 0, "win_rate": 0.0, "avg_mfe_10": 0.0, "avg_mae_10": 0.0}
+            return {"sample_size": 0, "win_rate": 0.0, "live_sample_size": 0, "live_win_rate": 0.0, "retro_sample_size": 0, "retro_win_rate": 0.0, "avg_mfe_10": 0.0, "avg_mae_10": 0.0, "detailed_log": []}
             
         wins = 0
-        total_mfe = 0
-        total_mae = 0
+        live_wins = 0
+        live_total = 0
+        retro_wins = 0
+        retro_total = 0
+        
+        total_mfe = 0.0
+        total_mae = 0.0
         
         ratio = self.parameters['min_mfe_reward_ratio']
         
@@ -52,23 +59,50 @@ class StrongSRHypothesis(Hypothesis):
             if pd.isna(mfe) or pd.isna(mae):
                 continue
                 
-            # To avoid division by zero, treat mae=0 as 0.1 for ratio check
             safe_mae = max(mae, 0.1)
+            is_win = mfe > safe_mae * ratio
             
-            if mfe > safe_mae * ratio:
+            details = str(row.get("Details", ""))
+            is_retro = "[Retro]" in details
+            
+            record = {
+                "time": row.get("Time", ""),
+                "fan": row.get("Fan", ""),
+                "fraction": row.get("Fraction", ""),
+                "type": row.get("Type", ""),
+                "price": row.get("Price", 0.0),
+                "is_retro": is_retro,
+                "outcome": "WIN" if is_win else "LOSS",
+                "mfe": mfe,
+                "mae": mae
+            }
+            self.detailed_log.append(record)
+            
+            if is_win:
                 wins += 1
-                
             total_mfe += mfe
             total_mae += mae
             
-        sample_size = len(tests)
-        win_rate = wins / sample_size if sample_size > 0 else 0.0
-        
+            if is_retro:
+                retro_total += 1
+                if is_win:
+                    retro_wins += 1
+            else:
+                live_total += 1
+                if is_win:
+                    live_wins += 1
+            
+        n = len(self.detailed_log)
         return {
-            "sample_size": sample_size,
-            "win_rate": win_rate,
-            "avg_mfe_10": total_mfe / sample_size if sample_size > 0 else 0.0,
-            "avg_mae_10": total_mae / sample_size if sample_size > 0 else 0.0
+            "sample_size": n,
+            "win_rate": wins / n if n > 0 else 0.0,
+            "live_sample_size": live_total,
+            "live_win_rate": live_wins / live_total if live_total > 0 else 0.0,
+            "retro_sample_size": retro_total,
+            "retro_win_rate": retro_wins / retro_total if retro_total > 0 else 0.0,
+            "avg_mfe_10": total_mfe / n if n > 0 else 0.0,
+            "avg_mae_10": total_mae / n if n > 0 else 0.0,
+            "detailed_log": self.detailed_log
         }
 
 class TargetProgressionHypothesis(Hypothesis):
@@ -96,42 +130,118 @@ class TargetProgressionHypothesis(Hypothesis):
         for _, row in fails_df.iterrows():
             self._log_target_event(row, "MISS", breaches_df)
             
-        hits = len(hits_df)
-        fails = len(fails_df)
+        hits = 0
+        live_hits = 0
+        live_total = 0
+        retro_hits = 0
+        retro_total = 0
         
-        sample_size = hits + fails
-        win_rate = hits / sample_size if sample_size > 0 else 0.0
+        for record in self.detailed_log:
+            is_win = record["outcome"] == "WIN"
+            if is_win:
+                hits += 1
+                
+            if record.get("is_retro", False):
+                retro_total += 1
+                if is_win:
+                    retro_hits += 1
+            else:
+                live_total += 1
+                if is_win:
+                    live_hits += 1
+        
+        n = len(self.detailed_log)
         
         return {
-            "sample_size": sample_size,
-            "win_rate": win_rate,
+            "sample_size": n,
+            "win_rate": hits / n if n > 0 else 0.0,
+            "live_sample_size": live_total,
+            "live_win_rate": live_hits / live_total if live_total > 0 else 0.0,
+            "retro_sample_size": retro_total,
+            "retro_win_rate": retro_hits / retro_total if retro_total > 0 else 0.0,
             "avg_mfe_10": 0.0,
             "avg_mae_10": 0.0,
             "total_hits": hits,
-            "total_fails": fails,
+            "total_fails": n - hits,
             "detailed_log": self.detailed_log
         }
     
     def _find_preceding_breach(self, target_row: pd.Series, breaches_df: pd.DataFrame) -> Optional[Dict[str, Any]]:
         fan = target_row.get('Fan', '')
-        target_time = target_row.get('Time', '')
-        target_fraction = target_row.get('Fraction', '')
+        # Use strictly chronological bar_index instead of string-based Time
+        target_bar_index = target_row.get('bar_index', 0)
+        target_fraction = str(target_row.get('Fraction', ''))
         
+        # Define origin angle mapping based on target progression sequence
+        origin_angle_map = {
+            '0.75': '0.875',
+            '0.5': '0.75',
+            '0.25': '0.5',
+            'horizontal': '0.5',
+            'full_coverage': ['0.25', 'horizontal'] # full_coverage can originate from either
+        }
+        
+        # Determine the expected origin angle(s) for this hit
+        expected_origins = []
+        if target_row.get('Type') == 'TARGET_FAILED':
+            # TARGET_FAILED explicitly logs its origin angle in the Fraction field
+            expected_origins = [target_fraction]
+        else:
+            # TARGET_HIT
+            mapped = origin_angle_map.get(target_fraction)
+            if isinstance(mapped, list):
+                expected_origins = mapped
+            elif mapped:
+                expected_origins = [mapped]
+                
+        if not expected_origins:
+            return None
+            
+        # Determine expected breach direction based on fan polarity
+        # High-anchored fans (e.g. P2 (H195-L191)) progress down
+        # Low-anchored fans (e.g. P1 (L190-H195)) progress up
+        expected_direction = None
+        if '(' in fan:
+            anchor_part = fan.split('(')[1].strip()
+            if anchor_part.startswith('H'):
+                expected_direction = 'down'
+            elif anchor_part.startswith('L'):
+                expected_direction = 'up'
+
+        # Filter for the specific fan, strictly BEFORE OR EQUAL TO the target hit/miss bar,
+        # AND matching the exact expected origin angle.
+        # We use <= because a breach can be confirmed on the exact same bar that hits the target,
+        # provided the breach physically occurs before the target is reached intra-bar.
         preceding_breaches = breaches_df[
             (breaches_df['Fan'] == fan) & 
-            (breaches_df['Time'] < target_time)
+            (breaches_df['bar_index'] <= target_bar_index) &
+            (breaches_df['Fraction'].astype(str).isin(expected_origins))
         ]
+        
+        # Enforce directional monotonicity
+        if expected_direction and not preceding_breaches.empty:
+            if 'Direction' in preceding_breaches.columns:
+                preceding_breaches = preceding_breaches[preceding_breaches['Direction'].astype(str).str.lower() == expected_direction]
+            else:
+                # Fallback to parsing from Details if Direction column is somehow missing
+                preceding_breaches = preceding_breaches[preceding_breaches['Details'].astype(str).str.lower().str.contains(expected_direction)]
         
         if preceding_breaches.empty:
             return None
             
+        # Sort by bar_index ascending just to be absolutely sure, then take the last one
+        preceding_breaches = preceding_breaches.sort_values(by='bar_index')
         last_breach = preceding_breaches.iloc[-1]
         
+        breach_dir = last_breach.get('Direction', '')
+        if pd.isna(breach_dir) or not breach_dir:
+            breach_dir = last_breach.get('Details', '').split()[0] if last_breach.get('Details', '') else ''
+            
         return {
             "breach_time": last_breach.get('Time', ''),
             "breach_fraction": last_breach.get('Fraction', ''),
             "breach_price": last_breach.get('Price', 0.0),
-            "breach_direction": last_breach.get('Details', '').split()[0] if last_breach.get('Details', '') else ''
+            "breach_direction": str(breach_dir).replace('[Retro]', '').strip()
         }
     
     def _log_target_event(self, row: pd.Series, outcome: str, breaches_df: pd.DataFrame):
@@ -143,6 +253,15 @@ class TargetProgressionHypothesis(Hypothesis):
         
         preceding_breach = self._find_preceding_breach(row, breaches_df)
         
+        # CRITICAL FILTER: If there is no confirmed breach preceding this target hit/miss,
+        # it is an invalid attempt (e.g. instant hit NO_ALPHA, or failed breakout).
+        # We only log and evaluate progressions that actually had a valid setup.
+        if not preceding_breach:
+            return
+
+        details = str(row.get("Details", ""))
+        is_retro = "[Retro]" in details
+        
         log_entry = {
             "outcome": outcome,
             "time": time_val,
@@ -150,6 +269,7 @@ class TargetProgressionHypothesis(Hypothesis):
             "fraction": fraction,
             "target_price": round(price, 2),
             "next_angle": next_angle,
+            "is_retro": is_retro,
             "O": row.get('Open', 0.0),
             "H": row.get('High', 0.0),
             "L": row.get('Low', 0.0),
@@ -160,6 +280,7 @@ class TargetProgressionHypothesis(Hypothesis):
             log_entry["breach_time"] = preceding_breach["breach_time"]
             log_entry["breach_fraction"] = preceding_breach["breach_fraction"]
             log_entry["breach_price"] = preceding_breach["breach_price"]
+            log_entry["breach_direction"] = preceding_breach.get("breach_direction", "")
         
         if outcome == "WIN":
             log_entry["mfe_10"] = row.get('MFE_10', 0)
@@ -177,17 +298,24 @@ class QuarterReversalAnomalyHypothesis(Hypothesis):
             description="If price reaches the 1/4 angle line, the trend is exhausted. The 1/4 line will act as a major reversal point."
         )
         self.set_parameters(min_mfe_reward_ratio=2.0)
+        self.detailed_log = []
         
     def evaluate(self, df: pd.DataFrame) -> Dict[str, Any]:
+        self.detailed_log = []
         # Interactions specifically on the 0.25 fraction
         interactions = df[(df['Fraction'] == '0.25') & (df['Type'].isin(['TOUCH', 'SUPPORT_TEST', 'RESISTANCE_TEST']))].copy()
         
         if interactions.empty:
-            return {"sample_size": 0, "win_rate": 0.0, "avg_mfe_10": 0.0, "avg_mae_10": 0.0}
+            return {"sample_size": 0, "win_rate": 0.0, "live_sample_size": 0, "live_win_rate": 0.0, "retro_sample_size": 0, "retro_win_rate": 0.0, "avg_mfe_10": 0.0, "avg_mae_10": 0.0, "detailed_log": []}
             
         wins = 0
-        total_mfe = 0
-        total_mae = 0
+        live_wins = 0
+        live_total = 0
+        retro_wins = 0
+        retro_total = 0
+        
+        total_mfe = 0.0
+        total_mae = 0.0
         ratio = self.parameters['min_mfe_reward_ratio']
         
         for _, row in interactions.iterrows():
@@ -198,20 +326,49 @@ class QuarterReversalAnomalyHypothesis(Hypothesis):
                 continue
                 
             safe_mae = max(mae, 0.1)
-            if mfe > safe_mae * ratio:
+            is_win = mfe > safe_mae * ratio
+            
+            details = str(row.get("Details", ""))
+            is_retro = "[Retro]" in details
+            
+            record = {
+                "time": row.get("Time", ""),
+                "fan": row.get("Fan", ""),
+                "fraction": row.get("Fraction", ""),
+                "type": row.get("Type", ""),
+                "price": row.get("Price", 0.0),
+                "is_retro": is_retro,
+                "outcome": "WIN" if is_win else "LOSS",
+                "mfe": mfe,
+                "mae": mae
+            }
+            self.detailed_log.append(record)
+            
+            if is_win:
                 wins += 1
-                
             total_mfe += mfe
             total_mae += mae
             
-        sample_size = len(interactions)
-        win_rate = wins / sample_size if sample_size > 0 else 0.0
-        
+            if is_retro:
+                retro_total += 1
+                if is_win:
+                    retro_wins += 1
+            else:
+                live_total += 1
+                if is_win:
+                    live_wins += 1
+            
+        n = len(self.detailed_log)
         return {
-            "sample_size": sample_size,
-            "win_rate": win_rate,
-            "avg_mfe_10": total_mfe / sample_size if sample_size > 0 else 0.0,
-            "avg_mae_10": total_mae / sample_size if sample_size > 0 else 0.0
+            "sample_size": n,
+            "win_rate": wins / n if n > 0 else 0.0,
+            "live_sample_size": live_total,
+            "live_win_rate": live_wins / live_total if live_total > 0 else 0.0,
+            "retro_sample_size": retro_total,
+            "retro_win_rate": retro_wins / retro_total if retro_total > 0 else 0.0,
+            "avg_mfe_10": total_mfe / n if n > 0 else 0.0,
+            "avg_mae_10": total_mae / n if n > 0 else 0.0,
+            "detailed_log": self.detailed_log
         }
 
 class ConfluenceBounceHypothesis(Hypothesis):
@@ -228,11 +385,16 @@ class ConfluenceBounceHypothesis(Hypothesis):
         target_types = ['SUPPORT_TEST', 'RESISTANCE_TEST', 'TOUCH']
         touches = df[df['Type'].isin(target_types)].copy()
         if touches.empty:
-            return {"sample_size": 0, "win_rate": 0.0, "avg_mfe_10": 0.0, "avg_mae_10": 0.0, "detailed_log": []}
+            return {"sample_size": 0, "win_rate": 0.0, "live_sample_size": 0, "live_win_rate": 0.0, "retro_sample_size": 0, "retro_win_rate": 0.0, "avg_mfe_10": 0.0, "avg_mae_10": 0.0, "detailed_log": []}
             
         band_pct = self.parameters['price_band_pct']
         
         wins = 0
+        live_wins = 0
+        live_total = 0
+        retro_wins = 0
+        retro_total = 0
+        
         total_mfe = 0
         total_mae = 0
         valid_confluence_events = 0
@@ -271,36 +433,48 @@ class ConfluenceBounceHypothesis(Hypothesis):
                 valid_confluence_events += 1
                 safe_mae = max(mae, 0.1)
                 is_win = mfe > safe_mae * 2
+                
+                details = str(row.get("Details", ""))
+                is_retro = "[Retro]" in details
+                
+                record = {
+                    "time": row.get("Time", ""),
+                    "fan": row.get("Fan", ""),
+                    "fraction": row.get("Fraction", ""),
+                    "type": row.get("Type", ""),
+                    "price": row.get("Price", 0.0),
+                    "is_retro": is_retro,
+                    "outcome": "WIN" if is_win else "LOSS",
+                    "mfe": mfe,
+                    "mae": mae,
+                    "confluence_lines": confluence_lines
+                }
+                self.detailed_log.append(record)
+                
                 if is_win:
                     wins += 1
                 total_mfe += mfe
                 total_mae += mae
                 
-                # Log individual event
-                self.detailed_log.append({
-                    "outcome": "WIN" if is_win else "MISS",
-                    "time": row.get('Time', ''),
-                    "fan": row['Fan'],
-                    "fraction": row.get('Fraction', '-'),
-                    "price": price,
-                    "type": row['Type'],
-                    "confluence_with": confluence_lines,
-                    "O": row.get('Open', ''),
-                    "H": row.get('High', ''),
-                    "L": row.get('Low', ''),
-                    "C": row.get('Close', ''),
-                    "mfe_10": mfe,
-                    "mae_10": mae
-                })
+                if is_retro:
+                    retro_total += 1
+                    if is_win:
+                        retro_wins += 1
+                else:
+                    live_total += 1
+                    if is_win:
+                        live_wins += 1
                 
-        sample_size = valid_confluence_events
-        win_rate = wins / sample_size if sample_size > 0 else 0.0
-        
+        n = len(self.detailed_log)
         return {
-            "sample_size": sample_size,
-            "win_rate": win_rate,
-            "avg_mfe_10": total_mfe / sample_size if sample_size > 0 else 0.0,
-            "avg_mae_10": total_mae / sample_size if sample_size > 0 else 0.0,
+            "sample_size": n,
+            "win_rate": wins / n if n > 0 else 0.0,
+            "live_sample_size": live_total,
+            "live_win_rate": live_wins / live_total if live_total > 0 else 0.0,
+            "retro_sample_size": retro_total,
+            "retro_win_rate": retro_wins / retro_total if retro_total > 0 else 0.0,
+            "avg_mfe_10": total_mfe / n if n > 0 else 0.0,
+            "avg_mae_10": total_mae / n if n > 0 else 0.0,
             "band_pct_used": band_pct,
             "detailed_log": self.detailed_log
         }
@@ -321,14 +495,16 @@ class PostBreachPullbackHypothesis(Hypothesis):
             description="Re-test of a breached line is a continuation entry in the breach direction.",
         )
         self.set_parameters(pullback_window_bars=10, min_mfe_reward_ratio=2.0)
+        self.detailed_log = []
 
     def evaluate(self, df: pd.DataFrame) -> Dict[str, Any]:
+        self.detailed_log = []
         if df.empty:
-            return {"sample_size": 0, "win_rate": 0.0, "avg_mfe_10": 0.0, "avg_mae_10": 0.0}
+            return {"sample_size": 0, "win_rate": 0.0, "avg_mfe_10": 0.0, "avg_mae_10": 0.0, "detailed_log": []}
 
         breaches = df[df["Type"] == "BREACH_CONFIRMED"].copy()
         if breaches.empty:
-            return {"sample_size": 0, "win_rate": 0.0, "avg_mfe_10": 0.0, "avg_mae_10": 0.0}
+            return {"sample_size": 0, "win_rate": 0.0, "avg_mfe_10": 0.0, "avg_mae_10": 0.0, "detailed_log": []}
 
         tests = df[df["Type"].isin(["SUPPORT_TEST", "RESISTANCE_TEST"])].copy()
 
@@ -338,41 +514,145 @@ class PostBreachPullbackHypothesis(Hypothesis):
 
         for _, brc in breaches.iterrows():
             direction = str(brc.get("Direction", "")).lower()
-            same_line_mask = (
-                (tests["Fan"] == brc["Fan"])
-                & (tests["Fraction"] == brc["Fraction"])
-                & (tests["bar_index"] > brc["bar_index"])
-                & (tests["bar_index"] <= brc["bar_index"] + N)
-            )
-            candidates = tests[same_line_mask]
+            breach_time = brc.get("Time", "")
+            fan = brc["Fan"]
+            fraction = brc["Fraction"]
+            b_idx = brc["bar_index"]
 
-            for _, test in candidates.iterrows():
-                if direction == "up" and test["Type"] == "SUPPORT_TEST":
-                    qualifying_entries.append(test)
-                elif direction == "down" and test["Type"] == "RESISTANCE_TEST":
-                    qualifying_entries.append(test)
+            details = str(brc.get("Details", ""))
+            is_retro = "[Retro]" in details
+
+            # Log the breach event being evaluated
+            breach_record = {
+                "breach_time": breach_time,
+                "fan": fan,
+                "fraction": fraction,
+                "direction": direction,
+                "is_retro": is_retro,
+                "status": "NO_PULLBACK_FOUND", # Default status
+                "pullback_time": None,
+                "pullback_type": None,
+                "mfe": 0.0,
+                "mae": 0.0,
+                "outcome": None,
+                "reason": "No subsequent test within window"
+            }
+
+            # Find ALL tests on this line after the breach (even beyond N bars, to see why they might be rejected)
+            future_tests = tests[
+                (tests["Fan"] == fan) & 
+                (tests["Fraction"] == fraction) & 
+                (tests["bar_index"] > b_idx)
+            ].sort_values("bar_index")
+
+            if future_tests.empty:
+                # Find what DID happen within N bars for this fan to provide context
+                future_events = df[
+                    (df["Fan"] == fan) & 
+                    (df["bar_index"] > b_idx) & 
+                    (df["bar_index"] <= b_idx + N)
+                ].sort_values("bar_index")
+                
+                if not future_events.empty:
+                    # Summarize what happened instead
+                    unique_summary = []
+                    for _, ev in future_events.iterrows():
+                        summary_str = f"{ev['Type']} on {ev['Fraction']}"
+                        if summary_str not in unique_summary:
+                            unique_summary.append(summary_str)
+                    
+                    breach_record["reason"] = f"No test on this line. Within {N} bars saw: {', '.join(unique_summary[:3])}"
+                else:
+                    breach_record["reason"] = f"No test on this line. No events at all for this fan within {N} bars (possibly invalidated or price drifted)."
+                
+                self.detailed_log.append(breach_record)
+                continue
+            
+            # Look for the first test
+            first_test = future_tests.iloc[0]
+            test_idx = first_test["bar_index"]
+            test_type = first_test["Type"]
+            test_time = first_test.get("Time", "")
+
+            breach_record["pullback_time"] = test_time
+            breach_record["pullback_type"] = test_type
+            breach_record["bars_elapsed"] = test_idx - b_idx
+            breach_record["pullback_price"] = float(first_test.get("Price", 0.0) or 0.0)
+            breach_record["breach_price"] = float(brc.get("Price", 0.0) or 0.0)
+
+            if test_idx > b_idx + N:
+                breach_record["status"] = "REJECTED"
+                breach_record["reason"] = f"Test occurred outside {N}-bar window (happened {test_idx - b_idx} bars later)"
+                self.detailed_log.append(breach_record)
+                continue
+
+            # It is within window. Check direction
+            if direction == "up" and test_type != "SUPPORT_TEST":
+                breach_record["status"] = "REJECTED"
+                breach_record["reason"] = f"Breach UP requires SUPPORT_TEST, but got {test_type} ({test_idx - b_idx} bars later)"
+                self.detailed_log.append(breach_record)
+                continue
+            elif direction == "down" and test_type != "RESISTANCE_TEST":
+                breach_record["status"] = "REJECTED"
+                breach_record["reason"] = f"Breach DOWN requires RESISTANCE_TEST, but got {test_type} ({test_idx - b_idx} bars later)"
+                self.detailed_log.append(breach_record)
+                continue
+
+            # Valid qualifying pullback
+            # ONLY grab the first test if there are multiple tests for the SAME breach
+            qualifying_entries.append(first_test)
+            mfe = float(first_test.get("MFE_10", 0.0) or 0.0)
+            mae = float(first_test.get("MAE_10", 0.0) or 0.0)
+            safe_mae = max(mae, 0.1)
+            is_win = mfe > safe_mae * ratio
+
+            breach_record["status"] = "ACCEPTED"
+            breach_record["reason"] = "Valid Post-Breach Pullback"
+            breach_record["mfe"] = mfe
+            breach_record["mae"] = mae
+            breach_record["outcome"] = "WIN" if is_win else "LOSS"
+            self.detailed_log.append(breach_record)
 
         if not qualifying_entries:
-            return {"sample_size": 0, "win_rate": 0.0, "avg_mfe_10": 0.0, "avg_mae_10": 0.0}
+            return {"sample_size": 0, "win_rate": 0.0, "live_sample_size": 0, "live_win_rate": 0.0, "retro_sample_size": 0, "retro_win_rate": 0.0, "avg_mfe_10": 0.0, "avg_mae_10": 0.0, "detailed_log": self.detailed_log}
 
         wins = 0
+        live_wins = 0
+        live_total = 0
+        retro_wins = 0
+        retro_total = 0
+        
         total_mfe = 0.0
         total_mae = 0.0
-        for entry in qualifying_entries:
-            mfe = float(entry.get("MFE_10", 0.0) or 0.0)
-            mae = float(entry.get("MAE_10", 0.0) or 0.0)
-            safe_mae = max(mae, 0.1)
-            if mfe > safe_mae * ratio:
-                wins += 1
-            total_mfe += mfe
-            total_mae += mae
+        
+        # Track statistics directly from the detailed_log for Accepted trades
+        for record in self.detailed_log:
+            if record["status"] == "ACCEPTED":
+                if record["outcome"] == "WIN":
+                    wins += 1
+                total_mfe += record["mfe"]
+                total_mae += record["mae"]
+                
+                if record.get("is_retro", False):
+                    retro_total += 1
+                    if record["outcome"] == "WIN":
+                        retro_wins += 1
+                else:
+                    live_total += 1
+                    if record["outcome"] == "WIN":
+                        live_wins += 1
 
-        n = len(qualifying_entries)
+        n = live_total + retro_total
         return {
             "sample_size": n,
-            "win_rate": wins / n,
-            "avg_mfe_10": total_mfe / n,
-            "avg_mae_10": total_mae / n,
+            "win_rate": wins / n if n > 0 else 0.0,
+            "live_sample_size": live_total,
+            "live_win_rate": live_wins / live_total if live_total > 0 else 0.0,
+            "retro_sample_size": retro_total,
+            "retro_win_rate": retro_wins / retro_total if retro_total > 0 else 0.0,
+            "avg_mfe_10": total_mfe / n if n > 0 else 0.0,
+            "avg_mae_10": total_mae / n if n > 0 else 0.0,
+            "detailed_log": self.detailed_log
         }
 
 

@@ -1,0 +1,792 @@
+=== POST-BREACH PULLBACK CONTINUATION VERBOSE REPORT ===
+=== REPRODUCTION INSTRUCTIONS ===
+To replicate these results on the frontend, use the following parameters:
+Symbol:     ^NSEI
+Timeframe:  4m
+Start Date: 2026-03-20
+End Date:   2026-05-04
+============================================================
+
+Overall Sample Size: 27
+Overall Win Rate:    85.19%
+
+Live Sample Size:    16
+Live Win Rate:       87.50%
+
+Retro Sample Size:   11
+Retro Win Rate:      81.82%
+============================================================
+
+=== LIVE EVENTS ===
+These events would have been fully tradable in real-time without future lookahead.
+============================================================
+BREACH: 4/23/2026, 12:11:00 PM | P1 (L1-H1) (0.75) | Dir: UP
+   -> [REJECTED] No test on this line. Within 10 bars saw: CROSS_DOWN on 0.75, TARGET_FAILED on 0.75, FAN_DEACTIVATED on -
+------------------------------------------------------------
+BREACH: 4/23/2026, 1:07:00 PM | P2 (L2-H1) (0.75) | Dir: UP
+   -> [REJECTED] No test on this line. Within 10 bars saw: CROSS_UP on 0.5
+------------------------------------------------------------
+BREACH: 4/23/2026, 1:15:00 PM | P1 (L2-H2) (0.25) | Dir: UP
+   -> [REJECTED] No test on this line. Within 10 bars saw: TARGET_FAILED on horizontal, FAN_DEACTIVATED on -
+------------------------------------------------------------
+BREACH: 4/23/2026, 1:27:00 PM | P1 (L2-H1) (horizontal) | Dir: UP
+   -> [REJECTED] No test on this line. Within 10 bars saw: CROSS_DOWN on horizontal, CROSS_DOWN on 0.5
+------------------------------------------------------------
+BREACH: 4/23/2026, 2:11:00 PM | P2 (H3-L2) (0.5) | Dir: DOWN
+   -> [REJECTED] No test on this line. No events at all for this fan within 10 bars (possibly invalidated or price drifted).
+------------------------------------------------------------
+BREACH: 4/23/2026, 2:27:00 PM | P2 (L2-H1) (0.5) | Dir: DOWN
+   -> [REJECTED] No test on this line. Within 10 bars saw: FAN_DEACTIVATED on -
+------------------------------------------------------------
+BREACH: 4/23/2026, 2:31:00 PM | P1 (H3-L2) (horizontal) | Dir: DOWN
+   -> [REJECTED] No test on this line. Within 10 bars saw: TARGET_FAILED on 0.25, FAN_DEACTIVATED on -
+------------------------------------------------------------
+BREACH: 4/23/2026, 3:07:00 PM | P3 (L4-H1) (0.75) | Dir: DOWN
+   -> [REJECTED] No test on this line. Within 10 bars saw: CROSS_DOWN on 0.875, TARGET_FAILED on 0.75, FAN_DEACTIVATED on -
+------------------------------------------------------------
+BREACH: 4/23/2026, 3:11:00 PM | P2 (L4-H3) (0.75) | Dir: DOWN
+   -> [REJECTED] No test on this line. Within 10 bars saw: TARGET_FAILED on 0.75, FAN_DEACTIVATED on -
+------------------------------------------------------------
+BREACH: 4/24/2026, 2:35:00 PM | P2 (L9-H7) (horizontal) | Dir: UP
+   -> [REJECTED] No test on this line. Within 10 bars saw: SUPPORT_TEST on 0.25, BREACH_CONFIRMED on 0.25, REST_ON_ANGLE on 0.25
+------------------------------------------------------------
+BREACH: 4/24/2026, 2:35:00 PM | P1 (L9-H8) (horizontal) | Dir: UP
+   -> [ACCEPTED] Pullback at 4/24/2026, 2:59:00 PM (SUPPORT_TEST)
+      Timing: Occurred 6.0 bars after breach
+      Prices: Breach @ 23916.85, Pullback @ 23890.24
+      Outcome: WIN (MFE: 176.21, MAE: 26.94)
+------------------------------------------------------------
+BREACH: 4/24/2026, 2:39:00 PM | P2 (L9-H7) (0.25) | Dir: UP
+   -> [ACCEPTED] Pullback at 4/24/2026, 2:43:00 PM (SUPPORT_TEST)
+      Timing: Occurred 1.0 bars after breach
+      Prices: Breach @ 23917.10, Pullback @ 23915.21
+      Outcome: WIN (MFE: 51.91, MAE: 14.94)
+------------------------------------------------------------
+BREACH: 4/24/2026, 2:39:00 PM | P1 (L9-H8) (0.25) | Dir: UP
+   -> [REJECTED] No test on this line. Within 10 bars saw: CROSS_DOWN on 0.25, SUPPORT_TEST on horizontal
+------------------------------------------------------------
+BREACH: 4/27/2026, 9:31:00 AM | P3 (L9-H3) (0.5) | Dir: DOWN
+   -> [REJECTED] Test occurred outside 10-bar window (happened 16.0 bars later)
+      First Test Found: 4/27/2026, 10:35:00 AM (RESISTANCE_TEST)
+------------------------------------------------------------
+BREACH: 4/27/2026, 9:47:00 AM | P3 (L9-H3) (0.5) | Dir: UP
+   -> [REJECTED] Test occurred outside 10-bar window (happened 12.0 bars later)
+      First Test Found: 4/27/2026, 10:35:00 AM (RESISTANCE_TEST)
+------------------------------------------------------------
+BREACH: 4/27/2026, 9:47:00 AM | P2 (L9-H4) (0.5) | Dir: UP
+   -> [REJECTED] No test on this line. Within 10 bars saw: SUPPORT_TEST on horizontal, BREACH_CONFIRMED on horizontal, CROSS_DOWN on horizontal
+------------------------------------------------------------
+BREACH: 4/27/2026, 9:47:00 AM | P1 (L9-H5) (horizontal) | Dir: UP
+   -> [REJECTED] Test occurred outside 10-bar window (happened 46.0 bars later)
+      First Test Found: 4/27/2026, 12:51:00 PM (SUPPORT_TEST)
+------------------------------------------------------------
+BREACH: 4/27/2026, 9:51:00 AM | P2 (L9-H4) (horizontal) | Dir: UP
+   -> [REJECTED] Breach UP requires SUPPORT_TEST, but got RESISTANCE_TEST (4.0 bars later)
+      First Test Found: 4/27/2026, 10:07:00 AM (RESISTANCE_TEST)
+------------------------------------------------------------
+BREACH: 4/27/2026, 10:11:00 AM | P3 (L9-H3) (horizontal) | Dir: DOWN
+   -> [ACCEPTED] Pullback at 4/27/2026, 10:15:00 AM (RESISTANCE_TEST)
+      Timing: Occurred 1.0 bars after breach
+      Prices: Breach @ 24063.30, Pullback @ 24100.59
+      Outcome: WIN (MFE: 87.59, MAE: 0.00)
+------------------------------------------------------------
+BREACH: 4/27/2026, 10:27:00 AM | P1 (H11-L10) (0.875) | Dir: DOWN
+   -> [REJECTED] No test on this line. Within 10 bars saw: SUPPORT_TEST on 0.75, TARGET_HIT on 0.75
+------------------------------------------------------------
+BREACH: 4/27/2026, 10:27:00 AM | P2 (H11-L9) (0.875) | Dir: DOWN
+   -> [REJECTED] No test on this line. No events at all for this fan within 10 bars (possibly invalidated or price drifted).
+------------------------------------------------------------
+BREACH: 4/27/2026, 11:15:00 AM | P1 (H12-L11) (0.5) | Dir: UP
+   -> [REJECTED] No test on this line. Within 10 bars saw: CROSS_DOWN on 0.5
+------------------------------------------------------------
+BREACH: 4/27/2026, 11:23:00 AM | P3 (H11-L10) (0.75) | Dir: DOWN
+   -> [REJECTED] No test on this line. Within 10 bars saw: TARGET_FAILED on 0.75, FAN_DEACTIVATED on -
+------------------------------------------------------------
+BREACH: 4/27/2026, 11:31:00 AM | P3 (L9-H5) (horizontal) | Dir: DOWN
+   -> [REJECTED] No test on this line. Within 10 bars saw: FAN_DEACTIVATED on -
+------------------------------------------------------------
+BREACH: 4/27/2026, 11:47:00 AM | P1 (H11-L10) (0.5) | Dir: UP
+   -> [REJECTED] No test on this line. No events at all for this fan within 10 bars (possibly invalidated or price drifted).
+------------------------------------------------------------
+BREACH: 4/27/2026, 12:03:00 PM | P1 (L12-H12) (0.75) | Dir: UP
+   -> [REJECTED] No test on this line. Within 10 bars saw: RESISTANCE_TEST on 0.5, TARGET_HIT on 0.5, GAP_CROSS_UP on 0.5
+------------------------------------------------------------
+BREACH: 4/27/2026, 12:15:00 PM | P1 (L12-H12) (0.5) | Dir: UP
+   -> [ACCEPTED] Pullback at 4/27/2026, 12:19:00 PM (SUPPORT_TEST)
+      Timing: Occurred 1.0 bars after breach
+      Prices: Breach @ 24044.80, Pullback @ 24033.58
+      Outcome: WIN (MFE: 59.27, MAE: 0.00)
+------------------------------------------------------------
+BREACH: 4/27/2026, 12:31:00 PM | P2 (L12-H11) (horizontal) | Dir: UP
+   -> [REJECTED] No test on this line. Within 10 bars saw: SUPPORT_TEST on 0.25, REST_ON_ANGLE on 0.25
+------------------------------------------------------------
+BREACH: 4/27/2026, 1:15:00 PM | P1 (L9-H5) (0.25) | Dir: UP
+   -> [REJECTED] Test occurred outside 10-bar window (happened 34.0 bars later)
+      First Test Found: 4/28/2026, 9:15:00 AM (SUPPORT_TEST)
+------------------------------------------------------------
+BREACH: 4/27/2026, 1:15:00 PM | P1 (L9-H5) (horizontal) | Dir: UP
+   -> [REJECTED] Test occurred outside 10-bar window (happened 130.0 bars later)
+      First Test Found: 4/29/2026, 9:23:00 AM (SUPPORT_TEST)
+------------------------------------------------------------
+BREACH: 4/27/2026, 1:23:00 PM | P3 (L9-H3) (horizontal) | Dir: UP
+   -> [ACCEPTED] Pullback at 4/27/2026, 1:31:00 PM (SUPPORT_TEST)
+      Timing: Occurred 2.0 bars after breach
+      Prices: Breach @ 24110.55, Pullback @ 24100.59
+      Outcome: WIN (MFE: 28.71, MAE: 0.00)
+------------------------------------------------------------
+BREACH: 4/27/2026, 1:23:00 PM | P2 (L9-H4) (0.25) | Dir: UP
+   -> [ACCEPTED] Pullback at 4/27/2026, 1:31:00 PM (SUPPORT_TEST)
+      Timing: Occurred 2.0 bars after breach
+      Prices: Breach @ 24110.55, Pullback @ 24101.33
+      Outcome: WIN (MFE: 27.97, MAE: 0.00)
+------------------------------------------------------------
+BREACH: 4/27/2026, 1:43:00 PM | P3 (L9-H3) (0.25) | Dir: UP
+   -> [REJECTED] Breach UP requires SUPPORT_TEST, but got RESISTANCE_TEST (4.0 bars later)
+      First Test Found: 4/27/2026, 1:59:00 PM (RESISTANCE_TEST)
+------------------------------------------------------------
+BREACH: 4/27/2026, 2:19:00 PM | P1 (H13-L12) (0.875) | Dir: NAN
+   -> [REJECTED] No test on this line. Within 10 bars saw: CROSS_DOWN on 0.75, TARGET_HIT on 0.75, CROSS_UP on 0.75
+------------------------------------------------------------
+BREACH: 4/27/2026, 2:31:00 PM | P2 (H13-L10) (0.875) | Dir: DOWN
+   -> [REJECTED] No test on this line. Within 10 bars saw: TARGET_FAILED on 0.875, FAN_DEACTIVATED on -
+------------------------------------------------------------
+BREACH: 4/27/2026, 3:15:00 PM | P3 (H14-L10) (0.875) | Dir: DOWN
+   -> [REJECTED] No test on this line. No events at all for this fan within 10 bars (possibly invalidated or price drifted).
+------------------------------------------------------------
+BREACH: 4/28/2026, 9:23:00 AM | P2 (L9-H4) (0.25) | Dir: UP
+   -> [REJECTED] Test occurred outside 10-bar window (happened 31.0 bars later)
+      First Test Found: 4/28/2026, 11:27:00 AM (SUPPORT_TEST)
+------------------------------------------------------------
+BREACH: 4/28/2026, 9:23:00 AM | P2 (L9-H4) (horizontal) | Dir: UP
+   -> [REJECTED] Test occurred outside 10-bar window (happened 34.0 bars later)
+      First Test Found: 4/28/2026, 11:39:00 AM (RESISTANCE_TEST)
+------------------------------------------------------------
+BREACH: 4/28/2026, 9:23:00 AM | P1 (L9-H5) (horizontal) | Dir: UP
+   -> [REJECTED] Test occurred outside 10-bar window (happened 94.0 bars later)
+      First Test Found: 4/29/2026, 9:23:00 AM (SUPPORT_TEST)
+------------------------------------------------------------
+BREACH: 4/28/2026, 9:43:00 AM | P3 (L9-H3) (0.25) | Dir: UP
+   -> [REJECTED] Test occurred outside 10-bar window (happened 56.0 bars later)
+      First Test Found: 4/28/2026, 1:27:00 PM (RESISTANCE_TEST)
+------------------------------------------------------------
+BREACH: 4/28/2026, 10:47:00 AM | P2 (H15-L12) (0.75) | Dir: UP
+   -> [REJECTED] No test on this line. Within 10 bars saw: RESISTANCE_TEST on 0.875, CROSS_UP on 0.875, CROSS_DOWN on 0.5
+------------------------------------------------------------
+BREACH: 4/28/2026, 11:03:00 AM | P1 (L15-H15) (horizontal) | Dir: DOWN
+   -> [REJECTED] No test on this line. Within 10 bars saw: CROSS_UP on 0.5, CROSS_DOWN on 0.5
+------------------------------------------------------------
+BREACH: 4/28/2026, 11:27:00 AM | P3 (H15-L10) (0.75) | Dir: DOWN
+   -> [REJECTED] No test on this line. Within 10 bars saw: TARGET_FAILED on 0.75, FAN_DEACTIVATED on -, CROSS_DOWN on 0.5
+------------------------------------------------------------
+BREACH: 4/28/2026, 11:27:00 AM | P2 (H15-L12) (0.5) | Dir: DOWN
+   -> [ACCEPTED] Pullback at 4/28/2026, 11:43:00 AM (RESISTANCE_TEST)
+      Timing: Occurred 4.0 bars after breach
+      Prices: Breach @ 24052.70, Pullback @ 24090.97
+      Outcome: WIN (MFE: 87.12, MAE: 0.00)
+------------------------------------------------------------
+BREACH: 4/28/2026, 11:27:00 AM | P1 (H15-L14) (0.5) | Dir: DOWN
+   -> [REJECTED] No test on this line. Within 10 bars saw: SUPPORT_TEST on horizontal, TARGET_HIT on horizontal, CROSS_DOWN on 0.25
+------------------------------------------------------------
+BREACH: 4/28/2026, 11:43:00 AM | P2 (H15-L12) (horizontal) | Dir: UP
+   -> [REJECTED] No test on this line. Within 10 bars saw: FAN_DEACTIVATED on -, CROSS_DOWN on horizontal, BREACH_CONFIRMED on horizontal
+------------------------------------------------------------
+BREACH: 4/28/2026, 11:59:00 AM | P2 (H15-L12) (horizontal) | Dir: DOWN
+   -> [REJECTED] No test on this line. Within 10 bars saw: CROSS_DOWN on 0.25, CROSS_UP on 0.25, SUPPORT_TEST on 0.25
+------------------------------------------------------------
+BREACH: 4/28/2026, 12:03:00 PM | P1 (H15-L14) (horizontal) | Dir: DOWN
+   -> [REJECTED] Breach DOWN requires RESISTANCE_TEST, but got SUPPORT_TEST (3.0 bars later)
+      First Test Found: 4/28/2026, 12:15:00 PM (SUPPORT_TEST)
+------------------------------------------------------------
+BREACH: 4/28/2026, 12:11:00 PM | P3 (H15-L10) (0.5) | Dir: UP
+   -> [REJECTED] Test occurred outside 10-bar window (happened 51.0 bars later)
+      First Test Found: 4/29/2026, 9:19:00 AM (RESISTANCE_TEST)
+------------------------------------------------------------
+BREACH: 4/28/2026, 12:11:00 PM | P2 (H15-L12) (0.25) | Dir: UP
+   -> [REJECTED] No test on this line. Within 10 bars saw: CROSS_DOWN on 0.25
+------------------------------------------------------------
+BREACH: 4/28/2026, 12:31:00 PM | P3 (H15-L9) (0.5) | Dir: DOWN
+   -> [ACCEPTED] Pullback at 4/28/2026, 12:35:00 PM (RESISTANCE_TEST)
+      Timing: Occurred 1.0 bars after breach
+      Prices: Breach @ 24004.25, Pullback @ 24018.46
+      Outcome: LOSS (MFE: 21.99, MAE: 18.76)
+------------------------------------------------------------
+BREACH: 4/28/2026, 12:47:00 PM | P2 (H15-L10) (horizontal) | Dir: UP
+   -> [REJECTED] No test on this line. Within 10 bars saw: FAN_DEACTIVATED on -
+------------------------------------------------------------
+BREACH: 4/28/2026, 1:03:00 PM | P1 (L16-H16) (0.875) | Dir: UP
+   -> [REJECTED] No test on this line. Within 10 bars saw: CROSS_DOWN on 0.75, TARGET_FAILED on 0.75, FAN_DEACTIVATED on -
+------------------------------------------------------------
+BREACH: 4/28/2026, 1:31:00 PM | P2 (L16-H15) (0.75) | Dir: DOWN
+   -> [REJECTED] No test on this line. Within 10 bars saw: FAN_DEACTIVATED on -
+------------------------------------------------------------
+BREACH: 4/28/2026, 1:35:00 PM | P1 (H15-L10) (horizontal) | Dir: DOWN
+   -> [REJECTED] Breach DOWN requires RESISTANCE_TEST, but got SUPPORT_TEST (5.0 bars later)
+      First Test Found: 4/28/2026, 1:55:00 PM (SUPPORT_TEST)
+------------------------------------------------------------
+BREACH: 4/28/2026, 2:35:00 PM | P3 (L18-H15) (0.75) | Dir: UP
+   -> [ACCEPTED] Pullback at 4/28/2026, 3:07:00 PM (SUPPORT_TEST)
+      Timing: Occurred 8.0 bars after breach
+      Prices: Breach @ 24023.50, Pullback @ 23974.62
+      Outcome: WIN (MFE: 151.83, MAE: 16.57)
+------------------------------------------------------------
+BREACH: 4/28/2026, 2:35:00 PM | P2 (L18-H16) (0.75) | Dir: UP
+   -> [REJECTED] No test on this line. Within 10 bars saw: TARGET_FAILED on 0.75, FAN_DEACTIVATED on -
+------------------------------------------------------------
+BREACH: 4/28/2026, 2:47:00 PM | P1 (L18-H18) (0.25) | Dir: UP
+   -> [REJECTED] No test on this line. Within 10 bars saw: GAP_CROSS_UP on horizontal, TARGET_HIT on horizontal, SUPPORT_TEST on horizontal
+------------------------------------------------------------
+BREACH: 4/28/2026, 3:07:00 PM | P1 (L18-H18) (horizontal) | Dir: DOWN
+   -> [REJECTED] No test on this line. Within 10 bars saw: TARGET_FAILED on horizontal, FAN_DEACTIVATED on -
+------------------------------------------------------------
+BREACH: 4/28/2026, 3:15:00 PM | P1 (H15-L10) (0.25) | Dir: DOWN
+   -> [REJECTED] No test on this line. Within 10 bars saw: CROSS_UP on 0.25, CROSS_UP on horizontal, CROSS_DOWN on 0.5
+------------------------------------------------------------
+BREACH: 4/28/2026, 3:23:00 PM | P3 (L9-H5) (0.25) | Dir: UP
+   -> [REJECTED] No test on this line. Within 10 bars saw: GAP_CROSS_UP on horizontal, FAN_DEACTIVATED on -
+------------------------------------------------------------
+BREACH: 4/29/2026, 9:19:00 AM | P2 (L20-H15) (horizontal) | Dir: UP
+   -> [ACCEPTED] Pullback at 4/29/2026, 9:23:00 AM (SUPPORT_TEST)
+      Timing: Occurred 1.0 bars after breach
+      Prices: Breach @ 24088.55, Pullback @ 24084.67
+      Outcome: WIN (MFE: 126.08, MAE: 0.00)
+------------------------------------------------------------
+BREACH: 4/29/2026, 9:19:00 AM | P1 (L20-H16) (horizontal) | Dir: UP
+   -> [ACCEPTED] Pullback at 4/29/2026, 9:23:00 AM (SUPPORT_TEST)
+      Timing: Occurred 1.0 bars after breach
+      Prices: Breach @ 24088.55, Pullback @ 24082.95
+      Outcome: WIN (MFE: 127.80, MAE: 0.00)
+------------------------------------------------------------
+BREACH: 4/29/2026, 9:47:00 AM | P2 (L20-H15) (0.25) | Dir: UP
+   -> [REJECTED] No test on this line. No events at all for this fan within 10 bars (possibly invalidated or price drifted).
+------------------------------------------------------------
+BREACH: 4/29/2026, 9:47:00 AM | P1 (L20-H16) (0.25) | Dir: UP
+   -> [REJECTED] No test on this line. Within 10 bars saw: TARGET_FAILED on 0.75, FAN_DEACTIVATED on -
+------------------------------------------------------------
+BREACH: 4/29/2026, 1:27:00 PM | P2 (H23-L21) (0.75) | Dir: DOWN
+   -> [REJECTED] No test on this line. Within 10 bars saw: CROSS_DOWN on 0.5, TARGET_HIT on 0.5, CROSS_DOWN on horizontal
+------------------------------------------------------------
+BREACH: 4/29/2026, 1:27:00 PM | P1 (H23-L22) (0.75) | Dir: DOWN
+   -> [REJECTED] No test on this line. Within 10 bars saw: CROSS_DOWN on 0.5, TARGET_HIT on 0.5, CROSS_DOWN on horizontal
+------------------------------------------------------------
+BREACH: 4/29/2026, 1:39:00 PM | P2 (H23-L21) (horizontal) | Dir: DOWN
+   -> [REJECTED] No test on this line. Within 10 bars saw: CROSS_DOWN on 0.25
+------------------------------------------------------------
+BREACH: 4/29/2026, 1:39:00 PM | P1 (H23-L22) (horizontal) | Dir: DOWN
+   -> [REJECTED] No test on this line. Within 10 bars saw: BREACH_CONFIRMED on 0.25, TARGET_FAILED on 0.25, FAN_DEACTIVATED on -
+------------------------------------------------------------
+BREACH: 4/29/2026, 1:43:00 PM | P3 (H23-L20) (0.875) | Dir: DOWN
+   -> [REJECTED] No test on this line. No events at all for this fan within 10 bars (possibly invalidated or price drifted).
+------------------------------------------------------------
+BREACH: 4/29/2026, 1:43:00 PM | P1 (H23-L22) (0.25) | Dir: DOWN
+   -> [REJECTED] No test on this line. Within 10 bars saw: TARGET_FAILED on 0.25, FAN_DEACTIVATED on -
+------------------------------------------------------------
+BREACH: 4/29/2026, 1:55:00 PM | P1 (H23-L21) (0.25) | Dir: DOWN
+   -> [REJECTED] No test on this line. Within 10 bars saw: TARGET_FAILED on 0.25, FAN_DEACTIVATED on -
+------------------------------------------------------------
+BREACH: 4/29/2026, 2:07:00 PM | P2 (H23-L10) (0.75) | Dir: DOWN
+   -> [REJECTED] No test on this line. No events at all for this fan within 10 bars (possibly invalidated or price drifted).
+------------------------------------------------------------
+BREACH: 4/29/2026, 2:07:00 PM | P1 (H23-L20) (0.75) | Dir: DOWN
+   -> [REJECTED] No test on this line. No events at all for this fan within 10 bars (possibly invalidated or price drifted).
+------------------------------------------------------------
+BREACH: 4/29/2026, 2:19:00 PM | P3 (H23-L9) (0.75) | Dir: DOWN
+   -> [ACCEPTED] Pullback at 4/29/2026, 2:23:00 PM (RESISTANCE_TEST)
+      Timing: Occurred 1.0 bars after breach
+      Prices: Breach @ 24191.15, Pullback @ 24216.63
+      Outcome: WIN (MFE: 34.53, MAE: 14.06)
+------------------------------------------------------------
+BREACH: 4/30/2026, 9:19:00 AM | P1 (H23-L10) (0.25) | Dir: DOWN
+   -> [REJECTED] No test on this line. No events at all for this fan within 10 bars (possibly invalidated or price drifted).
+------------------------------------------------------------
+BREACH: 4/30/2026, 9:19:00 AM | P2 (H23-L9) (horizontal) | Dir: DOWN
+   -> [REJECTED] No test on this line. Within 10 bars saw: BREACH_CONFIRMED on 0.25, RESISTANCE_TEST on 0.25, FAN_DEACTIVATED on -
+------------------------------------------------------------
+BREACH: 4/30/2026, 9:27:00 AM | P2 (H23-L9) (0.25) | Dir: DOWN
+   -> [ACCEPTED] Pullback at 4/30/2026, 9:43:00 AM (RESISTANCE_TEST)
+      Timing: Occurred 4.0 bars after breach
+      Prices: Breach @ 23872.50, Pullback @ 23954.49
+      Outcome: WIN (MFE: 153.64, MAE: 0.00)
+------------------------------------------------------------
+BREACH: 4/30/2026, 12:03:00 PM | P1 (L26-H25) (0.75) | Dir: UP
+   -> [REJECTED] No test on this line. Within 10 bars saw: RESISTANCE_TEST on 0.5, TARGET_HIT on 0.5, CROSS_UP on 0.5
+------------------------------------------------------------
+BREACH: 4/30/2026, 12:11:00 PM | P2 (L26-H24) (0.875) | Dir: UP
+   -> [REJECTED] No test on this line. Within 10 bars saw: CROSS_UP on 0.75, TARGET_HIT on 0.75, BREACH_CONFIRMED on 0.75
+------------------------------------------------------------
+BREACH: 4/30/2026, 12:23:00 PM | P3 (L26-H23) (0.875) | Dir: UP
+   -> [REJECTED] No test on this line. Within 10 bars saw: RESISTANCE_TEST on 0.75, TARGET_HIT on 0.75
+------------------------------------------------------------
+BREACH: 4/30/2026, 12:31:00 PM | P1 (L26-H25) (horizontal) | Dir: UP
+   -> [REJECTED] No test on this line. Within 10 bars saw: CROSS_DOWN on 0.25, CROSS_DOWN on horizontal, CROSS_UP on horizontal
+------------------------------------------------------------
+BREACH: 4/30/2026, 12:43:00 PM | P1 (L26-H25) (0.25) | Dir: UP
+   -> [REJECTED] No test on this line. Within 10 bars saw: TARGET_FAILED on 0.25, FAN_DEACTIVATED on -
+------------------------------------------------------------
+BREACH: 4/30/2026, 12:51:00 PM | P2 (L26-H24) (0.75) | Dir: UP
+   -> [REJECTED] No test on this line. No events at all for this fan within 10 bars (possibly invalidated or price drifted).
+------------------------------------------------------------
+BREACH: 4/30/2026, 1:11:00 PM | P3 (L26-H23) (0.75) | Dir: UP
+   -> [REJECTED] No test on this line. No events at all for this fan within 10 bars (possibly invalidated or price drifted).
+------------------------------------------------------------
+BREACH: 4/30/2026, 1:47:00 PM | P1 (L26-H24) (0.5) | Dir: UP
+   -> [ACCEPTED] Pullback at 4/30/2026, 1:51:00 PM (SUPPORT_TEST)
+      Timing: Occurred 1.0 bars after breach
+      Prices: Breach @ 24031.25, Pullback @ 24021.24
+      Outcome: LOSS (MFE: 39.51, MAE: 36.79)
+------------------------------------------------------------
+BREACH: 4/30/2026, 2:19:00 PM | P1 (H27-L26) (0.875) | Dir: DOWN
+   -> [REJECTED] No test on this line. Within 10 bars saw: CROSS_UP on 0.875, TARGET_FAILED on 0.875, FAN_DEACTIVATED on -
+------------------------------------------------------------
+BREACH: 4/30/2026, 2:59:00 PM | P2 (L26-H23) (0.5) | Dir: DOWN
+   -> [REJECTED] No test on this line. Within 10 bars saw: TARGET_FAILED on 0.5, FAN_DEACTIVATED on -
+------------------------------------------------------------
+BREACH: 4/30/2026, 3:27:00 PM | P1 (H28-L26) (0.75) | Dir: UP
+   -> [REJECTED] No test on this line. Within 10 bars saw: TARGET_FAILED on 0.75, FAN_DEACTIVATED on -
+------------------------------------------------------------
+BREACH: 5/4/2026, 9:15:00 AM | P1 (L26-H23) (0.5) | Dir: UP
+   -> [REJECTED] No test on this line. Within 10 bars saw: CROSS_DOWN on 0.25, SUPPORT_TEST on horizontal, CROSS_UP on 0.25
+------------------------------------------------------------
+BREACH: 5/4/2026, 9:23:00 AM | P1 (L26-H23) (horizontal) | Dir: UP
+   -> [REJECTED] No test on this line. Within 10 bars saw: BREACH_CONFIRMED on 0.25, SUPPORT_TEST on 0.25, SUPPORT_BOUNCE on 0.25
+------------------------------------------------------------
+BREACH: 5/4/2026, 9:27:00 AM | P1 (L26-H23) (0.25) | Dir: UP
+   -> [ACCEPTED] Pullback at 5/4/2026, 9:31:00 AM (SUPPORT_TEST)
+      Timing: Occurred 1.0 bars after breach
+      Prices: Breach @ 24232.85, Pullback @ 24189.41
+      Outcome: WIN (MFE: 99.79, MAE: 16.96)
+------------------------------------------------------------
+BREACH: 5/4/2026, 10:15:00 AM | P2 (H29-L26) (0.875) | Dir: DOWN
+   -> [REJECTED] No test on this line. No events at all for this fan within 10 bars (possibly invalidated or price drifted).
+------------------------------------------------------------
+BREACH: 5/4/2026, 10:15:00 AM | P1 (H29-L28) (0.875) | Dir: DOWN
+   -> [REJECTED] No test on this line. No events at all for this fan within 10 bars (possibly invalidated or price drifted).
+------------------------------------------------------------
+BREACH: 5/4/2026, 10:39:00 AM | P1 (L29-H29) (0.75) | Dir: UP
+   -> [ACCEPTED] Pullback at 5/4/2026, 10:59:00 AM (SUPPORT_TEST)
+      Timing: Occurred 5.0 bars after breach
+      Prices: Breach @ 24213.60, Pullback @ 24176.59
+      Outcome: WIN (MFE: 66.21, MAE: 0.00)
+------------------------------------------------------------
+BREACH: 5/4/2026, 12:11:00 PM | P3 (L26-H23) (horizontal) | Dir: DOWN
+   -> [REJECTED] No test on this line. Within 10 bars saw: RESISTANCE_TEST on 0.25, CROSS_UP on 0.25, CROSS_DOWN on 0.25
+------------------------------------------------------------
+BREACH: 5/4/2026, 12:31:00 PM | P1 (H29-L28) (0.5) | Dir: DOWN
+   -> [REJECTED] No test on this line. No events at all for this fan within 10 bars (possibly invalidated or price drifted).
+------------------------------------------------------------
+BREACH: 5/4/2026, 12:31:00 PM | P3 (L26-H23) (0.25) | Dir: DOWN
+   -> [REJECTED] No test on this line. Within 10 bars saw: FAN_DEACTIVATED on -
+------------------------------------------------------------
+BREACH: 5/4/2026, 1:43:00 PM | P1 (H29-L28) (0.25) | Dir: UP
+   -> [REJECTED] No test on this line. Within 10 bars saw: FAN_DEACTIVATED on -
+------------------------------------------------------------
+BREACH: 5/4/2026, 1:55:00 PM | P3 (L32-H29) (0.75) | Dir: DOWN
+   -> [REJECTED] No test on this line. Within 10 bars saw: CROSS_UP on 0.75
+------------------------------------------------------------
+BREACH: 5/4/2026, 2:11:00 PM | P2 (L32-H31) (0.75) | Dir: UP
+   -> [REJECTED] No test on this line. No events at all for this fan within 10 bars (possibly invalidated or price drifted).
+------------------------------------------------------------
+
+
+=== RETROACTIVE EVENTS ===
+These events occurred during the 5-bar unconfirmed pivot window and were retroactively inserted.
+============================================================
+BREACH [RETROACTIVE]: 4/23/2026, 10:59:00 AM | P1 (L1-H1) (0.875) | Dir: UP
+   -> [INFO] This event was generated retroactively during a sweep.
+             In live replay, it will only appear on the chart once the fan's anchor pivot is confirmed.
+   -> [REJECTED] No test on this line. Within 10 bars saw: CROSS_DOWN on 0.75, TARGET_HIT on 0.75, TARGET_FAILED on 0.75
+------------------------------------------------------------
+BREACH [RETROACTIVE]: 4/23/2026, 12:43:00 PM | P2 (L2-H1) (0.875) | Dir: UP
+   -> [INFO] This event was generated retroactively during a sweep.
+             In live replay, it will only appear on the chart once the fan's anchor pivot is confirmed.
+   -> [REJECTED] No test on this line. Within 10 bars saw: RESISTANCE_TEST on 0.75, TARGET_HIT on 0.75, GAP_CROSS_UP on 0.75
+------------------------------------------------------------
+BREACH [RETROACTIVE]: 4/23/2026, 12:51:00 PM | P1 (L2-H2) (0.75) | Dir: UP
+   -> [INFO] This event was generated retroactively during a sweep.
+             In live replay, it will only appear on the chart once the fan's anchor pivot is confirmed.
+   -> [REJECTED] No test on this line. Within 10 bars saw: CROSS_UP on 0.5, TARGET_HIT on 0.5, RESISTANCE_TEST on 0.25
+------------------------------------------------------------
+BREACH [RETROACTIVE]: 4/23/2026, 1:51:00 PM | P1 (L3-H3) (0.875) | Dir: UP
+   -> [INFO] This event was generated retroactively during a sweep.
+             In live replay, it will only appear on the chart once the fan's anchor pivot is confirmed.
+   -> [REJECTED] No test on this line. Within 10 bars saw: GAP_CROSS_UP on 0.75, TARGET_HIT on 0.75, SUPPORT_TEST on 0.75
+------------------------------------------------------------
+BREACH [RETROACTIVE]: 4/23/2026, 1:55:00 PM | P2 (L3-H3) (0.75) | Dir: UP
+   -> [INFO] This event was generated retroactively during a sweep.
+             In live replay, it will only appear on the chart once the fan's anchor pivot is confirmed.
+   -> [REJECTED] No test on this line. Within 10 bars saw: TARGET_FAILED on 0.75, FAN_DEACTIVATED on -
+------------------------------------------------------------
+BREACH [RETROACTIVE]: 4/23/2026, 2:03:00 PM | P1 (H4-L3) (0.75) | Dir: DOWN
+   -> [INFO] This event was generated retroactively during a sweep.
+             In live replay, it will only appear on the chart once the fan's anchor pivot is confirmed.
+   -> [REJECTED] No test on this line. Within 10 bars saw: CROSS_DOWN on 0.5, TARGET_HIT on 0.5, CROSS_DOWN on horizontal
+------------------------------------------------------------
+BREACH [RETROACTIVE]: 4/23/2026, 2:11:00 PM | P1 (H4-L3) (0.25) | Dir: DOWN
+   -> [INFO] This event was generated retroactively during a sweep.
+             In live replay, it will only appear on the chart once the fan's anchor pivot is confirmed.
+   -> [REJECTED] No test on this line. Within 10 bars saw: CROSS_UP on horizontal, REST_ON_ANGLE on horizontal, CROSS_UP on 0.25
+------------------------------------------------------------
+BREACH [RETROACTIVE]: 4/24/2026, 11:31:00 AM | P1 (L6-H6) (0.75) | Dir: UP
+   -> [INFO] This event was generated retroactively during a sweep.
+             In live replay, it will only appear on the chart once the fan's anchor pivot is confirmed.
+   -> [ACCEPTED] Pullback at 4/24/2026, 11:35:00 AM (SUPPORT_TEST)
+      Timing: Occurred 1.0 bars after breach
+      Prices: Breach @ 23939.70, Pullback @ 23927.18
+      Outcome: WIN (MFE: 33.03, MAE: 10.42)
+------------------------------------------------------------
+BREACH [RETROACTIVE]: 4/24/2026, 12:35:00 PM | P3 (L8-H6) (0.875) | Dir: UP
+   -> [INFO] This event was generated retroactively during a sweep.
+             In live replay, it will only appear on the chart once the fan's anchor pivot is confirmed.
+   -> [ACCEPTED] Pullback at 4/24/2026, 12:43:00 PM (SUPPORT_TEST)
+      Timing: Occurred 2.0 bars after breach
+      Prices: Breach @ 23907.20, Pullback @ 23889.20
+      Outcome: LOSS (MFE: 37.95, MAE: 29.86)
+------------------------------------------------------------
+BREACH [RETROACTIVE]: 4/24/2026, 12:35:00 PM | P2 (L8-H7) (0.75) | Dir: UP
+   -> [INFO] This event was generated retroactively during a sweep.
+             In live replay, it will only appear on the chart once the fan's anchor pivot is confirmed.
+   -> [REJECTED] No test on this line. Within 10 bars saw: CROSS_DOWN on 0.75, GAP_CROSS_UP on 0.75, RESISTANCE_TEST on 0.5
+------------------------------------------------------------
+BREACH [RETROACTIVE]: 4/24/2026, 2:11:00 PM | P3 (L9-H7) (0.875) | Dir: UP
+   -> [INFO] This event was generated retroactively during a sweep.
+             In live replay, it will only appear on the chart once the fan's anchor pivot is confirmed.
+   -> [REJECTED] No test on this line. Within 10 bars saw: CROSS_UP on 0.75, TARGET_HIT on 0.75, BREACH_CONFIRMED on 0.75
+------------------------------------------------------------
+BREACH [RETROACTIVE]: 4/24/2026, 2:11:00 PM | P2 (L9-H8) (0.875) | Dir: UP
+   -> [INFO] This event was generated retroactively during a sweep.
+             In live replay, it will only appear on the chart once the fan's anchor pivot is confirmed.
+   -> [REJECTED] No test on this line. Within 10 bars saw: CROSS_UP on 0.75, TARGET_HIT on 0.75, BREACH_CONFIRMED on 0.75
+------------------------------------------------------------
+BREACH [RETROACTIVE]: 4/24/2026, 2:11:00 PM | P1 (L9-H9) (0.875) | Dir: UP
+   -> [INFO] This event was generated retroactively during a sweep.
+             In live replay, it will only appear on the chart once the fan's anchor pivot is confirmed.
+   -> [REJECTED] No test on this line. Within 10 bars saw: CROSS_UP on 0.75, TARGET_HIT on 0.75, RESISTANCE_TEST on 0.5
+------------------------------------------------------------
+BREACH [RETROACTIVE]: 4/24/2026, 2:19:00 PM | P3 (L9-H7) (0.75) | Dir: UP
+   -> [INFO] This event was generated retroactively during a sweep.
+             In live replay, it will only appear on the chart once the fan's anchor pivot is confirmed.
+   -> [REJECTED] No test on this line. Within 10 bars saw: CROSS_UP on 0.5, TARGET_HIT on 0.5, CROSS_UP on horizontal
+------------------------------------------------------------
+BREACH [RETROACTIVE]: 4/24/2026, 2:19:00 PM | P2 (L9-H8) (0.75) | Dir: UP
+   -> [INFO] This event was generated retroactively during a sweep.
+             In live replay, it will only appear on the chart once the fan's anchor pivot is confirmed.
+   -> [REJECTED] No test on this line. Within 10 bars saw: CROSS_UP on 0.5, TARGET_HIT on 0.5, CROSS_UP on horizontal
+------------------------------------------------------------
+BREACH [RETROACTIVE]: 4/24/2026, 2:23:00 PM | P3 (L9-H6) (0.75) | Dir: UP
+   -> [INFO] This event was generated retroactively during a sweep.
+             In live replay, it will only appear on the chart once the fan's anchor pivot is confirmed.
+   -> [REJECTED] No test on this line. Within 10 bars saw: RESISTANCE_TEST on 0.5, TARGET_HIT on 0.5, CROSS_UP on 0.5
+------------------------------------------------------------
+BREACH [RETROACTIVE]: 4/24/2026, 2:35:00 PM | P3 (L9-H3) (0.875) | Dir: UP
+   -> [INFO] This event was generated retroactively during a sweep.
+             In live replay, it will only appear on the chart once the fan's anchor pivot is confirmed.
+   -> [REJECTED] No test on this line. No events at all for this fan within 10 bars (possibly invalidated or price drifted).
+------------------------------------------------------------
+BREACH [RETROACTIVE]: 4/24/2026, 2:35:00 PM | P2 (L9-H4) (0.875) | Dir: UP
+   -> [INFO] This event was generated retroactively during a sweep.
+             In live replay, it will only appear on the chart once the fan's anchor pivot is confirmed.
+   -> [REJECTED] No test on this line. Within 10 bars saw: RESISTANCE_TEST on 0.75, TARGET_HIT on 0.75
+------------------------------------------------------------
+BREACH [RETROACTIVE]: 4/24/2026, 2:35:00 PM | P1 (L9-H5) (0.875) | Dir: UP
+   -> [INFO] This event was generated retroactively during a sweep.
+             In live replay, it will only appear on the chart once the fan's anchor pivot is confirmed.
+   -> [REJECTED] No test on this line. Within 10 bars saw: RESISTANCE_TEST on 0.75, TARGET_HIT on 0.75, CROSS_UP on 0.75
+------------------------------------------------------------
+BREACH [RETROACTIVE]: 4/24/2026, 2:35:00 PM | P3 (L9-H1) (0.875) | Dir: UP
+   -> [INFO] This event was generated retroactively during a sweep.
+             In live replay, it will only appear on the chart once the fan's anchor pivot is confirmed.
+   -> [REJECTED] No test on this line. No events at all for this fan within 10 bars (possibly invalidated or price drifted).
+------------------------------------------------------------
+BREACH [RETROACTIVE]: 4/24/2026, 3:03:00 PM | P2 (H10-L9) (0.75) | Dir: DOWN
+   -> [INFO] This event was generated retroactively during a sweep.
+             In live replay, it will only appear on the chart once the fan's anchor pivot is confirmed.
+   -> [REJECTED] No test on this line. Within 10 bars saw: TARGET_FAILED on 0.75, FAN_DEACTIVATED on -
+------------------------------------------------------------
+BREACH [RETROACTIVE]: 4/27/2026, 9:15:00 AM | P1 (L9-H5) (0.5) | Dir: UP
+   -> [INFO] This event was generated retroactively during a sweep.
+             In live replay, it will only appear on the chart once the fan's anchor pivot is confirmed.
+   -> [REJECTED] Breach UP requires SUPPORT_TEST, but got RESISTANCE_TEST (5.0 bars later)
+      First Test Found: 4/27/2026, 9:35:00 AM (RESISTANCE_TEST)
+------------------------------------------------------------
+BREACH [RETROACTIVE]: 4/27/2026, 9:47:00 AM | P3 (L9-H1) (0.5) | Dir: UP
+   -> [INFO] This event was generated retroactively during a sweep.
+             In live replay, it will only appear on the chart once the fan's anchor pivot is confirmed.
+   -> [REJECTED] Test occurred outside 10-bar window (happened 13.0 bars later)
+      First Test Found: 4/27/2026, 10:39:00 AM (RESISTANCE_TEST)
+------------------------------------------------------------
+BREACH [RETROACTIVE]: 4/27/2026, 9:55:00 AM | P1 (L12-H11) (0.25) | Dir: UP
+   -> [INFO] This event was generated retroactively during a sweep.
+             In live replay, it will only appear on the chart once the fan's anchor pivot is confirmed.
+   -> [REJECTED] No test on this line. No events at all for this fan within 10 bars (possibly invalidated or price drifted).
+------------------------------------------------------------
+BREACH [RETROACTIVE]: 4/27/2026, 9:55:00 AM | P3 (L9-H1) (horizontal) | Dir: UP
+   -> [INFO] This event was generated retroactively during a sweep.
+             In live replay, it will only appear on the chart once the fan's anchor pivot is confirmed.
+   -> [REJECTED] Breach UP requires SUPPORT_TEST, but got RESISTANCE_TEST (2.0 bars later)
+      First Test Found: 4/27/2026, 10:03:00 AM (RESISTANCE_TEST)
+------------------------------------------------------------
+BREACH [RETROACTIVE]: 4/27/2026, 10:23:00 AM | P2 (L9-H4) (horizontal) | Dir: DOWN
+   -> [INFO] This event was generated retroactively during a sweep.
+             In live replay, it will only appear on the chart once the fan's anchor pivot is confirmed.
+   -> [ACCEPTED] Pullback at 4/27/2026, 10:51:00 AM (RESISTANCE_TEST)
+      Timing: Occurred 7.0 bars after breach
+      Prices: Breach @ 24054.20, Pullback @ 24084.31
+      Outcome: WIN (MFE: 78.46, MAE: 0.00)
+------------------------------------------------------------
+BREACH [RETROACTIVE]: 4/27/2026, 10:43:00 AM | P3 (L9-H3) (0.5) | Dir: UP
+   -> [INFO] This event was generated retroactively during a sweep.
+             In live replay, it will only appear on the chart once the fan's anchor pivot is confirmed.
+   -> [REJECTED] Test occurred outside 10-bar window (happened 15.0 bars later)
+      First Test Found: 4/27/2026, 11:43:00 AM (RESISTANCE_TEST)
+------------------------------------------------------------
+BREACH [RETROACTIVE]: 4/27/2026, 11:15:00 AM | P2 (H11-L9) (0.75) | Dir: UP
+   -> [INFO] This event was generated retroactively during a sweep.
+             In live replay, it will only appear on the chart once the fan's anchor pivot is confirmed.
+   -> [REJECTED] No test on this line. Within 10 bars saw: GAP_CROSS_DOWN on 0.75
+------------------------------------------------------------
+BREACH [RETROACTIVE]: 4/27/2026, 11:47:00 AM | P2 (L9-H4) (0.5) | Dir: UP
+   -> [INFO] This event was generated retroactively during a sweep.
+             In live replay, it will only appear on the chart once the fan's anchor pivot is confirmed.
+   -> [REJECTED] No test on this line. No events at all for this fan within 10 bars (possibly invalidated or price drifted).
+------------------------------------------------------------
+BREACH [RETROACTIVE]: 4/27/2026, 11:55:00 AM | P2 (L12-H11) (0.75) | Dir: UP
+   -> [INFO] This event was generated retroactively during a sweep.
+             In live replay, it will only appear on the chart once the fan's anchor pivot is confirmed.
+   -> [REJECTED] No test on this line. Within 10 bars saw: RESISTANCE_TEST on 0.5, TARGET_HIT on 0.5, CROSS_UP on 0.5
+------------------------------------------------------------
+BREACH [RETROACTIVE]: 4/27/2026, 2:23:00 PM | P3 (L9-H3) (0.25) | Dir: DOWN
+   -> [INFO] This event was generated retroactively during a sweep.
+             In live replay, it will only appear on the chart once the fan's anchor pivot is confirmed.
+   -> [ACCEPTED] Pullback at 4/27/2026, 2:47:00 PM (RESISTANCE_TEST)
+      Timing: Occurred 6.0 bars after breach
+      Prices: Breach @ 24106.85, Pullback @ 24108.91
+      Outcome: LOSS (MFE: 31.06, MAE: 21.39)
+------------------------------------------------------------
+BREACH [RETROACTIVE]: 4/27/2026, 2:39:00 PM | P2 (L9-H4) (horizontal) | Dir: NAN
+   -> [INFO] This event was generated retroactively during a sweep.
+             In live replay, it will only appear on the chart once the fan's anchor pivot is confirmed.
+   -> [REJECTED] Test occurred outside 10-bar window (happened 11.0 bars later)
+      First Test Found: 4/27/2026, 3:23:00 PM (SUPPORT_TEST)
+------------------------------------------------------------
+BREACH [RETROACTIVE]: 4/27/2026, 2:51:00 PM | P3 (L9-H3) (horizontal) | Dir: UP
+   -> [INFO] This event was generated retroactively during a sweep.
+             In live replay, it will only appear on the chart once the fan's anchor pivot is confirmed.
+   -> [REJECTED] Breach UP requires SUPPORT_TEST, but got RESISTANCE_TEST (3.0 bars later)
+      First Test Found: 4/27/2026, 3:03:00 PM (RESISTANCE_TEST)
+------------------------------------------------------------
+BREACH [RETROACTIVE]: 4/27/2026, 3:03:00 PM | P2 (H14-L12) (0.875) | Dir: DOWN
+   -> [INFO] This event was generated retroactively during a sweep.
+             In live replay, it will only appear on the chart once the fan's anchor pivot is confirmed.
+   -> [REJECTED] No test on this line. Within 10 bars saw: CROSS_DOWN on 0.75, TARGET_HIT on 0.75
+------------------------------------------------------------
+BREACH [RETROACTIVE]: 4/28/2026, 9:31:00 AM | P3 (L9-H1) (0.25) | Dir: DOWN
+   -> [INFO] This event was generated retroactively during a sweep.
+             In live replay, it will only appear on the chart once the fan's anchor pivot is confirmed.
+   -> [ACCEPTED] Pullback at 4/28/2026, 9:39:00 AM (RESISTANCE_TEST)
+      Timing: Occurred 2.0 bars after breach
+      Prices: Breach @ 24105.95, Pullback @ 24126.03
+      Outcome: WIN (MFE: 48.82, MAE: 13.08)
+------------------------------------------------------------
+BREACH [RETROACTIVE]: 4/28/2026, 10:23:00 AM | P1 (L16-H16) (0.75) | Dir: UP
+   -> [INFO] This event was generated retroactively during a sweep.
+             In live replay, it will only appear on the chart once the fan's anchor pivot is confirmed.
+   -> [REJECTED] No test on this line. No events at all for this fan within 10 bars (possibly invalidated or price drifted).
+------------------------------------------------------------
+BREACH [RETROACTIVE]: 4/28/2026, 10:35:00 AM | P2 (H15-L12) (0.875) | Dir: DOWN
+   -> [INFO] This event was generated retroactively during a sweep.
+             In live replay, it will only appear on the chart once the fan's anchor pivot is confirmed.
+   -> [ACCEPTED] Pullback at 4/28/2026, 10:51:00 AM (RESISTANCE_TEST)
+      Timing: Occurred 4.0 bars after breach
+      Prices: Breach @ 24136.25, Pullback @ 24165.11
+      Outcome: WIN (MFE: 119.76, MAE: 9.54)
+------------------------------------------------------------
+BREACH [RETROACTIVE]: 4/28/2026, 10:39:00 AM | P3 (H15-L10) (0.875) | Dir: DOWN
+   -> [INFO] This event was generated retroactively during a sweep.
+             In live replay, it will only appear on the chart once the fan's anchor pivot is confirmed.
+   -> [REJECTED] Breach DOWN requires RESISTANCE_TEST, but got SUPPORT_TEST (2.0 bars later)
+      First Test Found: 4/28/2026, 10:47:00 AM (SUPPORT_TEST)
+------------------------------------------------------------
+BREACH [RETROACTIVE]: 4/28/2026, 10:39:00 AM | P1 (H15-L14) (0.875) | Dir: DOWN
+   -> [INFO] This event was generated retroactively during a sweep.
+             In live replay, it will only appear on the chart once the fan's anchor pivot is confirmed.
+   -> [ACCEPTED] Pullback at 4/28/2026, 10:55:00 AM (RESISTANCE_TEST)
+      Timing: Occurred 4.0 bars after breach
+      Prices: Breach @ 24127.30, Pullback @ 24174.16
+      Outcome: WIN (MFE: 128.81, MAE: 0.49)
+------------------------------------------------------------
+BREACH [RETROACTIVE]: 4/28/2026, 10:47:00 AM | P3 (H15-L9) (0.875) | Dir: UP
+   -> [INFO] This event was generated retroactively during a sweep.
+             In live replay, it will only appear on the chart once the fan's anchor pivot is confirmed.
+   -> [REJECTED] No test on this line. Within 10 bars saw: CROSS_DOWN on 0.875, CROSS_DOWN on 0.75, TARGET_HIT on 0.75
+------------------------------------------------------------
+BREACH [RETROACTIVE]: 4/28/2026, 11:07:00 AM | P3 (H15-L10) (0.875) | Dir: DOWN
+   -> [INFO] This event was generated retroactively during a sweep.
+             In live replay, it will only appear on the chart once the fan's anchor pivot is confirmed.
+   -> [REJECTED] No test on this line. Within 10 bars saw: CROSS_DOWN on 0.75, TARGET_HIT on 0.75, BREACH_CONFIRMED on 0.75
+------------------------------------------------------------
+BREACH [RETROACTIVE]: 4/28/2026, 11:27:00 AM | P3 (H15-L9) (0.75) | Dir: DOWN
+   -> [INFO] This event was generated retroactively during a sweep.
+             In live replay, it will only appear on the chart once the fan's anchor pivot is confirmed.
+   -> [REJECTED] No test on this line. No events at all for this fan within 10 bars (possibly invalidated or price drifted).
+------------------------------------------------------------
+BREACH [RETROACTIVE]: 4/28/2026, 11:27:00 AM | P3 (L9-H3) (horizontal) | Dir: DOWN
+   -> [INFO] This event was generated retroactively during a sweep.
+             In live replay, it will only appear on the chart once the fan's anchor pivot is confirmed.
+   -> [REJECTED] Test occurred outside 10-bar window (happened 62.0 bars later)
+      First Test Found: 4/29/2026, 9:19:00 AM (RESISTANCE_TEST)
+------------------------------------------------------------
+BREACH [RETROACTIVE]: 4/28/2026, 11:27:00 AM | P2 (L9-H4) (horizontal) | Dir: DOWN
+   -> [INFO] This event was generated retroactively during a sweep.
+             In live replay, it will only appear on the chart once the fan's anchor pivot is confirmed.
+   -> [ACCEPTED] Pullback at 4/28/2026, 11:39:00 AM (RESISTANCE_TEST)
+      Timing: Occurred 3.0 bars after breach
+      Prices: Breach @ 24052.70, Pullback @ 24084.31
+      Outcome: WIN (MFE: 80.46, MAE: 9.50)
+------------------------------------------------------------
+BREACH [RETROACTIVE]: 4/28/2026, 11:43:00 AM | P2 (L16-H15) (0.875) | Dir: UP
+   -> [INFO] This event was generated retroactively during a sweep.
+             In live replay, it will only appear on the chart once the fan's anchor pivot is confirmed.
+   -> [REJECTED] No test on this line. Within 10 bars saw: TARGET_FAILED on 0.875, FAN_DEACTIVATED on -
+------------------------------------------------------------
+BREACH [RETROACTIVE]: 4/28/2026, 11:43:00 AM | P3 (L9-H3) (0.25) | Dir: UP
+   -> [INFO] This event was generated retroactively during a sweep.
+             In live replay, it will only appear on the chart once the fan's anchor pivot is confirmed.
+   -> [REJECTED] Test occurred outside 10-bar window (happened 26.0 bars later)
+      First Test Found: 4/28/2026, 1:27:00 PM (RESISTANCE_TEST)
+------------------------------------------------------------
+BREACH [RETROACTIVE]: 4/28/2026, 11:47:00 AM | P1 (L16-H16) (0.875) | Dir: NAN
+   -> [INFO] This event was generated retroactively during a sweep.
+             In live replay, it will only appear on the chart once the fan's anchor pivot is confirmed.
+   -> [REJECTED] Test occurred outside 10-bar window (happened 14.0 bars later)
+      First Test Found: 4/28/2026, 12:43:00 PM (RESISTANCE_TEST)
+------------------------------------------------------------
+BREACH [RETROACTIVE]: 4/28/2026, 11:59:00 AM | P3 (L9-H5) (horizontal) | Dir: DOWN
+   -> [INFO] This event was generated retroactively during a sweep.
+             In live replay, it will only appear on the chart once the fan's anchor pivot is confirmed.
+   -> [REJECTED] No test on this line. Within 10 bars saw: SUPPORT_TEST on 0.25
+------------------------------------------------------------
+BREACH [RETROACTIVE]: 4/28/2026, 12:03:00 PM | P2 (L9-H4) (0.25) | Dir: DOWN
+   -> [INFO] This event was generated retroactively during a sweep.
+             In live replay, it will only appear on the chart once the fan's anchor pivot is confirmed.
+   -> [ACCEPTED] Pullback at 4/28/2026, 12:43:00 PM (RESISTANCE_TEST)
+      Timing: Occurred 10.0 bars after breach
+      Prices: Breach @ 24031.55, Pullback @ 24033.11
+      Outcome: WIN (MFE: 33.41, MAE: 12.99)
+------------------------------------------------------------
+BREACH [RETROACTIVE]: 4/28/2026, 12:47:00 PM | P2 (L16-H15) (0.875) | Dir: UP
+   -> [INFO] This event was generated retroactively during a sweep.
+             In live replay, it will only appear on the chart once the fan's anchor pivot is confirmed.
+   -> [REJECTED] No test on this line. Within 10 bars saw: CROSS_DOWN on 0.875, GAP_CROSS_UP on 0.875, SUPPORT_TEST on 0.75
+------------------------------------------------------------
+BREACH [RETROACTIVE]: 4/28/2026, 12:55:00 PM | P2 (H15-L9) (0.5) | Dir: DOWN
+   -> [INFO] This event was generated retroactively during a sweep.
+             In live replay, it will only appear on the chart once the fan's anchor pivot is confirmed.
+   -> [ACCEPTED] Pullback at 4/28/2026, 1:03:00 PM (RESISTANCE_TEST)
+      Timing: Occurred 2.0 bars after breach
+      Prices: Breach @ 24008.15, Pullback @ 24027.02
+      Outcome: WIN (MFE: 65.42, MAE: 21.98)
+------------------------------------------------------------
+BREACH [RETROACTIVE]: 4/28/2026, 1:07:00 PM | P1 (L17-H17) (0.75) | Dir: UP
+   -> [INFO] This event was generated retroactively during a sweep.
+             In live replay, it will only appear on the chart once the fan's anchor pivot is confirmed.
+   -> [REJECTED] No test on this line. Within 10 bars saw: CROSS_DOWN on 0.5, CROSS_UP on 0.5, REST_ON_ANGLE on 0.5
+------------------------------------------------------------
+BREACH [RETROACTIVE]: 4/28/2026, 2:11:00 PM | P1 (H15-L10) (horizontal) | Dir: DOWN
+   -> [INFO] This event was generated retroactively during a sweep.
+             In live replay, it will only appear on the chart once the fan's anchor pivot is confirmed.
+   -> [REJECTED] Test occurred outside 10-bar window (happened 13.0 bars later)
+      First Test Found: 4/28/2026, 3:03:00 PM (RESISTANCE_TEST)
+------------------------------------------------------------
+BREACH [RETROACTIVE]: 4/28/2026, 3:11:00 PM | P2 (H15-L9) (horizontal) | Dir: DOWN
+   -> [INFO] This event was generated retroactively during a sweep.
+             In live replay, it will only appear on the chart once the fan's anchor pivot is confirmed.
+   -> [REJECTED] No test on this line. Within 10 bars saw: CROSS_UP on horizontal, GAP_CROSS_UP on 0.5, FAN_DEACTIVATED on -
+------------------------------------------------------------
+BREACH [RETROACTIVE]: 4/28/2026, 3:15:00 PM | P3 (H15-L10) (0.5) | Dir: DOWN
+   -> [INFO] This event was generated retroactively during a sweep.
+             In live replay, it will only appear on the chart once the fan's anchor pivot is confirmed.
+   -> [ACCEPTED] Pullback at 4/29/2026, 9:19:00 AM (RESISTANCE_TEST)
+      Timing: Occurred 5.0 bars after breach
+      Prices: Breach @ 23965.30, Pullback @ 24099.18
+      Outcome: WIN (MFE: 111.57, MAE: 38.53)
+------------------------------------------------------------
+BREACH [RETROACTIVE]: 4/28/2026, 3:27:00 PM | P2 (L20-H15) (0.875) | Dir: UP
+   -> [INFO] This event was generated retroactively during a sweep.
+             In live replay, it will only appear on the chart once the fan's anchor pivot is confirmed.
+   -> [REJECTED] No test on this line. Within 10 bars saw: GAP_CROSS_UP on horizontal, GAP_CROSS_UP on 0.5, GAP_CROSS_UP on 0.75
+------------------------------------------------------------
+BREACH [RETROACTIVE]: 4/28/2026, 3:27:00 PM | P1 (L20-H16) (0.875) | Dir: UP
+   -> [INFO] This event was generated retroactively during a sweep.
+             In live replay, it will only appear on the chart once the fan's anchor pivot is confirmed.
+   -> [REJECTED] No test on this line. Within 10 bars saw: GAP_CROSS_UP on horizontal, GAP_CROSS_UP on 0.5, GAP_CROSS_UP on 0.75
+------------------------------------------------------------
+BREACH [RETROACTIVE]: 4/29/2026, 11:15:00 AM | P1 (H22-L21) (0.75) | Dir: DOWN
+   -> [INFO] This event was generated retroactively during a sweep.
+             In live replay, it will only appear on the chart once the fan's anchor pivot is confirmed.
+   -> [REJECTED] No test on this line. Within 10 bars saw: CROSS_UP on 0.5, TARGET_HIT on 0.5, CROSS_DOWN on 0.5
+------------------------------------------------------------
+BREACH [RETROACTIVE]: 4/29/2026, 11:35:00 AM | P1 (L22-H22) (0.75) | Dir: UP
+   -> [INFO] This event was generated retroactively during a sweep.
+             In live replay, it will only appear on the chart once the fan's anchor pivot is confirmed.
+   -> [REJECTED] No test on this line. Within 10 bars saw: CROSS_DOWN on 0.5, RESISTANCE_TEST on horizontal, REST_ON_ANGLE on 0.5
+------------------------------------------------------------
+BREACH [RETROACTIVE]: 4/29/2026, 12:55:00 PM | P2 (H23-L21) (0.875) | Dir: DOWN
+   -> [INFO] This event was generated retroactively during a sweep.
+             In live replay, it will only appear on the chart once the fan's anchor pivot is confirmed.
+   -> [REJECTED] No test on this line. Within 10 bars saw: CROSS_DOWN on 0.75, TARGET_HIT on 0.75, RESISTANCE_TEST on 0.75
+------------------------------------------------------------
+BREACH [RETROACTIVE]: 4/29/2026, 1:43:00 PM | P3 (H23-L10) (0.875) | Dir: DOWN
+   -> [INFO] This event was generated retroactively during a sweep.
+             In live replay, it will only appear on the chart once the fan's anchor pivot is confirmed.
+   -> [REJECTED] No test on this line. No events at all for this fan within 10 bars (possibly invalidated or price drifted).
+------------------------------------------------------------
+BREACH [RETROACTIVE]: 4/29/2026, 1:55:00 PM | P3 (H23-L9) (0.875) | Dir: DOWN
+   -> [INFO] This event was generated retroactively during a sweep.
+             In live replay, it will only appear on the chart once the fan's anchor pivot is confirmed.
+   -> [REJECTED] No test on this line. Within 10 bars saw: SUPPORT_TEST on 0.75, TARGET_HIT on 0.75, CROSS_DOWN on 0.75
+------------------------------------------------------------
+BREACH [RETROACTIVE]: 4/29/2026, 2:47:00 PM | P1 (H24-L23) (0.75) | Dir: DOWN
+   -> [INFO] This event was generated retroactively during a sweep.
+             In live replay, it will only appear on the chart once the fan's anchor pivot is confirmed.
+   -> [REJECTED] No test on this line. Within 10 bars saw: CROSS_DOWN on 0.5, TARGET_HIT on 0.5, SUPPORT_TEST on horizontal
+------------------------------------------------------------
+BREACH [RETROACTIVE]: 4/30/2026, 11:31:00 AM | P2 (L26-H25) (0.875) | Dir: UP
+   -> [INFO] This event was generated retroactively during a sweep.
+             In live replay, it will only appear on the chart once the fan's anchor pivot is confirmed.
+   -> [REJECTED] No test on this line. Within 10 bars saw: RESISTANCE_TEST on 0.75, TARGET_HIT on 0.75, GAP_CROSS_UP on 0.75
+------------------------------------------------------------
+BREACH [RETROACTIVE]: 4/30/2026, 11:35:00 AM | P2 (L26-H26) (0.25) | Dir: DOWN
+   -> [INFO] This event was generated retroactively during a sweep.
+             In live replay, it will only appear on the chart once the fan's anchor pivot is confirmed.
+   -> [REJECTED] No test on this line. Within 10 bars saw: CROSS_UP on horizontal, CROSS_UP on 0.25, CROSS_DOWN on horizontal
+------------------------------------------------------------
+BREACH [RETROACTIVE]: 5/4/2026, 9:39:00 AM | P1 (L29-H29) (0.5) | Dir: UP
+   -> [INFO] This event was generated retroactively during a sweep.
+             In live replay, it will only appear on the chart once the fan's anchor pivot is confirmed.
+   -> [REJECTED] Test occurred outside 10-bar window (happened 17.0 bars later)
+      First Test Found: 5/4/2026, 10:47:00 AM (RESISTANCE_TEST)
+------------------------------------------------------------
+BREACH [RETROACTIVE]: 5/4/2026, 1:43:00 PM | P3 (L32-H29) (0.875) | Dir: UP
+   -> [INFO] This event was generated retroactively during a sweep.
+             In live replay, it will only appear on the chart once the fan's anchor pivot is confirmed.
+   -> [REJECTED] No test on this line. Within 10 bars saw: CROSS_UP on 0.75, TARGET_HIT on 0.75, CROSS_DOWN on 0.75
+------------------------------------------------------------
+BREACH [RETROACTIVE]: 5/4/2026, 1:43:00 PM | P2 (L32-H31) (0.875) | Dir: UP
+   -> [INFO] This event was generated retroactively during a sweep.
+             In live replay, it will only appear on the chart once the fan's anchor pivot is confirmed.
+   -> [REJECTED] No test on this line. Within 10 bars saw: RESISTANCE_TEST on 0.75, TARGET_HIT on 0.75, CROSS_UP on 0.75
+------------------------------------------------------------
+BREACH [RETROACTIVE]: 5/4/2026, 1:43:00 PM | P1 (L32-H32) (0.75) | Dir: UP
+   -> [INFO] This event was generated retroactively during a sweep.
+             In live replay, it will only appear on the chart once the fan's anchor pivot is confirmed.
+   -> [REJECTED] No test on this line. Within 10 bars saw: CROSS_UP on 0.5, TARGET_HIT on 0.5, RESISTANCE_TEST on 0.25
+------------------------------------------------------------
+BREACH [RETROACTIVE]: 5/4/2026, 2:07:00 PM | P3 (H29-L28) (0.25) | Dir: UP
+   -> [INFO] This event was generated retroactively during a sweep.
+             In live replay, it will only appear on the chart once the fan's anchor pivot is confirmed.
+   -> [REJECTED] No test on this line. Within 10 bars saw: FAN_DEACTIVATED on -
+------------------------------------------------------------
+BREACH [RETROACTIVE]: 5/4/2026, 2:35:00 PM | P1 (H33-L32) (0.875) | Dir: DOWN
+   -> [INFO] This event was generated retroactively during a sweep.
+             In live replay, it will only appear on the chart once the fan's anchor pivot is confirmed.
+   -> [REJECTED] No test on this line. Within 10 bars saw: SUPPORT_TEST on 0.75, TARGET_HIT on 0.75, GAP_CROSS_DOWN on 0.75
+------------------------------------------------------------

@@ -1,0 +1,7 @@
+2026-05-07 16:30:28,343 [INFO] Logging initialized. Output writing to C:\Dev\GannTesting\logs\backend\backend_session_20260507_163028.log
+2026-05-07 16:30:28,344 [INFO] Successfully loaded ticker configuration from C:\Dev\GannTesting\gann-visualizer\backend\ticker_config.json
+2026-05-07 16:30:28,344 [INFO] --- BACKEND RESTART v4 - PNL TRACKING ---
+2026-05-07 16:30:28,344 [INFO] Middleware Stack: [Middleware(BaseHTTPMiddleware, dispatch=<function cors_middleware at 0x000002730A303ED0>)]
+2026-05-07 16:30:28,358 [INFO] ================================================================================
+2026-05-07 16:30:28,358 [INFO] CORPUS SLICE: ^NSEI @ 60m  2025-09-28 -> 2026-05-07
+2026-05-07 16:30:28,358 [INFO] ================================================================================

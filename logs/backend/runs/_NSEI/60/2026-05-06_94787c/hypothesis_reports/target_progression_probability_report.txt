@@ -1,0 +1,370 @@
+=== TARGET PROGRESSION PROBABILITY VERBOSE REPORT ===
+=== REPRODUCTION INSTRUCTIONS ===
+To replicate these results on the frontend, use the following parameters:
+Symbol:     ^NSEI
+Timeframe:  60m
+Start Date: 2025-09-28
+End Date:   2026-05-06
+============================================================
+
+Overall Sample Size: 72
+Overall Win Rate:    76.39%
+
+Live Sample Size:    72
+Live Win Rate:       76.39%
+
+Retro Sample Size:   0
+Retro Win Rate:      0.00%
+============================================================
+
+=== LIVE EVENTS ===
+These events would have been fully tradable in real-time without future lookahead.
+============================================================
+TARGET ATTEMPT: 10/6/2025, 9:15:00 AM | P1 (L196-H195) (0.875) -> 0.75 @ Price: 24914.3
+      Following Breach: 10/1/2025, 3:15:00 PM (0.875) | Dir: UP | Price: 24853.4
+      Outcome: WIN
+      Metrics: MFE: 287.65, MAE: 0.00
+------------------------------------------------------------
+TARGET ATTEMPT: 10/7/2025, 9:15:00 AM | P1 (L196-H195) (0.75) -> 0.5 @ Price: 25129.7
+      Following Breach: 10/6/2025, 10:15:00 AM (0.75) | Dir: UP | Price: 25014.8
+      Outcome: WIN
+      Metrics: MFE: 121.15, MAE: 90.65
+------------------------------------------------------------
+TARGET ATTEMPT: 10/7/2025, 1:15:00 PM | P1 (L196-H195) (0.5) -> horizontal @ Price: 25216.35
+      Following Breach: 10/7/2025, 12:15:00 PM (0.5) | Dir: UP | Price: 25188.1
+      Outcome: WIN
+      Metrics: MFE: 207.80, MAE: 4.00
+------------------------------------------------------------
+TARGET ATTEMPT: 10/10/2025, 9:15:00 AM | P1 (L196-H195) (0.5) -> 0.25 @ Price: 25265.33
+      Following Breach: 10/7/2025, 12:15:00 PM (0.5) | Dir: UP | Price: 25188.1
+      Outcome: WIN
+      Metrics: MFE: 111.83, MAE: 64.87
+------------------------------------------------------------
+TARGET ATTEMPT: 10/30/2025, 11:15:00 AM | P3 (H199-L197) (0.875) -> 0.75 @ Price: 25912.25
+      Following Breach: 10/30/2025, 10:15:00 AM (0.875) | Dir: DOWN | Price: 25956.1
+      Outcome: MISS
+------------------------------------------------------------
+TARGET ATTEMPT: 11/10/2025, 11:15:00 AM | P3 (L203-H199) (0.875) -> 0.75 @ Price: 25629.3
+      Following Breach: 11/10/2025, 9:15:00 AM (0.875) | Dir: UP | Price: 25576.0
+      Outcome: WIN
+      Metrics: MFE: 178.45, MAE: 72.86
+------------------------------------------------------------
+TARGET ATTEMPT: 11/11/2025, 1:15:00 PM | P2 (L203-H201) (0.875) -> 0.75 @ Price: 25637.56
+      Following Breach: 11/10/2025, 10:15:00 AM (0.875) | Dir: UP | Price: 25629.9
+      Outcome: WIN
+      Metrics: MFE: 296.44, MAE: 0.00
+------------------------------------------------------------
+TARGET ATTEMPT: 11/11/2025, 1:15:00 PM | P1 (L203-H202) (0.75) -> 0.5 @ Price: 25646.66
+      Following Breach: 11/10/2025, 12:15:00 PM (0.75) | Dir: UP | Price: 25630.25
+      Outcome: WIN
+      Metrics: MFE: 287.34, MAE: 1.51
+------------------------------------------------------------
+TARGET ATTEMPT: 11/12/2025, 9:15:00 AM | P1 (L203-H202) (0.5) -> horizontal @ Price: 25729.17
+      Following Breach: 11/11/2025, 2:15:00 PM (0.5) | Dir: UP | Price: 25694.9
+      Outcome: WIN
+      Metrics: MFE: 260.23, MAE: 0.00
+------------------------------------------------------------
+TARGET ATTEMPT: 11/12/2025, 9:15:00 AM | P1 (L203-H202) (0.5) -> 0.25 @ Price: 25728.85
+      Following Breach: 11/11/2025, 2:15:00 PM (0.5) | Dir: UP | Price: 25694.9
+      Outcome: WIN
+      Metrics: MFE: 260.55, MAE: 0.00
+------------------------------------------------------------
+TARGET ATTEMPT: 11/13/2025, 10:15:00 AM | P1 (L203-H201) (0.5) -> horizontal @ Price: 25937.73
+      Following Breach: 11/12/2025, 11:15:00 AM (0.5) | Dir: UP | Price: 25888.75
+      Outcome: WIN
+      Metrics: MFE: 196.03, MAE: 72.27
+------------------------------------------------------------
+TARGET ATTEMPT: 11/13/2025, 10:15:00 AM | P1 (L203-H201) (0.5) -> 0.25 @ Price: 25972.96
+      Following Breach: 11/12/2025, 11:15:00 AM (0.5) | Dir: UP | Price: 25888.75
+      Outcome: WIN
+      Metrics: MFE: 231.26, MAE: 37.04
+------------------------------------------------------------
+TARGET ATTEMPT: 11/24/2025, 11:15:00 AM | P1 (H206-L206) (0.875) -> 0.75 @ Price: 26078.09
+      Following Breach: 11/21/2025, 3:15:00 PM (0.875) | Dir: DOWN | Price: 26063.95
+      Outcome: WIN
+      Metrics: MFE: 208.34, MAE: 17.96
+------------------------------------------------------------
+TARGET ATTEMPT: 11/24/2025, 12:15:00 PM | P2 (H206-L205) (0.875) -> 0.75 @ Price: 26055.7
+      Following Breach: 11/21/2025, 3:15:00 PM (0.875) | Dir: DOWN | Price: 26063.95
+      Outcome: WIN
+      Metrics: MFE: 197.30, MAE: 40.35
+------------------------------------------------------------
+TARGET ATTEMPT: 11/24/2025, 2:15:00 PM | P1 (H206-L206) (0.75) -> 0.5 @ Price: 25977.33
+      Following Breach: 11/24/2025, 1:15:00 PM (0.75) | Dir: DOWN | Price: 26057.15
+      Outcome: WIN
+      Metrics: MFE: 153.17, MAE: 134.38
+------------------------------------------------------------
+TARGET ATTEMPT: 11/24/2025, 3:15:00 PM | P3 (H206-L204) (0.875) -> 0.75 @ Price: 25936.15
+      Following Breach: 11/24/2025, 1:15:00 PM (0.875) | Dir: DOWN | Price: 26057.15
+      Outcome: WIN
+      Metrics: MFE: 225.05, MAE: 93.20
+------------------------------------------------------------
+TARGET ATTEMPT: 11/24/2025, 3:15:00 PM | P2 (H206-L205) (0.75) -> 0.5 @ Price: 25918.78
+      Following Breach: 11/24/2025, 2:15:00 PM (0.75) | Dir: DOWN | Price: 25954.4
+      Outcome: WIN
+      Metrics: MFE: 242.42, MAE: 75.83
+------------------------------------------------------------
+TARGET ATTEMPT: 11/25/2025, 2:15:00 PM | P1 (H206-L206) (0.5) -> 0.25 @ Price: 25923.0
+      Following Breach: 11/24/2025, 3:15:00 PM (0.5) | Dir: DOWN | Price: 25943.35
+      Outcome: WIN
+      Metrics: MFE: 387.05, MAE: 80.05
+------------------------------------------------------------
+TARGET ATTEMPT: 11/25/2025, 2:15:00 PM | P1 (H206-L206) (0.5) -> horizontal @ Price: 25912.38
+      Following Breach: 11/24/2025, 3:15:00 PM (0.5) | Dir: DOWN | Price: 25943.35
+      Outcome: WIN
+      Metrics: MFE: 397.67, MAE: 69.43
+------------------------------------------------------------
+TARGET ATTEMPT: 11/25/2025, 2:15:00 PM | P1 (L207-H206) (0.875) -> 0.75 @ Price: 25886.0
+      Following Breach: 11/20/2025, 2:15:00 PM (0.875) | Dir: UP | Price: 26203.2
+      Outcome: MISS
+------------------------------------------------------------
+TARGET ATTEMPT: 11/26/2025, 9:15:00 AM | P1 (H206-L206) (horizontal) -> full_coverage @ Price: 25856.7
+      Following Breach: 11/25/2025, 3:15:00 PM (horizontal) | Dir: DOWN | Price: 25860.3
+      Outcome: WIN
+      Metrics: MFE: 453.35, MAE: 0.00
+------------------------------------------------------------
+TARGET ATTEMPT: 11/27/2025, 9:15:00 AM | P3 (H206-L204) (0.875) -> 0.75 @ Price: 26283.0
+      Following Breach: 11/24/2025, 1:15:00 PM (0.875) | Dir: DOWN | Price: 26057.15
+      Outcome: MISS
+------------------------------------------------------------
+TARGET ATTEMPT: 11/28/2025, 3:15:00 PM | P3 (H207-L205) (0.875) -> 0.75 @ Price: 26204.55
+      Following Breach: 11/28/2025, 1:15:00 PM (0.875) | Dir: DOWN | Price: 26200.75
+      Outcome: MISS
+------------------------------------------------------------
+TARGET ATTEMPT: 12/2/2025, 2:15:00 PM | P3 (H208-L204) (0.875) -> 0.75 @ Price: 26026.25
+      Following Breach: 12/2/2025, 11:15:00 AM (0.875) | Dir: DOWN | Price: 26051.55
+      Outcome: WIN
+      Metrics: MFE: 135.09, MAE: 71.56
+------------------------------------------------------------
+TARGET ATTEMPT: 12/3/2025, 9:15:00 AM | P1 (H208-L207) (0.75) -> 0.5 @ Price: 25994.2
+      Following Breach: 12/2/2025, 11:15:00 AM (0.75) | Dir: DOWN | Price: 26051.55
+      Outcome: WIN
+      Metrics: MFE: 103.60, MAE: 103.05
+------------------------------------------------------------
+TARGET ATTEMPT: 12/4/2025, 9:15:00 AM | P3 (H208-L204) (0.75) -> 0.5 @ Price: 26041.9
+      Following Breach: 12/3/2025, 10:15:00 AM (0.75) | Dir: DOWN | Price: 25920.4
+      Outcome: MISS
+------------------------------------------------------------
+TARGET ATTEMPT: 12/5/2025, 9:15:00 AM | P1 (L209-H208) (0.875) -> 0.75 @ Price: 26065.9
+      Following Breach: 12/4/2025, 10:15:00 AM (0.875) | Dir: UP | Price: 26077.05
+      Outcome: WIN
+      Metrics: MFE: 136.65, MAE: 61.20
+------------------------------------------------------------
+TARGET ATTEMPT: 12/5/2025, 12:15:00 PM | P1 (L209-H208) (0.75) -> 0.5 @ Price: 26181.03
+      Following Breach: 12/5/2025, 10:15:00 AM (0.75) | Dir: UP | Price: 26143.5
+      Outcome: WIN
+      Metrics: MFE: 288.63, MAE: 19.37
+------------------------------------------------------------
+TARGET ATTEMPT: 12/9/2025, 9:15:00 AM | P3 (H208-L207) (0.25) -> full_coverage @ Price: 25842.95
+      Following Breach: 12/3/2025, 9:15:00 AM (0.25) | Dir: DOWN | Price: 25928.1
+      Outcome: WIN
+      Metrics: MFE: 104.70, MAE: 74.90
+------------------------------------------------------------
+TARGET ATTEMPT: 12/17/2025, 10:15:00 AM | P1 (H211-L211) (0.75) -> 0.5 @ Price: 25826.3
+      Following Breach: 12/16/2025, 11:15:00 AM (0.75) | Dir: DOWN | Price: 25887.5
+      Outcome: WIN
+      Metrics: MFE: 99.55, MAE: 75.00
+------------------------------------------------------------
+TARGET ATTEMPT: 12/18/2025, 9:15:00 AM | P1 (H211-L211) (0.5) -> 0.25 @ Price: 25763.0
+      Following Breach: 12/17/2025, 12:15:00 PM (0.5) | Dir: DOWN | Price: 25791.4
+      Outcome: WIN
+      Metrics: MFE: 215.70, MAE: 0.00
+------------------------------------------------------------
+TARGET ATTEMPT: 12/18/2025, 9:15:00 AM | P1 (H211-L211) (0.5) -> horizontal @ Price: 25748.33
+      Following Breach: 12/17/2025, 12:15:00 PM (0.5) | Dir: DOWN | Price: 25791.4
+      Outcome: WIN
+      Metrics: MFE: 230.36, MAE: 0.00
+------------------------------------------------------------
+TARGET ATTEMPT: 12/22/2025, 9:15:00 AM | P1 (L213-H212) (0.75) -> 0.5 @ Price: 26129.25
+      Following Breach: 12/19/2025, 10:15:00 AM (0.75) | Dir: UP | Price: 25954.75
+      Outcome: MISS
+------------------------------------------------------------
+TARGET ATTEMPT: 12/22/2025, 9:15:00 AM | P2 (L213-H211) (0.75) -> 0.5 @ Price: 26129.25
+      Following Breach: 12/19/2025, 10:15:00 AM (0.75) | Dir: UP | Price: 25954.75
+      Outcome: MISS
+------------------------------------------------------------
+TARGET ATTEMPT: 12/26/2025, 11:15:00 AM | P2 (H213-L211) (0.875) -> 0.75 @ Price: 26059.61
+      Following Breach: 12/26/2025, 9:15:00 AM (0.875) | Dir: DOWN | Price: 26091.45
+      Outcome: WIN
+      Metrics: MFE: 137.36, MAE: 43.14
+------------------------------------------------------------
+TARGET ATTEMPT: 12/26/2025, 2:15:00 PM | P1 (H213-L213) (0.875) -> 0.75 @ Price: 26034.48
+      Following Breach: 12/26/2025, 10:15:00 AM (0.875) | Dir: DOWN | Price: 26072.8
+      Outcome: WIN
+      Metrics: MFE: 156.48, MAE: 68.27
+------------------------------------------------------------
+TARGET ATTEMPT: 12/29/2025, 1:15:00 PM | P2 (H213-L211) (0.75) -> 0.5 @ Price: 25935.23
+      Following Breach: 12/29/2025, 9:15:00 AM (0.75) | Dir: DOWN | Price: 26034.55
+      Outcome: WIN
+      Metrics: MFE: 91.62, MAE: 57.23
+------------------------------------------------------------
+TARGET ATTEMPT: 12/30/2025, 9:15:00 AM | P1 (H213-L213) (0.75) -> 0.5 @ Price: 25924.55
+      Following Breach: 12/29/2025, 10:15:00 AM (0.75) | Dir: DOWN | Price: 25983.7
+      Outcome: WIN
+      Metrics: MFE: 231.55, MAE: 44.65
+------------------------------------------------------------
+TARGET ATTEMPT: 12/31/2025, 12:15:00 PM | P1 (L214-H213) (0.75) -> 0.5 @ Price: 26114.5
+      Following Breach: 12/31/2025, 11:15:00 AM (0.75) | Dir: UP | Price: 26089.55
+      Outcome: WIN
+      Metrics: MFE: 82.50, MAE: 0.31
+------------------------------------------------------------
+TARGET ATTEMPT: 1/6/2026, 11:15:00 AM | P2 (H215-L214) (0.875) -> 0.75 @ Price: 26158.87
+      Following Breach: 1/6/2026, 10:15:00 AM (0.875) | Dir: DOWN | Price: 26194.45
+      Outcome: WIN
+      Metrics: MFE: 90.57, MAE: 36.13
+------------------------------------------------------------
+TARGET ATTEMPT: 1/8/2026, 9:15:00 AM | P1 (H215-L214) (0.75) -> 0.5 @ Price: 26074.05
+      Following Breach: 1/7/2026, 11:15:00 AM (0.75) | Dir: DOWN | Price: 26112.1
+      Outcome: WIN
+      Metrics: MFE: 408.80, MAE: 0.00
+------------------------------------------------------------
+TARGET ATTEMPT: 1/8/2026, 10:15:00 AM | P2 (H215-L213) (0.75) -> 0.5 @ Price: 26018.58
+      Following Breach: 1/6/2026, 11:15:00 AM (0.75) | Dir: DOWN | Price: 26167.65
+      Outcome: WIN
+      Metrics: MFE: 358.98, MAE: 0.00
+------------------------------------------------------------
+TARGET ATTEMPT: 1/8/2026, 11:15:00 AM | P1 (H215-L214) (0.5) -> horizontal @ Price: 25994.03
+      Following Breach: 1/8/2026, 10:15:00 AM (0.5) | Dir: DOWN | Price: 26003.8
+      Outcome: WIN
+      Metrics: MFE: 370.53, MAE: 0.00
+------------------------------------------------------------
+TARGET ATTEMPT: 1/8/2026, 11:15:00 AM | P1 (H215-L214) (0.5) -> 0.25 @ Price: 25969.2
+      Following Breach: 1/8/2026, 10:15:00 AM (0.5) | Dir: DOWN | Price: 26003.8
+      Outcome: WIN
+      Metrics: MFE: 345.70, MAE: 0.00
+------------------------------------------------------------
+TARGET ATTEMPT: 1/8/2026, 2:15:00 PM | P1 (H215-L214) (0.25) -> full_coverage @ Price: 25878.0
+      Following Breach: 1/8/2026, 12:15:00 PM (0.25) | Dir: DOWN | Price: 25926.1
+      Outcome: WIN
+      Metrics: MFE: 348.60, MAE: 62.25
+------------------------------------------------------------
+TARGET ATTEMPT: 1/9/2026, 12:15:00 PM | P1 (H215-L213) (0.25) -> full_coverage @ Price: 25726.75
+      Following Breach: 1/9/2026, 10:15:00 AM (0.25) | Dir: DOWN | Price: 25799.0
+      Outcome: WIN
+      Metrics: MFE: 253.35, MAE: 86.40
+------------------------------------------------------------
+TARGET ATTEMPT: 1/16/2026, 10:15:00 AM | P1 (L217-H216) (0.75) -> 0.5 @ Price: 25817.82
+      Following Breach: 1/12/2026, 3:15:00 PM (0.75) | Dir: UP | Price: 25806.1
+      Outcome: WIN
+      Metrics: MFE: 322.87, MAE: 12.83
+------------------------------------------------------------
+TARGET ATTEMPT: 1/19/2026, 3:15:00 PM | P2 (L216-H215) (0.875) -> 0.75 @ Price: 25555.5
+      Following Breach: 1/19/2026, 1:15:00 PM (0.875) | Dir: UP | Price: 25590.3
+      Outcome: MISS
+------------------------------------------------------------
+TARGET ATTEMPT: 1/23/2026, 1:15:00 PM | P1 (H220-L220) (0.875) -> 0.75 @ Price: 25118.13
+      Following Breach: 1/21/2026, 10:15:00 AM (0.875) | Dir: DOWN | Price: 25054.75
+      Outcome: WIN
+      Metrics: MFE: 253.27, MAE: 185.08
+------------------------------------------------------------
+TARGET ATTEMPT: 1/27/2026, 9:15:00 AM | P1 (H220-L220) (0.75) -> 0.5 @ Price: 25023.2
+      Following Breach: 1/23/2026, 2:15:00 PM (0.75) | Dir: DOWN | Price: 25045.85
+      Outcome: WIN
+      Metrics: MFE: 348.20, MAE: 44.15
+------------------------------------------------------------
+TARGET ATTEMPT: 1/28/2026, 9:15:00 AM | P1 (L222-H221) (0.75) -> 0.5 @ Price: 25275.31
+      Following Breach: 1/21/2026, 12:15:00 PM (0.75) | Dir: UP | Price: 25237.45
+      Outcome: WIN
+      Metrics: MFE: 115.26, MAE: 91.99
+------------------------------------------------------------
+TARGET ATTEMPT: 1/29/2026, 1:15:00 PM | P2 (L222-H220) (0.5) -> 0.25 @ Price: 25369.78
+      Following Breach: 1/28/2026, 3:15:00 PM (0.5) | Dir: UP | Price: 25348.05
+      Outcome: WIN
+      Metrics: MFE: 920.42, MAE: 155.98
+------------------------------------------------------------
+TARGET ATTEMPT: 2/3/2026, 9:15:00 AM | P2 (H223-L222) (0.875) -> 0.75 @ Price: 25671.0
+      Following Breach: 1/20/2026, 2:15:00 PM (0.875) | Dir: DOWN | Price: 25217.05
+      Outcome: MISS
+------------------------------------------------------------
+TARGET ATTEMPT: 2/3/2026, 9:15:00 AM | P3 (H223-L220) (0.875) -> 0.75 @ Price: 25671.0
+      Following Breach: 1/30/2026, 3:15:00 PM (0.875) | Dir: DOWN | Price: 25315.8
+      Outcome: MISS
+------------------------------------------------------------
+TARGET ATTEMPT: 2/5/2026, 12:15:00 PM | P3 (H224-L223) (0.875) -> 0.75 @ Price: 25636.8
+      Following Breach: 2/5/2026, 11:15:00 AM (0.875) | Dir: DOWN | Price: 25629.8
+      Outcome: MISS
+------------------------------------------------------------
+TARGET ATTEMPT: 2/12/2026, 2:15:00 PM | P1 (H226-L226) (0.875) -> 0.75 @ Price: 25777.3
+      Following Breach: 2/12/2026, 11:15:00 AM (0.875) | Dir: DOWN | Price: 25828.9
+      Outcome: WIN
+      Metrics: MFE: 401.25, MAE: 37.50
+------------------------------------------------------------
+TARGET ATTEMPT: 2/18/2026, 9:15:00 AM | P2 (L227-H224) (0.875) -> 0.75 @ Price: 25749.95
+      Following Breach: 2/17/2026, 11:15:00 AM (0.875) | Dir: UP | Price: 25721.7
+      Outcome: WIN
+      Metrics: MFE: 181.75, MAE: 129.65
+------------------------------------------------------------
+TARGET ATTEMPT: 2/18/2026, 2:15:00 PM | P1 (L227-H226) (0.75) -> 0.5 @ Price: 25817.86
+      Following Breach: 2/17/2026, 12:15:00 PM (0.75) | Dir: UP | Price: 25736.35
+      Outcome: WIN
+      Metrics: MFE: 437.51, MAE: 61.74
+------------------------------------------------------------
+TARGET ATTEMPT: 2/20/2026, 2:15:00 PM | P3 (L227-H224) (0.75) -> 0.5 @ Price: 25571.95
+      Following Breach: 2/18/2026, 1:15:00 PM (0.75) | Dir: UP | Price: 25756.8
+      Outcome: MISS
+------------------------------------------------------------
+TARGET ATTEMPT: 2/27/2026, 9:15:00 AM | P1 (H230-L230) (0.75) -> 0.5 @ Price: 25415.23
+      Following Breach: 2/26/2026, 12:15:00 PM (0.75) | Dir: DOWN | Price: 25428.55
+      Outcome: WIN
+      Metrics: MFE: 736.14, MAE: 0.00
+------------------------------------------------------------
+TARGET ATTEMPT: 3/9/2026, 9:15:00 AM | P1 (H231-L231) (0.75) -> 0.5 @ Price: 24408.85
+      Following Breach: 3/4/2026, 9:15:00 AM (0.75) | Dir: DOWN | Price: 24413.65
+      Outcome: WIN
+      Metrics: MFE: 664.00, MAE: 0.00
+------------------------------------------------------------
+TARGET ATTEMPT: 3/18/2026, 2:15:00 PM | P1 (L233-H232) (0.875) -> 0.75 @ Price: 23851.33
+      Following Breach: 3/18/2026, 10:15:00 AM (0.875) | Dir: UP | Price: 23785.3
+      Outcome: WIN
+      Metrics: MFE: 919.38, MAE: 0.00
+------------------------------------------------------------
+TARGET ATTEMPT: 3/30/2026, 9:15:00 AM | P1 (H235-L235) (0.875) -> 0.75 @ Price: 22755.8
+      Following Breach: 3/27/2026, 2:15:00 PM (0.875) | Dir: DOWN | Price: 22815.2
+      Outcome: WIN
+      Metrics: MFE: 470.25, MAE: 185.20
+------------------------------------------------------------
+TARGET ATTEMPT: 4/6/2026, 2:15:00 PM | P1 (L237-H236) (horizontal) -> full_coverage @ Price: 22941.0
+      Following Breach: 4/6/2026, 2:15:00 PM (horizontal) | Dir: UP | Price: 22989.35
+      Outcome: WIN
+      Metrics: MFE: 1063.20, MAE: 220.55
+------------------------------------------------------------
+TARGET ATTEMPT: 4/7/2026, 12:15:00 PM | P3 (L237-H232) (0.875) -> 0.75 @ Price: 22938.85
+      Following Breach: 4/6/2026, 2:15:00 PM (0.875) | Dir: UP | Price: 22989.35
+      Outcome: MISS
+------------------------------------------------------------
+TARGET ATTEMPT: 4/7/2026, 3:15:00 PM | P2 (L237-H233) (0.875) -> 0.75 @ Price: 23136.41
+      Following Breach: 4/6/2026, 2:15:00 PM (0.875) | Dir: UP | Price: 22989.35
+      Outcome: WIN
+      Metrics: MFE: 888.09, MAE: 0.00
+------------------------------------------------------------
+TARGET ATTEMPT: 4/8/2026, 9:15:00 AM | P1 (L237-H235) (0.75) -> 0.5 @ Price: 23238.29
+      Following Breach: 4/7/2026, 2:15:00 PM (0.75) | Dir: UP | Price: 23109.25
+      Outcome: WIN
+      Metrics: MFE: 786.21, MAE: 0.00
+------------------------------------------------------------
+TARGET ATTEMPT: 4/9/2026, 11:15:00 AM | P3 (L237-H230) (0.875) -> 0.75 @ Price: 23881.25
+      Following Breach: 4/8/2026, 10:15:00 AM (0.875) | Dir: UP | Price: 23991.75
+      Outcome: MISS
+------------------------------------------------------------
+TARGET ATTEMPT: 4/23/2026, 9:15:00 AM | P1 (H240-L240) (0.875) -> 0.75 @ Price: 24341.41
+      Following Breach: 4/22/2026, 2:15:00 PM (0.875) | Dir: DOWN | Price: 24382.4
+      Outcome: WIN
+      Metrics: MFE: 490.16, MAE: 0.00
+------------------------------------------------------------
+TARGET ATTEMPT: 4/30/2026, 10:15:00 AM | P1 (L241-H240) (0.75) -> 0.5 @ Price: 23799.9
+      Following Breach: 4/29/2026, 10:15:00 AM (0.75) | Dir: UP | Price: 24288.15
+      Outcome: MISS
+------------------------------------------------------------
+TARGET ATTEMPT: 5/4/2026, 9:15:00 AM | P2 (H240-L237) (0.875) -> 0.75 @ Price: 24175.2
+      Following Breach: 4/2/2026, 9:15:00 AM (0.875) | Dir: DOWN | Price: 22234.35
+      Outcome: MISS
+------------------------------------------------------------
+TARGET ATTEMPT: 5/6/2026, 2:15:00 PM | P1 (L244-H243) (0.875) -> 0.75 @ Price: 24321.35
+      Following Breach: 4/21/2026, 3:15:00 PM (0.875) | Dir: UP | Price: 24581.05
+      Outcome: MISS
+------------------------------------------------------------
+
+
+=== RETROACTIVE EVENTS ===
+These events occurred during the 5-bar unconfirmed pivot window and were retroactively inserted.
+============================================================

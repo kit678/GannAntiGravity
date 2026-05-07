@@ -1,0 +1,68 @@
+<h2>Percent Change Chart — Design Concept</h2>
+<p class="subtitle">Custom indicator showing % change per bar, below the candlestick chart</p>
+
+<div class="mockup">
+  <div class="mockup-header">Gann Visualizer — % Change Chart</div>
+  <div class="mockup-body">
+    <!-- Candlestick chart (top pane) -->
+    <div style="background:#1e2229; height:180px; position:relative; border-bottom:1px solid #2a2e39;">
+      <div style="position:absolute; bottom:60px; left:20px; right:20px; display:flex; align-items:flex-end; gap:3px; height:100px;">
+        <!-- Candle shapes -->
+        <div style="width:8px; height:70px; background:#26a69a; border-radius:1px;"></div>
+        <div style="width:8px; height:50px; background:#26a69a; border-radius:1px;"></div>
+        <div style="width:8px; height:80px; background:#ef5350; border-radius:1px;"></div>
+        <div style="width:8px; height:90px; background:#26a69a; border-radius:1px;"></div>
+        <div style="width:8px; height:40px; background:#ef5350; border-radius:1px;"></div>
+        <div style="width:8px; height:60px; background:#26a69a; border-radius:1px;"></div>
+        <div style="width:8px; height:75px; background:#26a69a; border-radius:1px;"></div>
+        <div style="width:8px; height:55px; background:#ef5350; border-radius:1px;"></div>
+        <div style="width:8px; height:85px; background:#ef5350; border-radius:1px;"></div>
+        <div style="width:8px; height:45px; background:#26a69a; border-radius:1px;"></div>
+      </div>
+      <div style="position:absolute; bottom:8px; left:10px; font-size:9px; color:#787b86;">09:30</div>
+      <div style="position:absolute; bottom:8px; right:10px; font-size:9px; color:#787b86;">10:00</div>
+      <div style="position:absolute; top:8px; left:10px; font-size:10px; color:#d1d4dc;">NIFTY 50 — 1 minute</div>
+    </div>
+    <!-- % Change histogram (bottom pane) -->
+    <div style="background:#1a1d23; height:80px; position:relative;">
+      <div style="position:absolute; top:50%; left:20px; right:20px; display:flex; align-items:center; gap:3px; height:40px;">
+        <!-- Zero baseline -->
+        <div style="position:absolute; left:0; right:0; top:50%; height:1px; background:#434651;"></div>
+        <!-- Positive bars go up from center -->
+        <div style="width:8px; height:30px; background:#26a69a; position:absolute; top:calc(50% - 30px); left:calc(20px + 0*11px); border-radius:1px;"></div>
+        <div style="width:8px; height:20px; background:#26a69a; position:absolute; top:calc(50% - 20px); left:calc(20px + 1*11px); border-radius:1px;"></div>
+        <!-- Negative bars go down from center -->
+        <div style="width:8px; height:35px; background:#ef5350; position:absolute; top:50%; left:calc(20px + 2*11px); border-radius:1px;"></div>
+        <div style="width:8px; height:40px; background:#ef5350; position:absolute; top:50%; left:calc(20px + 3*11px); border-radius:1px;"></div>
+        <!-- Positive -->
+        <div style="width:8px; height:18px; background:#26a69a; position:absolute; top:calc(50% - 18px); left:calc(20px + 4*11px); border-radius:1px;"></div>
+        <div style="width:8px; height:25px; background:#26a69a; position:absolute; top:calc(50% - 25px); left:calc(20px + 5*11px); border-radius:1px;"></div>
+        <div style="width:8px; height:32px; background:#26a69a; position:absolute; top:calc(50% - 32px); left:calc(20px + 6*11px); border-radius:1px;"></div>
+        <!-- Negative -->
+        <div style="width:8px; height:22px; background:#ef5350; position:absolute; top:50%; left:calc(20px + 7*11px); border-radius:1px;"></div>
+        <div style="width:8px; height:38px; background:#ef5350; position:absolute; top:50%; left:calc(20px + 8*11px); border-radius:1px;"></div>
+        <!-- Positive -->
+        <div style="width:8px; height:20px; background:#26a69a; position:absolute; top:calc(50% - 20px); left:calc(20px + 9*11px); border-radius:1px;"></div>
+      </div>
+      <div style="position:absolute; top:8px; left:10px; font-size:10px; color:#d1d4dc;">% Change</div>
+      <!-- Y-axis labels -->
+      <div style="position:absolute; top:8px; right:10px; font-size:8px; color:#26a69a;">+5%</div>
+      <div style="position:absolute; bottom:8px; right:10px; font-size:8px; color:#ef5350;">-5%</div>
+      <div style="position:absolute; top:50%; right:10px; font-size:8px; color:#787b86; transform:translateY(-50%);">0%</div>
+    </div>
+  </div>
+</div>
+
+<div class="section" style="margin-top:24px;">
+  <h3>Key behaviors</h3>
+  <ul style="font-size:13px; color:#d1d4dc; line-height:1.8;">
+    <li>each bar shows the % change from the previous bar's close price</li>
+    <li>positive bars (green) extend upward from the zero line</li>
+    <li>negative bars (red) extend downward from the zero line</li>
+    <li>bar height is proportional to the magnitude of % change</li>
+    <li>same timeframe as the candlestick chart above it</li>
+    <li>color coding matches your trading signals (green=buy, red=sell)</li>
+  </ul>
+</div>
+
+<p class="subtitle" style="margin-top:16px;">Does this look right? Any adjustments to the styling or layout?</p>

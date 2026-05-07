@@ -10,7 +10,7 @@ from gann_logic import GannStrategyEngine  # Keep for backward compatibility
 from strategies import get_strategy, STRATEGY_REGISTRY  # New strategy system
 from backtest_engine import BacktestEngine  # New backtesting engine
 import time
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import pytz
 import logging
 import sys
@@ -85,6 +85,23 @@ print(f"Logging initialized. Output writing to {os.path.abspath(LOG_FILE)}")
 import csv
 
 REPLAY_EVENTS_CSV = os.path.join(LOG_DIR, "replay_events.csv")
+
+# Warmup constants: how many days of history to process before the visible chart start.
+# Ensures pivot numbering is stable and matches across corpus, backend simulation, and frontend replay.
+# For limited sources (YFinance 1m/4m ~8 days), uses whatever is available.
+WARMUP_DAYS = {
+    "1":  30,    # 1-minute: ~30 days warmup (YFinance limited to ~8, capped)
+    "4":  30,    # 4-minute: same as 1m (YFinance ~8 day limit)
+    "5":  75,    # 5-minute
+    "15": 120,   # 15-minute
+    "30": 120,   # 30-minute
+    "60": 250,   # 60-minute / 1-hour
+    "240": 250,  # 4-hour
+    "1D": 365,   # Daily
+    "D":  365,
+    "W":  730,   # Weekly
+    "M":  1825,  # Monthly
+}
 
 def _write_replay_event_to_csv(event: dict):
     """Append a single intersection event to replay_events.csv in simulation_events.csv format."""
@@ -500,16 +517,34 @@ def udf_history(symbol: str, resolution: str, from_: int = Query(..., alias="fro
         max_lookback_days = 45
     
     # Limit the from_date ONLY if the requested range is excessively large
-    # This prevents backend timeouts, but allows pagination
-    calculated_from_dt = to_dt - timedelta(days=max_lookback_days)
-    
-    # USER REQUEST: Remove artificial limitation to allow "organic" lazy loading
-    # if from_dt < calculated_from_dt:
-    #     from_dt = calculated_from_dt
-    #     from_date_str = from_dt.strftime('%Y-%m-%d')
-    #     print(f"Range limited to {max_lookback_days} days for resolution {resolution}: {from_date_str} to {to_date_str}")
-    
-    # Use Generic Fetcher which handles NIFTY/OPTIONS/Generic
+        # This prevents backend timeouts, but allows pagination
+        calculated_from_dt = to_dt - timedelta(days=max_lookback_days)
+        
+        if from_dt < calculated_from_dt:
+            from_dt = calculated_from_dt
+            from_date_str = from_dt.strftime('%Y-%m-%d')
+            print(f"Range limited to {max_lookback_days} days for resolution {resolution}: {from_date_str} to {to_date_str}")
+        
+        # PREVENT INFINITE PAGINATION FOR YFINANCE
+        # If TradingView requests a small chunk, it will paginate infinitely
+        # By expanding the request here, we force a large chunk to be fetched and cached by TV
+        if data_source == "yfinance":
+            if resolution in ["60", "1H"]:
+                # For 1h, YFinance supports up to 730 days. Expand to fetch a large chunk.
+                expanded_from = to_dt_safe - timedelta(days=700)
+                if from_dt_safe > expanded_from:
+                    from_dt_safe = expanded_from
+                    from_date_str = from_dt_safe.strftime('%Y-%m-%d %H:%M:%S')
+                    print(f"[Pagination Fix] Expanded 60m request to {from_date_str} to prevent TV pagination barrage")
+            elif resolution in ["15", "30", "5", "2"]:
+                # For 15m/30m, YFinance supports up to 60 days
+                expanded_from = to_dt_safe - timedelta(days=58)
+                if from_dt_safe > expanded_from:
+                    from_dt_safe = expanded_from
+                    from_date_str = from_dt_safe.strftime('%Y-%m-%d %H:%M:%S')
+                    print(f"[Pagination Fix] Expanded {resolution}m request to {from_date_str} to prevent TV pagination barrage")
+
+        # Use Generic Fetcher which handles NIFTY/OPTIONS/Generic
     # Pass resolution to fetch_data for proper interval handling
     print(f"[UDF_HISTORY] Calling client.fetch_data({symbol}, {from_date_str}, {to_date_str}, interval={resolution})")
     df = client.fetch_data(symbol, from_date_str, to_date_str, interval=resolution)
@@ -806,64 +841,52 @@ async def fetch_candles(req: FetchCandlesRequest):
         if clean_symbol.endswith(":YF"):
             clean_symbol = clean_symbol.replace(":YF", "")
         
-        # Calculate lookback date adjustment based on resolution and lookback_bars
-        # This provides pivot/strategy context without fetching unnecessary data
+        # Determine warmup window using from_date-anchored strategy.
+        # The user's chosen from_date is always the reference point.
         from_dt = datetime.strptime(req.from_date, '%Y-%m-%d')
         target_start_ts = int(from_dt.timestamp())  # Used to filter initial markers
-        
-        if req.lookback_bars > 0:
-            # Calculate how many days of data we need for lookback_bars based on resolution
-            # USER REQUEST: Remove strict "specific number" limitation.
-            # We strictly calculate minimum needed, then multiply by HUGE factor to ensure "everything" is loaded organically
-            # within reasonable fetch limits.
-            
-            # Resolution-specific bars-per-day estimates (approximate)
-            if req.resolution in ['1D', 'D', 'W', 'M']:
-                lookback_days = req.lookback_bars  # 1 bar = 1 day
-            elif req.resolution == '240': # 4 Hour
-                lookback_days = max(1, req.lookback_bars // 1.5) # ~1.5 bars per day
-            elif req.resolution == '60':
-                lookback_days = max(1, req.lookback_bars // 6)
-            elif req.resolution == '30':
-                lookback_days = max(1, req.lookback_bars // 12)
-            elif req.resolution == '15':
-                lookback_days = max(1, req.lookback_bars // 25)
-            elif req.resolution == '5':
-                lookback_days = max(1, req.lookback_bars // 75)
-            elif req.resolution == '4':
-                lookback_days = max(1, req.lookback_bars // 90) # ~90 bars per day
-            else:  # resolution == '1' (1-minute) or fallback
-                lookback_days = max(1, req.lookback_bars // 375)
-            
-            # Apply massive buffer (4x) to simulate "load everything" while keeping req.lookback_bars as a base
-            lookback_days = int(lookback_days * 4.0) + 30
-            
-            # ENFORCE DATA SOURCE LIMITS (especially YFinance)
-            # This prevents requesting data from 3 years ago when only 7 days are available,
-            # which causes YFinance to return empty or error.
-            if req.data_source == 'yfinance':
-                if req.resolution in ['1', '4']:
-                    lookback_days = min(lookback_days, 60) # Relaxed limit to trigger auto-promote in client
-                elif req.resolution in ['2', '5', '15', '30']:
-                    lookback_days = min(lookback_days, 60) # Limit to 60 days
-                elif req.resolution in ['60', '240']:
-                    lookback_days = min(lookback_days, 700) # Limit to 700 days (safe under 730)
-            
-            # CAP lookback generally to avoid API timeouts (e.g. 10 years max)
-            lookback_days = min(lookback_days, 3650)
-            
-            adjusted_from_dt = from_dt - timedelta(days=lookback_days)
-            adjusted_from_date = adjusted_from_dt.strftime('%Y-%m-%d')
-            print(f"[Step-by-Step] Adjusted from_date: {req.from_date} -> {adjusted_from_date} (expanded lookback: {lookback_days} days)")
+
+        from_dt_utc = from_dt.astimezone(timezone.utc)
+        warmup_days = WARMUP_DAYS.get(req.resolution, 250)
+        ideal_warmup_from_dt = from_dt_utc - timedelta(days=warmup_days)
+
+        # Check if source has enough history for this warmup
+        # Sources like Dhan have years; YFinance 1m/4m has ~8 days only
+        SOURCE_HISTORY_LIMITS = {
+            "yfinance_1m": 8,
+            "yfinance_4m": 8,
+            "yfinance_other": 700,  # 1y for most other intervals
+        }
+
+        source_key = f"yfinance_{req.resolution}" if req.data_source == "yfinance" else "unlimited"
+        if req.data_source == 'yfinance' and req.resolution not in ['1', '4']:
+            source_key = "yfinance_other"
+        elif req.data_source == 'yfinance' and req.resolution == '4':
+            source_key = "yfinance_4m"
+        elif req.data_source == 'yfinance':
+            source_key = "yfinance_1m"
+
+        source_max_days = SOURCE_HISTORY_LIMITS.get(source_key, 700)
+
+        if warmup_days > source_max_days:
+            # Source can't provide enough warmup — use today-anchored fetch
+            # This is the best we can do; warn the caller
+            warmup_from_dt = datetime.now() - timedelta(days=source_max_days)
+            print(f"[FetchCandles] WARNING: {req.data_source} {req.resolution}m has ~{source_max_days} days "
+                  f"of history (requested {warmup_days} days warmup). Using today-anchored fetch.")
         else:
-            adjusted_from_date = req.from_date
-        
-        df = client.fetch_data(clean_symbol, adjusted_from_date, req.to_date, interval=req.resolution)
+            warmup_from_dt = ideal_warmup_from_dt
+
+        fetch_from_date = warmup_from_dt.strftime('%Y-%m-%d')
+        print(f"[FetchCandles] Fetching {req.resolution}m from {fetch_from_date} to {req.to_date} "
+              f"(warmup_days={warmup_days})")
+
+        df = client.fetch_data(clean_symbol, fetch_from_date, req.to_date, interval=req.resolution)
         
         # FALLBACK LOGIC: If explicit fetch returned empty (likely due to invalid/old date range),
         # automatically fetch the *latest* available data so the user sees something.
         if (df is None or df.empty) and req.data_source == 'yfinance':
-            print(f"[Replay] Data empty for range {adjusted_from_date} to {req.to_date}. Attempting fallback to latest available data...")
+            print(f"[Replay] Data empty for range {fetch_from_date} to {req.to_date}. Attempting fallback to latest available data...")
             
             # Define safe fallback duration based on resolution
             fallback_days = 5 # Default for 1m/4m
@@ -985,7 +1008,7 @@ async def fetch_candles(req: FetchCandlesRequest):
                     # If for some reason it's not, recalculate it
                     if 'target_start_ts' not in locals():
                          from_dt_temp = datetime.strptime(req.from_date, '%Y-%m-%d')
-                         target_start_ts = int(from_dt_temp.timestamp())
+                         target_start_ts = int(from_dt_temp.replace(tzinfo=timezone.utc).timestamp()) if from_dt_temp.tzinfo is None else int(from_dt_temp.astimezone(timezone.utc).timestamp())
 
                     for i, c in enumerate(candles_list):
                         if c['time'] < target_start_ts:
@@ -1189,12 +1212,15 @@ async def _process_study_bar(req: EvaluateStrategyRequest):
             
         else:
             # SLOW PATH: Full rebuild (first run or reset)
-            # process_bar handles initialize_history internally on first call
-            # (same pattern as AngularPriceCoverageStudy)
             print(f"[Study] SLOW PATH: Rebuilding from 0 to {req.current_index}")
             _study_cache = {'index': -1, 'strategy': req.strategy, 'state': None}
             
-            # Single call - process_bar auto-initializes history up to bar_index
+            # NO SPECIAL CORPUS HANDLING HERE.
+            # Warmup is already computed correctly in fetch_candles using the
+            # from_date-anchored WARMUP_DAYS strategy. initialize_history() will
+            # process all available warmup bars correctly.
+            
+            # Final call for the requested bar
             final_result = study.process_bar(
                 candles=candles,
                 bar_index=req.current_index,

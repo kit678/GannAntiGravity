@@ -1,0 +1,290 @@
+=== THE 1/4 REVERSAL ANOMALY VERBOSE REPORT ===
+=== REPRODUCTION INSTRUCTIONS ===
+To replicate these results on the frontend, use the following parameters:
+Symbol:     ^NSEI
+Timeframe:  4m
+Start Date: 2026-04-28
+End Date:   2026-05-06
+============================================================
+
+Overall Sample Size: 63
+Overall Win Rate:    85.71%
+
+Live Sample Size:    52
+Live Win Rate:       84.62%
+
+Retro Sample Size:   11
+Retro Win Rate:      90.91%
+============================================================
+
+=== LIVE EVENTS ===
+These events would have been fully tradable in real-time without future lookahead.
+============================================================
+EVENT: 4/28/2026, 12:11:00 PM | P2 (H5-L2) (0.25) | Type: SUPPORT_TEST
+      Price: 24035.31
+      Outcome: LOSS (MFE: 42.76, MAE: 22.14)
+------------------------------------------------------------
+EVENT: 4/28/2026, 12:15:00 PM | P1 (H5-L4) (0.25) | Type: RESISTANCE_TEST
+      Price: 24054.05
+      Outcome: WIN (MFE: 61.50, MAE: 0.20)
+------------------------------------------------------------
+EVENT: 4/28/2026, 1:27:00 PM | P3 (H5-L2) (0.25) | Type: RESISTANCE_TEST
+      Price: 24046.66
+      Outcome: WIN (MFE: 85.06, MAE: 0.00)
+------------------------------------------------------------
+EVENT: 4/28/2026, 2:31:00 PM | P1 (L8-H8) (0.25) | Type: RESISTANCE_TEST
+      Price: 24026.16
+      Outcome: WIN (MFE: 57.51, MAE: 20.29)
+------------------------------------------------------------
+EVENT: 4/28/2026, 2:35:00 PM | P1 (L8-H8) (0.25) | Type: RESISTANCE_TEST
+      Price: 24024.74
+      Outcome: WIN (MFE: 66.68, MAE: 21.71)
+------------------------------------------------------------
+EVENT: 4/29/2026, 9:31:00 AM | P1 (L10-H6) (0.25) | Type: RESISTANCE_TEST
+      Price: 24124.90
+      Outcome: WIN (MFE: 110.94, MAE: 37.35)
+------------------------------------------------------------
+EVENT: 4/29/2026, 11:27:00 AM | P1 (H12-L11) (0.25) | Type: SUPPORT_TEST
+      Price: 24267.40
+      Outcome: WIN (MFE: 31.75, MAE: 3.75)
+------------------------------------------------------------
+EVENT: 4/29/2026, 11:47:00 AM | P2 (H12-L11) (0.25) | Type: RESISTANCE_TEST
+      Price: 24273.71
+      Outcome: WIN (MFE: 42.44, MAE: 7.81)
+------------------------------------------------------------
+EVENT: 4/29/2026, 11:51:00 AM | P2 (H12-L11) (0.25) | Type: RESISTANCE_TEST
+      Price: 24274.97
+      Outcome: WIN (MFE: 51.28, MAE: 7.72)
+------------------------------------------------------------
+EVENT: 4/29/2026, 11:55:00 AM | P2 (H12-L11) (0.25) | Type: RESISTANCE_TEST
+      Price: 24276.23
+      Outcome: WIN (MFE: 54.12, MAE: 8.68)
+------------------------------------------------------------
+EVENT: 4/29/2026, 1:39:00 PM | P2 (H13-L11) (0.25) | Type: SUPPORT_TEST
+      Price: 24276.77
+      Outcome: WIN (MFE: 91.82, MAE: 6.53)
+------------------------------------------------------------
+EVENT: 4/29/2026, 1:51:00 PM | P1 (H13-L11) (0.25) | Type: RESISTANCE_TEST
+      Price: 24278.31
+      Outcome: WIN (MFE: 96.21, MAE: 1.69)
+------------------------------------------------------------
+EVENT: 4/29/2026, 1:55:00 PM | P1 (H13-L11) (0.25) | Type: RESISTANCE_TEST
+      Price: 24278.82
+      Outcome: WIN (MFE: 96.72, MAE: 0.00)
+------------------------------------------------------------
+EVENT: 4/30/2026, 11:43:00 AM | P1 (L16-H16) (0.25) | Type: SUPPORT_TEST
+      Price: 23841.24
+      Outcome: WIN (MFE: 78.36, MAE: 14.94)
+------------------------------------------------------------
+EVENT: 4/30/2026, 11:47:00 AM | P1 (L16-H16) (0.25) | Type: SUPPORT_TEST
+      Price: 23840.24
+      Outcome: WIN (MFE: 79.36, MAE: 13.94)
+------------------------------------------------------------
+EVENT: 4/30/2026, 12:23:00 PM | P1 (L16-H15) (0.25) | Type: RESISTANCE_TEST
+      Price: 23915.74
+      Outcome: LOSS (MFE: 27.86, MAE: 23.49)
+------------------------------------------------------------
+EVENT: 4/30/2026, 12:27:00 PM | P1 (L16-H15) (0.25) | Type: RESISTANCE_TEST
+      Price: 23914.72
+      Outcome: LOSS (MFE: 28.88, MAE: 22.47)
+------------------------------------------------------------
+EVENT: 4/30/2026, 12:43:00 PM | P1 (L16-H15) (0.25) | Type: SUPPORT_TEST
+      Price: 23910.65
+      Outcome: WIN (MFE: 67.50, MAE: 2.60)
+------------------------------------------------------------
+EVENT: 5/4/2026, 9:15:00 AM | P1 (L16-H13) (0.25) | Type: RESISTANCE_TEST
+      Price: 24193.74
+      Outcome: WIN (MFE: 95.46, MAE: 29.64)
+------------------------------------------------------------
+EVENT: 5/4/2026, 9:31:00 AM | P1 (L16-H13) (0.25) | Type: SUPPORT_TEST
+      Price: 24189.41
+      Outcome: WIN (MFE: 99.79, MAE: 16.96)
+------------------------------------------------------------
+EVENT: 5/4/2026, 10:15:00 AM | P3 (L16-H13) (0.25) | Type: RESISTANCE_TEST
+      Price: 24177.53
+      Outcome: LOSS (MFE: 63.12, MAE: 34.73)
+------------------------------------------------------------
+EVENT: 5/4/2026, 10:19:00 AM | P3 (L16-H13) (0.25) | Type: RESISTANCE_TEST
+      Price: 24176.45
+      Outcome: WIN (MFE: 64.20, MAE: 29.20)
+------------------------------------------------------------
+EVENT: 5/4/2026, 10:31:00 AM | P3 (L16-H13) (0.25) | Type: SUPPORT_TEST
+      Price: 24173.21
+      Outcome: WIN (MFE: 67.44, MAE: 0.00)
+------------------------------------------------------------
+EVENT: 5/4/2026, 11:47:00 AM | P1 (L19-H19) (0.25) | Type: RESISTANCE_TEST
+      Price: 24248.89
+      Outcome: WIN (MFE: 142.39, MAE: 0.00)
+------------------------------------------------------------
+EVENT: 5/4/2026, 12:19:00 PM | P3 (L16-H13) (0.25) | Type: RESISTANCE_TEST
+      Price: 24144.03
+      Outcome: WIN (MFE: 60.43, MAE: 1.62)
+------------------------------------------------------------
+EVENT: 5/4/2026, 1:51:00 PM | P1 (L22-H22) (0.25) | Type: RESISTANCE_TEST
+      Price: 24107.52
+      Outcome: LOSS (MFE: 57.12, MAE: 42.18)
+------------------------------------------------------------
+EVENT: 5/4/2026, 2:39:00 PM | P3 (H19-L18) (0.25) | Type: SUPPORT_TEST
+      Price: 24082.16
+      Outcome: WIN (MFE: 53.29, MAE: 11.16)
+------------------------------------------------------------
+EVENT: 5/4/2026, 3:11:00 PM | P1 (L23-H23) (0.25) | Type: RESISTANCE_TEST
+      Price: 24134.25
+      Outcome: WIN (MFE: 184.50, MAE: 1.20)
+------------------------------------------------------------
+EVENT: 5/4/2026, 3:15:00 PM | P1 (L23-H23) (0.25) | Type: RESISTANCE_TEST
+      Price: 24133.06
+      Outcome: WIN (MFE: 183.31, MAE: 1.54)
+------------------------------------------------------------
+EVENT: 5/4/2026, 3:19:00 PM | P1 (L23-H23) (0.25) | Type: RESISTANCE_TEST
+      Price: 24131.87
+      Outcome: WIN (MFE: 182.12, MAE: 0.00)
+------------------------------------------------------------
+EVENT: 5/5/2026, 9:15:00 AM | P2 (H23-L22) (0.25) | Type: SUPPORT_TEST
+      Price: 24042.04
+      Outcome: WIN (MFE: 64.39, MAE: 28.06)
+------------------------------------------------------------
+EVENT: 5/5/2026, 1:07:00 PM | P1 (L25-H24) (0.25) | Type: RESISTANCE_TEST
+      Price: 24078.00
+      Outcome: WIN (MFE: 61.35, MAE: 2.95)
+------------------------------------------------------------
+EVENT: 5/5/2026, 1:15:00 PM | P1 (L25-H24) (0.25) | Type: RESISTANCE_TEST
+      Price: 24076.15
+      Outcome: WIN (MFE: 59.49, MAE: 0.00)
+------------------------------------------------------------
+EVENT: 5/5/2026, 2:27:00 PM | P2 (L25-H24) (0.25) | Type: RESISTANCE_TEST
+      Price: 24059.47
+      Outcome: WIN (MFE: 61.62, MAE: 0.00)
+------------------------------------------------------------
+EVENT: 5/5/2026, 2:43:00 PM | P1 (L27-H27) (0.25) | Type: RESISTANCE_TEST
+      Price: 24045.66
+      Outcome: WIN (MFE: 47.81, MAE: 9.69)
+------------------------------------------------------------
+EVENT: 5/5/2026, 2:51:00 PM | P1 (H28-L27) (0.25) | Type: SUPPORT_TEST
+      Price: 24014.76
+      Outcome: WIN (MFE: 230.54, MAE: 16.91)
+------------------------------------------------------------
+EVENT: 5/5/2026, 3:15:00 PM | P2 (L25-H24) (0.25) | Type: RESISTANCE_TEST
+      Price: 24048.35
+      Outcome: WIN (MFE: 196.95, MAE: 11.30)
+------------------------------------------------------------
+EVENT: 5/5/2026, 3:19:00 PM | P2 (L25-H24) (0.25) | Type: RESISTANCE_TEST
+      Price: 24047.42
+      Outcome: WIN (MFE: 197.88, MAE: 10.37)
+------------------------------------------------------------
+EVENT: 5/5/2026, 3:27:00 PM | P3 (L28-H26) (0.25) | Type: RESISTANCE_TEST
+      Price: 24059.62
+      Outcome: WIN (MFE: 185.68, MAE: 0.00)
+------------------------------------------------------------
+EVENT: 5/5/2026, 3:27:00 PM | P2 (L28-H27) (0.25) | Type: SUPPORT_TEST
+      Price: 24044.81
+      Outcome: WIN (MFE: 200.49, MAE: 0.00)
+------------------------------------------------------------
+EVENT: 5/5/2026, 3:27:00 PM | P1 (L28-H28) (0.25) | Type: SUPPORT_TEST
+      Price: 24045.66
+      Outcome: WIN (MFE: 199.64, MAE: 0.00)
+------------------------------------------------------------
+EVENT: 5/6/2026, 9:19:00 AM | P2 (L25-H19) (0.25) | Type: SUPPORT_TEST
+      Price: 24169.07
+      Outcome: LOSS (MFE: 50.47, MAE: 32.88)
+------------------------------------------------------------
+EVENT: 5/6/2026, 9:27:00 AM | P2 (L25-H19) (0.25) | Type: SUPPORT_TEST
+      Price: 24167.76
+      Outcome: WIN (MFE: 71.26, MAE: 14.94)
+------------------------------------------------------------
+EVENT: 5/6/2026, 9:35:00 AM | P2 (L25-H19) (0.25) | Type: RESISTANCE_TEST
+      Price: 24166.45
+      Outcome: WIN (MFE: 69.95, MAE: 0.00)
+------------------------------------------------------------
+EVENT: 5/6/2026, 9:43:00 AM | P3 (L25-H21) (0.25) | Type: SUPPORT_TEST
+      Price: 24132.64
+      Outcome: LOSS (MFE: 36.14, MAE: 33.21)
+------------------------------------------------------------
+EVENT: 5/6/2026, 10:15:00 AM | P3 (L25-H21) (0.25) | Type: SUPPORT_TEST
+      Price: 24126.71
+      Outcome: LOSS (MFE: 35.36, MAE: 28.69)
+------------------------------------------------------------
+EVENT: 5/6/2026, 11:51:00 AM | P3 (L25-H21) (0.25) | Type: RESISTANCE_TEST
+      Price: 24108.90
+      Outcome: WIN (MFE: 78.40, MAE: 5.25)
+------------------------------------------------------------
+EVENT: 5/6/2026, 12:15:00 PM | P1 (H29-L28) (0.25) | Type: SUPPORT_TEST
+      Price: 24071.00
+      Outcome: WIN (MFE: 72.00, MAE: 6.25)
+------------------------------------------------------------
+EVENT: 5/6/2026, 1:31:00 PM | P2 (L31-H30) (0.25) | Type: RESISTANCE_TEST
+      Price: 24088.53
+      Outcome: WIN (MFE: 44.82, MAE: 4.38)
+------------------------------------------------------------
+EVENT: 5/6/2026, 1:31:00 PM | P1 (L31-H31) (0.25) | Type: RESISTANCE_TEST
+      Price: 24088.12
+      Outcome: WIN (MFE: 45.22, MAE: 3.97)
+------------------------------------------------------------
+EVENT: 5/6/2026, 1:59:00 PM | P2 (H29-L28) (0.25) | Type: SUPPORT_TEST
+      Price: 24107.57
+      Outcome: WIN (MFE: 225.83, MAE: 3.82)
+------------------------------------------------------------
+EVENT: 5/6/2026, 2:11:00 PM | P2 (H29-L28) (0.25) | Type: SUPPORT_TEST
+      Price: 24111.79
+      Outcome: WIN (MFE: 243.76, MAE: 0.00)
+------------------------------------------------------------
+
+
+=== RETROACTIVE EVENTS ===
+These events occurred during the 5-bar unconfirmed pivot window and were retroactively inserted.
+============================================================
+EVENT [RETROACTIVE]: 4/28/2026, 9:15:00 AM | P1 (H4-L2) (0.25) | Type: SUPPORT_TEST
+   -> [INFO] This event was generated retroactively during a sweep.
+      Price: 24012.79
+      Outcome: WIN (MFE: 136.81, MAE: 0.00)
+------------------------------------------------------------
+EVENT [RETROACTIVE]: 4/28/2026, 11:19:00 AM | P1 (H6-L5) (0.25) | Type: RESISTANCE_TEST
+   -> [INFO] This event was generated retroactively during a sweep.
+      Price: 24135.80
+      Outcome: WIN (MFE: 101.50, MAE: 0.00)
+------------------------------------------------------------
+EVENT [RETROACTIVE]: 4/28/2026, 1:19:00 PM | P1 (L7-H7) (0.25) | Type: SUPPORT_TEST
+   -> [INFO] This event was generated retroactively during a sweep.
+      Price: 24031.15
+      Outcome: WIN (MFE: 69.55, MAE: 17.85)
+------------------------------------------------------------
+EVENT [RETROACTIVE]: 4/28/2026, 1:23:00 PM | P3 (H5-L2) (0.25) | Type: RESISTANCE_TEST
+   -> [INFO] This event was generated retroactively during a sweep.
+      Price: 24046.06
+      Outcome: WIN (MFE: 84.46, MAE: 2.94)
+------------------------------------------------------------
+EVENT [RETROACTIVE]: 4/28/2026, 2:15:00 PM | P1 (H9-L8) (0.25) | Type: SUPPORT_TEST
+   -> [INFO] This event was generated retroactively during a sweep.
+      Price: 23974.02
+      Outcome: WIN (MFE: 72.23, MAE: 0.00)
+------------------------------------------------------------
+EVENT [RETROACTIVE]: 4/29/2026, 3:03:00 PM | P1 (H14-L13) (0.25) | Type: SUPPORT_TEST
+   -> [INFO] This event was generated retroactively during a sweep.
+      Price: 24193.00
+      Outcome: WIN (MFE: 327.75, MAE: 6.55)
+------------------------------------------------------------
+EVENT [RETROACTIVE]: 4/30/2026, 11:35:00 AM | P1 (L16-H16) (0.25) | Type: RESISTANCE_TEST
+   -> [INFO] This event was generated retroactively during a sweep.
+      Price: 23843.25
+      Outcome: WIN (MFE: 62.50, MAE: 16.95)
+------------------------------------------------------------
+EVENT [RETROACTIVE]: 4/30/2026, 3:03:00 PM | P1 (H18-L17) (0.25) | Type: SUPPORT_TEST
+   -> [INFO] This event was generated retroactively during a sweep.
+      Price: 23996.74
+      Outcome: WIN (MFE: 249.10, MAE: 33.80)
+------------------------------------------------------------
+EVENT [RETROACTIVE]: 5/5/2026, 9:15:00 AM | P1 (H19-L16) (0.25) | Type: SUPPORT_TEST
+   -> [INFO] This event was generated retroactively during a sweep.
+      Price: 23958.79
+      Outcome: WIN (MFE: 111.31, MAE: 0.00)
+------------------------------------------------------------
+EVENT [RETROACTIVE]: 5/5/2026, 2:03:00 PM | P1 (H27-L26) (0.25) | Type: SUPPORT_TEST
+   -> [INFO] This event was generated retroactively during a sweep.
+      Price: 24026.79
+      Outcome: LOSS (MFE: 34.21, MAE: 24.64)
+------------------------------------------------------------
+EVENT [RETROACTIVE]: 5/6/2026, 1:51:00 PM | P3 (H29-L28) (0.25) | Type: SUPPORT_TEST
+   -> [INFO] This event was generated retroactively during a sweep.
+      Price: 24104.76
+      Outcome: WIN (MFE: 228.29, MAE: 8.36)
+------------------------------------------------------------

@@ -166,20 +166,19 @@ class PivotDetector:
         self.last_pivot_type = None
         self.confirmed_pivots = []
         
-        if clear_registry and self.registry_key:
-            if self.registry_key in _PIVOT_REGISTRY:
+        if clear_registry:
+            if self.registry_key and self.registry_key in _PIVOT_REGISTRY:
                 del _PIVOT_REGISTRY[self.registry_key]
-        
-        # CRITICAL FIX: Never reset high_count and low_count.
-        # They must persist across the entire simulation to ensure:
-        # 1. Each pivot has a unique label (H1, H2, H3...)
-        # 2. Pivot labels are not reused after fan invalidation
-        # 3. H1-L1, H2-L1, H2-L2, H3-L2... are all different fans
-        
-        # Only sync from registry if it exists (to restore counts after crash recovery)
-        if self.registry_key and not clear_registry:
-            self._sync_from_registry()
-        # If clear_registry=True, we keep our current counts (they're preserved)
+            
+            # When doing a hard reset (e.g. full history rebuild on cache miss),
+            # we MUST reset the counters so pivot labels generate deterministically
+            # starting from H1/L1 again.
+            self.high_count = 0
+            self.low_count = 0
+        else:
+            # Soft reset: preserve counters, sync from registry to restore state
+            if self.registry_key:
+                self._sync_from_registry()
     
     def detect_pivots(self, candles: List[Dict[str, Any]], current_index: int) -> Dict[str, Any]:
         """

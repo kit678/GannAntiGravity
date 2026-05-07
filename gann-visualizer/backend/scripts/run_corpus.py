@@ -28,28 +28,29 @@ class Slice(NamedTuple):
 
 
 IN_SAMPLE_FROM = "2025-09-28"
-IN_SAMPLE_TO   = "2026-03-27"
-SHORT_FROM_5M  = "2026-01-28"   # ~60-day limit for yfinance 5m
-SHORT_TO_5M    = "2026-03-27"
+IN_SAMPLE_TO   = "2026-05-07"
+SHORT_FROM_4M  = "2026-04-28"   # ~8-day limit for yfinance 4m (1m underlying)
+SHORT_TO_4M    = "2026-05-07"
 
 CORPUS: list[Slice] = [
     # NIFTY
     Slice("^NSEI",    "60", IN_SAMPLE_FROM, IN_SAMPLE_TO),
     Slice("^NSEI",    "15", IN_SAMPLE_FROM, IN_SAMPLE_TO),
-    Slice("^NSEI",    "5",  SHORT_FROM_5M,  SHORT_TO_5M),
-    # BANKNIFTY
-    Slice("^NSEBANK", "60", IN_SAMPLE_FROM, IN_SAMPLE_TO),
-    Slice("^NSEBANK", "15", IN_SAMPLE_FROM, IN_SAMPLE_TO),
-    Slice("^NSEBANK", "5",  SHORT_FROM_5M,  SHORT_TO_5M),
+    Slice("^NSEI",    "4",  SHORT_FROM_4M,  SHORT_TO_4M),
+    # BANKNIFTY (Commented out as requested to run only for NIFTY 50)
+    # Slice("^NSEBANK", "60", IN_SAMPLE_FROM, IN_SAMPLE_TO),
+    # Slice("^NSEBANK", "15", IN_SAMPLE_FROM, IN_SAMPLE_TO),
+    # Slice("^NSEBANK", "4",  SHORT_FROM_4M,  SHORT_TO_4M),
 ]
 
 
 def run_all(slices: Iterable[Slice]) -> None:
     for s in slices:
         logging.info("=" * 80)
-        logging.info(f"CORPUS SLICE: {s.instrument} @ {s.resolution}m  {s.from_date} → {s.to_date}")
+        logging.info(f"CORPUS SLICE: {s.instrument} @ {s.resolution}m  {s.from_date} -> {s.to_date}")
         logging.info("=" * 80)
         try:
+            # We must pass from_date properly to the run_simulation to reflect exactly the requested range
             run_simulation(
                 symbol=s.instrument,
                 resolution=s.resolution,

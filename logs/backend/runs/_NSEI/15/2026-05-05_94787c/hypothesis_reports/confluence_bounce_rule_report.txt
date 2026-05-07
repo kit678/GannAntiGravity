@@ -1,0 +1,2711 @@
+=== CONFLUENCE BOUNCE RULE VERBOSE REPORT ===
+=== REPRODUCTION INSTRUCTIONS ===
+To replicate these results on the frontend, use the following parameters:
+Symbol:     ^NSEI
+Timeframe:  15m
+Start Date: 2025-09-28
+End Date:   2026-05-05
+============================================================
+
+Overall Sample Size: 524
+Overall Win Rate:    77.29%
+
+Live Sample Size:    460
+Live Win Rate:       76.96%
+
+Retro Sample Size:   64
+Retro Win Rate:      79.69%
+============================================================
+
+=== LIVE EVENTS ===
+These events would have been fully tradable in real-time without future lookahead.
+============================================================
+EVENT: 2/5/2026, 2:00:00 PM | P1 (L2-H1) (0.875) | Type: SUPPORT_TEST
+      Confluence With: Fan_L2_H1_main: 25532.70, Fan_L2_H1_0.875: 25580.64, Fan_L2_H1_0.75: 25622.75
+      Price: 25580.64
+      Outcome: LOSS (MFE: 89.11, MAE: 75.89)
+------------------------------------------------------------
+EVENT: 2/6/2026, 9:15:00 AM | P1 (L2-H1) (0.875) | Type: SUPPORT_TEST
+      Confluence With: Fan_L2_H1_main: 25521.17, Fan_L2_H1_0.875: 25567.58, Fan_L2_H1_0.75: 25609.76
+      Price: 25567.58
+      Outcome: LOSS (MFE: 76.92, MAE: 75.43)
+------------------------------------------------------------
+EVENT: 2/6/2026, 12:15:00 PM | P1 (L3-H2) (0.5) | Type: SUPPORT_TEST
+      Confluence With: Fan_L3_H1_0.75: 25548.62, Fan_L3_H2_0.5: 25562.63, Fan_L3_H2_horizontal: 25608.54
+      Price: 25562.63
+      Outcome: WIN (MFE: 109.12, MAE: 35.98)
+------------------------------------------------------------
+EVENT: 2/6/2026, 12:30:00 PM | P2 (L3-H1) (0.75) | Type: SUPPORT_TEST
+      Confluence With: Fan_L3_H1_0.75: 25542.20, Fan_L3_H2_0.5: 25554.98
+      Price: 25542.20
+      Outcome: WIN (MFE: 161.25, MAE: 15.55)
+------------------------------------------------------------
+EVENT: 2/6/2026, 12:45:00 PM | P2 (L3-H1) (0.75) | Type: SUPPORT_TEST
+      Confluence With: Fan_L3_H1_0.75: 25535.78, Fan_L3_H2_0.5: 25547.33
+      Price: 25535.78
+      Outcome: WIN (MFE: 167.67, MAE: 0.00)
+------------------------------------------------------------
+EVENT: 2/6/2026, 1:30:00 PM | P1 (H3-L3) (0.5) | Type: RESISTANCE_TEST
+      Confluence With: Fan_L3_H1_0.5: 25624.59, Fan_L3_H2_0.25: 25601.97, Fan_L3_H2_horizontal: 25608.54, Fan_H3_L3_0.5: 25592.98
+      Price: 25592.98
+      Outcome: WIN (MFE: 310.12, MAE: 20.93)
+------------------------------------------------------------
+EVENT: 2/6/2026, 1:45:00 PM | P3 (L3-H1) (0.5) | Type: RESISTANCE_TEST
+      Confluence With: Fan_L3_H1_0.5: 25620.47, Fan_L3_H1_horizontal: 25669.93, Fan_L3_H2_0.25: 25598.41, Fan_L3_H2_horizontal: 25608.54, Fan_H3_L3_0.5: 25602.15
+      Price: 25620.47
+      Outcome: WIN (MFE: 282.63, MAE: 18.57)
+------------------------------------------------------------
+EVENT: 2/6/2026, 2:00:00 PM | P2 (H3-L3) (0.5) | Type: SUPPORT_TEST
+      Confluence With: Fan_L3_H1_0.5: 25616.35, Fan_L3_H2_0.25: 25594.84, Fan_L3_H2_horizontal: 25608.54, Fan_H3_L3_0.5: 25611.31, Fan_L4_H3_0.5: 25577.02, Fan_L4_H3_0.25: 25621.63, Fan_L4_H3_horizontal: 25627.38
+      Price: 25611.31
+      Outcome: WIN (MFE: 291.79, MAE: 9.41)
+------------------------------------------------------------
+EVENT: 2/6/2026, 2:00:00 PM | P3 (L3-H2) (horizontal) | Type: SUPPORT_TEST
+      Confluence With: Fan_L3_H1_0.5: 25616.35, Fan_L3_H2_0.25: 25594.84, Fan_L3_H2_horizontal: 25608.54, Fan_H3_L3_0.5: 25611.31, Fan_L4_H3_0.5: 25577.02, Fan_L4_H3_0.25: 25621.63, Fan_L4_H3_horizontal: 25627.38
+      Price: 25608.54
+      Outcome: WIN (MFE: 294.56, MAE: 6.64)
+------------------------------------------------------------
+EVENT: 2/6/2026, 2:15:00 PM | P3 (L3-H2) (horizontal) | Type: SUPPORT_TEST
+      Confluence With: Fan_L3_H2_0.25: 25591.27, Fan_L3_H2_horizontal: 25608.54, Fan_H3_L3_0.5: 25620.48, Fan_L4_H3_0.5: 25566.95, Fan_L4_H3_0.25: 25617.14, Fan_L4_H3_horizontal: 25627.38
+      Price: 25608.54
+      Outcome: WIN (MFE: 294.56, MAE: 2.04)
+------------------------------------------------------------
+EVENT: 2/6/2026, 2:15:00 PM | P1 (L4-H3) (0.25) | Type: RESISTANCE_TEST
+      Confluence With: Fan_L3_H2_0.25: 25591.27, Fan_L3_H2_horizontal: 25608.54, Fan_H3_L3_0.5: 25620.48, Fan_L4_H3_0.5: 25566.95, Fan_L4_H3_0.25: 25617.14, Fan_L4_H3_horizontal: 25627.38
+      Price: 25617.14
+      Outcome: WIN (MFE: 285.96, MAE: 10.64)
+------------------------------------------------------------
+EVENT: 2/6/2026, 2:15:00 PM | P1 (L4-H3) (horizontal) | Type: RESISTANCE_TEST
+      Confluence With: Fan_L3_H2_0.25: 25591.27, Fan_L3_H2_horizontal: 25608.54, Fan_H3_L3_0.5: 25620.48, Fan_L4_H3_0.25: 25617.14, Fan_L4_H3_horizontal: 25627.38
+      Price: 25627.38
+      Outcome: WIN (MFE: 275.72, MAE: 20.88)
+------------------------------------------------------------
+EVENT: 2/6/2026, 2:30:00 PM | P3 (L3-H2) (horizontal) | Type: SUPPORT_TEST
+      Confluence With: Fan_L3_H2_0.25: 25587.70, Fan_L3_H2_horizontal: 25608.54, Fan_H3_L3_0.5: 25629.65, Fan_L4_H3_0.25: 25612.64, Fan_L4_H3_horizontal: 25627.38
+      Price: 25608.54
+      Outcome: WIN (MFE: 294.56, MAE: 0.00)
+------------------------------------------------------------
+EVENT: 2/6/2026, 2:45:00 PM | P2 (H3-L3) (0.5) | Type: SUPPORT_TEST
+      Confluence With: Fan_L3_H2_horizontal: 25608.54, Fan_H3_L3_0.5: 25638.81, Fan_L4_H3_0.25: 25608.14, Fan_L4_H3_horizontal: 25627.38, Fan_L3_H1_0.5: 25603.98, Fan_L3_H1_horizontal: 25669.93
+      Price: 25638.81
+      Outcome: WIN (MFE: 264.29, MAE: 0.00)
+------------------------------------------------------------
+EVENT: 2/6/2026, 3:15:00 PM | P1 (L3-H1) (horizontal) | Type: SUPPORT_TEST
+      Confluence With: Fan_L3_H1_0.25: 25709.42, Fan_L3_H1_horizontal: 25669.93
+      Price: 25669.93
+      Outcome: WIN (MFE: 233.17, MAE: 0.00)
+------------------------------------------------------------
+EVENT: 2/9/2026, 2:15:00 PM | P1 (L5-H4) (horizontal) | Type: RESISTANCE_TEST
+      Confluence With: Fan_H4_L4_0.5: 25814.45, Fan_L5_H4_0.75: 25816.29, Fan_L5_H4_0.5: 25846.25, Fan_L5_H4_0.25: 25874.97, Fan_L5_H4_horizontal: 25863.31
+      Price: 25863.31
+      Outcome: WIN (MFE: 115.24, MAE: 27.06)
+------------------------------------------------------------
+EVENT: 2/9/2026, 2:30:00 PM | P1 (L5-H4) (0.5) | Type: SUPPORT_TEST
+      Confluence With: Fan_H4_L3_0.5: 25793.99, Fan_H4_L4_0.5: 25823.73, Fan_L5_H4_0.875: 25795.48, Fan_L5_H4_0.75: 25811.95, Fan_L5_H4_0.5: 25843.41, Fan_L5_H4_0.25: 25873.57, Fan_L5_H4_horizontal: 25863.31
+      Price: 25843.41
+      Outcome: WIN (MFE: 135.14, MAE: 7.16)
+------------------------------------------------------------
+EVENT: 2/9/2026, 2:45:00 PM | P1 (L5-H4) (0.5) | Type: SUPPORT_TEST
+      Confluence With: Fan_H4_L3_0.5: 25801.54, Fan_H4_L4_0.5: 25833.01, Fan_L5_H4_0.875: 25790.36, Fan_L5_H4_0.75: 25807.61, Fan_L5_H4_0.5: 25840.57, Fan_L5_H4_0.25: 25872.16, Fan_L5_H4_horizontal: 25863.31
+      Price: 25840.57
+      Outcome: WIN (MFE: 137.98, MAE: 0.00)
+------------------------------------------------------------
+EVENT: 2/9/2026, 3:00:00 PM | P1 (L5-H4) (0.25) | Type: RESISTANCE_TEST
+      Confluence With: Fan_H4_L4_0.5: 25842.30, Fan_L5_H4_0.5: 25837.73, Fan_L5_H4_0.25: 25870.76, Fan_L5_H4_horizontal: 25863.31
+      Price: 25870.76
+      Outcome: WIN (MFE: 107.79, MAE: 13.91)
+------------------------------------------------------------
+EVENT: 2/9/2026, 3:15:00 PM | P1 (L5-H4) (0.25) | Type: RESISTANCE_TEST
+      Confluence With: Fan_H4_L4_0.5: 25851.58, Fan_L5_H4_0.5: 25834.88, Fan_L5_H4_0.25: 25869.35, Fan_L5_H4_horizontal: 25863.31
+      Price: 25869.35
+      Outcome: WIN (MFE: 109.20, MAE: 0.00)
+------------------------------------------------------------
+EVENT: 2/10/2026, 12:00:00 PM | P3 (H5-L3) (0.875) | Type: SUPPORT_TEST
+      Confluence With: Fan_H5_L5_0.875: 26003.96, Fan_H5_L5_0.75: 25973.00, Fan_H5_L5_0.5: 25917.59, Fan_H5_L4_0.875: 25960.46, Fan_H5_L3_0.875: 25952.78
+      Price: 25952.78
+      Outcome: LOSS (MFE: 59.58, MAE: 36.42)
+------------------------------------------------------------
+EVENT: 2/10/2026, 12:00:00 PM | P2 (H5-L4) (0.875) | Type: SUPPORT_TEST
+      Confluence With: Fan_H5_L5_0.875: 26003.96, Fan_H5_L5_0.75: 25973.00, Fan_H5_L5_0.5: 25917.59, Fan_H5_L4_0.875: 25960.46, Fan_H5_L3_0.875: 25952.78
+      Price: 25960.46
+      Outcome: WIN (MFE: 67.26, MAE: 28.74)
+------------------------------------------------------------
+EVENT: 2/10/2026, 12:45:00 PM | P3 (H5-L3) (0.875) | Type: RESISTANCE_TEST
+      Confluence With: Fan_H5_L5_0.875: 26029.05, Fan_H5_L5_0.75: 25993.87, Fan_H5_L5_0.5: 25930.90, Fan_H5_L4_0.875: 25988.15, Fan_H5_L3_0.875: 25977.90
+      Price: 25977.90
+      Outcome: WIN (MFE: 84.71, MAE: 4.35)
+------------------------------------------------------------
+EVENT: 2/10/2026, 12:45:00 PM | P2 (H5-L4) (0.875) | Type: RESISTANCE_TEST
+      Confluence With: Fan_H5_L5_0.875: 26029.05, Fan_H5_L5_0.75: 25993.87, Fan_H5_L4_0.875: 25988.15, Fan_H5_L3_0.875: 25977.90
+      Price: 25988.15
+      Outcome: WIN (MFE: 94.95, MAE: 0.00)
+------------------------------------------------------------
+EVENT: 2/10/2026, 3:15:00 PM | P3 (H6-L3) (0.75) | Type: SUPPORT_TEST
+      Confluence With: Fan_H6_L5_0.5: 25931.98, Fan_H6_L5_0.25: 25875.22, Fan_H6_L5_horizontal: 25899.97, Fan_H6_L3_0.75: 25907.40, Fan_H6_L4_0.75: 25919.19, Fan_L7_H6_0.75: 25870.60, Fan_L7_H6_0.5: 25918.60, Fan_L7_H6_0.25: 25955.97, Fan_L7_H6_horizontal: 25953.90
+      Price: 25907.40
+      Outcome: WIN (MFE: 93.25, MAE: 0.00)
+------------------------------------------------------------
+EVENT: 2/11/2026, 10:45:00 AM | P2 (H7-L5) (0.75) | Type: RESISTANCE_TEST
+      Confluence With: Fan_H7_L7_0.5: 25974.48, Fan_H7_L7_0.25: 25931.63, Fan_H7_L7_horizontal: 25933.84, Fan_H7_L5_0.875: 26002.56, Fan_H7_L5_0.75: 25975.12, Fan_H7_L4_0.875: 25971.73
+      Price: 25975.12
+      Outcome: WIN (MFE: 74.92, MAE: 3.93)
+------------------------------------------------------------
+EVENT: 2/11/2026, 12:00:00 PM | P2 (H7-L5) (0.5) | Type: SUPPORT_TEST
+      Confluence With: Fan_H7_L7_0.25: 25947.64, Fan_H7_L7_horizontal: 25933.84, Fan_H7_L5_0.5: 25934.21, Fan_H7_L5_horizontal: 25907.47, Fan_H7_L4_0.75: 25928.67
+      Price: 25934.21
+      Outcome: LOSS (MFE: 34.99, MAE: 34.01)
+------------------------------------------------------------
+EVENT: 2/11/2026, 12:15:00 PM | P2 (H7-L5) (0.5) | Type: SUPPORT_TEST
+      Confluence With: Fan_H7_L7_0.25: 25950.84, Fan_H7_L7_horizontal: 25933.84, Fan_H7_L5_0.5: 25936.64, Fan_H7_L5_horizontal: 25907.47, Fan_H7_L4_0.75: 25934.26
+      Price: 25936.64
+      Outcome: LOSS (MFE: 36.44, MAE: 32.56)
+------------------------------------------------------------
+EVENT: 2/11/2026, 12:30:00 PM | P2 (H7-L5) (horizontal) | Type: SUPPORT_TEST
+      Confluence With: Fan_H7_L7_0.25: 25954.05, Fan_H7_L7_horizontal: 25933.84, Fan_H7_L5_0.5: 25939.07, Fan_H7_L5_0.25: 25879.05, Fan_H7_L5_horizontal: 25907.47, Fan_H7_L4_0.75: 25939.84
+      Price: 25907.47
+      Outcome: WIN (MFE: 63.28, MAE: 6.57)
+------------------------------------------------------------
+EVENT: 2/11/2026, 12:45:00 PM | P2 (H7-L5) (horizontal) | Type: SUPPORT_TEST
+      Confluence With: Fan_H7_L7_0.25: 25957.25, Fan_H7_L7_horizontal: 25933.84, Fan_H7_L5_0.5: 25941.50, Fan_H7_L5_0.25: 25880.26, Fan_H7_L5_horizontal: 25907.47, Fan_H7_L4_0.75: 25945.42
+      Price: 25907.47
+      Outcome: WIN (MFE: 63.28, MAE: 0.00)
+------------------------------------------------------------
+EVENT: 2/11/2026, 12:45:00 PM | P1 (H7-L7) (horizontal) | Type: RESISTANCE_TEST
+      Confluence With: Fan_H7_L7_0.25: 25957.25, Fan_H7_L7_horizontal: 25933.84, Fan_H7_L5_0.5: 25941.50, Fan_H7_L5_horizontal: 25907.47, Fan_H7_L4_0.75: 25945.42
+      Price: 25933.84
+      Outcome: LOSS (MFE: 36.91, MAE: 26.24)
+------------------------------------------------------------
+EVENT: 2/11/2026, 1:30:00 PM | P3 (H7-L4) (0.75) | Type: RESISTANCE_TEST
+      Confluence With: Fan_H7_L7_0.25: 25966.86, Fan_H7_L7_horizontal: 25933.84, Fan_H7_L5_0.5: 25948.79, Fan_H7_L4_0.75: 25962.17
+      Price: 25962.17
+      Outcome: WIN (MFE: 138.37, MAE: 8.58)
+------------------------------------------------------------
+EVENT: 2/11/2026, 1:30:00 PM | P1 (H7-L7) (0.25) | Type: RESISTANCE_TEST
+      Confluence With: Fan_H7_L7_0.25: 25966.86, Fan_H7_L7_horizontal: 25933.84, Fan_H7_L5_0.75: 26015.76, Fan_H7_L5_0.5: 25948.79, Fan_H7_L4_0.75: 25962.17
+      Price: 25966.86
+      Outcome: WIN (MFE: 143.06, MAE: 3.89)
+------------------------------------------------------------
+EVENT: 2/11/2026, 2:30:00 PM | P1 (L8-H7) (horizontal) | Type: RESISTANCE_TEST
+      Confluence With: Fan_H7_L7_0.25: 25979.67, Fan_H7_L7_horizontal: 25933.84, Fan_H7_L5_0.5: 25958.52, Fan_H7_L5_horizontal: 25907.47, Fan_L8_H7_0.5: 25925.09, Fan_L8_H7_0.25: 25963.50, Fan_L8_H7_horizontal: 25953.88
+      Price: 25953.88
+      Outcome: WIN (MFE: 130.08, MAE: 16.87)
+------------------------------------------------------------
+EVENT: 2/11/2026, 2:45:00 PM | P2 (L8-H7) (horizontal) | Type: RESISTANCE_TEST
+      Confluence With: Fan_H7_L7_0.25: 25982.87, Fan_H7_L7_horizontal: 25933.84, Fan_H7_L5_0.5: 25960.95, Fan_H7_L5_horizontal: 25907.47, Fan_L8_H7_0.5: 25921.49, Fan_L8_H7_0.25: 25961.73, Fan_L8_H7_horizontal: 25953.88, Fan_H8_L8_0.75: 25998.88, Fan_H8_L8_0.5: 25959.77, Fan_H8_L8_0.25: 25928.43, Fan_H8_L8_horizontal: 25926.68
+      Price: 25953.88
+      Outcome: WIN (MFE: 130.08, MAE: 16.87)
+------------------------------------------------------------
+EVENT: 2/11/2026, 3:00:00 PM | P1 (H8-L8) (0.5) | Type: RESISTANCE_TEST
+      Confluence With: Fan_H7_L7_0.25: 25986.07, Fan_H7_L7_horizontal: 25933.84, Fan_L8_H7_0.5: 25917.90, Fan_L8_H7_0.25: 25959.96, Fan_L8_H7_horizontal: 25953.88, Fan_H8_L8_0.75: 26009.84, Fan_H8_L8_0.5: 25966.39, Fan_H8_L8_0.25: 25931.57, Fan_H8_L8_horizontal: 25926.68, Fan_H7_L5_0.5: 25963.38
+      Price: 25966.39
+      Outcome: WIN (MFE: 142.59, MAE: 0.00)
+------------------------------------------------------------
+EVENT: 2/11/2026, 3:00:00 PM | P1 (L8-H7) (0.25) | Type: RESISTANCE_TEST
+      Confluence With: Fan_H7_L7_0.25: 25986.07, Fan_H7_L7_horizontal: 25933.84, Fan_L8_H7_0.5: 25917.90, Fan_L8_H7_0.25: 25959.96, Fan_L8_H7_horizontal: 25953.88, Fan_H8_L8_0.75: 26009.84, Fan_H8_L8_0.5: 25966.39, Fan_H8_L8_0.25: 25931.57, Fan_H8_L8_horizontal: 25926.68, Fan_H7_L5_0.5: 25963.38
+      Price: 25959.96
+      Outcome: WIN (MFE: 136.16, MAE: 0.00)
+------------------------------------------------------------
+EVENT: 2/11/2026, 3:15:00 PM | P1 (L8-H7) (0.25) | Type: RESISTANCE_TEST
+      Confluence With: Fan_H7_L7_0.25: 25989.27, Fan_H7_L7_horizontal: 25933.84, Fan_L8_H7_0.5: 25914.30, Fan_L8_H7_0.25: 25958.19, Fan_L8_H7_horizontal: 25953.88, Fan_H7_L5_0.5: 25965.81, Fan_H7_L5_horizontal: 25907.47
+      Price: 25958.19
+      Outcome: WIN (MFE: 144.29, MAE: 0.00)
+------------------------------------------------------------
+EVENT: 2/12/2026, 9:45:00 AM | P2 (H7-L4) (0.5) | Type: SUPPORT_TEST
+      Confluence With: Fan_H7_L5_0.25: 25895.93, Fan_H7_L3_0.5: 25823.52, Fan_H7_L4_0.5: 25844.83
+      Price: 25844.83
+      Outcome: LOSS (MFE: 37.98, MAE: 37.77)
+------------------------------------------------------------
+EVENT: 2/12/2026, 10:30:00 AM | P2 (H7-L4) (0.5) | Type: SUPPORT_TEST
+      Confluence With: Fan_H7_L5_0.25: 25899.55, Fan_H7_L5_horizontal: 25907.47, Fan_H7_L3_0.5: 25833.87, Fan_H7_L4_0.5: 25855.68
+      Price: 25855.68
+      Outcome: WIN (MFE: 48.83, MAE: 9.88)
+------------------------------------------------------------
+EVENT: 2/12/2026, 1:15:00 PM | P2 (H7-L3) (0.5) | Type: RESISTANCE_TEST
+      Confluence With: Fan_H7_L3_0.5: 25871.84, Fan_H7_L4_0.5: 25895.45, Fan_L9_H8_0.5: 25874.50, Fan_L9_H8_horizontal: 25901.24, Fan_L9_H7_0.75: 25838.63, Fan_L9_H7_0.5: 25894.24, Fan_L9_H7_horizontal: 25907.21
+      Price: 25871.84
+      Outcome: WIN (MFE: 345.94, MAE: 0.00)
+------------------------------------------------------------
+EVENT: 2/13/2026, 12:00:00 PM | P1 (L10-H9) (0.75) | Type: RESISTANCE_TEST
+      Confluence With: Fan_L10_H8_0.75: 25601.55, Fan_L10_H7_0.875: 25533.71, Fan_L10_H7_0.75: 25610.50, Fan_L10_H9_0.75: 25574.46
+      Price: 25574.46
+      Outcome: WIN (MFE: 74.81, MAE: 31.59)
+------------------------------------------------------------
+EVENT: 2/13/2026, 12:15:00 PM | P3 (L10-H7) (0.75) | Type: RESISTANCE_TEST
+      Confluence With: Fan_L10_H8_0.75: 25591.83, Fan_L10_H7_0.75: 25604.11, Fan_L10_H9_0.75: 25559.22
+      Price: 25604.11
+      Outcome: WIN (MFE: 104.46, MAE: 1.94)
+------------------------------------------------------------
+EVENT: 2/13/2026, 12:15:00 PM | P2 (L10-H8) (0.75) | Type: RESISTANCE_TEST
+      Confluence With: Fan_L10_H8_0.75: 25591.83, Fan_L10_H7_0.75: 25604.11, Fan_L10_H9_0.75: 25559.22
+      Price: 25591.83
+      Outcome: WIN (MFE: 92.18, MAE: 14.22)
+------------------------------------------------------------
+EVENT: 2/13/2026, 12:30:00 PM | P3 (L10-H7) (0.75) | Type: RESISTANCE_TEST
+      Confluence With: Fan_L10_H8_0.75: 25582.12, Fan_L10_H7_0.75: 25597.71
+      Price: 25597.71
+      Outcome: WIN (MFE: 124.56, MAE: 0.00)
+------------------------------------------------------------
+EVENT: 2/13/2026, 12:45:00 PM | P3 (L10-H7) (0.75) | Type: RESISTANCE_TEST
+      Confluence With: Fan_L10_H8_0.75: 25572.40, Fan_L10_H7_0.75: 25591.32
+      Price: 25591.32
+      Outcome: WIN (MFE: 145.72, MAE: 0.00)
+------------------------------------------------------------
+EVENT: 2/13/2026, 1:15:00 PM | P3 (L10-H7) (0.75) | Type: RESISTANCE_TEST
+      Confluence With: Fan_L10_H8_0.75: 25552.97, Fan_L10_H7_0.75: 25578.52
+      Price: 25578.52
+      Outcome: WIN (MFE: 202.47, MAE: 0.00)
+------------------------------------------------------------
+EVENT: 2/16/2026, 10:45:00 AM | P1 (L11-H10) (horizontal) | Type: SUPPORT_TEST
+      Confluence With: Fan_L11_H10_0.5: 25479.10, Fan_L11_H10_0.25: 25546.29, Fan_L11_H10_horizontal: 25521.41, Fan_L11_H8_0.75: 25513.88, Fan_L11_H9_0.75: 25489.56
+      Price: 25521.41
+      Outcome: WIN (MFE: 69.09, MAE: 18.36)
+------------------------------------------------------------
+EVENT: 2/16/2026, 10:45:00 AM | P3 (L11-H8) (0.75) | Type: SUPPORT_TEST
+      Confluence With: Fan_L11_H10_0.5: 25479.10, Fan_L11_H10_0.25: 25546.29, Fan_L11_H10_horizontal: 25521.41, Fan_L11_H8_0.75: 25513.88, Fan_L11_H9_0.75: 25489.56
+      Price: 25513.88
+      Outcome: WIN (MFE: 76.62, MAE: 10.82)
+------------------------------------------------------------
+EVENT: 2/16/2026, 11:00:00 AM | P1 (L11-H10) (horizontal) | Type: SUPPORT_TEST
+      Confluence With: Fan_L11_H10_0.5: 25472.04, Fan_L11_H10_0.25: 25542.97, Fan_L11_H10_horizontal: 25521.41, Fan_L11_H8_0.75: 25506.00, Fan_L11_H9_0.75: 25479.82
+      Price: 25521.41
+      Outcome: WIN (MFE: 71.69, MAE: 18.36)
+------------------------------------------------------------
+EVENT: 2/16/2026, 11:15:00 AM | P1 (L11-H10) (0.25) | Type: RESISTANCE_TEST
+      Confluence With: Fan_L11_H10_0.25: 25539.65, Fan_L11_H10_horizontal: 25521.41, Fan_L11_H8_0.75: 25498.12
+      Price: 25539.65
+      Outcome: LOSS (MFE: 54.25, MAE: 36.60)
+------------------------------------------------------------
+EVENT: 2/16/2026, 1:30:00 PM | P2 (L11-H9) (0.5) | Type: SUPPORT_TEST
+      Confluence With: Fan_L11_H9_0.5: 25573.76
+      Price: 25573.76
+      Outcome: WIN (MFE: 122.09, MAE: 28.91)
+------------------------------------------------------------
+EVENT: 2/16/2026, 3:15:00 PM | P1 (L11-H9) (horizontal) | Type: SUPPORT_TEST
+      Confluence With: Fan_L11_H9_0.25: 25713.13, Fan_L11_H9_horizontal: 25675.61, Fan_L11_H8_horizontal: 25712.37, Fan_L11_H7_horizontal: 25712.77
+      Price: 25675.61
+      Outcome: LOSS (MFE: 104.91, MAE: 69.74)
+------------------------------------------------------------
+EVENT: 2/17/2026, 9:15:00 AM | P2 (L11-H8) (0.5) | Type: SUPPORT_TEST
+      Confluence With: Fan_L11_H8_0.5: 25588.14, Fan_L11_H7_0.5: 25616.81
+      Price: 25588.14
+      Outcome: WIN (MFE: 157.21, MAE: 9.44)
+------------------------------------------------------------
+EVENT: 2/17/2026, 9:30:00 AM | P2 (L11-H8) (0.5) | Type: SUPPORT_TEST
+      Confluence With: Fan_L11_H8_0.5: 25583.18, Fan_L11_H7_0.5: 25612.97
+      Price: 25583.18
+      Outcome: WIN (MFE: 162.17, MAE: 0.00)
+------------------------------------------------------------
+EVENT: 2/17/2026, 10:15:00 AM | P1 (L11-H9) (horizontal) | Type: SUPPORT_TEST
+      Confluence With: Fan_L11_H9_0.25: 25698.81, Fan_L11_H9_horizontal: 25675.61, Fan_H12_L11_0.875: 25706.50, Fan_H12_L11_0.75: 25644.82, Fan_H12_L12_0.75: 25688.47, Fan_L11_H8_horizontal: 25712.37, Fan_L11_H7_horizontal: 25712.77
+      Price: 25675.61
+      Outcome: WIN (MFE: 84.99, MAE: 32.86)
+------------------------------------------------------------
+EVENT: 2/17/2026, 12:45:00 PM | P2 (L11-H8) (0.25) | Type: RESISTANCE_TEST
+      Confluence With: Fan_L11_H8_0.25: 25751.62, Fan_L11_H8_horizontal: 25712.37, Fan_L11_H7_0.25: 25785.98, Fan_L11_H7_horizontal: 25712.77
+      Price: 25751.62
+      Outcome: WIN (MFE: 89.02, MAE: 12.28)
+------------------------------------------------------------
+EVENT: 2/17/2026, 1:00:00 PM | P2 (L11-H8) (0.25) | Type: RESISTANCE_TEST
+      Confluence With: Fan_L11_H8_0.25: 25749.21, Fan_L11_H8_horizontal: 25712.37, Fan_L11_H7_0.25: 25784.10, Fan_L11_H7_horizontal: 25712.77
+      Price: 25749.21
+      Outcome: WIN (MFE: 86.61, MAE: 12.73)
+------------------------------------------------------------
+EVENT: 2/17/2026, 1:15:00 PM | P2 (L11-H8) (0.25) | Type: RESISTANCE_TEST
+      Confluence With: Fan_L11_H8_0.25: 25746.81, Fan_L11_H8_horizontal: 25712.37, Fan_L11_H7_0.25: 25782.21, Fan_L11_H7_horizontal: 25712.77
+      Price: 25746.81
+      Outcome: WIN (MFE: 84.21, MAE: 15.14)
+------------------------------------------------------------
+EVENT: 2/17/2026, 2:00:00 PM | P3 (L11-H7) (horizontal) | Type: RESISTANCE_TEST
+      Confluence With: Fan_L11_H9_horizontal: 25675.61, Fan_L11_H8_0.25: 25739.58, Fan_L11_H8_horizontal: 25712.37, Fan_L11_H7_horizontal: 25712.77
+      Price: 25712.77
+      Outcome: LOSS (MFE: 66.87, MAE: 41.88)
+------------------------------------------------------------
+EVENT: 2/17/2026, 2:00:00 PM | P2 (L11-H8) (horizontal) | Type: RESISTANCE_TEST
+      Confluence With: Fan_L11_H9_horizontal: 25675.61, Fan_L11_H8_0.25: 25739.58, Fan_L11_H8_horizontal: 25712.37, Fan_L11_H7_horizontal: 25712.77
+      Price: 25712.37
+      Outcome: LOSS (MFE: 66.47, MAE: 42.28)
+------------------------------------------------------------
+EVENT: 2/17/2026, 2:30:00 PM | P2 (H13-L12) (0.75) | Type: RESISTANCE_TEST
+      Confluence With: Fan_H13_L12_0.875: 25769.21, Fan_H13_L12_0.75: 25725.80, Fan_H13_L11_0.875: 25752.93, Fan_H13_L11_0.75: 25689.87, Fan_H13_L13_0.75: 25753.51, Fan_H13_L13_0.5: 25684.76
+      Price: 25725.80
+      Outcome: WIN (MFE: 79.90, MAE: 28.85)
+------------------------------------------------------------
+EVENT: 2/17/2026, 2:30:00 PM | P1 (H13-L13) (0.5) | Type: SUPPORT_TEST
+      Confluence With: Fan_H13_L12_0.75: 25725.80, Fan_H13_L12_0.5: 25646.39, Fan_H13_L11_0.75: 25689.87, Fan_H13_L13_0.5: 25684.76, Fan_H13_L13_horizontal: 25652.17
+      Price: 25684.76
+      Outcome: LOSS (MFE: 69.89, MAE: 38.86)
+------------------------------------------------------------
+EVENT: 2/17/2026, 2:45:00 PM | P3 (H13-L11) (0.75) | Type: SUPPORT_TEST
+      Confluence With: Fan_H13_L12_0.75: 25731.98, Fan_H13_L12_0.5: 25650.37, Fan_H13_L11_0.75: 25696.69, Fan_H13_L13_0.5: 25690.19, Fan_H13_L13_horizontal: 25652.17
+      Price: 25696.69
+      Outcome: LOSS (MFE: 57.96, MAE: 50.79)
+------------------------------------------------------------
+EVENT: 2/17/2026, 3:00:00 PM | P3 (H13-L11) (0.75) | Type: SUPPORT_TEST
+      Confluence With: Fan_H13_L12_0.75: 25738.17, Fan_H13_L12_0.5: 25654.35, Fan_H13_L11_0.75: 25703.51, Fan_H13_L13_0.5: 25695.63
+      Price: 25703.51
+      Outcome: LOSS (MFE: 57.61, MAE: 51.14)
+------------------------------------------------------------
+EVENT: 2/17/2026, 3:00:00 PM | P2 (H13-L12) (0.75) | Type: RESISTANCE_TEST
+      Confluence With: Fan_H13_L12_0.875: 25784.00, Fan_H13_L12_0.75: 25738.17, Fan_H13_L11_0.875: 25769.32, Fan_H13_L11_0.75: 25703.51, Fan_H13_L13_0.75: 25770.93, Fan_H13_L13_0.5: 25695.63
+      Price: 25738.17
+      Outcome: WIN (MFE: 92.27, MAE: 16.48)
+------------------------------------------------------------
+EVENT: 2/18/2026, 9:15:00 AM | P3 (H13-L11) (0.75) | Type: SUPPORT_TEST
+      Confluence With: Fan_H13_L12_0.75: 25750.55, Fan_H13_L11_0.75: 25717.16, Fan_H13_L13_0.5: 25706.49, Fan_L14_H13_0.5: 25691.10, Fan_L14_H13_0.25: 25729.75, Fan_L14_H13_horizontal: 25727.50
+      Price: 25717.16
+      Outcome: WIN (MFE: 71.26, MAE: 29.49)
+------------------------------------------------------------
+EVENT: 2/18/2026, 9:15:00 AM | P2 (H13-L13) (0.5) | Type: SUPPORT_TEST
+      Confluence With: Fan_H13_L12_0.75: 25750.55, Fan_H13_L12_0.5: 25662.32, Fan_H13_L11_0.75: 25717.16, Fan_H13_L13_0.5: 25706.49, Fan_L14_H13_0.5: 25691.10, Fan_L14_H13_0.25: 25729.75, Fan_L14_H13_horizontal: 25727.50
+      Price: 25706.49
+      Outcome: LOSS (MFE: 60.59, MAE: 40.16)
+------------------------------------------------------------
+EVENT: 2/18/2026, 9:30:00 AM | P1 (L14-H13) (horizontal) | Type: SUPPORT_TEST
+      Confluence With: Fan_H13_L12_0.75: 25756.73, Fan_H13_L13_0.5: 25711.92, Fan_L14_H13_0.5: 25683.82, Fan_L14_H13_0.25: 25726.34, Fan_L14_H13_horizontal: 25727.50
+      Price: 25727.50
+      Outcome: WIN (MFE: 81.60, MAE: 16.95)
+------------------------------------------------------------
+EVENT: 2/18/2026, 10:00:00 AM | P2 (H13-L12) (0.5) | Type: RESISTANCE_TEST
+      Confluence With: Fan_H13_L12_0.5: 25674.26, Fan_H13_L13_0.5: 25722.78, Fan_H13_L13_0.25: 25643.98, Fan_H13_L13_horizontal: 25652.17
+      Price: 25674.26
+      Outcome: WIN (MFE: 60.14, MAE: 28.36)
+------------------------------------------------------------
+EVENT: 2/18/2026, 10:00:00 AM | P1 (H13-L13) (horizontal) | Type: SUPPORT_TEST
+      Confluence With: Fan_H13_L12_0.5: 25674.26, Fan_H13_L12_horizontal: 25622.50, Fan_H13_L13_0.25: 25643.98, Fan_H13_L13_horizontal: 25652.17, Fan_H13_L11_0.5: 25607.09
+      Price: 25652.17
+      Outcome: WIN (MFE: 82.23, MAE: 6.27)
+------------------------------------------------------------
+EVENT: 2/18/2026, 10:15:00 AM | P1 (H13-L13) (horizontal) | Type: SUPPORT_TEST
+      Confluence With: Fan_H13_L12_0.5: 25678.24, Fan_H13_L12_horizontal: 25622.50, Fan_H13_L13_0.25: 25646.59, Fan_H13_L13_horizontal: 25652.17, Fan_H13_L11_0.5: 25611.45
+      Price: 25652.17
+      Outcome: WIN (MFE: 82.23, MAE: 0.00)
+------------------------------------------------------------
+EVENT: 2/18/2026, 10:15:00 AM | P1 (H13-L13) (0.25) | Type: SUPPORT_TEST
+      Confluence With: Fan_H13_L12_0.5: 25678.24, Fan_H13_L12_horizontal: 25622.50, Fan_H13_L13_0.25: 25646.59, Fan_H13_L13_horizontal: 25652.17, Fan_H13_L11_0.5: 25611.45
+      Price: 25646.59
+      Outcome: WIN (MFE: 87.81, MAE: 0.00)
+------------------------------------------------------------
+EVENT: 2/18/2026, 10:30:00 AM | P2 (H13-L12) (0.5) | Type: RESISTANCE_TEST
+      Confluence With: Fan_H13_L12_0.5: 25682.23, Fan_H13_L13_0.5: 25733.65, Fan_H13_L13_0.25: 25649.21, Fan_H13_L13_horizontal: 25652.17
+      Price: 25682.23
+      Outcome: WIN (MFE: 59.82, MAE: 23.38)
+------------------------------------------------------------
+EVENT: 2/18/2026, 11:00:00 AM | P2 (H13-L12) (0.5) | Type: SUPPORT_TEST
+      Confluence With: Fan_H13_L12_0.5: 25690.19, Fan_H13_L13_0.25: 25654.45, Fan_H13_L13_horizontal: 25652.17
+      Price: 25690.19
+      Outcome: WIN (MFE: 63.01, MAE: 13.64)
+------------------------------------------------------------
+EVENT: 2/18/2026, 11:30:00 AM | P2 (H13-L12) (0.5) | Type: RESISTANCE_TEST
+      Confluence With: Fan_H13_L12_0.5: 25698.15, Fan_H13_L13_0.25: 25659.68, Fan_H13_L13_horizontal: 25652.17, Fan_L15_H13_0.75: 25649.61, Fan_L15_H13_0.5: 25690.22, Fan_L15_H13_0.25: 25727.77, Fan_L15_H13_horizontal: 25709.61, Fan_L15_H14_0.5: 25678.63, Fan_L15_H14_0.25: 25719.69, Fan_L15_H14_horizontal: 25720.86
+      Price: 25698.15
+      Outcome: WIN (MFE: 59.20, MAE: 15.50)
+------------------------------------------------------------
+EVENT: 2/18/2026, 12:00:00 PM | P1 (L15-H14) (0.25) | Type: RESISTANCE_TEST
+      Confluence With: Fan_H13_L13_0.25: 25664.91, Fan_L15_H13_0.5: 25682.46, Fan_L15_H13_0.25: 25723.96, Fan_L15_H13_horizontal: 25709.61, Fan_L15_H14_0.5: 25661.74, Fan_L15_H14_0.25: 25711.92, Fan_L15_H14_horizontal: 25720.86
+      Price: 25711.92
+      Outcome: WIN (MFE: 81.13, MAE: 16.17)
+------------------------------------------------------------
+EVENT: 2/18/2026, 12:15:00 PM | P2 (L15-H13) (horizontal) | Type: SUPPORT_TEST
+      Confluence With: Fan_H13_L13_0.25: 25667.53, Fan_L15_H13_0.5: 25678.59, Fan_L15_H13_0.25: 25722.06, Fan_L15_H13_horizontal: 25709.61, Fan_L15_H14_0.25: 25708.03, Fan_L15_H14_horizontal: 25720.86
+      Price: 25709.61
+      Outcome: WIN (MFE: 86.44, MAE: 13.86)
+------------------------------------------------------------
+EVENT: 2/18/2026, 12:15:00 PM | P2 (L15-H13) (0.25) | Type: RESISTANCE_TEST
+      Confluence With: Fan_H13_L13_0.5: 25771.67, Fan_L15_H13_0.5: 25678.59, Fan_L15_H13_0.25: 25722.06, Fan_L15_H13_horizontal: 25709.61, Fan_L15_H14_0.25: 25708.03, Fan_L15_H14_horizontal: 25720.86
+      Price: 25722.06
+      Outcome: WIN (MFE: 73.99, MAE: 26.31)
+------------------------------------------------------------
+EVENT: 2/18/2026, 12:15:00 PM | P1 (L15-H14) (horizontal) | Type: RESISTANCE_TEST
+      Confluence With: Fan_H13_L13_0.5: 25771.67, Fan_L15_H13_0.5: 25678.59, Fan_L15_H13_0.25: 25722.06, Fan_L15_H13_horizontal: 25709.61, Fan_L15_H14_0.25: 25708.03, Fan_L15_H14_horizontal: 25720.86
+      Price: 25720.86
+      Outcome: WIN (MFE: 75.19, MAE: 25.11)
+------------------------------------------------------------
+EVENT: 2/18/2026, 12:45:00 PM | P2 (L15-H13) (0.25) | Type: SUPPORT_TEST
+      Confluence With: Fan_H13_L13_0.25: 25672.77, Fan_L15_H13_0.5: 25670.83, Fan_L15_H13_0.25: 25718.26, Fan_L15_H13_horizontal: 25709.61, Fan_L15_H14_0.25: 25700.26, Fan_L15_H14_horizontal: 25720.86
+      Price: 25718.26
+      Outcome: WIN (MFE: 109.19, MAE: 22.51)
+------------------------------------------------------------
+EVENT: 2/18/2026, 12:45:00 PM | P1 (L15-H14) (horizontal) | Type: SUPPORT_TEST
+      Confluence With: Fan_H13_L13_0.25: 25672.77, Fan_L15_H13_0.5: 25670.83, Fan_L15_H13_0.25: 25718.26, Fan_L15_H13_horizontal: 25709.61, Fan_L15_H14_0.25: 25700.26, Fan_L15_H14_horizontal: 25720.86
+      Price: 25720.86
+      Outcome: WIN (MFE: 106.58, MAE: 25.11)
+------------------------------------------------------------
+EVENT: 2/18/2026, 1:00:00 PM | P1 (L15-H14) (horizontal) | Type: SUPPORT_TEST
+      Confluence With: Fan_H13_L13_0.25: 25675.38, Fan_L15_H13_0.25: 25716.36, Fan_L15_H13_horizontal: 25709.61, Fan_L15_H14_0.25: 25696.38, Fan_L15_H14_horizontal: 25720.86
+      Price: 25720.86
+      Outcome: WIN (MFE: 158.73, MAE: 25.11)
+------------------------------------------------------------
+EVENT: 2/18/2026, 1:15:00 PM | P1 (L15-H14) (horizontal) | Type: SUPPORT_TEST
+      Confluence With: Fan_H13_L13_0.25: 25678.00, Fan_L15_H13_0.25: 25714.46, Fan_L15_H13_horizontal: 25709.61, Fan_L15_H14_0.25: 25692.49, Fan_L15_H14_horizontal: 25720.86
+      Price: 25720.86
+      Outcome: WIN (MFE: 158.73, MAE: 25.11)
+------------------------------------------------------------
+EVENT: 2/18/2026, 1:30:00 PM | P1 (L15-H14) (horizontal) | Type: SUPPORT_TEST
+      Confluence With: Fan_H13_L13_0.25: 25680.62, Fan_L15_H13_0.25: 25712.55, Fan_L15_H13_horizontal: 25709.61, Fan_L15_H14_0.25: 25688.61, Fan_L15_H14_horizontal: 25720.86
+      Price: 25720.86
+      Outcome: WIN (MFE: 158.73, MAE: 25.11)
+------------------------------------------------------------
+EVENT: 2/18/2026, 1:45:00 PM | P2 (L15-H13) (0.25) | Type: SUPPORT_TEST
+      Confluence With: Fan_H13_L13_0.25: 25683.23, Fan_L15_H13_0.25: 25710.65, Fan_L15_H13_horizontal: 25709.61, Fan_L15_H14_0.25: 25684.72, Fan_L15_H14_horizontal: 25720.86
+      Price: 25710.65
+      Outcome: WIN (MFE: 168.95, MAE: 0.00)
+------------------------------------------------------------
+EVENT: 2/18/2026, 1:45:00 PM | P2 (L15-H13) (horizontal) | Type: SUPPORT_TEST
+      Confluence With: Fan_H13_L13_0.25: 25683.23, Fan_L15_H13_0.25: 25710.65, Fan_L15_H13_horizontal: 25709.61, Fan_L15_H14_0.25: 25684.72, Fan_L15_H14_horizontal: 25720.86
+      Price: 25709.61
+      Outcome: WIN (MFE: 169.99, MAE: 0.00)
+------------------------------------------------------------
+EVENT: 2/18/2026, 1:45:00 PM | P1 (L15-H14) (horizontal) | Type: SUPPORT_TEST
+      Confluence With: Fan_H13_L13_0.25: 25683.23, Fan_L15_H13_0.25: 25710.65, Fan_L15_H13_horizontal: 25709.61, Fan_L15_H14_0.25: 25684.72, Fan_L15_H14_horizontal: 25720.86
+      Price: 25720.86
+      Outcome: WIN (MFE: 158.73, MAE: 0.92)
+------------------------------------------------------------
+EVENT: 2/18/2026, 2:00:00 PM | P1 (L15-H14) (horizontal) | Type: SUPPORT_TEST
+      Confluence With: Fan_H13_L13_0.25: 25685.85, Fan_L15_H13_0.25: 25708.75, Fan_L15_H13_horizontal: 25709.61, Fan_L15_H14_0.25: 25680.84, Fan_L15_H14_horizontal: 25720.86, Fan_H13_L12_0.5: 25737.97
+      Price: 25720.86
+      Outcome: WIN (MFE: 158.73, MAE: 0.00)
+------------------------------------------------------------
+EVENT: 2/19/2026, 10:30:00 AM | P2 (L11-H7) (horizontal) | Type: SUPPORT_TEST
+      Confluence With: Fan_L11_H8_horizontal: 25712.37, Fan_L11_H7_0.25: 25708.77, Fan_L11_H7_horizontal: 25712.77, Fan_H15_L13_0.5: 25732.76, Fan_H15_L13_horizontal: 25718.03, Fan_H15_L15_0.25: 25707.28, Fan_H15_L15_horizontal: 25748.07, Fan_H15_L12_0.5: 25697.50, Fan_H15_L12_horizontal: 25683.61
+      Price: 25712.77
+      Outcome: WIN (MFE: 144.57, MAE: 33.23)
+------------------------------------------------------------
+EVENT: 2/19/2026, 10:30:00 AM | P2 (L11-H7) (0.25) | Type: SUPPORT_TEST
+      Confluence With: Fan_L11_H8_horizontal: 25712.37, Fan_L11_H7_0.25: 25708.77, Fan_L11_H7_horizontal: 25712.77, Fan_H15_L13_0.5: 25732.76, Fan_H15_L13_horizontal: 25718.03, Fan_H15_L15_0.25: 25707.28, Fan_H15_L15_horizontal: 25748.07, Fan_H15_L12_0.5: 25697.50, Fan_H15_L12_horizontal: 25683.61
+      Price: 25708.77
+      Outcome: WIN (MFE: 140.58, MAE: 37.23)
+------------------------------------------------------------
+EVENT: 2/19/2026, 10:30:00 AM | P1 (L11-H8) (horizontal) | Type: SUPPORT_TEST
+      Confluence With: Fan_L11_H8_horizontal: 25712.37, Fan_L11_H7_0.25: 25708.77, Fan_L11_H7_horizontal: 25712.77, Fan_H15_L13_0.5: 25732.76, Fan_H15_L13_horizontal: 25718.03, Fan_H15_L15_0.25: 25707.28, Fan_H15_L15_horizontal: 25748.07, Fan_H15_L12_0.5: 25697.50, Fan_H15_L12_horizontal: 25683.61
+      Price: 25712.37
+      Outcome: WIN (MFE: 144.17, MAE: 33.63)
+------------------------------------------------------------
+EVENT: 2/19/2026, 11:00:00 AM | P2 (H15-L13) (0.5) | Type: RESISTANCE_TEST
+      Confluence With: Fan_H15_L13_0.5: 25738.66, Fan_H15_L13_horizontal: 25718.03, Fan_H15_L15_0.5: 25782.13, Fan_H15_L15_0.25: 25712.00, Fan_H15_L15_horizontal: 25748.07, Fan_H15_L12_0.5: 25703.06
+      Price: 25738.66
+      Outcome: WIN (MFE: 170.46, MAE: 0.00)
+------------------------------------------------------------
+EVENT: 2/19/2026, 11:15:00 AM | P3 (H15-L12) (horizontal) | Type: SUPPORT_TEST
+      Confluence With: Fan_H15_L13_0.25: 25655.19, Fan_H15_L13_horizontal: 25718.03, Fan_H15_L15_0.25: 25714.36, Fan_H15_L12_0.5: 25705.84, Fan_H15_L12_horizontal: 25683.61
+      Price: 25683.61
+      Outcome: WIN (MFE: 121.76, MAE: 9.49)
+------------------------------------------------------------
+EVENT: 2/19/2026, 11:15:00 AM | P2 (H15-L13) (horizontal) | Type: RESISTANCE_TEST
+      Confluence With: Fan_H15_L13_0.5: 25741.60, Fan_H15_L13_horizontal: 25718.03, Fan_H15_L15_0.25: 25714.36, Fan_H15_L15_horizontal: 25748.07, Fan_H15_L12_0.5: 25705.84, Fan_H15_L12_horizontal: 25683.61
+      Price: 25718.03
+      Outcome: WIN (MFE: 156.18, MAE: 0.00)
+------------------------------------------------------------
+EVENT: 2/19/2026, 11:45:00 AM | P2 (H15-L13) (0.25) | Type: SUPPORT_TEST
+      Confluence With: Fan_H15_L13_0.25: 25658.10, Fan_H15_L12_horizontal: 25683.61
+      Price: 25658.10
+      Outcome: WIN (MFE: 112.75, MAE: 3.50)
+------------------------------------------------------------
+EVENT: 2/19/2026, 12:45:00 PM | P1 (H15-L12) (0.25) | Type: RESISTANCE_TEST
+      Confluence With: Fan_H15_L12_0.25: 25611.68, Fan_H15_L11_0.5: 25658.82, Fan_H15_L11_horizontal: 25614.34, Fan_L11_H8_0.25: 25631.22
+      Price: 25611.68
+      Outcome: WIN (MFE: 221.18, MAE: 24.57)
+------------------------------------------------------------
+EVENT: 2/19/2026, 1:00:00 PM | P3 (L11-H8) (0.25) | Type: RESISTANCE_TEST
+      Confluence With: Fan_H15_L12_0.25: 25613.05, Fan_H15_L11_0.5: 25661.99, Fan_H15_L11_horizontal: 25614.34, Fan_L11_H8_0.25: 25628.81
+      Price: 25628.81
+      Outcome: WIN (MFE: 248.47, MAE: 7.44)
+------------------------------------------------------------
+EVENT: 2/19/2026, 1:15:00 PM | P2 (H15-L11) (horizontal) | Type: SUPPORT_TEST
+      Confluence With: Fan_H15_L12_0.25: 25614.43, Fan_H15_L11_0.5: 25665.17, Fan_H15_L11_horizontal: 25614.34, Fan_L11_H8_0.25: 25626.41
+      Price: 25614.34
+      Outcome: WIN (MFE: 233.99, MAE: 6.21)
+------------------------------------------------------------
+EVENT: 2/19/2026, 1:15:00 PM | P1 (H15-L12) (0.25) | Type: SUPPORT_TEST
+      Confluence With: Fan_H15_L12_0.25: 25614.43, Fan_H15_L11_0.5: 25665.17, Fan_H15_L11_horizontal: 25614.34, Fan_L11_H8_0.25: 25626.41
+      Price: 25614.43
+      Outcome: WIN (MFE: 234.08, MAE: 6.12)
+------------------------------------------------------------
+EVENT: 2/19/2026, 1:15:00 PM | P3 (L11-H8) (0.25) | Type: RESISTANCE_TEST
+      Confluence With: Fan_H15_L12_0.25: 25614.43, Fan_H15_L11_0.5: 25665.17, Fan_H15_L11_horizontal: 25614.34, Fan_L11_H8_0.25: 25626.41
+      Price: 25626.41
+      Outcome: WIN (MFE: 246.06, MAE: 0.00)
+------------------------------------------------------------
+EVENT: 2/19/2026, 2:45:00 PM | P1 (H15-L11) (0.25) | Type: RESISTANCE_TEST
+      Confluence With: Fan_H15_L11_0.25: 25528.13
+      Price: 25528.13
+      Outcome: LOSS (MFE: 147.78, MAE: 77.87)
+------------------------------------------------------------
+EVENT: 2/20/2026, 11:00:00 AM | P3 (L11-H8) (0.25) | Type: RESISTANCE_TEST
+      Confluence With: Fan_H15_L11_0.25: 25543.81, Fan_H15_L11_horizontal: 25614.34, Fan_L11_H8_0.25: 25587.88
+      Price: 25587.88
+      Outcome: LOSS (MFE: 75.47, MAE: 55.88)
+------------------------------------------------------------
+EVENT: 2/20/2026, 11:30:00 AM | P3 (L11-H8) (0.25) | Type: SUPPORT_TEST
+      Confluence With: Fan_H15_L11_0.25: 25546.95, Fan_H15_L11_horizontal: 25614.34, Fan_L11_H8_0.25: 25583.06, Fan_L16_H15_0.5: 25634.07
+      Price: 25583.06
+      Outcome: LOSS (MFE: 80.29, MAE: 51.06)
+------------------------------------------------------------
+EVENT: 2/20/2026, 11:45:00 AM | P2 (H15-L11) (horizontal) | Type: RESISTANCE_TEST
+      Confluence With: Fan_H15_L11_horizontal: 25614.34, Fan_L11_H8_0.25: 25580.66, Fan_L16_H15_0.5: 25626.85
+      Price: 25614.34
+      Outcome: LOSS (MFE: 82.34, MAE: 49.01)
+------------------------------------------------------------
+EVENT: 2/20/2026, 12:30:00 PM | P1 (L16-H15) (0.5) | Type: SUPPORT_TEST
+      Confluence With: Fan_H15_L11_horizontal: 25614.34, Fan_L11_H8_0.25: 25573.43, Fan_L16_H15_0.5: 25605.19
+      Price: 25605.19
+      Outcome: LOSS (MFE: 73.19, MAE: 47.66)
+------------------------------------------------------------
+EVENT: 2/20/2026, 12:45:00 PM | P2 (H15-L11) (horizontal) | Type: RESISTANCE_TEST
+      Confluence With: Fan_H15_L11_horizontal: 25614.34, Fan_L11_H8_0.25: 25571.02, Fan_L16_H15_0.5: 25597.97
+      Price: 25614.34
+      Outcome: WIN (MFE: 82.34, MAE: 38.51)
+------------------------------------------------------------
+EVENT: 2/20/2026, 1:30:00 PM | P3 (H15-L11) (0.25) | Type: SUPPORT_TEST
+      Confluence With: Fan_H15_L11_0.25: 25559.49, Fan_L11_H8_0.25: 25563.80, Fan_L16_H15_0.5: 25576.30, Fan_H16_L16_0.5: 25514.53
+      Price: 25559.49
+      Outcome: WIN (MFE: 211.21, MAE: 20.59)
+------------------------------------------------------------
+EVENT: 2/20/2026, 1:30:00 PM | P3 (L11-H8) (0.25) | Type: SUPPORT_TEST
+      Confluence With: Fan_H15_L11_0.25: 25559.49, Fan_H15_L11_horizontal: 25614.34, Fan_L11_H8_0.25: 25563.80, Fan_L16_H15_0.5: 25576.30, Fan_H16_L16_0.75: 25612.47, Fan_H16_L16_0.5: 25514.53
+      Price: 25563.80
+      Outcome: WIN (MFE: 206.90, MAE: 24.90)
+------------------------------------------------------------
+EVENT: 2/20/2026, 1:30:00 PM | P2 (L16-H15) (0.5) | Type: RESISTANCE_TEST
+      Confluence With: Fan_H15_L11_0.25: 25559.49, Fan_H15_L11_horizontal: 25614.34, Fan_L11_H8_0.25: 25563.80, Fan_L16_H15_0.5: 25576.30, Fan_H16_L16_0.75: 25612.47
+      Price: 25576.30
+      Outcome: WIN (MFE: 194.40, MAE: 37.40)
+------------------------------------------------------------
+EVENT: 2/20/2026, 2:15:00 PM | P3 (H15-L11) (horizontal) | Type: RESISTANCE_TEST
+      Confluence With: Fan_H15_L11_0.25: 25564.19, Fan_H15_L11_horizontal: 25614.34, Fan_H16_L16_0.75: 25653.44
+      Price: 25614.34
+      Outcome: WIN (MFE: 156.36, MAE: 75.44)
+------------------------------------------------------------
+EVENT: 2/20/2026, 3:15:00 PM | P1 (L17-H16) (0.5) | Type: SUPPORT_TEST
+      Confluence With: Fan_L16_H15_0.5: 25525.75, Fan_H16_L16_0.5: 25569.78, Fan_L17_H16_0.5: 25553.68
+      Price: 25553.68
+      Outcome: WIN (MFE: 217.02, MAE: 0.00)
+------------------------------------------------------------
+EVENT: 2/23/2026, 9:45:00 AM | P3 (L11-H8) (horizontal) | Type: SUPPORT_TEST
+      Confluence With: Fan_L16_H15_0.25: 25703.30, Fan_L16_H15_horizontal: 25699.07, Fan_L11_H8_horizontal: 25712.37
+      Price: 25712.37
+      Outcome: WIN (MFE: 80.72, MAE: 25.08)
+------------------------------------------------------------
+EVENT: 2/23/2026, 10:00:00 AM | P3 (L11-H8) (horizontal) | Type: SUPPORT_TEST
+      Confluence With: Fan_L16_H15_0.25: 25699.91, Fan_L16_H15_horizontal: 25699.07, Fan_L11_H8_horizontal: 25712.37
+      Price: 25712.37
+      Outcome: WIN (MFE: 80.72, MAE: 21.33)
+------------------------------------------------------------
+EVENT: 2/23/2026, 10:15:00 AM | P1 (L16-H15) (horizontal) | Type: SUPPORT_TEST
+      Confluence With: Fan_L16_H15_0.25: 25696.52, Fan_L16_H15_horizontal: 25699.07, Fan_L11_H8_horizontal: 25712.37
+      Price: 25699.07
+      Outcome: WIN (MFE: 67.42, MAE: 10.58)
+------------------------------------------------------------
+EVENT: 2/23/2026, 10:15:00 AM | P1 (L16-H15) (0.25) | Type: SUPPORT_TEST
+      Confluence With: Fan_L16_H15_0.25: 25696.52, Fan_L16_H15_horizontal: 25699.07, Fan_L11_H8_horizontal: 25712.37
+      Price: 25696.52
+      Outcome: WIN (MFE: 64.87, MAE: 13.13)
+------------------------------------------------------------
+EVENT: 2/23/2026, 11:00:00 AM | P1 (H17-L17) (0.5) | Type: SUPPORT_TEST
+      Confluence With: Fan_L16_H15_0.25: 25686.35, Fan_L16_H15_horizontal: 25699.07, Fan_H17_L17_0.5: 25659.05, Fan_H17_L17_horizontal: 25611.41, Fan_H17_L16_0.75: 25695.67
+      Price: 25659.05
+      Outcome: LOSS (MFE: 40.15, MAE: 31.35)
+------------------------------------------------------------
+EVENT: 2/23/2026, 11:15:00 AM | P3 (L16-H15) (horizontal) | Type: RESISTANCE_TEST
+      Confluence With: Fan_L16_H15_0.25: 25682.96, Fan_L16_H15_horizontal: 25699.07, Fan_H17_L17_0.5: 25666.99, Fan_H17_L16_0.75: 25705.52
+      Price: 25699.07
+      Outcome: WIN (MFE: 71.37, MAE: 0.00)
+------------------------------------------------------------
+EVENT: 2/23/2026, 12:00:00 PM | P3 (L16-H15) (0.25) | Type: RESISTANCE_TEST
+      Confluence With: Fan_L16_H15_0.25: 25672.79, Fan_L16_H15_horizontal: 25699.07, Fan_H17_L17_0.5: 25690.81
+      Price: 25672.79
+      Outcome: LOSS (MFE: 63.44, MAE: 36.66)
+------------------------------------------------------------
+EVENT: 2/23/2026, 12:15:00 PM | P3 (L16-H15) (0.25) | Type: RESISTANCE_TEST
+      Confluence With: Fan_L16_H15_0.25: 25669.40, Fan_L16_H15_horizontal: 25699.07, Fan_H17_L17_0.5: 25698.75
+      Price: 25669.40
+      Outcome: LOSS (MFE: 60.05, MAE: 40.05)
+------------------------------------------------------------
+EVENT: 2/23/2026, 1:15:00 PM | P2 (H17-L16) (0.5) | Type: SUPPORT_TEST
+      Confluence With: Fan_L16_H15_0.25: 25655.83, Fan_H17_L17_0.25: 25624.11, Fan_H17_L17_horizontal: 25611.41, Fan_H17_L16_0.5: 25628.35
+      Price: 25628.35
+      Outcome: LOSS (MFE: 144.76, MAE: 100.59)
+------------------------------------------------------------
+EVENT: 2/23/2026, 1:30:00 PM | P2 (H17-L16) (0.5) | Type: SUPPORT_TEST
+      Confluence With: Fan_L16_H15_0.25: 25652.44, Fan_H17_L17_0.25: 25627.79, Fan_H17_L17_horizontal: 25611.41, Fan_H17_L16_0.5: 25634.40
+      Price: 25634.40
+      Outcome: LOSS (MFE: 150.80, MAE: 94.55)
+------------------------------------------------------------
+EVENT: 2/23/2026, 1:30:00 PM | P3 (L16-H15) (0.25) | Type: SUPPORT_TEST
+      Confluence With: Fan_L16_H15_0.25: 25652.44, Fan_L16_H15_horizontal: 25699.07, Fan_H17_L17_0.25: 25627.79, Fan_H17_L17_horizontal: 25611.41, Fan_H17_L16_0.5: 25634.40
+      Price: 25652.44
+      Outcome: WIN (MFE: 168.84, MAE: 76.51)
+------------------------------------------------------------
+EVENT: 2/23/2026, 2:00:00 PM | P1 (H17-L17) (horizontal) | Type: SUPPORT_TEST
+      Confluence With: Fan_L16_H15_0.25: 25645.66, Fan_H17_L17_0.25: 25635.16, Fan_H17_L17_horizontal: 25611.41, Fan_H17_L16_0.5: 25646.50
+      Price: 25611.41
+      Outcome: LOSS (MFE: 136.21, MAE: 117.54)
+------------------------------------------------------------
+EVENT: 2/23/2026, 2:30:00 PM | P3 (L16-H15) (horizontal) | Type: RESISTANCE_TEST
+      Confluence With: Fan_L16_H15_horizontal: 25699.07, Fan_H17_L16_0.5: 25658.60
+      Price: 25699.07
+      Outcome: WIN (MFE: 238.22, MAE: 29.88)
+------------------------------------------------------------
+EVENT: 2/23/2026, 2:45:00 PM | P3 (L16-H15) (horizontal) | Type: RESISTANCE_TEST
+      Confluence With: Fan_L16_H15_horizontal: 25699.07, Fan_H17_L16_0.5: 25664.65
+      Price: 25699.07
+      Outcome: WIN (MFE: 238.22, MAE: 29.88)
+------------------------------------------------------------
+EVENT: 2/24/2026, 9:45:00 AM | P1 (H17-L16) (0.25) | Type: RESISTANCE_TEST
+      Confluence With: Fan_H17_L16_0.25: 25530.65, Fan_H17_L16_horizontal: 25537.62
+      Price: 25530.65
+      Outcome: WIN (MFE: 113.55, MAE: 2.00)
+------------------------------------------------------------
+EVENT: 2/24/2026, 3:00:00 PM | P1 (L19-H18) (0.75) | Type: SUPPORT_TEST
+      Confluence With: Fan_L19_H17_0.75: 25418.34, Fan_L19_H18_0.75: 25412.09, Fan_L19_H15_0.875: 25372.74, Fan_L19_H15_0.75: 25450.38
+      Price: 25412.09
+      Outcome: WIN (MFE: 240.41, MAE: 0.00)
+------------------------------------------------------------
+EVENT: 2/25/2026, 9:15:00 AM | P3 (L19-H15) (0.5) | Type: RESISTANCE_TEST
+      Confluence With: Fan_L19_H17_horizontal: 25575.88, Fan_L19_H18_0.25: 25634.90, Fan_L19_H18_horizontal: 25587.47, Fan_L19_H15_0.5: 25592.90, Fan_L19_H15_horizontal: 25615.83
+      Price: 25592.90
+      Outcome: LOSS (MFE: 59.60, MAE: 33.80)
+------------------------------------------------------------
+EVENT: 2/25/2026, 9:15:00 AM | P1 (L19-H18) (horizontal) | Type: RESISTANCE_TEST
+      Confluence With: Fan_L19_H17_0.5: 25537.86, Fan_L19_H17_horizontal: 25575.88, Fan_L19_H18_0.25: 25634.90, Fan_L19_H18_horizontal: 25587.47, Fan_L19_H15_0.5: 25592.90, Fan_L19_H15_horizontal: 25615.83
+      Price: 25587.47
+      Outcome: WIN (MFE: 65.03, MAE: 28.37)
+------------------------------------------------------------
+EVENT: 2/25/2026, 9:30:00 AM | P1 (L19-H18) (horizontal) | Type: RESISTANCE_TEST
+      Confluence With: Fan_L19_H17_horizontal: 25575.88, Fan_L19_H18_0.25: 25631.42, Fan_L19_H18_horizontal: 25587.47, Fan_L19_H15_0.5: 25590.03, Fan_L19_H15_horizontal: 25615.83
+      Price: 25587.47
+      Outcome: WIN (MFE: 65.03, MAE: 28.32)
+------------------------------------------------------------
+EVENT: 2/25/2026, 10:15:00 AM | P2 (L19-H17) (0.25) | Type: RESISTANCE_TEST
+      Confluence With: Fan_L19_H17_0.25: 25648.34, Fan_L19_H18_0.25: 25620.97, Fan_L19_H15_horizontal: 25615.83
+      Price: 25648.34
+      Outcome: WIN (MFE: 186.44, MAE: 1.31)
+------------------------------------------------------------
+EVENT: 2/25/2026, 10:30:00 AM | P2 (L19-H17) (0.25) | Type: RESISTANCE_TEST
+      Confluence With: Fan_L19_H17_0.25: 25646.03, Fan_L19_H18_0.25: 25617.48, Fan_L19_H15_horizontal: 25615.83
+      Price: 25646.03
+      Outcome: WIN (MFE: 205.73, MAE: 0.00)
+------------------------------------------------------------
+EVENT: 2/25/2026, 11:15:00 AM | P1 (L19-H18) (0.25) | Type: SUPPORT_TEST
+      Confluence With: Fan_L19_H17_0.25: 25639.10, Fan_L19_H17_horizontal: 25575.88, Fan_L19_H18_0.25: 25607.03, Fan_L19_H18_horizontal: 25587.47, Fan_L19_H15_0.5: 25569.96, Fan_L19_H15_horizontal: 25615.83
+      Price: 25607.03
+      Outcome: WIN (MFE: 178.63, MAE: 15.17)
+------------------------------------------------------------
+EVENT: 2/25/2026, 11:30:00 AM | P2 (L19-H18) (horizontal) | Type: SUPPORT_TEST
+      Confluence With: Fan_L19_H17_0.25: 25636.80, Fan_L19_H17_horizontal: 25575.88, Fan_L19_H18_0.25: 25603.55, Fan_L19_H18_horizontal: 25587.47, Fan_L19_H15_0.5: 25567.09, Fan_L19_H15_horizontal: 25615.83, Fan_H19_L19_0.75: 25581.02
+      Price: 25587.47
+      Outcome: WIN (MFE: 159.07, MAE: 34.73)
+------------------------------------------------------------
+EVENT: 2/25/2026, 11:45:00 AM | P2 (L19-H18) (horizontal) | Type: SUPPORT_TEST
+      Confluence With: Fan_L19_H17_0.25: 25634.49, Fan_L19_H17_horizontal: 25575.88, Fan_L19_H18_0.25: 25600.07, Fan_L19_H18_horizontal: 25587.47, Fan_H19_L19_0.75: 25595.90
+      Price: 25587.47
+      Outcome: WIN (MFE: 159.07, MAE: 28.03)
+------------------------------------------------------------
+EVENT: 2/25/2026, 11:45:00 AM | P2 (L19-H18) (0.25) | Type: RESISTANCE_TEST
+      Confluence With: Fan_L19_H17_0.25: 25634.49, Fan_L19_H17_horizontal: 25575.88, Fan_L19_H18_0.25: 25600.07, Fan_L19_H18_horizontal: 25587.47, Fan_H19_L19_0.75: 25595.90
+      Price: 25600.07
+      Outcome: WIN (MFE: 171.67, MAE: 15.43)
+------------------------------------------------------------
+EVENT: 2/25/2026, 12:00:00 PM | P1 (H19-L19) (0.75) | Type: RESISTANCE_TEST
+      Confluence With: Fan_L19_H17_0.25: 25632.18, Fan_L19_H17_horizontal: 25575.88, Fan_L19_H18_0.25: 25596.58, Fan_L19_H18_horizontal: 25587.47, Fan_H19_L19_0.75: 25610.78
+      Price: 25610.78
+      Outcome: WIN (MFE: 182.38, MAE: 4.72)
+------------------------------------------------------------
+EVENT: 2/25/2026, 12:45:00 PM | P3 (L19-H17) (0.5) | Type: SUPPORT_TEST
+      Confluence With: Fan_L19_H17_0.5: 25471.34, Fan_L19_H18_0.5: 25423.65, Fan_H19_L19_0.5: 25513.37, Fan_H19_L19_horizontal: 25429.11
+      Price: 25471.34
+      Outcome: LOSS (MFE: 42.94, MAE: 35.21)
+------------------------------------------------------------
+EVENT: 2/25/2026, 1:15:00 PM | P1 (H19-L19) (horizontal) | Type: SUPPORT_TEST
+      Confluence With: Fan_L19_H17_0.5: 25461.83, Fan_L19_H18_0.5: 25408.76, Fan_H19_L19_0.25: 25421.04, Fan_H19_L19_horizontal: 25429.11
+      Price: 25429.11
+      Outcome: WIN (MFE: 137.84, MAE: 0.00)
+------------------------------------------------------------
+EVENT: 2/25/2026, 1:45:00 PM | P3 (L19-H17) (0.5) | Type: SUPPORT_TEST
+      Confluence With: Fan_L19_H17_0.5: 25452.33, Fan_H19_L19_0.25: 25428.80, Fan_H19_L19_horizontal: 25429.11
+      Price: 25452.33
+      Outcome: WIN (MFE: 119.92, MAE: 22.18)
+------------------------------------------------------------
+EVENT: 2/25/2026, 2:00:00 PM | P1 (H19-L19) (0.25) | Type: SUPPORT_TEST
+      Confluence With: Fan_L19_H17_0.5: 25447.58, Fan_L19_H18_0.5: 25386.42, Fan_H19_L19_0.25: 25432.68, Fan_H19_L19_horizontal: 25429.11
+      Price: 25432.68
+      Outcome: WIN (MFE: 139.57, MAE: 0.00)
+------------------------------------------------------------
+EVENT: 2/25/2026, 2:00:00 PM | P3 (L19-H17) (0.5) | Type: SUPPORT_TEST
+      Confluence With: Fan_L19_H17_0.5: 25447.58, Fan_H19_L19_0.25: 25432.68, Fan_H19_L19_horizontal: 25429.11
+      Price: 25447.58
+      Outcome: WIN (MFE: 124.67, MAE: 7.63)
+------------------------------------------------------------
+EVENT: 2/25/2026, 2:45:00 PM | P2 (H19-L19) (0.25) | Type: SUPPORT_TEST
+      Confluence With: Fan_H19_L19_0.25: 25444.31, Fan_H19_L19_horizontal: 25429.11, Fan_L20_H19_0.75: 25443.24
+      Price: 25444.31
+      Outcome: WIN (MFE: 127.94, MAE: 0.00)
+------------------------------------------------------------
+EVENT: 2/25/2026, 2:45:00 PM | P1 (L20-H19) (0.75) | Type: SUPPORT_TEST
+      Confluence With: Fan_H19_L19_0.25: 25444.31, Fan_H19_L19_horizontal: 25429.11, Fan_L20_H19_0.75: 25443.24
+      Price: 25443.24
+      Outcome: WIN (MFE: 129.01, MAE: 0.00)
+------------------------------------------------------------
+EVENT: 2/26/2026, 10:00:00 AM | P1 (L20-H19) (horizontal) | Type: RESISTANCE_TEST
+      Confluence With: Fan_L19_H18_0.25: 25537.37, Fan_L19_H18_horizontal: 25587.47, Fan_L20_H19_0.25: 25573.89, Fan_L20_H19_horizontal: 25569.15
+      Price: 25569.15
+      Outcome: WIN (MFE: 167.55, MAE: 1.70)
+------------------------------------------------------------
+EVENT: 2/26/2026, 11:00:00 AM | P3 (L19-H18) (0.25) | Type: RESISTANCE_TEST
+      Confluence With: Fan_L19_H18_0.25: 25523.43, Fan_H19_L19_0.25: 25483.07, Fan_L20_H19_0.25: 25560.79, Fan_L20_H19_horizontal: 25569.15
+      Price: 25523.43
+      Outcome: WIN (MFE: 121.83, MAE: 47.42)
+------------------------------------------------------------
+EVENT: 2/26/2026, 11:15:00 AM | P2 (L20-H19) (0.25) | Type: RESISTANCE_TEST
+      Confluence With: Fan_L19_H18_0.25: 25519.95, Fan_L19_H18_horizontal: 25587.47, Fan_L20_H19_0.25: 25557.51, Fan_L20_H19_horizontal: 25569.15, Fan_H20_L20_0.875: 25597.87, Fan_H20_L20_0.75: 25567.77, Fan_H20_L20_0.5: 25515.95
+      Price: 25557.51
+      Outcome: WIN (MFE: 155.92, MAE: 0.00)
+------------------------------------------------------------
+EVENT: 2/26/2026, 11:15:00 AM | P2 (L20-H19) (horizontal) | Type: RESISTANCE_TEST
+      Confluence With: Fan_L19_H18_0.25: 25519.95, Fan_L19_H18_horizontal: 25587.47, Fan_L20_H19_0.25: 25557.51, Fan_L20_H19_horizontal: 25569.15, Fan_H20_L20_0.875: 25597.87, Fan_H20_L20_0.75: 25567.77
+      Price: 25569.15
+      Outcome: WIN (MFE: 167.55, MAE: 0.00)
+------------------------------------------------------------
+EVENT: 2/26/2026, 11:45:00 AM | P1 (H20-L20) (0.25) | Type: RESISTANCE_TEST
+      Confluence With: Fan_H19_L19_0.25: 25494.71, Fan_H19_L19_horizontal: 25429.11, Fan_L20_H19_0.5: 25437.17, Fan_H20_L20_0.5: 25526.25, Fan_H20_L20_0.25: 25475.71, Fan_H20_L20_horizontal: 25490.20
+      Price: 25475.71
+      Outcome: WIN (MFE: 74.12, MAE: 5.98)
+------------------------------------------------------------
+EVENT: 2/26/2026, 11:45:00 AM | P1 (H20-L20) (horizontal) | Type: RESISTANCE_TEST
+      Confluence With: Fan_H19_L19_0.25: 25494.71, Fan_H20_L20_0.5: 25526.25, Fan_H20_L20_0.25: 25475.71, Fan_H20_L20_horizontal: 25490.20
+      Price: 25490.20
+      Outcome: WIN (MFE: 88.60, MAE: 0.00)
+------------------------------------------------------------
+EVENT: 2/26/2026, 12:00:00 PM | P1 (H20-L20) (0.25) | Type: RESISTANCE_TEST
+      Confluence With: Fan_H19_L19_0.25: 25498.58, Fan_H19_L19_horizontal: 25429.11, Fan_L20_H19_0.5: 25430.22, Fan_H20_L20_0.25: 25478.21, Fan_H20_L20_horizontal: 25490.20
+      Price: 25478.21
+      Outcome: WIN (MFE: 76.61, MAE: 34.79)
+------------------------------------------------------------
+EVENT: 2/26/2026, 12:15:00 PM | P1 (H19-L19) (horizontal) | Type: SUPPORT_TEST
+      Confluence With: Fan_H19_L19_horizontal: 25429.11, Fan_L20_H19_0.5: 25423.27
+      Price: 25429.11
+      Outcome: WIN (MFE: 98.04, MAE: 25.71)
+------------------------------------------------------------
+EVENT: 2/26/2026, 12:15:00 PM | P2 (L20-H19) (0.5) | Type: SUPPORT_TEST
+      Confluence With: Fan_H19_L19_horizontal: 25429.11, Fan_L20_H19_0.5: 25423.27
+      Price: 25423.27
+      Outcome: WIN (MFE: 103.88, MAE: 19.87)
+------------------------------------------------------------
+EVENT: 2/26/2026, 12:30:00 PM | P1 (H19-L19) (horizontal) | Type: SUPPORT_TEST
+      Confluence With: Fan_H19_L19_horizontal: 25429.11
+      Price: 25429.11
+      Outcome: WIN (MFE: 98.04, MAE: 25.71)
+------------------------------------------------------------
+EVENT: 2/26/2026, 1:00:00 PM | P1 (H19-L19) (horizontal) | Type: RESISTANCE_TEST
+      Confluence With: Fan_H19_L19_horizontal: 25429.11
+      Price: 25429.11
+      Outcome: LOSS (MFE: 98.04, MAE: 65.61)
+------------------------------------------------------------
+EVENT: 2/26/2026, 1:45:00 PM | P3 (H19-L19) (horizontal) | Type: SUPPORT_TEST
+      Confluence With: Fan_H19_L19_horizontal: 25429.11, Fan_L21_H20_0.75: 25395.94, Fan_L21_H20_0.5: 25467.12, Fan_L21_H19_0.875: 25398.77, Fan_L21_H19_0.75: 25439.07
+      Price: 25429.11
+      Outcome: LOSS (MFE: 119.71, MAE: 98.04)
+------------------------------------------------------------
+EVENT: 2/26/2026, 2:00:00 PM | P3 (H19-L19) (horizontal) | Type: SUPPORT_TEST
+      Confluence With: Fan_H19_L19_horizontal: 25429.11, Fan_L21_H20_0.75: 25384.19, Fan_L21_H20_0.5: 25460.11, Fan_L21_H19_0.875: 25392.27, Fan_L21_H19_0.75: 25433.60
+      Price: 25429.11
+      Outcome: LOSS (MFE: 136.46, MAE: 98.04)
+------------------------------------------------------------
+EVENT: 2/26/2026, 2:00:00 PM | P2 (L21-H19) (0.75) | Type: SUPPORT_TEST
+      Confluence With: Fan_H19_L19_horizontal: 25429.11, Fan_L21_H20_0.75: 25384.19, Fan_L21_H20_0.5: 25460.11, Fan_L21_H19_0.875: 25392.27, Fan_L21_H19_0.75: 25433.60
+      Price: 25433.60
+      Outcome: LOSS (MFE: 140.95, MAE: 93.55)
+------------------------------------------------------------
+EVENT: 2/26/2026, 2:00:00 PM | P1 (L21-H20) (0.5) | Type: RESISTANCE_TEST
+      Confluence With: Fan_H19_L19_horizontal: 25429.11, Fan_L21_H20_0.5: 25460.11, Fan_L21_H20_horizontal: 25509.17, Fan_L21_H19_0.75: 25433.60, Fan_L21_H19_0.5: 25510.60
+      Price: 25460.11
+      Outcome: WIN (MFE: 167.46, MAE: 67.04)
+------------------------------------------------------------
+EVENT: 2/26/2026, 2:15:00 PM | P3 (H19-L19) (horizontal) | Type: SUPPORT_TEST
+      Confluence With: Fan_H19_L19_horizontal: 25429.11, Fan_L21_H20_0.5: 25453.10, Fan_L21_H19_0.875: 25385.76, Fan_L21_H19_0.75: 25428.13
+      Price: 25429.11
+      Outcome: LOSS (MFE: 136.46, MAE: 98.04)
+------------------------------------------------------------
+EVENT: 2/26/2026, 2:15:00 PM | P2 (L21-H19) (0.75) | Type: SUPPORT_TEST
+      Confluence With: Fan_H19_L19_horizontal: 25429.11, Fan_L21_H20_0.5: 25453.10, Fan_L21_H19_0.875: 25385.76, Fan_L21_H19_0.75: 25428.13
+      Price: 25428.13
+      Outcome: LOSS (MFE: 135.48, MAE: 99.02)
+------------------------------------------------------------
+EVENT: 2/26/2026, 2:45:00 PM | P2 (L21-H19) (0.5) | Type: SUPPORT_TEST
+      Confluence With: Fan_H19_L19_0.25: 25541.23, Fan_L21_H20_0.25: 25509.52, Fan_L21_H20_horizontal: 25509.17, Fan_L21_H19_0.5: 25499.95, Fan_L21_H19_horizontal: 25535.43
+      Price: 25499.95
+      Outcome: WIN (MFE: 207.30, MAE: 24.90)
+------------------------------------------------------------
+EVENT: 2/26/2026, 3:00:00 PM | P1 (L21-H20) (0.25) | Type: RESISTANCE_TEST
+      Confluence With: Fan_H19_L19_0.25: 25545.10, Fan_L21_H20_0.25: 25506.22, Fan_L21_H20_horizontal: 25509.17, Fan_L21_H19_0.5: 25496.41, Fan_L21_H19_horizontal: 25535.43
+      Price: 25506.22
+      Outcome: WIN (MFE: 213.57, MAE: 0.00)
+------------------------------------------------------------
+EVENT: 2/26/2026, 3:00:00 PM | P1 (L21-H20) (horizontal) | Type: RESISTANCE_TEST
+      Confluence With: Fan_H19_L19_0.25: 25545.10, Fan_L21_H20_0.25: 25506.22, Fan_L21_H20_horizontal: 25509.17, Fan_L21_H19_0.5: 25496.41, Fan_L21_H19_horizontal: 25535.43
+      Price: 25509.17
+      Outcome: WIN (MFE: 216.52, MAE: 0.00)
+------------------------------------------------------------
+EVENT: 2/26/2026, 3:15:00 PM | P1 (L21-H20) (0.25) | Type: RESISTANCE_TEST
+      Confluence With: Fan_H19_L19_0.25: 25548.98, Fan_L21_H20_0.25: 25502.92, Fan_L21_H20_horizontal: 25509.17, Fan_L21_H19_0.5: 25492.86, Fan_L21_H19_horizontal: 25535.43
+      Price: 25502.92
+      Outcome: WIN (MFE: 230.72, MAE: 0.00)
+------------------------------------------------------------
+EVENT: 3/2/2026, 12:15:00 PM | P3 (L23-H20) (0.875) | Type: SUPPORT_TEST
+      Confluence With: Fan_L23_H21_0.875: 24700.06, Fan_L23_H20_0.875: 24727.48
+      Price: 24727.48
+      Outcome: LOSS (MFE: 164.92, MAE: 123.53)
+------------------------------------------------------------
+EVENT: 3/4/2026, 11:45:00 AM | P1 (L24-H23) (0.875) | Type: RESISTANCE_TEST
+      Confluence With: Fan_L24_H23_0.875: 24379.96
+      Price: 24379.96
+      Outcome: WIN (MFE: 194.29, MAE: 22.21)
+------------------------------------------------------------
+EVENT: 3/4/2026, 1:15:00 PM | P2 (H24-L24) (0.5) | Type: SUPPORT_TEST
+      Confluence With: Fan_L24_H23_0.75: 24444.13, Fan_H24_L24_0.5: 24432.63, Fan_L25_H24_0.25: 24419.03, Fan_L25_H24_horizontal: 24440.04
+      Price: 24432.63
+      Outcome: WIN (MFE: 218.97, MAE: 16.88)
+------------------------------------------------------------
+EVENT: 3/4/2026, 1:15:00 PM | P1 (L25-H24) (horizontal) | Type: SUPPORT_TEST
+      Confluence With: Fan_L24_H23_0.75: 24444.13, Fan_H24_L24_0.5: 24432.63, Fan_L25_H24_0.25: 24419.03, Fan_L25_H24_horizontal: 24440.04
+      Price: 24440.04
+      Outcome: WIN (MFE: 211.56, MAE: 24.29)
+------------------------------------------------------------
+EVENT: 3/4/2026, 2:45:00 PM | P3 (L24-H21) (0.75) | Type: SUPPORT_TEST
+      Confluence With: Fan_L24_H21_0.75: 24555.37
+      Price: 24555.37
+      Outcome: LOSS (MFE: 117.13, MAE: 104.32)
+------------------------------------------------------------
+EVENT: 3/5/2026, 10:15:00 AM | P1 (L24-H23) (0.5) | Type: SUPPORT_TEST
+      Confluence With: Fan_L24_H23_0.5: 24538.56
+      Price: 24538.56
+      Outcome: WIN (MFE: 133.94, MAE: 0.00)
+------------------------------------------------------------
+EVENT: 3/5/2026, 12:45:00 PM | P1 (H25-L25) (0.75) | Type: SUPPORT_TEST
+      Confluence With: Fan_H25_L24_0.75: 24614.68, Fan_H25_L25_0.75: 24631.17
+      Price: 24631.17
+      Outcome: WIN (MFE: 222.73, MAE: 101.62)
+------------------------------------------------------------
+EVENT: 3/5/2026, 1:15:00 PM | P2 (H25-L24) (0.75) | Type: SUPPORT_TEST
+      Confluence With: Fan_H25_L24_0.75: 24631.80, Fan_H25_L25_0.75: 24649.63
+      Price: 24631.80
+      Outcome: WIN (MFE: 222.10, MAE: 102.25)
+------------------------------------------------------------
+EVENT: 3/5/2026, 2:15:00 PM | P2 (H25-L24) (0.5) | Type: SUPPORT_TEST
+      Confluence With: Fan_H25_L24_0.5: 24531.31, Fan_H25_L25_0.5: 24560.04, Fan_H25_L25_horizontal: 24485.69
+      Price: 24531.31
+      Outcome: WIN (MFE: 322.59, MAE: 0.00)
+------------------------------------------------------------
+EVENT: 3/5/2026, 2:30:00 PM | P2 (H25-L24) (0.875) | Type: RESISTANCE_TEST
+      Confluence With: Fan_H25_L24_0.875: 24755.68, Fan_H25_L25_0.875: 24774.06, Fan_L24_H21_0.5: 24777.02
+      Price: 24755.68
+      Outcome: LOSS (MFE: 179.93, MAE: 98.22)
+------------------------------------------------------------
+EVENT: 3/5/2026, 3:15:00 PM | P3 (L24-H21) (0.5) | Type: RESISTANCE_TEST
+      Confluence With: Fan_L24_H21_0.5: 24754.29
+      Price: 24754.29
+      Outcome: WIN (MFE: 178.54, MAE: 0.00)
+------------------------------------------------------------
+EVENT: 3/6/2026, 9:15:00 AM | P2 (L24-H22) (0.5) | Type: SUPPORT_TEST
+      Confluence With: Fan_L24_H23_0.25: 24643.18, Fan_L24_H22_0.5: 24630.80
+      Price: 24630.80
+      Outcome: LOSS (MFE: 57.30, MAE: 55.05)
+------------------------------------------------------------
+EVENT: 3/6/2026, 9:15:00 AM | P1 (L24-H23) (0.25) | Type: SUPPORT_TEST
+      Confluence With: Fan_L24_H23_0.25: 24643.18, Fan_L24_H22_0.5: 24630.80
+      Price: 24643.18
+      Outcome: LOSS (MFE: 67.43, MAE: 44.92)
+------------------------------------------------------------
+EVENT: 3/6/2026, 10:45:00 AM | P3 (H26-L24) (0.5) | Type: SUPPORT_TEST
+      Confluence With: Fan_H26_L25_0.5: 24613.33, Fan_H26_L25_horizontal: 24563.70, Fan_H26_L26_0.25: 24588.39, Fan_H26_L26_horizontal: 24554.78, Fan_H26_L24_0.5: 24587.19, Fan_H26_L24_horizontal: 24539.54
+      Price: 24587.19
+      Outcome: WIN (MFE: 67.36, MAE: 11.14)
+------------------------------------------------------------
+EVENT: 3/6/2026, 10:45:00 AM | P1 (H26-L26) (0.25) | Type: SUPPORT_TEST
+      Confluence With: Fan_H26_L25_0.5: 24613.33, Fan_H26_L25_horizontal: 24563.70, Fan_H26_L26_0.25: 24588.39, Fan_H26_L26_horizontal: 24554.78, Fan_H26_L24_0.5: 24587.19, Fan_H26_L24_horizontal: 24539.54
+      Price: 24588.39
+      Outcome: WIN (MFE: 66.16, MAE: 12.34)
+------------------------------------------------------------
+EVENT: 3/6/2026, 11:00:00 AM | P2 (H26-L25) (0.5) | Type: RESISTANCE_TEST
+      Confluence With: Fan_H26_L25_0.5: 24618.84, Fan_H26_L26_0.25: 24593.74, Fan_H26_L24_0.5: 24592.48
+      Price: 24618.84
+      Outcome: LOSS (MFE: 44.99, MAE: 35.71)
+------------------------------------------------------------
+EVENT: 3/6/2026, 11:15:00 AM | P3 (H26-L24) (0.5) | Type: SUPPORT_TEST
+      Confluence With: Fan_H26_L25_0.5: 24624.35, Fan_H26_L25_horizontal: 24563.70, Fan_H26_L26_0.25: 24599.09, Fan_H26_L26_horizontal: 24554.78, Fan_H26_L24_0.5: 24597.78
+      Price: 24597.78
+      Outcome: LOSS (MFE: 56.77, MAE: 43.83)
+------------------------------------------------------------
+EVENT: 3/6/2026, 11:15:00 AM | P1 (H26-L26) (0.25) | Type: SUPPORT_TEST
+      Confluence With: Fan_H26_L25_0.5: 24624.35, Fan_H26_L25_horizontal: 24563.70, Fan_H26_L26_0.25: 24599.09, Fan_H26_L26_horizontal: 24554.78, Fan_H26_L24_0.5: 24597.78
+      Price: 24599.09
+      Outcome: LOSS (MFE: 55.46, MAE: 45.14)
+------------------------------------------------------------
+EVENT: 3/6/2026, 11:30:00 AM | P3 (H26-L24) (0.5) | Type: SUPPORT_TEST
+      Confluence With: Fan_H26_L25_0.5: 24629.87, Fan_H26_L25_horizontal: 24563.70, Fan_H26_L26_0.25: 24604.44, Fan_H26_L26_horizontal: 24554.78, Fan_H26_L24_0.5: 24603.07
+      Price: 24603.07
+      Outcome: LOSS (MFE: 59.27, MAE: 31.78)
+------------------------------------------------------------
+EVENT: 3/6/2026, 11:30:00 AM | P2 (H26-L25) (0.5) | Type: RESISTANCE_TEST
+      Confluence With: Fan_H26_L25_0.5: 24629.87, Fan_H26_L26_0.25: 24604.44, Fan_H26_L24_0.5: 24603.07
+      Price: 24629.87
+      Outcome: WIN (MFE: 86.07, MAE: 4.98)
+------------------------------------------------------------
+EVENT: 3/6/2026, 11:30:00 AM | P1 (H26-L26) (0.25) | Type: SUPPORT_TEST
+      Confluence With: Fan_H26_L25_0.5: 24629.87, Fan_H26_L25_horizontal: 24563.70, Fan_H26_L26_0.25: 24604.44, Fan_H26_L24_0.5: 24603.07
+      Price: 24604.44
+      Outcome: LOSS (MFE: 60.64, MAE: 30.41)
+------------------------------------------------------------
+EVENT: 3/6/2026, 12:15:00 PM | P2 (H26-L26) (0.25) | Type: RESISTANCE_TEST
+      Confluence With: Fan_H26_L25_0.5: 24646.41, Fan_H26_L26_0.25: 24620.48, Fan_L27_H26_0.75: 24612.50
+      Price: 24620.48
+      Outcome: WIN (MFE: 173.88, MAE: 3.02)
+------------------------------------------------------------
+EVENT: 3/6/2026, 12:15:00 PM | P1 (L27-H26) (0.75) | Type: RESISTANCE_TEST
+      Confluence With: Fan_H26_L25_0.5: 24646.41, Fan_H26_L25_horizontal: 24563.70, Fan_H26_L26_0.25: 24620.48, Fan_L27_H26_0.75: 24612.50
+      Price: 24612.50
+      Outcome: WIN (MFE: 165.90, MAE: 11.00)
+------------------------------------------------------------
+EVENT: 3/6/2026, 1:45:00 PM | P1 (H26-L26) (horizontal) | Type: SUPPORT_TEST
+      Confluence With: Fan_H26_L25_0.25: 24510.74, Fan_H26_L25_horizontal: 24563.70, Fan_H26_L26_horizontal: 24554.78, Fan_H26_L24_horizontal: 24539.54
+      Price: 24554.78
+      Outcome: WIN (MFE: 856.93, MAE: 61.67)
+------------------------------------------------------------
+EVENT: 3/6/2026, 2:00:00 PM | P1 (H26-L26) (horizontal) | Type: SUPPORT_TEST
+      Confluence With: Fan_H26_L25_0.25: 24513.40, Fan_H26_L25_horizontal: 24563.70, Fan_H26_L26_horizontal: 24554.78, Fan_H26_L24_horizontal: 24539.54
+      Price: 24554.78
+      Outcome: WIN (MFE: 856.93, MAE: 61.67)
+------------------------------------------------------------
+EVENT: 3/6/2026, 2:30:00 PM | P3 (H26-L24) (horizontal) | Type: SUPPORT_TEST
+      Confluence With: Fan_H26_L25_0.25: 24518.70, Fan_H26_L25_horizontal: 24563.70, Fan_H26_L26_horizontal: 24554.78, Fan_H26_L24_horizontal: 24539.54
+      Price: 24539.54
+      Outcome: WIN (MFE: 841.69, MAE: 20.21)
+------------------------------------------------------------
+EVENT: 3/6/2026, 2:45:00 PM | P1 (H26-L26) (horizontal) | Type: RESISTANCE_TEST
+      Confluence With: Fan_H26_L25_0.25: 24521.36, Fan_H26_L25_horizontal: 24563.70, Fan_H26_L26_horizontal: 24554.78, Fan_H26_L24_horizontal: 24539.54, Fan_L24_H23_0.25: 24525.98
+      Price: 24554.78
+      Outcome: WIN (MFE: 856.93, MAE: 0.00)
+------------------------------------------------------------
+EVENT: 3/6/2026, 3:00:00 PM | P2 (H26-L24) (0.25) | Type: RESISTANCE_TEST
+      Confluence With: Fan_H26_L25_0.25: 24524.01, Fan_H26_L24_0.25: 24485.47, Fan_L24_H23_0.25: 24520.66
+      Price: 24485.47
+      Outcome: WIN (MFE: 787.62, MAE: 0.00)
+------------------------------------------------------------
+EVENT: 3/10/2026, 10:15:00 AM | P1 (L28-H27) (0.5) | Type: RESISTANCE_TEST
+      Confluence With: Fan_L28_H27_0.5: 24172.32
+      Price: 24172.32
+      Outcome: WIN (MFE: 82.98, MAE: 29.87)
+------------------------------------------------------------
+EVENT: 3/10/2026, 12:00:00 PM | P3 (L28-H26) (0.5) | Type: RESISTANCE_TEST
+      Confluence With: Fan_L28_H26_0.5: 24220.20, Fan_H28_L28_0.75: 24194.52
+      Price: 24220.20
+      Outcome: LOSS (MFE: 77.75, MAE: 76.45)
+------------------------------------------------------------
+EVENT: 3/10/2026, 2:00:00 PM | P1 (L29-H28) (horizontal) | Type: SUPPORT_TEST
+      Confluence With: Fan_L29_H28_0.5: 24199.71, Fan_L29_H28_0.25: 24249.88, Fan_L29_H28_horizontal: 24230.40
+      Price: 24230.40
+      Outcome: LOSS (MFE: 125.85, MAE: 72.10)
+------------------------------------------------------------
+EVENT: 3/10/2026, 2:15:00 PM | P1 (L29-H28) (horizontal) | Type: SUPPORT_TEST
+      Confluence With: Fan_L29_H28_0.5: 24194.59, Fan_L29_H28_0.25: 24247.41, Fan_L29_H28_horizontal: 24230.40
+      Price: 24230.40
+      Outcome: WIN (MFE: 160.20, MAE: 72.10)
+------------------------------------------------------------
+EVENT: 3/10/2026, 2:30:00 PM | P1 (L29-H28) (0.25) | Type: RESISTANCE_TEST
+      Confluence With: Fan_L29_H28_0.25: 24244.93, Fan_L29_H28_horizontal: 24230.40
+      Price: 24244.93
+      Outcome: WIN (MFE: 195.53, MAE: 57.57)
+------------------------------------------------------------
+EVENT: 3/10/2026, 3:00:00 PM | P1 (L29-H28) (0.25) | Type: SUPPORT_TEST
+      Confluence With: Fan_L29_H28_0.25: 24239.99, Fan_L29_H28_horizontal: 24230.40
+      Price: 24239.99
+      Outcome: WIN (MFE: 229.84, MAE: 62.51)
+------------------------------------------------------------
+EVENT: 3/10/2026, 3:00:00 PM | P1 (L29-H28) (horizontal) | Type: SUPPORT_TEST
+      Confluence With: Fan_L29_H28_0.25: 24239.99, Fan_L29_H28_horizontal: 24230.40
+      Price: 24230.40
+      Outcome: WIN (MFE: 220.25, MAE: 72.10)
+------------------------------------------------------------
+EVENT: 3/11/2026, 11:30:00 AM | P1 (H29-L28) (0.5) | Type: SUPPORT_TEST
+      Confluence With: Fan_L28_H26_0.5: 23992.47, Fan_H29_L28_0.5: 24008.36
+      Price: 24008.36
+      Outcome: WIN (MFE: 94.16, MAE: 15.84)
+------------------------------------------------------------
+EVENT: 3/11/2026, 11:30:00 AM | P3 (L28-H26) (0.5) | Type: SUPPORT_TEST
+      Confluence With: Fan_L28_H26_0.5: 23992.47, Fan_H29_L28_0.5: 24008.36, Fan_H29_L28_horizontal: 23955.73
+      Price: 23992.47
+      Outcome: WIN (MFE: 78.27, MAE: 31.73)
+------------------------------------------------------------
+EVENT: 3/11/2026, 12:00:00 PM | P1 (H29-L28) (0.5) | Type: RESISTANCE_TEST
+      Confluence With: Fan_L28_H26_0.5: 23972.66, Fan_H29_L28_0.5: 24018.88
+      Price: 24018.88
+      Outcome: WIN (MFE: 126.69, MAE: 5.31)
+------------------------------------------------------------
+EVENT: 3/11/2026, 12:15:00 PM | P1 (H29-L28) (0.5) | Type: RESISTANCE_TEST
+      Confluence With: Fan_H29_L28_0.5: 24024.15
+      Price: 24024.15
+      Outcome: WIN (MFE: 152.10, MAE: 0.00)
+------------------------------------------------------------
+EVENT: 3/11/2026, 1:45:00 PM | P1 (H29-L28) (horizontal) | Type: SUPPORT_TEST
+      Confluence With: Fan_H29_L28_horizontal: 23955.73
+      Price: 23955.73
+      Outcome: WIN (MFE: 397.88, MAE: 21.32)
+------------------------------------------------------------
+EVENT: 3/11/2026, 3:00:00 PM | P1 (H29-L28) (0.25) | Type: RESISTANCE_TEST
+      Confluence With: Fan_L28_H26_0.5: 23853.84, Fan_H29_L28_0.25: 23883.36
+      Price: 23883.36
+      Outcome: WIN (MFE: 325.51, MAE: 0.00)
+------------------------------------------------------------
+EVENT: 3/11/2026, 3:15:00 PM | P3 (L28-H26) (0.5) | Type: SUPPORT_TEST
+      Confluence With: Fan_L28_H26_0.5: 23843.94, Fan_H29_L28_0.25: 23885.90
+      Price: 23843.94
+      Outcome: WIN (MFE: 286.09, MAE: 0.00)
+------------------------------------------------------------
+EVENT: 3/12/2026, 10:45:00 AM | P2 (L30-H27) (0.875) | Type: SUPPORT_TEST
+      Confluence With: Fan_L30_H27_0.875: 23679.26, Fan_L30_H26_0.875: 23718.34, Fan_L30_H29_0.875: 23642.79
+      Price: 23679.26
+      Outcome: WIN (MFE: 94.39, MAE: 22.86)
+------------------------------------------------------------
+EVENT: 3/12/2026, 11:15:00 AM | P3 (L30-H26) (0.875) | Type: SUPPORT_TEST
+      Confluence With: Fan_L30_H27_0.875: 23658.04, Fan_L30_H26_0.875: 23697.50
+      Price: 23697.50
+      Outcome: WIN (MFE: 135.15, MAE: 41.10)
+------------------------------------------------------------
+EVENT: 3/12/2026, 11:30:00 AM | P3 (L30-H26) (0.875) | Type: SUPPORT_TEST
+      Confluence With: Fan_L30_H27_0.875: 23647.43, Fan_L30_H26_0.875: 23687.09
+      Price: 23687.09
+      Outcome: WIN (MFE: 145.56, MAE: 30.69)
+------------------------------------------------------------
+EVENT: 3/12/2026, 1:00:00 PM | P1 (H30-L30) (0.5) | Type: SUPPORT_TEST
+      Confluence With: Fan_L30_H29_0.75: 23670.96, Fan_H30_L30_0.5: 23691.56
+      Price: 23691.56
+      Outcome: LOSS (MFE: 275.51, MAE: 141.09)
+------------------------------------------------------------
+EVENT: 3/12/2026, 1:00:00 PM | P2 (L30-H29) (0.75) | Type: SUPPORT_TEST
+      Confluence With: Fan_L30_H29_0.75: 23670.96, Fan_H30_L30_0.5: 23691.56
+      Price: 23670.96
+      Outcome: LOSS (MFE: 254.91, MAE: 161.69)
+------------------------------------------------------------
+EVENT: 3/12/2026, 1:15:00 PM | P1 (H30-L30) (0.5) | Type: SUPPORT_TEST
+      Confluence With: Fan_L30_H29_0.75: 23655.56, Fan_H30_L30_0.5: 23700.47
+      Price: 23700.47
+      Outcome: WIN (MFE: 284.42, MAE: 132.18)
+------------------------------------------------------------
+EVENT: 3/12/2026, 1:30:00 PM | P1 (H30-L30) (0.75) | Type: RESISTANCE_TEST
+      Confluence With: Fan_H30_L30_0.75: 23831.06, Fan_L30_H26_0.75: 23829.28
+      Price: 23831.06
+      Outcome: WIN (MFE: 486.31, MAE: 0.00)
+------------------------------------------------------------
+EVENT: 3/12/2026, 2:30:00 PM | P2 (L30-H27) (0.75) | Type: RESISTANCE_TEST
+      Confluence With: Fan_L30_H27_0.75: 23720.51
+      Price: 23720.51
+      Outcome: WIN (MFE: 414.01, MAE: 0.00)
+------------------------------------------------------------
+EVENT: 3/12/2026, 3:00:00 PM | P1 (H31-L30) (0.25) | Type: SUPPORT_TEST
+      Confluence With: Fan_H31_L30_0.25: 23627.35, Fan_H31_L30_horizontal: 23665.83
+      Price: 23627.35
+      Outcome: WIN (MFE: 320.85, MAE: 24.80)
+------------------------------------------------------------
+EVENT: 3/12/2026, 3:00:00 PM | P1 (H31-L30) (horizontal) | Type: RESISTANCE_TEST
+      Confluence With: Fan_L30_H27_0.75: 23703.14, Fan_H31_L30_0.5: 23703.94, Fan_H31_L30_0.25: 23627.35, Fan_H31_L30_horizontal: 23665.83
+      Price: 23665.83
+      Outcome: WIN (MFE: 359.33, MAE: 0.00)
+------------------------------------------------------------
+EVENT: 3/12/2026, 3:15:00 PM | P1 (H31-L30) (0.25) | Type: SUPPORT_TEST
+      Confluence With: Fan_H31_L30_0.25: 23630.38, Fan_H31_L30_horizontal: 23665.83
+      Price: 23630.38
+      Outcome: WIN (MFE: 323.88, MAE: 0.00)
+------------------------------------------------------------
+EVENT: 3/16/2026, 9:15:00 AM | P2 (L33-H31) (0.875) | Type: RESISTANCE_TEST
+      Confluence With: Fan_L33_H31_0.875: 23169.58, Fan_L33_H32_0.75: 23145.67
+      Price: 23169.58
+      Outcome: LOSS (MFE: 214.03, MAE: 114.76)
+------------------------------------------------------------
+EVENT: 3/16/2026, 12:30:00 PM | P1 (L34-H33) (0.5) | Type: SUPPORT_TEST
+      Confluence With: Fan_L34_H33_0.5: 23150.47
+      Price: 23150.47
+      Outcome: WIN (MFE: 351.53, MAE: 64.12)
+------------------------------------------------------------
+EVENT: 3/16/2026, 1:30:00 PM | P2 (L34-H33) (0.5) | Type: SUPPORT_TEST
+      Confluence With: Fan_L34_H33_0.5: 23105.84, Fan_H34_L34_0.5: 23084.71
+      Price: 23105.84
+      Outcome: WIN (MFE: 396.16, MAE: 12.99)
+------------------------------------------------------------
+EVENT: 3/16/2026, 1:45:00 PM | P1 (H34-L34) (0.5) | Type: SUPPORT_TEST
+      Confluence With: Fan_L34_H33_0.5: 23094.68, Fan_H34_L34_0.5: 23096.45
+      Price: 23096.45
+      Outcome: WIN (MFE: 440.40, MAE: 0.00)
+------------------------------------------------------------
+EVENT: 3/16/2026, 1:45:00 PM | P2 (L34-H33) (0.5) | Type: SUPPORT_TEST
+      Confluence With: Fan_L34_H33_0.5: 23094.68, Fan_H34_L34_0.5: 23096.45
+      Price: 23094.68
+      Outcome: WIN (MFE: 442.17, MAE: 0.00)
+------------------------------------------------------------
+EVENT: 3/16/2026, 2:00:00 PM | P3 (L34-H32) (0.5) | Type: RESISTANCE_TEST
+      Confluence With: Fan_L34_H32_0.5: 23155.79, Fan_L34_H33_0.25: 23196.60
+      Price: 23155.79
+      Outcome: WIN (MFE: 420.76, MAE: 21.20)
+------------------------------------------------------------
+EVENT: 3/16/2026, 3:00:00 PM | P1 (L34-H31) (0.5) | Type: SUPPORT_TEST
+      Confluence With: Fan_L34_H31_0.5: 23401.27
+      Price: 23401.27
+      Outcome: WIN (MFE: 175.28, MAE: 62.67)
+------------------------------------------------------------
+EVENT: 3/17/2026, 10:00:00 AM | P1 (L34-H31) (horizontal) | Type: RESISTANCE_TEST
+      Confluence With: Fan_L34_H31_horizontal: 23532.22, Fan_H35_L35_0.875: 23514.20
+      Price: 23532.22
+      Outcome: WIN (MFE: 176.52, MAE: 44.33)
+------------------------------------------------------------
+EVENT: 3/17/2026, 10:15:00 AM | P1 (L34-H31) (horizontal) | Type: RESISTANCE_TEST
+      Confluence With: Fan_L34_H31_horizontal: 23532.22
+      Price: 23532.22
+      Outcome: WIN (MFE: 176.52, MAE: 1.68)
+------------------------------------------------------------
+EVENT: 3/17/2026, 10:45:00 AM | P1 (L34-H31) (horizontal) | Type: RESISTANCE_TEST
+      Confluence With: Fan_L34_H31_horizontal: 23532.22
+      Price: 23532.22
+      Outcome: WIN (MFE: 176.52, MAE: 27.98)
+------------------------------------------------------------
+EVENT: 3/17/2026, 11:45:00 AM | P2 (H35-L34) (0.75) | Type: SUPPORT_TEST
+      Confluence With: Fan_H35_L34_0.75: 23386.76, Fan_H35_L35_0.75: 23430.80
+      Price: 23386.76
+      Outcome: WIN (MFE: 222.14, MAE: 6.41)
+------------------------------------------------------------
+EVENT: 3/17/2026, 12:00:00 PM | P1 (H35-L35) (0.75) | Type: RESISTANCE_TEST
+      Confluence With: Fan_H35_L34_0.75: 23401.63, Fan_H35_L35_0.75: 23448.02
+      Price: 23448.02
+      Outcome: WIN (MFE: 166.68, MAE: 67.67)
+------------------------------------------------------------
+EVENT: 3/17/2026, 1:15:00 PM | P1 (L36-H35) (horizontal) | Type: SUPPORT_TEST
+      Confluence With: Fan_H35_L35_0.75: 23534.14, Fan_L36_H35_0.25: 23522.45, Fan_L36_H35_horizontal: 23526.01
+      Price: 23526.01
+      Outcome: WIN (MFE: 212.44, MAE: 21.86)
+------------------------------------------------------------
+EVENT: 3/17/2026, 1:30:00 PM | P1 (L36-H35) (horizontal) | Type: SUPPORT_TEST
+      Confluence With: Fan_H35_L34_0.75: 23490.85, Fan_H35_L35_0.75: 23551.36, Fan_L36_H35_0.25: 23517.94, Fan_L36_H35_horizontal: 23526.01, Fan_L34_H31_0.25: 23563.52, Fan_L34_H31_horizontal: 23532.22, Fan_L34_H29_0.5: 23545.21
+      Price: 23526.01
+      Outcome: WIN (MFE: 228.34, MAE: 0.00)
+------------------------------------------------------------
+EVENT: 3/17/2026, 1:30:00 PM | P1 (L36-H35) (0.25) | Type: SUPPORT_TEST
+      Confluence With: Fan_H35_L34_0.75: 23490.85, Fan_H35_L35_0.75: 23551.36, Fan_L36_H35_0.25: 23517.94, Fan_L36_H35_horizontal: 23526.01, Fan_L34_H31_0.25: 23563.52, Fan_L34_H31_horizontal: 23532.22, Fan_L34_H29_0.5: 23545.21
+      Price: 23517.94
+      Outcome: WIN (MFE: 236.41, MAE: 0.00)
+------------------------------------------------------------
+EVENT: 3/17/2026, 1:45:00 PM | P1 (L34-H31) (0.25) | Type: RESISTANCE_TEST
+      Confluence With: Fan_L34_H31_0.25: 23559.93, Fan_L34_H31_horizontal: 23532.22, Fan_L34_H29_0.5: 23538.79
+      Price: 23559.93
+      Outcome: WIN (MFE: 194.42, MAE: 33.08)
+------------------------------------------------------------
+EVENT: 3/17/2026, 2:15:00 PM | P1 (L34-H31) (0.25) | Type: SUPPORT_TEST
+      Confluence With: Fan_L34_H31_0.25: 23552.76, Fan_L34_H31_horizontal: 23532.22, Fan_L34_H29_0.5: 23525.96
+      Price: 23552.76
+      Outcome: WIN (MFE: 201.59, MAE: 6.21)
+------------------------------------------------------------
+EVENT: 3/17/2026, 2:15:00 PM | P1 (L34-H31) (horizontal) | Type: SUPPORT_TEST
+      Confluence With: Fan_L34_H31_0.25: 23552.76, Fan_L34_H31_horizontal: 23532.22, Fan_L34_H29_0.5: 23525.96
+      Price: 23532.22
+      Outcome: WIN (MFE: 222.13, MAE: 0.00)
+------------------------------------------------------------
+EVENT: 3/18/2026, 9:45:00 AM | P3 (L34-H27) (0.5) | Type: SUPPORT_TEST
+      Confluence With: Fan_L34_H27_0.5: 23670.02
+      Price: 23670.02
+      Outcome: WIN (MFE: 165.08, MAE: 29.32)
+------------------------------------------------------------
+EVENT: 3/18/2026, 10:45:00 AM | P2 (L34-H29) (horizontal) | Type: RESISTANCE_TEST
+      Confluence With: Fan_L34_H29_horizontal: 23776.25
+      Price: 23776.25
+      Outcome: WIN (MFE: 60.40, MAE: 15.35)
+------------------------------------------------------------
+EVENT: 3/18/2026, 11:15:00 AM | P2 (L34-H29) (horizontal) | Type: SUPPORT_TEST
+      Confluence With: Fan_L34_H29_horizontal: 23776.25
+      Price: 23776.25
+      Outcome: WIN (MFE: 82.50, MAE: 15.35)
+------------------------------------------------------------
+EVENT: 3/18/2026, 12:00:00 PM | P1 (L34-H29) (horizontal) | Type: SUPPORT_TEST
+      Confluence With: Fan_L34_H29_horizontal: 23776.25, Fan_L34_H26_0.5: 23755.14
+      Price: 23776.25
+      Outcome: WIN (MFE: 85.55, MAE: 15.35)
+------------------------------------------------------------
+EVENT: 3/18/2026, 2:15:00 PM | P1 (L34-H29) (0.25) | Type: RESISTANCE_TEST
+      Confluence With: Fan_L34_H29_0.25: 23857.15
+      Price: 23857.15
+      Outcome: WIN (MFE: 653.09, MAE: 0.00)
+------------------------------------------------------------
+EVENT: 3/18/2026, 2:45:00 PM | P1 (L34-H29) (horizontal) | Type: SUPPORT_TEST
+      Confluence With: Fan_L34_H29_horizontal: 23776.25
+      Price: 23776.25
+      Outcome: WIN (MFE: 572.20, MAE: 33.55)
+------------------------------------------------------------
+EVENT: 3/18/2026, 3:00:00 PM | P1 (L34-H29) (horizontal) | Type: SUPPORT_TEST
+      Confluence With: Fan_L34_H29_horizontal: 23776.25
+      Price: 23776.25
+      Outcome: WIN (MFE: 572.20, MAE: 16.65)
+------------------------------------------------------------
+EVENT: 3/19/2026, 9:30:00 AM | P1 (H37-L35) (0.25) | Type: SUPPORT_TEST
+      Confluence With: Fan_H37_L35_0.25: 23255.82
+      Price: 23255.82
+      Outcome: LOSS (MFE: 61.98, MAE: 51.77)
+------------------------------------------------------------
+EVENT: 3/19/2026, 10:00:00 AM | P1 (H37-L35) (0.25) | Type: RESISTANCE_TEST
+      Confluence With: Fan_H37_L35_0.25: 23261.37
+      Price: 23261.37
+      Outcome: LOSS (MFE: 57.32, MAE: 56.43)
+------------------------------------------------------------
+EVENT: 3/20/2026, 11:00:00 AM | P3 (L39-H29) (0.75) | Type: SUPPORT_TEST
+      Confluence With: Fan_L39_H29_0.75: 23267.84, Fan_L39_H37_0.75: 23242.24
+      Price: 23267.84
+      Outcome: LOSS (MFE: 147.49, MAE: 77.06)
+------------------------------------------------------------
+EVENT: 3/20/2026, 12:45:00 PM | P1 (H39-L39) (0.75) | Type: RESISTANCE_TEST
+      Confluence With: Fan_L39_H29_0.75: 23228.27, Fan_H39_L39_0.75: 23231.04
+      Price: 23231.04
+      Outcome: WIN (MFE: 163.14, MAE: 41.36)
+------------------------------------------------------------
+EVENT: 3/20/2026, 12:45:00 PM | P3 (L39-H29) (0.75) | Type: RESISTANCE_TEST
+      Confluence With: Fan_L39_H29_0.75: 23228.27, Fan_H39_L39_0.75: 23231.04
+      Price: 23228.27
+      Outcome: WIN (MFE: 160.37, MAE: 44.13)
+------------------------------------------------------------
+EVENT: 3/20/2026, 1:00:00 PM | P1 (H39-L39) (0.75) | Type: RESISTANCE_TEST
+      Confluence With: Fan_L39_H29_0.75: 23222.61, Fan_H39_L39_0.75: 23249.73
+      Price: 23249.73
+      Outcome: WIN (MFE: 611.93, MAE: 22.67)
+------------------------------------------------------------
+EVENT: 3/20/2026, 1:15:00 PM | P1 (H39-L39) (0.75) | Type: RESISTANCE_TEST
+      Confluence With: Fan_H39_L39_0.75: 23268.42
+      Price: 23268.42
+      Outcome: WIN (MFE: 630.62, MAE: 3.98)
+------------------------------------------------------------
+EVENT: 3/20/2026, 2:00:00 PM | P1 (L40-H39) (0.5) | Type: RESISTANCE_TEST
+      Confluence With: Fan_L40_H39_0.5: 23233.16
+      Price: 23233.16
+      Outcome: WIN (MFE: 702.26, MAE: 0.00)
+------------------------------------------------------------
+EVENT: 3/20/2026, 3:00:00 PM | P3 (L39-H29) (0.75) | Type: RESISTANCE_TEST
+      Confluence With: Fan_H39_L39_0.5: 23179.50, Fan_L39_H29_0.75: 23177.38
+      Price: 23177.38
+      Outcome: WIN (MFE: 672.38, MAE: 0.00)
+------------------------------------------------------------
+EVENT: 3/23/2026, 2:30:00 PM | P2 (L41-H39) (0.875) | Type: SUPPORT_TEST
+      Confluence With: Fan_L41_H39_0.875: 22589.50, Fan_L41_H40_0.875: 22585.36
+      Price: 22589.50
+      Outcome: WIN (MFE: 308.15, MAE: 111.40)
+------------------------------------------------------------
+EVENT: 3/23/2026, 2:30:00 PM | P1 (L41-H40) (0.875) | Type: SUPPORT_TEST
+      Confluence With: Fan_L41_H39_0.875: 22589.50, Fan_L41_H40_0.875: 22585.36
+      Price: 22585.36
+      Outcome: WIN (MFE: 312.29, MAE: 107.26)
+------------------------------------------------------------
+EVENT: 3/24/2026, 10:30:00 AM | P2 (L41-H39) (0.75) | Type: SUPPORT_TEST
+      Confluence With: Fan_L41_H39_0.75: 22641.74, Fan_L41_H40_0.75: 22620.09, Fan_H42_L41_0.5: 22622.03, Fan_H42_L42_0.75: 22663.90
+      Price: 22641.74
+      Outcome: WIN (MFE: 383.46, MAE: 12.34)
+------------------------------------------------------------
+EVENT: 3/24/2026, 10:45:00 AM | P2 (H42-L41) (0.5) | Type: SUPPORT_TEST
+      Confluence With: Fan_L41_H40_0.75: 22602.92, Fan_H42_L41_0.5: 22632.02
+      Price: 22632.02
+      Outcome: WIN (MFE: 393.63, MAE: 0.00)
+------------------------------------------------------------
+EVENT: 3/24/2026, 11:45:00 AM | P2 (H42-L42) (0.75) | Type: RESISTANCE_TEST
+      Confluence With: Fan_H42_L41_0.75: 22851.23, Fan_H42_L42_0.75: 22818.74, Fan_L43_H42_0.5: 22790.65, Fan_L43_H42_0.25: 22850.47, Fan_L43_H42_horizontal: 22844.15
+      Price: 22818.74
+      Outcome: WIN (MFE: 238.36, MAE: 65.39)
+------------------------------------------------------------
+EVENT: 3/24/2026, 12:15:00 PM | P3 (H42-L41) (0.75) | Type: RESISTANCE_TEST
+      Confluence With: Fan_H42_L41_0.75: 22889.14, Fan_H42_L42_0.75: 22880.67, Fan_L43_H42_horizontal: 22844.15, Fan_L41_H39_0.5: 22888.13, Fan_L41_H40_0.5: 22852.06
+      Price: 22889.14
+      Outcome: WIN (MFE: 167.96, MAE: 45.74)
+------------------------------------------------------------
+EVENT: 3/24/2026, 12:15:00 PM | P2 (H42-L42) (0.75) | Type: RESISTANCE_TEST
+      Confluence With: Fan_H42_L41_0.75: 22889.14, Fan_H42_L42_0.75: 22880.67, Fan_L43_H42_0.25: 22841.03, Fan_L43_H42_horizontal: 22844.15, Fan_L41_H39_0.5: 22888.13, Fan_L41_H40_0.5: 22852.06
+      Price: 22880.67
+      Outcome: WIN (MFE: 176.43, MAE: 37.27)
+------------------------------------------------------------
+EVENT: 3/24/2026, 3:00:00 PM | P3 (H43-L41) (0.75) | Type: SUPPORT_TEST
+      Confluence With: Fan_H43_L42_0.75: 22873.05, Fan_H43_L41_0.75: 22897.96, Fan_H43_L43_0.75: 22939.47
+      Price: 22897.96
+      Outcome: WIN (MFE: 536.29, MAE: 16.66)
+------------------------------------------------------------
+EVENT: 3/24/2026, 3:15:00 PM | P2 (H43-L42) (0.75) | Type: SUPPORT_TEST
+      Confluence With: Fan_H43_L42_0.75: 22889.50, Fan_H43_L41_0.75: 22910.87
+      Price: 22889.50
+      Outcome: WIN (MFE: 544.75, MAE: 0.00)
+------------------------------------------------------------
+EVENT: 3/25/2026, 10:30:00 AM | P2 (L41-H29) (0.5) | Type: SUPPORT_TEST
+      Confluence With: Fan_L41_H29_0.5: 23305.19
+      Price: 23305.19
+      Outcome: WIN (MFE: 160.06, MAE: 0.00)
+------------------------------------------------------------
+EVENT: 3/25/2026, 10:45:00 AM | P1 (L41-H37) (horizontal) | Type: SUPPORT_TEST
+      Confluence With: Fan_L41_H37_horizontal: 23357.99
+      Price: 23357.99
+      Outcome: WIN (MFE: 107.26, MAE: 14.49)
+------------------------------------------------------------
+EVENT: 3/25/2026, 11:30:00 AM | P1 (L41-H37) (horizontal) | Type: SUPPORT_TEST
+      Confluence With: Fan_L41_H37_horizontal: 23357.99
+      Price: 23357.99
+      Outcome: WIN (MFE: 107.26, MAE: 0.00)
+------------------------------------------------------------
+EVENT: 3/25/2026, 12:30:00 PM | P3 (L41-H27) (0.5) | Type: RESISTANCE_TEST
+      Confluence With: Fan_L41_H37_0.25: 23462.92, Fan_L41_H29_horizontal: 23461.02, Fan_L41_H27_0.5: 23448.60
+      Price: 23448.60
+      Outcome: WIN (MFE: 164.50, MAE: 14.20)
+------------------------------------------------------------
+EVENT: 3/25/2026, 12:30:00 PM | P2 (L41-H29) (horizontal) | Type: RESISTANCE_TEST
+      Confluence With: Fan_L41_H37_0.25: 23462.92, Fan_L41_H29_horizontal: 23461.02, Fan_L41_H27_0.5: 23448.60
+      Price: 23461.02
+      Outcome: WIN (MFE: 176.92, MAE: 1.78)
+------------------------------------------------------------
+EVENT: 3/25/2026, 12:30:00 PM | P1 (L41-H37) (0.25) | Type: RESISTANCE_TEST
+      Confluence With: Fan_L41_H37_0.25: 23462.92, Fan_L41_H29_horizontal: 23461.02, Fan_L41_H27_0.5: 23448.60
+      Price: 23462.92
+      Outcome: WIN (MFE: 178.82, MAE: 0.00)
+------------------------------------------------------------
+EVENT: 3/25/2026, 1:30:00 PM | P3 (L41-H27) (0.5) | Type: RESISTANCE_TEST
+      Confluence With: Fan_L41_H37_0.25: 23449.39, Fan_L41_H29_horizontal: 23461.02, Fan_L41_H27_0.5: 23433.96
+      Price: 23433.96
+      Outcome: WIN (MFE: 454.51, MAE: 28.84)
+------------------------------------------------------------
+EVENT: 3/25/2026, 1:45:00 PM | P2 (L41-H29) (horizontal) | Type: RESISTANCE_TEST
+      Confluence With: Fan_L41_H37_0.25: 23446.01, Fan_L41_H29_horizontal: 23461.02, Fan_L41_H27_0.5: 23430.30
+      Price: 23461.02
+      Outcome: WIN (MFE: 483.47, MAE: 0.00)
+------------------------------------------------------------
+EVENT: 3/25/2026, 1:45:00 PM | P1 (L41-H37) (0.25) | Type: RESISTANCE_TEST
+      Confluence With: Fan_L41_H37_0.25: 23446.01, Fan_L41_H29_horizontal: 23461.02, Fan_L41_H27_0.5: 23430.30
+      Price: 23446.01
+      Outcome: WIN (MFE: 468.46, MAE: 14.29)
+------------------------------------------------------------
+EVENT: 3/25/2026, 2:30:00 PM | P3 (H44-L42) (0.875) | Type: RESISTANCE_TEST
+      Confluence With: Fan_H44_L42_0.875: 23360.80, Fan_H44_L43_0.875: 23398.50
+      Price: 23360.80
+      Outcome: WIN (MFE: 411.05, MAE: 6.85)
+------------------------------------------------------------
+EVENT: 3/27/2026, 9:30:00 AM | P2 (H44-L43) (0.5) | Type: SUPPORT_TEST
+      Confluence With: Fan_H44_L44_0.25: 22997.93, Fan_H44_L44_horizontal: 23021.56, Fan_H44_L43_0.5: 23001.85
+      Price: 23001.85
+      Outcome: LOSS (MFE: 84.15, MAE: 52.75)
+------------------------------------------------------------
+EVENT: 3/27/2026, 9:30:00 AM | P1 (H44-L44) (horizontal) | Type: SUPPORT_TEST
+      Confluence With: Fan_H44_L44_0.25: 22997.93, Fan_H44_L44_horizontal: 23021.56, Fan_H44_L43_0.5: 23001.85
+      Price: 23021.56
+      Outcome: WIN (MFE: 103.86, MAE: 33.04)
+------------------------------------------------------------
+EVENT: 3/27/2026, 10:00:00 AM | P2 (H44-L43) (0.5) | Type: RESISTANCE_TEST
+      Confluence With: Fan_H44_L44_0.25: 23006.69, Fan_H44_L44_horizontal: 23021.56, Fan_H44_L43_0.5: 23018.24
+      Price: 23018.24
+      Outcome: WIN (MFE: 111.84, MAE: 20.41)
+------------------------------------------------------------
+EVENT: 3/27/2026, 10:00:00 AM | P1 (H44-L44) (0.25) | Type: RESISTANCE_TEST
+      Confluence With: Fan_H44_L44_0.25: 23006.69, Fan_H44_L44_horizontal: 23021.56, Fan_H44_L43_0.5: 23018.24
+      Price: 23006.69
+      Outcome: WIN (MFE: 100.29, MAE: 31.96)
+------------------------------------------------------------
+EVENT: 3/27/2026, 10:00:00 AM | P1 (H44-L44) (horizontal) | Type: RESISTANCE_TEST
+      Confluence With: Fan_H44_L44_0.25: 23006.69, Fan_H44_L44_horizontal: 23021.56, Fan_H44_L43_0.5: 23018.24
+      Price: 23021.56
+      Outcome: WIN (MFE: 115.16, MAE: 17.09)
+------------------------------------------------------------
+EVENT: 3/27/2026, 10:15:00 AM | P1 (H44-L44) (0.25) | Type: RESISTANCE_TEST
+      Confluence With: Fan_H44_L44_0.25: 23011.06, Fan_H44_L44_horizontal: 23021.56, Fan_H44_L43_0.5: 23026.43
+      Price: 23011.06
+      Outcome: WIN (MFE: 104.66, MAE: 27.59)
+------------------------------------------------------------
+EVENT: 3/27/2026, 10:30:00 AM | P2 (H44-L43) (0.5) | Type: RESISTANCE_TEST
+      Confluence With: Fan_H44_L44_0.25: 23015.44, Fan_H44_L44_horizontal: 23021.56, Fan_H44_L43_0.5: 23034.63
+      Price: 23034.63
+      Outcome: WIN (MFE: 128.23, MAE: 0.00)
+------------------------------------------------------------
+EVENT: 3/27/2026, 10:30:00 AM | P1 (H44-L44) (0.25) | Type: RESISTANCE_TEST
+      Confluence With: Fan_H44_L44_0.25: 23015.44, Fan_H44_L44_horizontal: 23021.56, Fan_H44_L43_0.5: 23034.63
+      Price: 23015.44
+      Outcome: WIN (MFE: 109.04, MAE: 0.00)
+------------------------------------------------------------
+EVENT: 3/27/2026, 10:30:00 AM | P1 (H44-L44) (horizontal) | Type: RESISTANCE_TEST
+      Confluence With: Fan_H44_L44_0.25: 23015.44, Fan_H44_L44_horizontal: 23021.56, Fan_H44_L43_0.5: 23034.63
+      Price: 23021.56
+      Outcome: WIN (MFE: 115.16, MAE: 0.00)
+------------------------------------------------------------
+EVENT: 3/27/2026, 1:45:00 PM | P1 (L45-H44) (0.875) | Type: RESISTANCE_TEST
+      Confluence With: Fan_H44_L43_horizontal: 22895.32, Fan_L45_H44_0.875: 22937.31
+      Price: 22937.31
+      Outcome: WIN (MFE: 464.36, MAE: 0.00)
+------------------------------------------------------------
+EVENT: 3/27/2026, 2:00:00 PM | P2 (H44-L43) (horizontal) | Type: SUPPORT_TEST
+      Confluence With: Fan_H44_L43_0.25: 22867.18, Fan_H44_L43_horizontal: 22895.32, Fan_L45_H44_0.875: 22919.71
+      Price: 22895.32
+      Outcome: WIN (MFE: 422.37, MAE: 21.78)
+------------------------------------------------------------
+EVENT: 3/30/2026, 1:30:00 PM | P1 (H46-L46) (0.25) | Type: RESISTANCE_TEST
+      Confluence With: Fan_L46_H45_0.875: 22460.12, Fan_H46_L46_0.25: 22490.25, Fan_H46_L46_horizontal: 22465.61
+      Price: 22490.25
+      Outcome: WIN (MFE: 446.65, MAE: 204.70)
+------------------------------------------------------------
+EVENT: 3/30/2026, 1:45:00 PM | P1 (H46-L46) (horizontal) | Type: RESISTANCE_TEST
+      Confluence With: Fan_L46_H45_0.875: 22439.63, Fan_H46_L46_0.25: 22495.55, Fan_H46_L46_horizontal: 22465.61
+      Price: 22465.61
+      Outcome: WIN (MFE: 475.39, MAE: 180.06)
+------------------------------------------------------------
+EVENT: 4/1/2026, 11:00:00 AM | P1 (L47-H45) (horizontal) | Type: SUPPORT_TEST
+      Confluence With: Fan_L47_H45_horizontal: 22748.66
+      Price: 22748.66
+      Outcome: LOSS (MFE: 149.29, MAE: 98.91)
+------------------------------------------------------------
+EVENT: 4/1/2026, 11:15:00 AM | P2 (L47-H45) (horizontal) | Type: SUPPORT_TEST
+      Confluence With: Fan_L47_H45_horizontal: 22748.66, Fan_H47_L47_0.875: 22749.52
+      Price: 22748.66
+      Outcome: LOSS (MFE: 149.29, MAE: 98.91)
+------------------------------------------------------------
+EVENT: 4/1/2026, 11:45:00 AM | P2 (L47-H45) (horizontal) | Type: SUPPORT_TEST
+      Confluence With: Fan_L47_H45_horizontal: 22748.66
+      Price: 22748.66
+      Outcome: LOSS (MFE: 149.29, MAE: 98.91)
+------------------------------------------------------------
+EVENT: 4/1/2026, 12:15:00 PM | P2 (L47-H45) (0.25) | Type: SUPPORT_TEST
+      Confluence With: Fan_L47_H45_0.25: 22829.18
+      Price: 22829.18
+      Outcome: WIN (MFE: 210.13, MAE: 68.77)
+------------------------------------------------------------
+EVENT: 4/1/2026, 12:30:00 PM | P2 (L47-H45) (0.25) | Type: SUPPORT_TEST
+      Confluence With: Fan_L47_H45_0.25: 22825.62
+      Price: 22825.62
+      Outcome: WIN (MFE: 206.57, MAE: 72.33)
+------------------------------------------------------------
+EVENT: 4/1/2026, 1:15:00 PM | P1 (L48-H47) (0.25) | Type: RESISTANCE_TEST
+      Confluence With: Fan_L48_H47_0.25: 22889.17, Fan_L48_H47_horizontal: 22880.04
+      Price: 22889.17
+      Outcome: WIN (MFE: 679.67, MAE: 0.00)
+------------------------------------------------------------
+EVENT: 4/2/2026, 9:15:00 AM | P2 (L47-H45) (0.75) | Type: SUPPORT_TEST
+      Confluence With: Fan_L47_H45_0.75: 22221.14
+      Price: 22221.14
+      Outcome: WIN (MFE: 79.46, MAE: 37.84)
+------------------------------------------------------------
+EVENT: 4/2/2026, 12:45:00 PM | P3 (L49-H45) (0.75) | Type: SUPPORT_TEST
+      Confluence With: Fan_L49_H47_0.75: 22368.00, Fan_L49_H45_0.75: 22350.17
+      Price: 22350.17
+      Outcome: WIN (MFE: 431.78, MAE: 19.27)
+------------------------------------------------------------
+EVENT: 4/2/2026, 12:45:00 PM | P2 (L49-H47) (0.75) | Type: RESISTANCE_TEST
+      Confluence With: Fan_L49_H48_0.75: 22397.29, Fan_L49_H47_0.75: 22368.00, Fan_L49_H45_0.75: 22350.17
+      Price: 22368.00
+      Outcome: WIN (MFE: 413.95, MAE: 37.10)
+------------------------------------------------------------
+EVENT: 4/2/2026, 1:00:00 PM | P3 (L49-H45) (0.75) | Type: SUPPORT_TEST
+      Confluence With: Fan_L49_H48_0.75: 22375.52, Fan_L49_H47_0.75: 22352.09, Fan_L49_H45_0.75: 22341.37
+      Price: 22341.37
+      Outcome: WIN (MFE: 444.48, MAE: 0.00)
+------------------------------------------------------------
+EVENT: 4/2/2026, 1:00:00 PM | P1 (L49-H48) (0.75) | Type: RESISTANCE_TEST
+      Confluence With: Fan_L49_H48_0.75: 22375.52, Fan_L49_H47_0.75: 22352.09, Fan_L49_H45_0.75: 22341.37
+      Price: 22375.52
+      Outcome: WIN (MFE: 410.33, MAE: 15.22)
+------------------------------------------------------------
+EVENT: 4/2/2026, 3:00:00 PM | P3 (L49-H45) (horizontal) | Type: SUPPORT_TEST
+      Confluence With: Fan_L49_H45_horizontal: 22652.80
+      Price: 22652.80
+      Outcome: LOSS (MFE: 133.05, MAE: 109.40)
+------------------------------------------------------------
+EVENT: 4/2/2026, 3:15:00 PM | P3 (L49-H45) (0.25) | Type: RESISTANCE_TEST
+      Confluence With: Fan_L49_H48_0.25: 22739.72, Fan_L49_H48_horizontal: 22766.88, Fan_L49_H47_0.25: 22755.06, Fan_L49_H45_0.25: 22773.70
+      Price: 22773.70
+      Outcome: WIN (MFE: 230.30, MAE: 12.15)
+------------------------------------------------------------
+EVENT: 4/2/2026, 3:15:00 PM | P1 (L49-H48) (horizontal) | Type: RESISTANCE_TEST
+      Confluence With: Fan_L49_H48_0.25: 22739.72, Fan_L49_H48_horizontal: 22766.88, Fan_L49_H47_0.25: 22755.06, Fan_L49_H45_0.25: 22773.70
+      Price: 22766.88
+      Outcome: WIN (MFE: 223.48, MAE: 18.97)
+------------------------------------------------------------
+EVENT: 4/6/2026, 9:30:00 AM | P3 (L49-H45) (horizontal) | Type: RESISTANCE_TEST
+      Confluence With: Fan_L49_H45_horizontal: 22652.80
+      Price: 22652.80
+      Outcome: LOSS (MFE: 109.40, MAE: 55.00)
+------------------------------------------------------------
+EVENT: 4/6/2026, 9:30:00 AM | P2 (L49-H47) (horizontal) | Type: RESISTANCE_TEST
+      Confluence With: Fan_L49_H48_0.25: 22730.13, Fan_L49_H47_0.25: 22746.98, Fan_L49_H47_horizontal: 22719.70
+      Price: 22719.70
+      Outcome: WIN (MFE: 176.30, MAE: 0.00)
+------------------------------------------------------------
+EVENT: 4/6/2026, 9:30:00 AM | P1 (L49-H48) (0.25) | Type: RESISTANCE_TEST
+      Confluence With: Fan_L49_H48_0.25: 22730.13, Fan_L49_H48_horizontal: 22766.88, Fan_L49_H47_0.25: 22746.98, Fan_L49_H47_horizontal: 22719.70, Fan_L49_H45_0.25: 22768.42
+      Price: 22730.13
+      Outcome: WIN (MFE: 186.73, MAE: 0.00)
+------------------------------------------------------------
+EVENT: 4/6/2026, 11:15:00 AM | P1 (H49-L49) (0.75) | Type: RESISTANCE_TEST
+      Confluence With: Fan_H49_L49_0.75: 22633.26
+      Price: 22633.26
+      Outcome: WIN (MFE: 267.29, MAE: 37.36)
+------------------------------------------------------------
+EVENT: 4/6/2026, 11:30:00 AM | P1 (H49-L49) (0.75) | Type: RESISTANCE_TEST
+      Confluence With: Fan_L49_H48_0.25: 22691.77, Fan_H49_L49_0.75: 22648.25
+      Price: 22648.25
+      Outcome: WIN (MFE: 265.09, MAE: 13.70)
+------------------------------------------------------------
+EVENT: 4/6/2026, 11:45:00 AM | P2 (L49-H48) (0.25) | Type: RESISTANCE_TEST
+      Confluence With: Fan_L49_H48_0.25: 22686.98, Fan_L49_H47_0.25: 22710.60, Fan_L49_H47_horizontal: 22719.70, Fan_H49_L49_0.75: 22663.25
+      Price: 22686.98
+      Outcome: WIN (MFE: 241.77, MAE: 42.53)
+------------------------------------------------------------
+EVENT: 4/6/2026, 12:00:00 PM | P2 (L49-H48) (0.25) | Type: RESISTANCE_TEST
+      Confluence With: Fan_L49_H48_0.25: 22682.18, Fan_L49_H47_0.25: 22706.56, Fan_L49_H47_horizontal: 22719.70, Fan_H49_L49_0.75: 22678.25
+      Price: 22682.18
+      Outcome: WIN (MFE: 257.77, MAE: 37.73)
+------------------------------------------------------------
+EVENT: 4/6/2026, 12:15:00 PM | P3 (L49-H47) (horizontal) | Type: RESISTANCE_TEST
+      Confluence With: Fan_L49_H48_0.25: 22677.39, Fan_L49_H47_0.25: 22702.52, Fan_L49_H47_horizontal: 22719.70, Fan_H49_L49_0.75: 22693.25, Fan_L50_H49_0.25: 22735.19, Fan_L50_H49_horizontal: 22720.57
+      Price: 22719.70
+      Outcome: WIN (MFE: 220.24, MAE: 75.26)
+------------------------------------------------------------
+EVENT: 4/6/2026, 12:30:00 PM | P3 (L49-H48) (0.25) | Type: SUPPORT_TEST
+      Confluence With: Fan_L49_H48_0.25: 22672.59, Fan_H49_L49_0.75: 22708.25, Fan_L50_H49_0.5: 22664.62
+      Price: 22672.59
+      Outcome: WIN (MFE: 325.06, MAE: 0.00)
+------------------------------------------------------------
+EVENT: 4/6/2026, 12:30:00 PM | P1 (L50-H49) (0.5) | Type: SUPPORT_TEST
+      Confluence With: Fan_L49_H48_0.25: 22672.59, Fan_H49_L49_0.75: 22708.25, Fan_L50_H49_0.5: 22664.62
+      Price: 22664.62
+      Outcome: WIN (MFE: 333.03, MAE: 0.00)
+------------------------------------------------------------
+EVENT: 4/6/2026, 1:00:00 PM | P1 (L49-H48) (horizontal) | Type: SUPPORT_TEST
+      Confluence With: Fan_L49_H48_horizontal: 22766.88, Fan_L49_H45_0.25: 22731.44
+      Price: 22766.88
+      Outcome: WIN (MFE: 230.77, MAE: 46.43)
+------------------------------------------------------------
+EVENT: 4/7/2026, 10:30:00 AM | P3 (H50-L49) (0.875) | Type: SUPPORT_TEST
+      Confluence With: Fan_L49_H44_horizontal: 22940.10, Fan_H50_L50_0.75: 22895.85, Fan_H50_L49_0.875: 22928.06, Fan_L51_H50_0.5: 22910.61, Fan_L51_H50_0.25: 22960.60, Fan_L51_H50_horizontal: 22972.78
+      Price: 22928.06
+      Outcome: LOSS (MFE: 100.31, MAE: 63.49)
+------------------------------------------------------------
+EVENT: 4/7/2026, 10:30:00 AM | P2 (H50-L50) (0.75) | Type: SUPPORT_TEST
+      Confluence With: Fan_L49_H44_horizontal: 22940.10, Fan_H50_L50_0.75: 22895.85, Fan_H50_L49_0.875: 22928.06, Fan_L51_H50_0.5: 22910.61
+      Price: 22895.85
+      Outcome: LOSS (MFE: 95.70, MAE: 68.10)
+------------------------------------------------------------
+EVENT: 4/7/2026, 10:30:00 AM | P3 (L49-H44) (horizontal) | Type: SUPPORT_TEST
+      Confluence With: Fan_L49_H44_horizontal: 22940.10, Fan_H50_L50_0.75: 22895.85, Fan_H50_L49_0.875: 22928.06, Fan_L51_H50_0.5: 22910.61, Fan_L51_H50_0.25: 22960.60, Fan_L51_H50_horizontal: 22972.78
+      Price: 22940.10
+      Outcome: WIN (MFE: 112.35, MAE: 51.45)
+------------------------------------------------------------
+EVENT: 4/7/2026, 11:00:00 AM | P1 (L51-H50) (0.5) | Type: RESISTANCE_TEST
+      Confluence With: Fan_H50_L50_0.75: 22926.50, Fan_L51_H50_0.5: 22885.74
+      Price: 22885.74
+      Outcome: WIN (MFE: 176.61, MAE: 33.59)
+------------------------------------------------------------
+EVENT: 4/7/2026, 11:15:00 AM | P1 (L51-H50) (0.25) | Type: RESISTANCE_TEST
+      Confluence With: Fan_H50_L50_0.75: 22941.82, Fan_H50_L49_0.875: 22971.03, Fan_L51_H50_0.25: 22944.72, Fan_L51_H50_horizontal: 22972.78
+      Price: 22944.72
+      Outcome: WIN (MFE: 118.63, MAE: 40.92)
+------------------------------------------------------------
+EVENT: 4/7/2026, 12:00:00 PM | P1 (L51-H50) (0.25) | Type: SUPPORT_TEST
+      Confluence With: Fan_L51_H50_0.25: 22928.85, Fan_L51_H50_horizontal: 22972.78
+      Price: 22928.85
+      Outcome: WIN (MFE: 134.50, MAE: 23.15)
+------------------------------------------------------------
+EVENT: 4/7/2026, 12:15:00 PM | P1 (L51-H50) (0.25) | Type: SUPPORT_TEST
+      Confluence With: Fan_L51_H50_0.25: 22923.55
+      Price: 22923.55
+      Outcome: WIN (MFE: 177.65, MAE: 17.40)
+------------------------------------------------------------
+EVENT: 4/7/2026, 12:45:00 PM | P1 (L51-H50) (0.25) | Type: SUPPORT_TEST
+      Confluence With: Fan_H50_L49_0.75: 22876.34, Fan_L51_H50_0.25: 22912.97
+      Price: 22912.97
+      Outcome: WIN (MFE: 238.88, MAE: 6.82)
+------------------------------------------------------------
+EVENT: 4/7/2026, 1:00:00 PM | P2 (L51-H50) (0.25) | Type: SUPPORT_TEST
+      Confluence With: Fan_H50_L49_0.75: 22887.70, Fan_L51_H50_0.25: 22907.68, Fan_H51_L51_0.75: 22944.04
+      Price: 22907.68
+      Outcome: WIN (MFE: 1020.42, MAE: 0.00)
+------------------------------------------------------------
+EVENT: 4/7/2026, 1:30:00 PM | P1 (H51-L51) (0.875) | Type: RESISTANCE_TEST
+      Confluence With: Fan_H50_L50_0.75: 23079.74, Fan_H51_L51_0.875: 23056.85, Fan_L49_H37_horizontal: 23084.72, Fan_L49_H44_0.25: 23034.61
+      Price: 23056.85
+      Outcome: WIN (MFE: 902.90, MAE: 96.80)
+------------------------------------------------------------
+EVENT: 4/7/2026, 3:00:00 PM | P3 (L49-H29) (0.5) | Type: SUPPORT_TEST
+      Confluence With: Fan_L49_H37_horizontal: 23084.72, Fan_L49_H29_0.5: 23088.59
+      Price: 23088.59
+      Outcome: WIN (MFE: 925.41, MAE: 0.00)
+------------------------------------------------------------
+EVENT: 4/7/2026, 3:00:00 PM | P2 (L49-H37) (horizontal) | Type: SUPPORT_TEST
+      Confluence With: Fan_L49_H37_horizontal: 23084.72, Fan_L49_H29_0.5: 23088.59
+      Price: 23084.72
+      Outcome: WIN (MFE: 929.28, MAE: 0.00)
+------------------------------------------------------------
+EVENT: 4/8/2026, 9:45:00 AM | P2 (L49-H27) (0.25) | Type: RESISTANCE_TEST
+      Confluence With: Fan_L49_H27_0.25: 23941.69
+      Price: 23941.69
+      Outcome: LOSS (MFE: 72.59, MAE: 72.31)
+------------------------------------------------------------
+EVENT: 4/8/2026, 10:45:00 AM | P2 (L49-H27) (0.25) | Type: SUPPORT_TEST
+      Confluence With: Fan_L49_H27_0.25: 23936.06
+      Price: 23936.06
+      Outcome: WIN (MFE: 77.94, MAE: 33.81)
+------------------------------------------------------------
+EVENT: 4/8/2026, 11:45:00 AM | P2 (L49-H27) (0.25) | Type: SUPPORT_TEST
+      Confluence With: Fan_L49_H27_0.25: 23930.44
+      Price: 23930.44
+      Outcome: WIN (MFE: 94.06, MAE: 28.19)
+------------------------------------------------------------
+EVENT: 4/8/2026, 12:00:00 PM | P2 (L49-H27) (0.25) | Type: SUPPORT_TEST
+      Confluence With: Fan_L49_H27_0.25: 23929.04
+      Price: 23929.04
+      Outcome: WIN (MFE: 95.46, MAE: 26.79)
+------------------------------------------------------------
+EVENT: 4/8/2026, 12:30:00 PM | P2 (L49-H27) (0.25) | Type: SUPPORT_TEST
+      Confluence With: Fan_L49_H27_0.25: 23926.22
+      Price: 23926.22
+      Outcome: WIN (MFE: 98.28, MAE: 0.00)
+------------------------------------------------------------
+EVENT: 4/8/2026, 3:00:00 PM | P1 (H52-L52) (0.5) | Type: SUPPORT_TEST
+      Confluence With: Fan_H52_L52_0.5: 23991.07
+      Price: 23991.07
+      Outcome: WIN (MFE: 230.52, MAE: 27.18)
+------------------------------------------------------------
+EVENT: 4/9/2026, 10:00:00 AM | P3 (H52-L49) (0.875) | Type: SUPPORT_TEST
+      Confluence With: Fan_H52_L49_0.875: 23783.71
+      Price: 23783.71
+      Outcome: WIN (MFE: 123.59, MAE: 0.00)
+------------------------------------------------------------
+EVENT: 4/9/2026, 10:00:00 AM | P2 (H52-L50) (0.875) | Type: RESISTANCE_TEST
+      Confluence With: Fan_H52_L50_0.875: 23851.26, Fan_H52_L51_0.875: 23879.34
+      Price: 23851.26
+      Outcome: LOSS (MFE: 56.04, MAE: 47.61)
+------------------------------------------------------------
+EVENT: 4/9/2026, 10:15:00 AM | P2 (H52-L50) (0.875) | Type: RESISTANCE_TEST
+      Confluence With: Fan_H52_L50_0.875: 23869.68, Fan_H52_L51_0.875: 23901.21
+      Price: 23869.68
+      Outcome: LOSS (MFE: 68.08, MAE: 37.62)
+------------------------------------------------------------
+EVENT: 4/9/2026, 10:45:00 AM | P3 (H52-L49) (0.875) | Type: RESISTANCE_TEST
+      Confluence With: Fan_H52_L49_0.875: 23831.72
+      Price: 23831.72
+      Outcome: LOSS (MFE: 75.58, MAE: 63.92)
+------------------------------------------------------------
+EVENT: 4/9/2026, 12:00:00 PM | P1 (L53-H52) (0.5) | Type: SUPPORT_TEST
+      Confluence With: Fan_L53_H52_0.5: 23873.23
+      Price: 23873.23
+      Outcome: WIN (MFE: 189.88, MAE: 13.67)
+------------------------------------------------------------
+EVENT: 4/9/2026, 12:15:00 PM | P1 (L53-H52) (0.5) | Type: SUPPORT_TEST
+      Confluence With: Fan_L53_H52_0.5: 23865.27
+      Price: 23865.27
+      Outcome: WIN (MFE: 181.92, MAE: 20.08)
+------------------------------------------------------------
+EVENT: 4/9/2026, 1:00:00 PM | P1 (L53-H52) (0.5) | Type: RESISTANCE_TEST
+      Confluence With: Fan_L53_H52_0.5: 23841.39
+      Price: 23841.39
+      Outcome: LOSS (MFE: 158.04, MAE: 136.81)
+------------------------------------------------------------
+EVENT: 4/9/2026, 1:45:00 PM | P2 (H52-L50) (0.75) | Type: SUPPORT_TEST
+      Confluence With: Fan_H52_L50_0.75: 23752.75
+      Price: 23752.75
+      Outcome: WIN (MFE: 248.50, MAE: 69.40)
+------------------------------------------------------------
+EVENT: 4/10/2026, 10:00:00 AM | P2 (H52-L51) (0.75) | Type: SUPPORT_TEST
+      Confluence With: Fan_H52_L51_0.75: 23979.03, Fan_L54_H52_0.25: 23936.04
+      Price: 23979.03
+      Outcome: WIN (MFE: 56.57, MAE: 25.22)
+------------------------------------------------------------
+EVENT: 4/10/2026, 10:00:00 AM | P1 (L54-H52) (0.25) | Type: SUPPORT_TEST
+      Confluence With: Fan_H52_L51_0.75: 23979.03, Fan_H52_L50_0.75: 23893.37, Fan_L54_H52_0.25: 23936.04
+      Price: 23936.04
+      Outcome: WIN (MFE: 99.56, MAE: 0.00)
+------------------------------------------------------------
+EVENT: 4/10/2026, 12:15:00 PM | P1 (H54-L54) (0.75) | Type: SUPPORT_TEST
+      Confluence With: Fan_H54_L54_0.75: 23991.41
+      Price: 23991.41
+      Outcome: LOSS (MFE: 56.44, MAE: 52.81)
+------------------------------------------------------------
+EVENT: 4/10/2026, 1:15:00 PM | P1 (L55-H54) (horizontal) | Type: SUPPORT_TEST
+      Confluence With: Fan_L55_H54_0.5: 23967.70, Fan_L55_H54_0.25: 24002.98, Fan_L55_H54_horizontal: 24001.65
+      Price: 24001.65
+      Outcome: WIN (MFE: 445.50, MAE: 72.15)
+------------------------------------------------------------
+EVENT: 4/10/2026, 1:30:00 PM | P2 (L55-H54) (horizontal) | Type: SUPPORT_TEST
+      Confluence With: Fan_L55_H54_0.5: 23962.04, Fan_L55_H54_0.25: 24000.26, Fan_L55_H54_horizontal: 24001.65, Fan_H55_L55_0.5: 24022.07, Fan_H55_L55_0.25: 23984.46, Fan_H55_L55_horizontal: 23973.31
+      Price: 24001.65
+      Outcome: WIN (MFE: 445.50, MAE: 72.15)
+------------------------------------------------------------
+EVENT: 4/10/2026, 1:30:00 PM | P2 (L55-H54) (0.25) | Type: SUPPORT_TEST
+      Confluence With: Fan_L55_H54_0.5: 23962.04, Fan_L55_H54_0.25: 24000.26, Fan_L55_H54_horizontal: 24001.65, Fan_H55_L55_0.5: 24022.07, Fan_H55_L55_0.25: 23984.46, Fan_H55_L55_horizontal: 23973.31
+      Price: 24000.26
+      Outcome: WIN (MFE: 444.11, MAE: 73.54)
+------------------------------------------------------------
+EVENT: 4/10/2026, 2:00:00 PM | P3 (L49-H26) (0.25) | Type: SUPPORT_TEST
+      Confluence With: Fan_L49_H26_0.25: 24018.45
+      Price: 24018.45
+      Outcome: WIN (MFE: 462.30, MAE: 55.35)
+------------------------------------------------------------
+EVENT: 4/13/2026, 9:15:00 AM | P3 (L49-H26) (horizontal) | Type: SUPPORT_TEST
+      Confluence With: Fan_L49_H26_horizontal: 23580.47, Fan_L49_H29_0.25: 23592.95
+      Price: 23580.47
+      Outcome: WIN (MFE: 230.33, MAE: 0.12)
+------------------------------------------------------------
+EVENT: 4/13/2026, 9:15:00 AM | P1 (L49-H29) (0.25) | Type: SUPPORT_TEST
+      Confluence With: Fan_L49_H26_horizontal: 23580.47, Fan_L49_H29_0.25: 23592.95
+      Price: 23592.95
+      Outcome: WIN (MFE: 217.85, MAE: 12.60)
+------------------------------------------------------------
+EVENT: 4/13/2026, 9:30:00 AM | P3 (L49-H26) (horizontal) | Type: SUPPORT_TEST
+      Confluence With: Fan_L49_H26_horizontal: 23580.47, Fan_L49_H29_0.25: 23591.54
+      Price: 23580.47
+      Outcome: WIN (MFE: 235.63, MAE: 0.00)
+------------------------------------------------------------
+EVENT: 4/13/2026, 9:30:00 AM | P1 (L49-H29) (0.25) | Type: SUPPORT_TEST
+      Confluence With: Fan_L49_H26_horizontal: 23580.47, Fan_L49_H29_0.25: 23591.54
+      Price: 23591.54
+      Outcome: WIN (MFE: 224.56, MAE: 0.00)
+------------------------------------------------------------
+EVENT: 4/13/2026, 1:00:00 PM | P2 (H55-L51) (0.75) | Type: SUPPORT_TEST
+      Confluence With: Fan_H55_L51_0.75: 23780.38
+      Price: 23780.38
+      Outcome: WIN (MFE: 486.32, MAE: 0.00)
+------------------------------------------------------------
+EVENT: 4/13/2026, 1:15:00 PM | P1 (L56-H55) (0.5) | Type: RESISTANCE_TEST
+      Confluence With: Fan_L56_H55_0.5: 23839.48
+      Price: 23839.48
+      Outcome: WIN (MFE: 427.21, MAE: 24.83)
+------------------------------------------------------------
+EVENT: 4/15/2026, 1:15:00 PM | P1 (L58-H57) (0.25) | Type: RESISTANCE_TEST
+      Confluence With: Fan_H57_L57_0.75: 24216.59, Fan_L58_H57_0.25: 24227.46, Fan_L58_H57_horizontal: 24245.72
+      Price: 24227.46
+      Outcome: WIN (MFE: 172.64, MAE: 36.21)
+------------------------------------------------------------
+EVENT: 4/16/2026, 10:45:00 AM | P1 (H58-L58) (0.5) | Type: SUPPORT_TEST
+      Confluence With: Fan_H58_L58_0.5: 24302.16, Fan_H58_L58_horizontal: 24268.86, Fan_H58_L56_0.875: 24312.08
+      Price: 24302.16
+      Outcome: WIN (MFE: 199.06, MAE: 31.04)
+------------------------------------------------------------
+EVENT: 4/16/2026, 11:00:00 AM | P3 (H58-L56) (0.875) | Type: RESISTANCE_TEST
+      Confluence With: Fan_H58_L58_0.5: 24307.71, Fan_H58_L56_0.875: 24325.58
+      Price: 24325.58
+      Outcome: WIN (MFE: 222.48, MAE: 3.37)
+------------------------------------------------------------
+EVENT: 4/16/2026, 11:00:00 AM | P1 (H58-L58) (0.5) | Type: SUPPORT_TEST
+      Confluence With: Fan_H58_L58_0.5: 24307.71, Fan_H58_L58_horizontal: 24268.86, Fan_H58_L56_0.875: 24325.58
+      Price: 24307.71
+      Outcome: WIN (MFE: 204.61, MAE: 21.24)
+------------------------------------------------------------
+EVENT: 4/16/2026, 12:45:00 PM | P1 (H58-L57) (0.5) | Type: SUPPORT_TEST
+      Confluence With: Fan_H58_L57_0.5: 24122.98
+      Price: 24122.98
+      Outcome: WIN (MFE: 122.02, MAE: 19.88)
+------------------------------------------------------------
+EVENT: 4/16/2026, 1:15:00 PM | P1 (H58-L57) (0.5) | Type: RESISTANCE_TEST
+      Confluence With: Fan_H58_L57_0.5: 24138.39
+      Price: 24138.39
+      Outcome: WIN (MFE: 106.61, MAE: 28.94)
+------------------------------------------------------------
+EVENT: 4/16/2026, 2:00:00 PM | P1 (H58-L57) (0.5) | Type: SUPPORT_TEST
+      Confluence With: Fan_H58_L57_0.5: 24161.52
+      Price: 24161.52
+      Outcome: WIN (MFE: 142.33, MAE: 52.07)
+------------------------------------------------------------
+EVENT: 4/16/2026, 3:15:00 PM | P2 (H58-L57) (0.5) | Type: RESISTANCE_TEST
+      Confluence With: Fan_H58_L57_0.5: 24200.06, Fan_L59_H58_0.5: 24233.99
+      Price: 24200.06
+      Outcome: LOSS (MFE: 103.79, MAE: 90.61)
+------------------------------------------------------------
+EVENT: 4/17/2026, 9:15:00 AM | P1 (L59-H58) (0.75) | Type: SUPPORT_TEST
+      Confluence With: Fan_L59_H58_0.75: 24110.74
+      Price: 24110.74
+      Outcome: WIN (MFE: 211.51, MAE: 0.00)
+------------------------------------------------------------
+EVENT: 4/17/2026, 10:00:00 AM | P2 (H58-L57) (0.5) | Type: SUPPORT_TEST
+      Confluence With: Fan_H58_L57_0.5: 24230.89, Fan_L59_H58_0.5: 24206.30, Fan_H59_L59_0.75: 24267.25, Fan_H59_L59_0.5: 24197.95
+      Price: 24230.89
+      Outcome: WIN (MFE: 91.36, MAE: 0.00)
+------------------------------------------------------------
+EVENT: 4/17/2026, 10:00:00 AM | P1 (L59-H58) (0.5) | Type: SUPPORT_TEST
+      Confluence With: Fan_H58_L57_0.5: 24230.89, Fan_L59_H58_0.5: 24206.30, Fan_H59_L59_0.5: 24197.95
+      Price: 24206.30
+      Outcome: WIN (MFE: 115.95, MAE: 0.00)
+------------------------------------------------------------
+EVENT: 4/17/2026, 10:15:00 AM | P1 (L59-H58) (horizontal) | Type: RESISTANCE_TEST
+      Confluence With: Fan_L59_H58_0.25: 24305.42, Fan_L59_H58_horizontal: 24289.36
+      Price: 24289.36
+      Outcome: LOSS (MFE: 51.61, MAE: 32.89)
+------------------------------------------------------------
+EVENT: 4/17/2026, 10:30:00 AM | P2 (H58-L57) (0.5) | Type: SUPPORT_TEST
+      Confluence With: Fan_H58_L57_0.5: 24246.31, Fan_L59_H58_horizontal: 24289.36
+      Price: 24246.31
+      Outcome: WIN (MFE: 75.94, MAE: 8.56)
+------------------------------------------------------------
+EVENT: 4/17/2026, 10:30:00 AM | P1 (L59-H58) (horizontal) | Type: RESISTANCE_TEST
+      Confluence With: Fan_H58_L57_0.5: 24246.31, Fan_L59_H58_0.25: 24302.15, Fan_L59_H58_horizontal: 24289.36
+      Price: 24289.36
+      Outcome: LOSS (MFE: 51.61, MAE: 32.89)
+------------------------------------------------------------
+EVENT: 4/17/2026, 10:45:00 AM | P2 (H58-L57) (0.5) | Type: SUPPORT_TEST
+      Confluence With: Fan_H58_L57_0.5: 24254.02, Fan_L59_H58_0.25: 24298.89, Fan_L59_H58_horizontal: 24289.36
+      Price: 24254.02
+      Outcome: WIN (MFE: 68.23, MAE: 16.27)
+------------------------------------------------------------
+EVENT: 4/17/2026, 12:00:00 PM | P1 (L59-H58) (horizontal) | Type: RESISTANCE_TEST
+      Confluence With: Fan_L59_H58_0.25: 24282.56, Fan_L59_H58_horizontal: 24289.36, Fan_H58_L57_0.5: 24292.56
+      Price: 24289.36
+      Outcome: LOSS (MFE: 53.34, MAE: 29.46)
+------------------------------------------------------------
+EVENT: 4/17/2026, 12:15:00 PM | P1 (L59-H58) (horizontal) | Type: RESISTANCE_TEST
+      Confluence With: Fan_L59_H58_0.25: 24279.30, Fan_L59_H58_horizontal: 24289.36, Fan_H58_L57_0.5: 24300.26
+      Price: 24289.36
+      Outcome: WIN (MFE: 67.19, MAE: 29.46)
+------------------------------------------------------------
+EVENT: 4/17/2026, 12:45:00 PM | P1 (L59-H58) (0.25) | Type: RESISTANCE_TEST
+      Confluence With: Fan_L59_H58_0.25: 24272.77, Fan_L59_H58_horizontal: 24289.36, Fan_H58_L57_0.5: 24315.68
+      Price: 24272.77
+      Outcome: WIN (MFE: 97.48, MAE: 7.92)
+------------------------------------------------------------
+EVENT: 4/17/2026, 1:00:00 PM | P3 (L59-H58) (horizontal) | Type: RESISTANCE_TEST
+      Confluence With: Fan_L59_H58_0.25: 24269.50, Fan_L59_H58_horizontal: 24289.36, Fan_H58_L57_0.5: 24323.39, Fan_H60_L60_0.75: 24300.66, Fan_H60_L59_0.875: 24334.07, Fan_H60_L59_0.75: 24293.53
+      Price: 24289.36
+      Outcome: WIN (MFE: 104.69, MAE: 23.96)
+------------------------------------------------------------
+EVENT: 4/17/2026, 1:15:00 PM | P3 (L59-H58) (0.25) | Type: SUPPORT_TEST
+      Confluence With: Fan_L59_H58_0.25: 24266.24, Fan_L59_H58_horizontal: 24289.36, Fan_H60_L60_0.75: 24313.41, Fan_H60_L60_0.5: 24229.13, Fan_H60_L59_0.75: 24301.46, Fan_H60_L59_0.5: 24228.14
+      Price: 24266.24
+      Outcome: WIN (MFE: 127.81, MAE: 0.00)
+------------------------------------------------------------
+EVENT: 4/17/2026, 1:30:00 PM | P2 (H60-L59) (0.75) | Type: RESISTANCE_TEST
+      Confluence With: Fan_L59_H58_0.25: 24262.97, Fan_L59_H58_horizontal: 24289.36, Fan_H60_L60_0.75: 24326.16, Fan_H60_L59_0.875: 24353.32, Fan_H60_L59_0.75: 24309.40
+      Price: 24309.40
+      Outcome: WIN (MFE: 176.20, MAE: 15.35)
+------------------------------------------------------------
+EVENT: 4/22/2026, 11:00:00 AM | P3 (H61-L57) (0.75) | Type: SUPPORT_TEST
+      Confluence With: Fan_H61_L57_0.75: 24424.28
+      Price: 24424.28
+      Outcome: LOSS (MFE: 38.84, MAE: 25.41)
+------------------------------------------------------------
+EVENT: 4/22/2026, 12:45:00 PM | P1 (H62-L62) (0.5) | Type: RESISTANCE_TEST
+      Confluence With: Fan_H61_L60_0.5: 24395.67, Fan_L62_H61_0.5: 24444.34, Fan_H62_L62_0.5: 24433.32, Fan_H62_L62_0.25: 24390.63, Fan_H62_L62_horizontal: 24385.55
+      Price: 24433.32
+      Outcome: WIN (MFE: 76.62, MAE: 24.93)
+------------------------------------------------------------
+EVENT: 4/22/2026, 1:00:00 PM | P2 (L62-H61) (0.5) | Type: RESISTANCE_TEST
+      Confluence With: Fan_H61_L60_0.5: 24400.01, Fan_L62_H61_0.5: 24433.91, Fan_H62_L62_0.5: 24441.28, Fan_H62_L62_0.25: 24394.32, Fan_H62_L62_horizontal: 24385.55
+      Price: 24433.91
+      Outcome: WIN (MFE: 295.06, MAE: 24.34)
+------------------------------------------------------------
+EVENT: 4/22/2026, 1:15:00 PM | P3 (H61-L60) (0.5) | Type: SUPPORT_TEST
+      Confluence With: Fan_H61_L60_0.5: 24404.35, Fan_L62_H61_0.5: 24423.47, Fan_H62_L62_0.5: 24449.25, Fan_H62_L62_0.25: 24398.01, Fan_H62_L62_horizontal: 24385.55
+      Price: 24404.35
+      Outcome: WIN (MFE: 265.50, MAE: 53.90)
+------------------------------------------------------------
+EVENT: 4/22/2026, 1:15:00 PM | P1 (H62-L62) (0.25) | Type: SUPPORT_TEST
+      Confluence With: Fan_H61_L60_0.5: 24404.35, Fan_L62_H61_0.5: 24423.47, Fan_H62_L62_0.25: 24398.01, Fan_H62_L62_horizontal: 24385.55
+      Price: 24398.01
+      Outcome: WIN (MFE: 259.16, MAE: 60.24)
+------------------------------------------------------------
+EVENT: 4/22/2026, 1:15:00 PM | P1 (H62-L62) (horizontal) | Type: SUPPORT_TEST
+      Confluence With: Fan_H61_L60_0.5: 24404.35, Fan_L62_H61_0.5: 24423.47, Fan_H62_L62_0.25: 24398.01, Fan_H62_L62_horizontal: 24385.55
+      Price: 24385.55
+      Outcome: WIN (MFE: 246.70, MAE: 72.70)
+------------------------------------------------------------
+EVENT: 4/22/2026, 2:00:00 PM | P3 (H61-L59) (0.5) | Type: SUPPORT_TEST
+      Confluence With: Fan_H61_L60_0.5: 24417.36, Fan_L62_H61_0.5: 24392.17, Fan_H61_L59_0.5: 24409.16
+      Price: 24409.16
+      Outcome: WIN (MFE: 270.31, MAE: 21.09)
+------------------------------------------------------------
+EVENT: 4/22/2026, 2:30:00 PM | P3 (H61-L59) (0.5) | Type: RESISTANCE_TEST
+      Confluence With: Fan_H61_L60_0.5: 24426.03, Fan_L62_H61_0.5: 24371.30, Fan_H61_L59_0.5: 24416.81
+      Price: 24416.81
+      Outcome: WIN (MFE: 277.96, MAE: 13.44)
+------------------------------------------------------------
+EVENT: 4/22/2026, 2:30:00 PM | P2 (H61-L60) (0.5) | Type: RESISTANCE_TEST
+      Confluence With: Fan_H61_L60_0.5: 24426.03, Fan_H61_L59_0.5: 24416.81
+      Price: 24426.03
+      Outcome: WIN (MFE: 287.18, MAE: 4.22)
+------------------------------------------------------------
+EVENT: 4/23/2026, 10:00:00 AM | P2 (H61-L59) (0.25) | Type: SUPPORT_TEST
+      Confluence With: Fan_H61_L60_0.25: 24278.79, Fan_H61_L57_0.5: 24284.97, Fan_H61_L59_0.25: 24270.16
+      Price: 24270.16
+      Outcome: WIN (MFE: 103.06, MAE: 21.49)
+------------------------------------------------------------
+EVENT: 4/23/2026, 10:15:00 AM | P3 (H61-L57) (0.5) | Type: RESISTANCE_TEST
+      Confluence With: Fan_H61_L60_0.25: 24280.91, Fan_H61_L60_horizontal: 24330.62, Fan_H61_L57_0.5: 24288.56, Fan_H61_L59_0.25: 24272.04, Fan_H61_L59_horizontal: 24332.64
+      Price: 24288.56
+      Outcome: WIN (MFE: 121.46, MAE: 0.00)
+------------------------------------------------------------
+EVENT: 4/23/2026, 10:15:00 AM | P1 (H61-L60) (0.25) | Type: RESISTANCE_TEST
+      Confluence With: Fan_H61_L60_0.25: 24280.91, Fan_H61_L57_0.5: 24288.56, Fan_H61_L59_0.25: 24272.04
+      Price: 24280.91
+      Outcome: WIN (MFE: 113.81, MAE: 0.00)
+------------------------------------------------------------
+EVENT: 4/23/2026, 1:30:00 PM | P1 (L64-H63) (0.5) | Type: SUPPORT_TEST
+      Confluence With: Fan_L64_H63_0.5: 24213.63
+      Price: 24213.63
+      Outcome: WIN (MFE: 268.78, MAE: 39.12)
+------------------------------------------------------------
+EVENT: 4/23/2026, 2:45:00 PM | P1 (H64-L64) (0.25) | Type: RESISTANCE_TEST
+      Confluence With: Fan_L64_H63_0.5: 24160.45, Fan_H64_L64_0.5: 24228.10, Fan_H64_L64_0.25: 24182.54, Fan_H64_L64_horizontal: 24203.76
+      Price: 24182.54
+      Outcome: WIN (MFE: 272.49, MAE: 34.16)
+------------------------------------------------------------
+EVENT: 4/23/2026, 3:00:00 PM | P1 (H64-L64) (0.25) | Type: RESISTANCE_TEST
+      Confluence With: Fan_L64_H63_0.5: 24149.81, Fan_H64_L64_0.5: 24232.16, Fan_H64_L64_0.25: 24184.53, Fan_H64_L64_horizontal: 24203.76
+      Price: 24184.53
+      Outcome: WIN (MFE: 280.28, MAE: 18.82)
+------------------------------------------------------------
+EVENT: 4/23/2026, 3:00:00 PM | P1 (H64-L64) (horizontal) | Type: RESISTANCE_TEST
+      Confluence With: Fan_H64_L64_0.5: 24232.16, Fan_H64_L64_0.25: 24184.53, Fan_H64_L64_horizontal: 24203.76
+      Price: 24203.76
+      Outcome: WIN (MFE: 299.51, MAE: 0.00)
+------------------------------------------------------------
+EVENT: 4/24/2026, 9:15:00 AM | P1 (H64-L64) (0.25) | Type: RESISTANCE_TEST
+      Confluence With: Fan_H64_L64_0.25: 24188.50, Fan_H64_L64_horizontal: 24203.76, Fan_H61_L57_horizontal: 24180.86, Fan_H61_L56_0.5: 24232.98
+      Price: 24188.50
+      Outcome: WIN (MFE: 293.95, MAE: 0.00)
+------------------------------------------------------------
+EVENT: 4/24/2026, 12:45:00 PM | P2 (H61-L56) (0.25) | Type: RESISTANCE_TEST
+      Confluence With: Fan_H61_L56_0.25: 23914.51
+      Price: 23914.51
+      Outcome: WIN (MFE: 99.16, MAE: 15.99)
+------------------------------------------------------------
+EVENT: 4/24/2026, 1:45:00 PM | P3 (H61-L51) (0.5) | Type: RESISTANCE_TEST
+      Confluence With: Fan_H61_L51_0.5: 23851.88
+      Price: 23851.88
+      Outcome: WIN (MFE: 255.47, MAE: 36.53)
+------------------------------------------------------------
+EVENT: 4/24/2026, 2:45:00 PM | P2 (H61-L56) (0.25) | Type: RESISTANCE_TEST
+      Confluence With: Fan_H61_L56_0.25: 23929.52
+      Price: 23929.52
+      Outcome: WIN (MFE: 177.83, MAE: 66.22)
+------------------------------------------------------------
+EVENT: 4/24/2026, 3:00:00 PM | P3 (H61-L51) (0.5) | Type: SUPPORT_TEST
+      Confluence With: Fan_H61_L51_0.5: 23871.06
+      Price: 23871.06
+      Outcome: WIN (MFE: 236.29, MAE: 0.00)
+------------------------------------------------------------
+EVENT: 4/27/2026, 9:15:00 AM | P1 (L65-H64) (0.5) | Type: RESISTANCE_TEST
+      Confluence With: Fan_L65_H64_0.5: 24061.14, Fan_L65_H64_horizontal: 24099.96
+      Price: 24061.14
+      Outcome: LOSS (MFE: 86.74, MAE: 46.21)
+------------------------------------------------------------
+EVENT: 4/27/2026, 9:30:00 AM | P3 (L65-H61) (0.75) | Type: SUPPORT_TEST
+      Confluence With: Fan_L65_H63_0.75: 23962.74, Fan_L65_H61_0.75: 24004.09
+      Price: 24004.09
+      Outcome: WIN (MFE: 103.26, MAE: 29.69)
+------------------------------------------------------------
+EVENT: 4/27/2026, 9:30:00 AM | P1 (L65-H64) (0.5) | Type: RESISTANCE_TEST
+      Confluence With: Fan_L65_H64_0.5: 24054.67, Fan_L65_H64_horizontal: 24099.96
+      Price: 24054.67
+      Outcome: LOSS (MFE: 80.27, MAE: 52.68)
+------------------------------------------------------------
+EVENT: 4/27/2026, 9:45:00 AM | P1 (L65-H64) (horizontal) | Type: RESISTANCE_TEST
+      Confluence With: Fan_L65_H63_0.5: 24143.61, Fan_L65_H64_horizontal: 24099.96
+      Price: 24099.96
+      Outcome: WIN (MFE: 125.56, MAE: 3.19)
+------------------------------------------------------------
+EVENT: 4/27/2026, 10:00:00 AM | P1 (L65-H64) (horizontal) | Type: RESISTANCE_TEST
+      Confluence With: Fan_L65_H63_0.5: 24138.19, Fan_L65_H64_horizontal: 24099.96
+      Price: 24099.96
+      Outcome: WIN (MFE: 125.56, MAE: 3.19)
+------------------------------------------------------------
+EVENT: 4/27/2026, 10:15:00 AM | P1 (L65-H64) (horizontal) | Type: RESISTANCE_TEST
+      Confluence With: Fan_L65_H63_0.5: 24132.76, Fan_L65_H64_horizontal: 24099.96
+      Price: 24099.96
+      Outcome: WIN (MFE: 125.56, MAE: 0.00)
+------------------------------------------------------------
+EVENT: 4/27/2026, 10:30:00 AM | P1 (L65-H64) (0.5) | Type: SUPPORT_TEST
+      Confluence With: Fan_L65_H64_0.5: 24028.79
+      Price: 24028.79
+      Outcome: LOSS (MFE: 71.21, MAE: 54.39)
+------------------------------------------------------------
+EVENT: 4/27/2026, 12:30:00 PM | P3 (L65-H63) (0.5) | Type: RESISTANCE_TEST
+      Confluence With: Fan_L65_H63_0.5: 24083.94, Fan_L65_H64_horizontal: 24099.96
+      Price: 24083.94
+      Outcome: WIN (MFE: 46.36, MAE: 18.49)
+------------------------------------------------------------
+EVENT: 4/27/2026, 12:45:00 PM | P3 (L65-H63) (0.5) | Type: RESISTANCE_TEST
+      Confluence With: Fan_L65_H63_0.5: 24078.51, Fan_L65_H64_horizontal: 24099.96, Fan_L66_H65_0.25: 24067.70, Fan_L66_H65_horizontal: 24058.24
+      Price: 24078.51
+      Outcome: WIN (MFE: 51.79, MAE: 9.11)
+------------------------------------------------------------
+EVENT: 4/27/2026, 1:00:00 PM | P3 (L65-H64) (horizontal) | Type: RESISTANCE_TEST
+      Confluence With: Fan_L65_H64_0.25: 24130.54, Fan_L65_H64_horizontal: 24099.96, Fan_L66_H65_0.25: 24064.39, Fan_L66_H65_horizontal: 24058.24
+      Price: 24099.96
+      Outcome: WIN (MFE: 98.61, MAE: 33.19)
+------------------------------------------------------------
+EVENT: 4/27/2026, 1:30:00 PM | P1 (L65-H64) (horizontal) | Type: SUPPORT_TEST
+      Confluence With: Fan_L65_H64_0.25: 24124.40, Fan_L65_H64_horizontal: 24099.96, Fan_L65_H63_0.5: 24062.24, Fan_L65_H61_0.5: 24145.46
+      Price: 24099.96
+      Outcome: LOSS (MFE: 98.61, MAE: 56.39)
+------------------------------------------------------------
+EVENT: 4/27/2026, 1:30:00 PM | P1 (L65-H64) (0.25) | Type: RESISTANCE_TEST
+      Confluence With: Fan_L65_H64_0.25: 24124.40, Fan_L65_H64_horizontal: 24099.96, Fan_L65_H61_0.5: 24145.46
+      Price: 24124.40
+      Outcome: WIN (MFE: 123.05, MAE: 31.95)
+------------------------------------------------------------
+EVENT: 4/27/2026, 1:45:00 PM | P1 (L65-H64) (0.25) | Type: RESISTANCE_TEST
+      Confluence With: Fan_L65_H64_0.25: 24121.32, Fan_L65_H64_horizontal: 24099.96, Fan_L65_H61_0.5: 24140.56
+      Price: 24121.32
+      Outcome: WIN (MFE: 119.97, MAE: 46.58)
+------------------------------------------------------------
+EVENT: 4/27/2026, 2:30:00 PM | P1 (L65-H64) (0.25) | Type: RESISTANCE_TEST
+      Confluence With: Fan_L65_H64_0.25: 24112.11, Fan_L65_H64_horizontal: 24099.96, Fan_L65_H61_0.5: 24125.87
+      Price: 24112.11
+      Outcome: LOSS (MFE: 110.76, MAE: 69.64)
+------------------------------------------------------------
+EVENT: 4/27/2026, 2:30:00 PM | P1 (L65-H64) (horizontal) | Type: SUPPORT_TEST
+      Confluence With: Fan_L65_H64_0.25: 24112.11, Fan_L65_H64_horizontal: 24099.96, Fan_L65_H61_0.5: 24125.87
+      Price: 24099.96
+      Outcome: LOSS (MFE: 98.61, MAE: 81.79)
+------------------------------------------------------------
+EVENT: 4/27/2026, 2:45:00 PM | P1 (L65-H64) (horizontal) | Type: SUPPORT_TEST
+      Confluence With: Fan_L65_H64_0.25: 24109.03, Fan_L65_H64_horizontal: 24099.96, Fan_L65_H61_0.5: 24120.98
+      Price: 24099.96
+      Outcome: LOSS (MFE: 98.61, MAE: 81.79)
+------------------------------------------------------------
+EVENT: 4/27/2026, 3:15:00 PM | P3 (L65-H61) (0.5) | Type: RESISTANCE_TEST
+      Confluence With: Fan_L65_H64_0.25: 24102.89, Fan_L65_H64_horizontal: 24099.96, Fan_L65_H61_0.5: 24111.18
+      Price: 24111.18
+      Outcome: LOSS (MFE: 109.83, MAE: 70.57)
+------------------------------------------------------------
+EVENT: 4/28/2026, 9:15:00 AM | P2 (L65-H63) (0.5) | Type: SUPPORT_TEST
+      Confluence With: Fan_L65_H63_0.5: 24018.84
+      Price: 24018.84
+      Outcome: WIN (MFE: 162.91, MAE: 0.00)
+------------------------------------------------------------
+EVENT: 4/28/2026, 9:30:00 AM | P3 (L65-H61) (0.5) | Type: SUPPORT_TEST
+      Confluence With: Fan_L65_H64_0.25: 24096.74, Fan_L65_H64_horizontal: 24099.96, Fan_L65_H61_0.5: 24101.39
+      Price: 24101.39
+      Outcome: LOSS (MFE: 80.36, MAE: 72.09)
+------------------------------------------------------------
+EVENT: 4/28/2026, 9:30:00 AM | P1 (L65-H64) (horizontal) | Type: SUPPORT_TEST
+      Confluence With: Fan_L65_H64_0.25: 24096.74, Fan_L65_H64_horizontal: 24099.96, Fan_L65_H61_0.5: 24101.39
+      Price: 24099.96
+      Outcome: LOSS (MFE: 81.79, MAE: 70.66)
+------------------------------------------------------------
+EVENT: 4/28/2026, 9:30:00 AM | P1 (L65-H64) (0.25) | Type: SUPPORT_TEST
+      Confluence With: Fan_L65_H64_0.25: 24096.74, Fan_L65_H64_horizontal: 24099.96, Fan_L65_H61_0.5: 24101.39
+      Price: 24096.74
+      Outcome: LOSS (MFE: 85.01, MAE: 67.44)
+------------------------------------------------------------
+EVENT: 4/28/2026, 12:00:00 PM | P1 (H66-L66) (0.25) | Type: SUPPORT_TEST
+      Confluence With: Fan_L65_H64_0.25: 24066.02, Fan_H66_L65_0.5: 24010.10, Fan_H66_L66_0.25: 24034.86, Fan_H66_L66_horizontal: 24066.43
+      Price: 24034.86
+      Outcome: WIN (MFE: 73.26, MAE: 22.59)
+------------------------------------------------------------
+EVENT: 4/28/2026, 1:00:00 PM | P2 (H66-L65) (0.5) | Type: RESISTANCE_TEST
+      Confluence With: Fan_L65_H64_0.25: 24053.73, Fan_H66_L65_0.5: 24028.65, Fan_H66_L66_0.25: 24043.82, Fan_H66_L66_horizontal: 24066.43
+      Price: 24028.65
+      Outcome: LOSS (MFE: 93.75, MAE: 70.60)
+------------------------------------------------------------
+EVENT: 4/28/2026, 1:15:00 PM | P2 (H66-L65) (0.5) | Type: RESISTANCE_TEST
+      Confluence With: Fan_L65_H64_0.25: 24050.65, Fan_H66_L65_0.5: 24033.29, Fan_H66_L66_0.25: 24046.06, Fan_H66_L66_horizontal: 24066.43
+      Price: 24033.29
+      Outcome: LOSS (MFE: 111.11, MAE: 75.24)
+------------------------------------------------------------
+EVENT: 4/28/2026, 1:15:00 PM | P1 (H66-L66) (0.25) | Type: RESISTANCE_TEST
+      Confluence With: Fan_L65_H64_0.25: 24050.65, Fan_H66_L65_0.5: 24033.29, Fan_H66_L66_0.25: 24046.06, Fan_H66_L66_horizontal: 24066.43
+      Price: 24046.06
+      Outcome: LOSS (MFE: 98.34, MAE: 88.01)
+------------------------------------------------------------
+EVENT: 4/28/2026, 1:30:00 PM | P1 (H66-L65) (horizontal) | Type: SUPPORT_TEST
+      Confluence With: Fan_H66_L65_horizontal: 23977.64
+      Price: 23977.64
+      Outcome: WIN (MFE: 202.46, MAE: 19.59)
+------------------------------------------------------------
+EVENT: 4/28/2026, 2:15:00 PM | P1 (H66-L65) (horizontal) | Type: SUPPORT_TEST
+      Confluence With: Fan_H66_L65_0.25: 23930.40, Fan_H66_L65_horizontal: 23977.64
+      Price: 23977.64
+      Outcome: WIN (MFE: 316.86, MAE: 19.59)
+------------------------------------------------------------
+EVENT: 4/28/2026, 2:30:00 PM | P2 (L65-H64) (0.25) | Type: RESISTANCE_TEST
+      Confluence With: Fan_L65_H64_0.25: 24035.29, Fan_H66_L65_0.5: 24056.47
+      Price: 24035.29
+      Outcome: WIN (MFE: 259.21, MAE: 77.24)
+------------------------------------------------------------
+EVENT: 4/29/2026, 9:30:00 AM | P2 (L65-H64) (horizontal) | Type: SUPPORT_TEST
+      Confluence With: Fan_L65_H64_horizontal: 24099.96, Fan_H66_L65_0.5: 24079.66
+      Price: 24099.96
+      Outcome: WIN (MFE: 211.19, MAE: 0.00)
+------------------------------------------------------------
+EVENT: 4/29/2026, 9:45:00 AM | P3 (L65-H63) (0.25) | Type: RESISTANCE_TEST
+      Confluence With: Fan_L65_H63_0.25: 24175.93, Fan_L65_H63_horizontal: 24187.01
+      Price: 24175.93
+      Outcome: WIN (MFE: 140.22, MAE: 1.33)
+------------------------------------------------------------
+EVENT: 4/29/2026, 10:15:00 AM | P2 (L65-H61) (0.25) | Type: RESISTANCE_TEST
+      Confluence With: Fan_L65_H61_0.25: 24292.09, Fan_L65_H61_horizontal: 24258.08
+      Price: 24292.09
+      Outcome: LOSS (MFE: 39.56, MAE: 37.29)
+------------------------------------------------------------
+EVENT: 4/29/2026, 10:45:00 AM | P2 (L65-H61) (horizontal) | Type: SUPPORT_TEST
+      Confluence With: Fan_L65_H61_0.25: 24287.34, Fan_L65_H61_horizontal: 24258.08, Fan_H61_L57_0.25: 24227.76
+      Price: 24258.08
+      Outcome: WIN (MFE: 76.12, MAE: 0.00)
+------------------------------------------------------------
+EVENT: 4/29/2026, 10:45:00 AM | P2 (L65-H61) (0.25) | Type: RESISTANCE_TEST
+      Confluence With: Fan_L65_H61_0.25: 24287.34, Fan_L65_H61_horizontal: 24258.08
+      Price: 24287.34
+      Outcome: LOSS (MFE: 46.85, MAE: 27.34)
+------------------------------------------------------------
+EVENT: 4/29/2026, 11:30:00 AM | P2 (L65-H61) (0.25) | Type: RESISTANCE_TEST
+      Confluence With: Fan_L65_H61_0.25: 24280.22, Fan_L65_H61_horizontal: 24258.08, Fan_H61_L57_0.25: 24233.06
+      Price: 24280.22
+      Outcome: LOSS (MFE: 82.77, MAE: 53.98)
+------------------------------------------------------------
+EVENT: 4/29/2026, 11:45:00 AM | P2 (L65-H61) (0.25) | Type: RESISTANCE_TEST
+      Confluence With: Fan_L65_H61_0.25: 24277.84, Fan_L65_H61_horizontal: 24258.08, Fan_H61_L57_0.25: 24234.82
+      Price: 24277.84
+      Outcome: LOSS (MFE: 92.90, MAE: 56.35)
+------------------------------------------------------------
+EVENT: 4/29/2026, 2:00:00 PM | P2 (L65-H61) (0.25) | Type: RESISTANCE_TEST
+      Confluence With: Fan_L65_H61_0.25: 24256.47, Fan_L65_H61_horizontal: 24258.08, Fan_H61_L57_0.25: 24250.71
+      Price: 24256.47
+      Outcome: WIN (MFE: 455.62, MAE: 0.00)
+------------------------------------------------------------
+EVENT: 4/29/2026, 2:00:00 PM | P2 (L65-H61) (horizontal) | Type: RESISTANCE_TEST
+      Confluence With: Fan_L65_H61_0.25: 24256.47, Fan_L65_H61_horizontal: 24258.08, Fan_H61_L57_0.25: 24250.71
+      Price: 24258.08
+      Outcome: WIN (MFE: 457.23, MAE: 0.00)
+------------------------------------------------------------
+EVENT: 4/29/2026, 3:15:00 PM | P1 (H67-L67) (0.5) | Type: SUPPORT_TEST
+      Confluence With: Fan_L65_H63_0.25: 24118.43, Fan_L65_H63_horizontal: 24187.01, Fan_H67_L67_0.5: 24155.06
+      Price: 24155.06
+      Outcome: WIN (MFE: 358.01, MAE: 0.00)
+------------------------------------------------------------
+EVENT: 4/30/2026, 9:45:00 AM | P1 (H67-L65) (0.25) | Type: RESISTANCE_TEST
+      Confluence With: Fan_H67_L65_0.25: 23955.39
+      Price: 23955.39
+      Outcome: WIN (MFE: 158.34, MAE: 0.00)
+------------------------------------------------------------
+EVENT: 4/30/2026, 10:15:00 AM | P3 (L65-H61) (0.5) | Type: RESISTANCE_TEST
+      Confluence With: Fan_L65_H61_0.5: 23841.86
+      Price: 23841.86
+      Outcome: WIN (MFE: 101.58, MAE: 44.81)
+------------------------------------------------------------
+EVENT: 4/30/2026, 1:15:00 PM | P3 (L68-H61) (0.75) | Type: RESISTANCE_TEST
+      Confluence With: Fan_L68_H61_0.75: 23979.60, Fan_L68_H63_0.75: 23942.61
+      Price: 23979.60
+      Outcome: WIN (MFE: 309.60, MAE: 17.00)
+------------------------------------------------------------
+EVENT: 4/30/2026, 1:15:00 PM | P2 (L68-H63) (0.75) | Type: SUPPORT_TEST
+      Confluence With: Fan_L68_H61_0.75: 23979.60, Fan_L68_H67_0.75: 23924.03, Fan_L68_H63_0.75: 23942.61
+      Price: 23942.61
+      Outcome: WIN (MFE: 346.59, MAE: 0.00)
+------------------------------------------------------------
+EVENT: 5/4/2026, 9:30:00 AM | P3 (L68-H61) (horizontal) | Type: SUPPORT_TEST
+      Confluence With: Fan_L68_H61_0.5: 24167.67, Fan_L68_H61_horizontal: 24211.73, Fan_L68_H67_0.25: 24189.47, Fan_L68_H67_horizontal: 24175.89
+      Price: 24211.73
+      Outcome: LOSS (MFE: 95.93, MAE: 72.07)
+------------------------------------------------------------
+EVENT: 5/4/2026, 9:30:00 AM | P2 (L68-H63) (0.25) | Type: RESISTANCE_TEST
+      Confluence With: Fan_L68_H63_0.25: 24278.10
+      Price: 24278.10
+      Outcome: WIN (MFE: 162.30, MAE: 5.70)
+------------------------------------------------------------
+EVENT: 5/4/2026, 9:30:00 AM | P1 (L68-H67) (0.25) | Type: SUPPORT_TEST
+      Confluence With: Fan_L68_H61_0.5: 24167.67, Fan_L68_H61_horizontal: 24211.73, Fan_L68_H67_0.25: 24189.47, Fan_L68_H67_horizontal: 24175.89
+      Price: 24189.47
+      Outcome: LOSS (MFE: 94.33, MAE: 73.67)
+------------------------------------------------------------
+EVENT: 5/4/2026, 10:15:00 AM | P3 (L68-H61) (0.5) | Type: SUPPORT_TEST
+      Confluence With: Fan_L68_H61_0.5: 24160.33, Fan_L68_H67_0.25: 24177.41, Fan_L68_H67_horizontal: 24175.89, Fan_L68_H63_horizontal: 24137.02
+      Price: 24160.33
+      Outcome: LOSS (MFE: 88.82, MAE: 76.73)
+------------------------------------------------------------
+EVENT: 5/4/2026, 10:30:00 AM | P1 (L68-H67) (horizontal) | Type: SUPPORT_TEST
+      Confluence With: Fan_L68_H61_0.5: 24157.89, Fan_L68_H61_horizontal: 24211.73, Fan_L68_H67_0.25: 24173.39, Fan_L68_H67_horizontal: 24175.89, Fan_L68_H63_horizontal: 24137.02
+      Price: 24175.89
+      Outcome: LOSS (MFE: 92.29, MAE: 73.26)
+------------------------------------------------------------
+EVENT: 5/4/2026, 10:30:00 AM | P1 (L68-H67) (0.25) | Type: SUPPORT_TEST
+      Confluence With: Fan_L68_H61_0.5: 24157.89, Fan_L68_H61_horizontal: 24211.73, Fan_L68_H67_0.25: 24173.39, Fan_L68_H67_horizontal: 24175.89, Fan_L68_H63_horizontal: 24137.02
+      Price: 24173.39
+      Outcome: LOSS (MFE: 89.79, MAE: 75.76)
+------------------------------------------------------------
+EVENT: 5/4/2026, 11:00:00 AM | P2 (L68-H67) (horizontal) | Type: SUPPORT_TEST
+      Confluence With: Fan_L68_H67_0.25: 24165.35, Fan_L68_H67_horizontal: 24175.89, Fan_L68_H63_horizontal: 24137.02, Fan_H68_L68_0.75: 24156.64
+      Price: 24175.89
+      Outcome: WIN (MFE: 170.59, MAE: 73.26)
+------------------------------------------------------------
+EVENT: 5/4/2026, 12:15:00 PM | P3 (L68-H63) (horizontal) | Type: RESISTANCE_TEST
+      Confluence With: Fan_L68_H67_0.25: 24145.25, Fan_L68_H67_horizontal: 24175.89, Fan_L68_H63_horizontal: 24137.02
+      Price: 24137.02
+      Outcome: WIN (MFE: 131.72, MAE: 12.68)
+------------------------------------------------------------
+EVENT: 5/4/2026, 12:15:00 PM | P2 (L68-H67) (0.25) | Type: RESISTANCE_TEST
+      Confluence With: Fan_L68_H67_0.25: 24145.25, Fan_L68_H67_horizontal: 24175.89, Fan_L68_H63_horizontal: 24137.02
+      Price: 24145.25
+      Outcome: WIN (MFE: 139.95, MAE: 4.45)
+------------------------------------------------------------
+EVENT: 5/4/2026, 1:45:00 PM | P3 (L68-H63) (0.5) | Type: SUPPORT_TEST
+      Confluence With: Fan_L68_H63_0.5: 24056.14, Fan_H68_L68_0.5: 24093.43
+      Price: 24056.14
+      Outcome: LOSS (MFE: 106.39, MAE: 93.56)
+------------------------------------------------------------
+EVENT: 5/4/2026, 2:00:00 PM | P3 (L68-H63) (0.5) | Type: SUPPORT_TEST
+      Confluence With: Fan_L68_H63_0.5: 24053.83, Fan_H68_L68_0.5: 24101.90
+      Price: 24053.83
+      Outcome: LOSS (MFE: 108.63, MAE: 95.87)
+------------------------------------------------------------
+EVENT: 5/4/2026, 2:15:00 PM | P3 (L68-H63) (horizontal) | Type: RESISTANCE_TEST
+      Confluence With: Fan_L68_H67_0.25: 24113.08, Fan_L68_H67_horizontal: 24175.89, Fan_L68_H63_horizontal: 24137.02, Fan_H68_L68_0.5: 24110.36
+      Price: 24137.02
+      Outcome: WIN (MFE: 214.12, MAE: 0.00)
+------------------------------------------------------------
+EVENT: 5/4/2026, 2:45:00 PM | P3 (L68-H67) (0.25) | Type: RESISTANCE_TEST
+      Confluence With: Fan_L68_H67_0.25: 24105.04, Fan_L68_H63_horizontal: 24137.02, Fan_H68_L68_0.5: 24127.30, Fan_L69_H68_0.5: 24147.75
+      Price: 24105.04
+      Outcome: WIN (MFE: 189.79, MAE: 30.40)
+------------------------------------------------------------
+EVENT: 5/4/2026, 3:15:00 PM | P1 (L69-H68) (0.5) | Type: RESISTANCE_TEST
+      Confluence With: Fan_L68_H67_0.25: 24097.00, Fan_L68_H67_horizontal: 24175.89, Fan_H68_L68_0.5: 24144.23, Fan_L69_H68_0.5: 24134.28, Fan_L69_H68_horizontal: 24181.43
+      Price: 24134.28
+      Outcome: WIN (MFE: 219.03, MAE: 0.00)
+------------------------------------------------------------
+EVENT: 5/5/2026, 9:15:00 AM | P1 (H68-L68) (0.25) | Type: SUPPORT_TEST
+      Confluence With: Fan_H68_L68_0.25: 23960.57, Fan_H68_L68_horizontal: 23949.47, Fan_L69_H68_0.875: 23951.14
+      Price: 23960.57
+      Outcome: LOSS (MFE: 99.98, MAE: 77.07)
+------------------------------------------------------------
+EVENT: 5/5/2026, 9:15:00 AM | P1 (L69-H68) (0.875) | Type: SUPPORT_TEST
+      Confluence With: Fan_H68_L68_0.25: 23960.57, Fan_H68_L68_horizontal: 23949.47, Fan_L69_H68_0.875: 23951.14
+      Price: 23951.14
+      Outcome: LOSS (MFE: 109.41, MAE: 67.64)
+------------------------------------------------------------
+EVENT: 5/5/2026, 9:30:00 AM | P3 (L68-H63) (0.5) | Type: RESISTANCE_TEST
+      Confluence With: Fan_L68_H63_0.5: 24037.65
+      Price: 24037.65
+      Outcome: WIN (MFE: 154.15, MAE: 17.80)
+------------------------------------------------------------
+EVENT: 5/5/2026, 10:15:00 AM | P1 (H68-L68) (horizontal) | Type: SUPPORT_TEST
+      Confluence With: Fan_H68_L68_0.25: 23976.14, Fan_H68_L68_horizontal: 23949.47
+      Price: 23949.47
+      Outcome: LOSS (MFE: 65.97, MAE: 64.78)
+------------------------------------------------------------
+EVENT: 5/5/2026, 10:45:00 AM | P1 (H68-L68) (horizontal) | Type: RESISTANCE_TEST
+      Confluence With: Fan_H68_L68_0.25: 23983.93, Fan_H68_L68_horizontal: 23949.47
+      Price: 23949.47
+      Outcome: LOSS (MFE: 131.48, MAE: 65.97)
+------------------------------------------------------------
+EVENT: 5/5/2026, 11:00:00 AM | P1 (H68-L68) (horizontal) | Type: RESISTANCE_TEST
+      Confluence With: Fan_H68_L68_0.25: 23987.82, Fan_H68_L68_horizontal: 23949.47
+      Price: 23949.47
+      Outcome: LOSS (MFE: 131.48, MAE: 65.97)
+------------------------------------------------------------
+EVENT: 5/5/2026, 11:15:00 AM | P1 (H68-L68) (horizontal) | Type: RESISTANCE_TEST
+      Confluence With: Fan_H68_L68_0.25: 23991.72, Fan_H68_L68_horizontal: 23949.47
+      Price: 23949.47
+      Outcome: LOSS (MFE: 131.48, MAE: 65.97)
+------------------------------------------------------------
+EVENT: 5/5/2026, 11:30:00 AM | P1 (H68-L68) (horizontal) | Type: RESISTANCE_TEST
+      Confluence With: Fan_H68_L68_0.25: 23995.61, Fan_H68_L68_horizontal: 23949.47
+      Price: 23949.47
+      Outcome: LOSS (MFE: 131.48, MAE: 65.97)
+------------------------------------------------------------
+EVENT: 5/5/2026, 12:15:00 PM | P1 (H68-L68) (horizontal) | Type: RESISTANCE_TEST
+      Confluence With: Fan_H68_L68_horizontal: 23949.47
+      Price: 23949.47
+      Outcome: WIN (MFE: 131.48, MAE: 15.67)
+------------------------------------------------------------
+EVENT: 5/5/2026, 1:30:00 PM | P3 (H68-L68) (0.25) | Type: SUPPORT_TEST
+      Confluence With: Fan_H68_L68_0.25: 24026.76, Fan_L70_H69_0.5: 24001.50, Fan_L70_H69_horizontal: 24048.66
+      Price: 24026.76
+      Outcome: LOSS (MFE: 35.39, MAE: 28.91)
+------------------------------------------------------------
+EVENT: 5/5/2026, 1:45:00 PM | P3 (H68-L68) (0.25) | Type: SUPPORT_TEST
+      Confluence With: Fan_H68_L68_0.25: 24030.65, Fan_L70_H68_0.5: 24073.65, Fan_L70_H69_0.5: 23994.77, Fan_L70_H69_0.25: 24076.41, Fan_L70_H69_horizontal: 24048.66
+      Price: 24030.65
+      Outcome: LOSS (MFE: 32.80, MAE: 30.35)
+------------------------------------------------------------
+EVENT: 5/5/2026, 3:00:00 PM | P1 (H70-L70) (0.5) | Type: SUPPORT_TEST
+      Confluence With: Fan_L70_H68_0.5: 24047.99, Fan_L70_H69_0.5: 23961.08, Fan_L70_H69_horizontal: 24048.66, Fan_H70_L70_0.5: 24002.41
+      Price: 24002.41
+      Outcome: WIN (MFE: 57.29, MAE: 0.00)
+------------------------------------------------------------
+EVENT: 5/5/2026, 3:15:00 PM | P2 (L70-H69) (0.25) | Type: RESISTANCE_TEST
+      Confluence With: Fan_L70_H68_0.5: 24042.86, Fan_L70_H69_0.25: 24057.29, Fan_L70_H69_horizontal: 24048.66, Fan_H70_L70_0.5: 24011.56
+      Price: 24057.29
+      Outcome: LOSS (MFE: 0.00, MAE: 0.00)
+------------------------------------------------------------
+
+
+=== RETROACTIVE EVENTS ===
+These events occurred during the 5-bar unconfirmed pivot window and were retroactively inserted.
+============================================================
+EVENT [RETROACTIVE]: 2/6/2026, 12:00:00 PM | P2 (L3-H1) (0.5) | Type: RESISTANCE_TEST
+   -> [INFO] This event was generated retroactively during a sweep.
+      Confluence With: Fan_L3_H1_0.5: 25649.32, Fan_L3_H1_horizontal: 25669.93, Fan_L3_H2_0.25: 25623.38, Fan_L3_H2_horizontal: 25608.54
+      Price: 25649.32
+      Outcome: WIN (MFE: 122.67, MAE: 3.08)
+------------------------------------------------------------
+EVENT [RETROACTIVE]: 2/6/2026, 12:00:00 PM | P1 (L3-H2) (horizontal) | Type: SUPPORT_TEST
+   -> [INFO] This event was generated retroactively during a sweep.
+      Confluence With: Fan_L3_H1_0.5: 25649.32, Fan_L3_H2_0.5: 25570.29, Fan_L3_H2_0.25: 25623.38, Fan_L3_H2_horizontal: 25608.54
+      Price: 25608.54
+      Outcome: LOSS (MFE: 81.89, MAE: 43.86)
+------------------------------------------------------------
+EVENT [RETROACTIVE]: 2/6/2026, 2:00:00 PM | P1 (L4-H3) (0.25) | Type: RESISTANCE_TEST
+   -> [INFO] This event was generated retroactively during a sweep.
+      Confluence With: Fan_L3_H1_0.5: 25616.35, Fan_L3_H1_horizontal: 25669.93, Fan_L3_H2_0.25: 25594.84, Fan_L3_H2_horizontal: 25608.54, Fan_H3_L3_0.5: 25611.31, Fan_L4_H3_0.5: 25577.02, Fan_L4_H3_0.25: 25621.63, Fan_L4_H3_horizontal: 25627.38
+      Price: 25621.63
+      Outcome: WIN (MFE: 281.47, MAE: 19.73)
+------------------------------------------------------------
+EVENT [RETROACTIVE]: 2/6/2026, 2:00:00 PM | P1 (L4-H3) (horizontal) | Type: RESISTANCE_TEST
+   -> [INFO] This event was generated retroactively during a sweep.
+      Confluence With: Fan_L3_H1_0.5: 25616.35, Fan_L3_H1_horizontal: 25669.93, Fan_L3_H2_0.25: 25594.84, Fan_L3_H2_horizontal: 25608.54, Fan_H3_L3_0.5: 25611.31, Fan_L4_H3_0.5: 25577.02, Fan_L4_H3_0.25: 25621.63, Fan_L4_H3_horizontal: 25627.38
+      Price: 25627.38
+      Outcome: WIN (MFE: 275.72, MAE: 25.48)
+------------------------------------------------------------
+EVENT [RETROACTIVE]: 2/9/2026, 2:00:00 PM | P1 (L5-H4) (0.5) | Type: RESISTANCE_TEST
+   -> [INFO] This event was generated retroactively during a sweep.
+      Confluence With: Fan_H4_L4_0.5: 25805.16, Fan_L5_H4_0.875: 25805.73, Fan_L5_H4_0.75: 25820.63, Fan_L5_H4_0.5: 25849.10, Fan_L5_H4_0.25: 25876.38, Fan_L5_H4_horizontal: 25863.31
+      Price: 25849.10
+      Outcome: WIN (MFE: 122.46, MAE: 12.85)
+------------------------------------------------------------
+EVENT [RETROACTIVE]: 2/10/2026, 11:45:00 AM | P3 (H5-L3) (0.875) | Type: SUPPORT_TEST
+   -> [INFO] This event was generated retroactively during a sweep.
+      Confluence With: Fan_H5_L5_0.875: 25995.59, Fan_H5_L5_0.75: 25966.04, Fan_H5_L5_0.5: 25913.15, Fan_H5_L4_0.875: 25951.23, Fan_H5_L3_0.875: 25944.40
+      Price: 25944.40
+      Outcome: LOSS (MFE: 51.21, MAE: 44.79)
+------------------------------------------------------------
+EVENT [RETROACTIVE]: 2/10/2026, 11:45:00 AM | P2 (H5-L4) (0.875) | Type: SUPPORT_TEST
+   -> [INFO] This event was generated retroactively during a sweep.
+      Confluence With: Fan_H5_L5_0.875: 25995.59, Fan_H5_L5_0.75: 25966.04, Fan_H5_L5_0.5: 25913.15, Fan_H5_L4_0.875: 25951.23, Fan_H5_L3_0.875: 25944.40
+      Price: 25951.23
+      Outcome: LOSS (MFE: 58.03, MAE: 37.97)
+------------------------------------------------------------
+EVENT [RETROACTIVE]: 2/10/2026, 2:00:00 PM | P1 (H6-L5) (horizontal) | Type: SUPPORT_TEST
+   -> [INFO] This event was generated retroactively during a sweep.
+      Confluence With: Fan_H6_L5_0.5: 25915.98, Fan_H6_L5_0.25: 25867.33, Fan_H6_L5_horizontal: 25899.97, Fan_H6_L3_0.875: 25951.58, Fan_H6_L3_0.75: 25876.87, Fan_H6_L4_0.75: 25886.48
+      Price: 25899.97
+      Outcome: WIN (MFE: 100.68, MAE: 0.00)
+------------------------------------------------------------
+EVENT [RETROACTIVE]: 2/11/2026, 10:30:00 AM | P2 (H7-L5) (0.75) | Type: RESISTANCE_TEST
+   -> [INFO] This event was generated retroactively during a sweep.
+      Confluence With: Fan_H7_L7_0.75: 26017.22, Fan_H7_L7_0.5: 25967.71, Fan_H7_L7_0.25: 25928.43, Fan_H7_L7_horizontal: 25933.84, Fan_H7_L5_0.875: 25998.21, Fan_H7_L5_0.75: 25971.43, Fan_H7_L5_0.5: 25919.62, Fan_H7_L4_0.875: 25965.08
+      Price: 25971.43
+      Outcome: WIN (MFE: 71.23, MAE: 7.62)
+------------------------------------------------------------
+EVENT [RETROACTIVE]: 2/11/2026, 3:00:00 PM | P3 (H7-L5) (0.5) | Type: RESISTANCE_TEST
+   -> [INFO] This event was generated retroactively during a sweep.
+      Confluence With: Fan_H7_L7_0.25: 25986.07, Fan_H7_L7_horizontal: 25933.84, Fan_L8_H7_0.5: 25917.90, Fan_L8_H7_0.25: 25959.96, Fan_L8_H7_horizontal: 25953.88, Fan_H8_L8_0.75: 26009.84, Fan_H8_L8_0.5: 25966.39, Fan_H8_L8_0.25: 25931.57, Fan_H8_L8_horizontal: 25926.68, Fan_H7_L5_0.5: 25963.38
+      Price: 25963.38
+      Outcome: WIN (MFE: 139.58, MAE: 0.00)
+------------------------------------------------------------
+EVENT [RETROACTIVE]: 2/12/2026, 1:15:00 PM | P1 (L9-H8) (0.5) | Type: RESISTANCE_TEST
+   -> [INFO] This event was generated retroactively during a sweep.
+      Confluence With: Fan_H7_L3_0.5: 25871.84, Fan_H7_L4_0.5: 25895.45, Fan_L9_H8_0.5: 25874.50, Fan_L9_H8_0.25: 25924.32, Fan_L9_H8_horizontal: 25901.24, Fan_L9_H7_0.75: 25838.63, Fan_L9_H7_0.5: 25894.24, Fan_L9_H7_horizontal: 25907.21
+      Price: 25874.50
+      Outcome: WIN (MFE: 348.60, MAE: 0.00)
+------------------------------------------------------------
+EVENT [RETROACTIVE]: 2/16/2026, 10:30:00 AM | P1 (L11-H10) (horizontal) | Type: SUPPORT_TEST
+   -> [INFO] This event was generated retroactively during a sweep.
+      Confluence With: Fan_L11_H10_0.5: 25486.15, Fan_L11_H10_0.25: 25549.61, Fan_L11_H10_horizontal: 25521.41, Fan_L11_H8_0.75: 25521.75, Fan_L11_H9_0.75: 25499.30
+      Price: 25521.41
+      Outcome: WIN (MFE: 69.09, MAE: 18.36)
+------------------------------------------------------------
+EVENT [RETROACTIVE]: 2/18/2026, 11:30:00 AM | P2 (L15-H13) (horizontal) | Type: RESISTANCE_TEST
+   -> [INFO] This event was generated retroactively during a sweep.
+      Confluence With: Fan_H13_L12_0.5: 25698.15, Fan_H13_L13_0.5: 25755.37, Fan_H13_L13_0.25: 25659.68, Fan_L15_H13_0.5: 25690.22, Fan_L15_H13_0.25: 25727.77, Fan_L15_H13_horizontal: 25709.61, Fan_L15_H14_0.5: 25678.63, Fan_L15_H14_0.25: 25719.69, Fan_L15_H14_horizontal: 25720.86
+      Price: 25709.61
+      Outcome: LOSS (MFE: 47.74, MAE: 26.96)
+------------------------------------------------------------
+EVENT [RETROACTIVE]: 2/18/2026, 11:30:00 AM | P1 (L15-H14) (0.5) | Type: SUPPORT_TEST
+   -> [INFO] This event was generated retroactively during a sweep.
+      Confluence With: Fan_H13_L12_0.5: 25698.15, Fan_H13_L13_0.25: 25659.68, Fan_H13_L13_horizontal: 25652.17, Fan_H13_L11_0.5: 25633.24, Fan_L15_H13_0.875: 25627.51, Fan_L15_H13_0.75: 25649.61, Fan_L15_H13_0.5: 25690.22, Fan_L15_H13_0.25: 25727.77, Fan_L15_H13_horizontal: 25709.61, Fan_L15_H14_0.5: 25678.63, Fan_L15_H14_0.25: 25719.69, Fan_L15_H14_horizontal: 25720.86
+      Price: 25678.63
+      Outcome: WIN (MFE: 78.72, MAE: 0.00)
+------------------------------------------------------------
+EVENT [RETROACTIVE]: 2/19/2026, 10:30:00 AM | P2 (H15-L13) (0.5) | Type: SUPPORT_TEST
+   -> [INFO] This event was generated retroactively during a sweep.
+      Confluence With: Fan_L11_H8_horizontal: 25712.37, Fan_L11_H7_0.25: 25708.77, Fan_L11_H7_horizontal: 25712.77, Fan_H15_L13_0.5: 25732.76, Fan_H15_L13_horizontal: 25718.03, Fan_H15_L15_0.5: 25772.40, Fan_H15_L15_0.25: 25707.28, Fan_H15_L15_horizontal: 25748.07, Fan_H15_L12_0.5: 25697.50, Fan_H15_L12_horizontal: 25683.61
+      Price: 25732.76
+      Outcome: WIN (MFE: 164.57, MAE: 13.24)
+------------------------------------------------------------
+EVENT [RETROACTIVE]: 2/19/2026, 10:30:00 AM | P2 (H15-L13) (horizontal) | Type: SUPPORT_TEST
+   -> [INFO] This event was generated retroactively during a sweep.
+      Confluence With: Fan_L11_H8_horizontal: 25712.37, Fan_L11_H7_0.25: 25708.77, Fan_L11_H7_horizontal: 25712.77, Fan_H15_L13_0.5: 25732.76, Fan_H15_L13_horizontal: 25718.03, Fan_H15_L15_0.25: 25707.28, Fan_H15_L15_horizontal: 25748.07, Fan_H15_L12_0.5: 25697.50, Fan_H15_L12_horizontal: 25683.61
+      Price: 25718.03
+      Outcome: WIN (MFE: 149.83, MAE: 27.97)
+------------------------------------------------------------
+EVENT [RETROACTIVE]: 2/19/2026, 10:30:00 AM | P1 (H15-L15) (horizontal) | Type: RESISTANCE_TEST
+   -> [INFO] This event was generated retroactively during a sweep.
+      Confluence With: Fan_L11_H8_horizontal: 25712.37, Fan_L11_H7_0.25: 25708.77, Fan_L11_H7_horizontal: 25712.77, Fan_H15_L13_0.5: 25732.76, Fan_H15_L13_horizontal: 25718.03, Fan_H15_L15_0.5: 25772.40, Fan_H15_L15_0.25: 25707.28, Fan_H15_L15_horizontal: 25748.07, Fan_H15_L12_0.5: 25697.50
+      Price: 25748.07
+      Outcome: WIN (MFE: 179.87, MAE: 0.00)
+------------------------------------------------------------
+EVENT [RETROACTIVE]: 2/20/2026, 2:30:00 PM | P1 (L17-H16) (0.25) | Type: RESISTANCE_TEST
+   -> [INFO] This event was generated retroactively during a sweep.
+      Confluence With: Fan_H15_L11_horizontal: 25614.34, Fan_H16_L16_0.75: 25667.09, Fan_L17_H16_0.5: 25581.09, Fan_L17_H16_0.25: 25625.98, Fan_L17_H16_horizontal: 25626.79
+      Price: 25625.98
+      Outcome: LOSS (MFE: 144.71, MAE: 87.08)
+------------------------------------------------------------
+EVENT [RETROACTIVE]: 2/20/2026, 2:30:00 PM | P1 (L17-H16) (horizontal) | Type: RESISTANCE_TEST
+   -> [INFO] This event was generated retroactively during a sweep.
+      Confluence With: Fan_H15_L11_horizontal: 25614.34, Fan_H16_L16_0.75: 25667.09, Fan_L17_H16_0.5: 25581.09, Fan_L17_H16_0.25: 25625.98, Fan_L17_H16_horizontal: 25626.79
+      Price: 25626.79
+      Outcome: LOSS (MFE: 143.91, MAE: 87.89)
+------------------------------------------------------------
+EVENT [RETROACTIVE]: 2/23/2026, 10:45:00 AM | P1 (H17-L17) (0.5) | Type: SUPPORT_TEST
+   -> [INFO] This event was generated retroactively during a sweep.
+      Confluence With: Fan_L16_H15_0.25: 25689.74, Fan_L16_H15_horizontal: 25699.07, Fan_H15_L11_horizontal: 25614.34, Fan_H17_L17_0.5: 25651.11, Fan_H17_L17_horizontal: 25611.41, Fan_H17_L16_0.75: 25685.81
+      Price: 25651.11
+      Outcome: WIN (MFE: 48.09, MAE: 23.41)
+------------------------------------------------------------
+EVENT [RETROACTIVE]: 2/24/2026, 2:45:00 PM | P2 (L19-H17) (0.75) | Type: RESISTANCE_TEST
+   -> [INFO] This event was generated retroactively during a sweep.
+      Confluence With: Fan_L19_H17_0.75: 25425.84, Fan_L19_H18_0.75: 25424.76, Fan_L19_H15_0.875: 25377.91, Fan_L19_H15_0.75: 25454.76
+      Price: 25425.84
+      Outcome: WIN (MFE: 226.66, MAE: 24.69)
+------------------------------------------------------------
+EVENT [RETROACTIVE]: 2/26/2026, 11:15:00 AM | P1 (H20-L20) (0.75) | Type: RESISTANCE_TEST
+   -> [INFO] This event was generated retroactively during a sweep.
+      Confluence With: Fan_L19_H18_0.25: 25519.95, Fan_L19_H18_horizontal: 25587.47, Fan_L20_H19_0.25: 25557.51, Fan_L20_H19_horizontal: 25569.15, Fan_H20_L20_0.875: 25597.87, Fan_H20_L20_0.75: 25567.77
+      Price: 25567.77
+      Outcome: WIN (MFE: 166.17, MAE: 0.00)
+------------------------------------------------------------
+EVENT [RETROACTIVE]: 2/26/2026, 1:30:00 PM | P2 (L21-H19) (0.75) | Type: RESISTANCE_TEST
+   -> [INFO] This event was generated retroactively during a sweep.
+      Confluence With: Fan_H19_L19_horizontal: 25429.11, Fan_L19_H18_0.25: 25488.60, Fan_L21_H20_0.75: 25407.69, Fan_L21_H20_0.5: 25474.13, Fan_L21_H19_0.875: 25405.28, Fan_L21_H19_0.75: 25444.54
+      Price: 25444.54
+      Outcome: LOSS (MFE: 115.14, MAE: 82.61)
+------------------------------------------------------------
+EVENT [RETROACTIVE]: 2/27/2026, 2:00:00 PM | P3 (L22-H19) (0.75) | Type: RESISTANCE_TEST
+   -> [INFO] This event was generated retroactively during a sweep.
+      Confluence With: Fan_L22_H21_0.75: 25308.85, Fan_L22_H21_0.5: 25393.28, Fan_L22_H20_0.75: 25326.24, Fan_L22_H19_0.75: 25350.52
+      Price: 25350.52
+      Outcome: WIN (MFE: 628.52, MAE: 0.00)
+------------------------------------------------------------
+EVENT [RETROACTIVE]: 3/2/2026, 10:30:00 AM | P1 (L23-H22) (0.875) | Type: RESISTANCE_TEST
+   -> [INFO] This event was generated retroactively during a sweep.
+      Confluence With: Fan_L23_H22_0.875: 24880.83, Fan_L23_H21_0.875: 24844.80
+      Price: 24880.83
+      Outcome: WIN (MFE: 201.73, MAE: 0.00)
+------------------------------------------------------------
+EVENT [RETROACTIVE]: 3/5/2026, 12:15:00 PM | P2 (H25-L24) (0.75) | Type: SUPPORT_TEST
+   -> [INFO] This event was generated retroactively during a sweep.
+      Confluence With: Fan_H25_L24_0.75: 24597.57, Fan_H25_L25_0.75: 24612.70
+      Price: 24597.57
+      Outcome: WIN (MFE: 256.33, MAE: 68.01)
+------------------------------------------------------------
+EVENT [RETROACTIVE]: 3/5/2026, 12:15:00 PM | P1 (H25-L25) (0.75) | Type: SUPPORT_TEST
+   -> [INFO] This event was generated retroactively during a sweep.
+      Confluence With: Fan_H25_L24_0.875: 24661.68, Fan_H25_L24_0.75: 24597.57, Fan_H25_L25_0.75: 24612.70
+      Price: 24612.70
+      Outcome: WIN (MFE: 241.20, MAE: 83.15)
+------------------------------------------------------------
+EVENT [RETROACTIVE]: 3/6/2026, 12:00:00 PM | P1 (L27-H26) (0.75) | Type: RESISTANCE_TEST
+   -> [INFO] This event was generated retroactively during a sweep.
+      Confluence With: Fan_H26_L25_0.5: 24640.90, Fan_H26_L26_0.25: 24615.13, Fan_H26_L24_0.5: 24613.66, Fan_L27_H26_0.75: 24628.59
+      Price: 24628.59
+      Outcome: WIN (MFE: 93.64, MAE: 0.00)
+------------------------------------------------------------
+EVENT [RETROACTIVE]: 3/10/2026, 1:45:00 PM | P1 (L29-H28) (horizontal) | Type: SUPPORT_TEST
+   -> [INFO] This event was generated retroactively during a sweep.
+      Confluence With: Fan_L29_H28_0.5: 24204.82, Fan_L29_H28_0.25: 24252.36, Fan_L29_H28_horizontal: 24230.40
+      Price: 24230.40
+      Outcome: LOSS (MFE: 120.55, MAE: 72.10)
+------------------------------------------------------------
+EVENT [RETROACTIVE]: 3/10/2026, 1:45:00 PM | P1 (L29-H28) (0.25) | Type: RESISTANCE_TEST
+   -> [INFO] This event was generated retroactively during a sweep.
+      Confluence With: Fan_H28_L28_0.75: 24291.09, Fan_L29_H28_0.5: 24204.82, Fan_L29_H28_0.25: 24252.36, Fan_L29_H28_horizontal: 24230.40
+      Price: 24252.36
+      Outcome: WIN (MFE: 142.51, MAE: 50.14)
+------------------------------------------------------------
+EVENT [RETROACTIVE]: 3/12/2026, 1:30:00 PM | P3 (L30-H26) (0.75) | Type: RESISTANCE_TEST
+   -> [INFO] This event was generated retroactively during a sweep.
+      Confluence With: Fan_H30_L30_0.75: 23831.06, Fan_L30_H26_0.75: 23829.28
+      Price: 23829.28
+      Outcome: WIN (MFE: 484.53, MAE: 0.00)
+------------------------------------------------------------
+EVENT [RETROACTIVE]: 3/12/2026, 2:45:00 PM | P1 (H31-L30) (0.25) | Type: SUPPORT_TEST
+   -> [INFO] This event was generated retroactively during a sweep.
+      Confluence With: Fan_H31_L30_0.25: 23624.33, Fan_H31_L30_horizontal: 23665.83
+      Price: 23624.33
+      Outcome: WIN (MFE: 317.83, MAE: 55.47)
+------------------------------------------------------------
+EVENT [RETROACTIVE]: 3/16/2026, 12:00:00 PM | P1 (L34-H33) (0.5) | Type: RESISTANCE_TEST
+   -> [INFO] This event was generated retroactively during a sweep.
+      Confluence With: Fan_L34_H32_0.5: 23215.02, Fan_L34_H33_0.5: 23172.78
+      Price: 23172.78
+      Outcome: WIN (MFE: 277.27, MAE: 86.43)
+------------------------------------------------------------
+EVENT [RETROACTIVE]: 3/17/2026, 9:45:00 AM | P2 (H35-L34) (0.875) | Type: SUPPORT_TEST
+   -> [INFO] This event was generated retroactively during a sweep.
+      Confluence With: Fan_H35_L34_0.875: 23446.70, Fan_H35_L35_0.875: 23481.29
+      Price: 23446.70
+      Outcome: LOSS (MFE: 129.85, MAE: 91.00)
+------------------------------------------------------------
+EVENT [RETROACTIVE]: 3/17/2026, 11:30:00 AM | P2 (H35-L34) (0.75) | Type: SUPPORT_TEST
+   -> [INFO] This event was generated retroactively during a sweep.
+      Confluence With: Fan_H35_L34_0.75: 23371.89, Fan_H35_L35_0.75: 23413.58
+      Price: 23371.89
+      Outcome: WIN (MFE: 237.01, MAE: 0.00)
+------------------------------------------------------------
+EVENT [RETROACTIVE]: 3/17/2026, 1:30:00 PM | P2 (L34-H29) (0.5) | Type: RESISTANCE_TEST
+   -> [INFO] This event was generated retroactively during a sweep.
+      Confluence With: Fan_H35_L35_0.75: 23551.36, Fan_L36_H35_0.25: 23517.94, Fan_L36_H35_horizontal: 23526.01, Fan_L34_H31_0.25: 23563.52, Fan_L34_H31_horizontal: 23532.22, Fan_L34_H29_0.5: 23545.21
+      Price: 23545.21
+      Outcome: WIN (MFE: 209.14, MAE: 18.36)
+------------------------------------------------------------
+EVENT [RETROACTIVE]: 3/17/2026, 1:30:00 PM | P1 (L34-H31) (0.25) | Type: RESISTANCE_TEST
+   -> [INFO] This event was generated retroactively during a sweep.
+      Confluence With: Fan_H35_L35_0.75: 23551.36, Fan_L36_H35_0.25: 23517.94, Fan_L36_H35_horizontal: 23526.01, Fan_L34_H31_0.25: 23563.52, Fan_L34_H31_horizontal: 23532.22, Fan_L34_H29_0.5: 23545.21
+      Price: 23563.52
+      Outcome: WIN (MFE: 190.83, MAE: 36.67)
+------------------------------------------------------------
+EVENT [RETROACTIVE]: 3/20/2026, 12:30:00 PM | P1 (H39-L39) (0.75) | Type: RESISTANCE_TEST
+   -> [INFO] This event was generated retroactively during a sweep.
+      Confluence With: Fan_L39_H29_0.75: 23233.92, Fan_H39_L39_0.75: 23212.34
+      Price: 23212.34
+      Outcome: WIN (MFE: 144.44, MAE: 60.06)
+------------------------------------------------------------
+EVENT [RETROACTIVE]: 3/24/2026, 9:15:00 AM | P3 (L41-H37) (0.75) | Type: RESISTANCE_TEST
+   -> [INFO] This event was generated retroactively during a sweep.
+      Confluence With: Fan_L41_H37_0.75: 22890.11
+      Price: 22890.11
+      Outcome: WIN (MFE: 265.21, MAE: 0.00)
+------------------------------------------------------------
+EVENT [RETROACTIVE]: 3/24/2026, 10:30:00 AM | P1 (H42-L42) (0.75) | Type: SUPPORT_TEST
+   -> [INFO] This event was generated retroactively during a sweep.
+      Confluence With: Fan_L41_H39_0.75: 22641.74, Fan_L41_H40_0.75: 22620.09, Fan_H42_L41_0.5: 22622.03, Fan_H42_L42_0.75: 22663.90
+      Price: 22663.90
+      Outcome: WIN (MFE: 361.30, MAE: 34.50)
+------------------------------------------------------------
+EVENT [RETROACTIVE]: 3/24/2026, 12:15:00 PM | P2 (L41-H39) (0.5) | Type: RESISTANCE_TEST
+   -> [INFO] This event was generated retroactively during a sweep.
+      Confluence With: Fan_H42_L41_0.75: 22889.14, Fan_H42_L42_0.75: 22880.67, Fan_L43_H42_horizontal: 22844.15, Fan_L41_H39_0.5: 22888.13, Fan_L41_H40_0.5: 22852.06
+      Price: 22888.13
+      Outcome: WIN (MFE: 168.97, MAE: 44.73)
+------------------------------------------------------------
+EVENT [RETROACTIVE]: 3/24/2026, 12:15:00 PM | P1 (L41-H40) (0.5) | Type: RESISTANCE_TEST
+   -> [INFO] This event was generated retroactively during a sweep.
+      Confluence With: Fan_H42_L41_0.75: 22889.14, Fan_H42_L42_0.75: 22880.67, Fan_L43_H42_0.25: 22841.03, Fan_L43_H42_horizontal: 22844.15, Fan_L41_H39_0.5: 22888.13, Fan_L41_H40_0.5: 22852.06
+      Price: 22852.06
+      Outcome: WIN (MFE: 205.04, MAE: 8.66)
+------------------------------------------------------------
+EVENT [RETROACTIVE]: 3/24/2026, 2:45:00 PM | P3 (H43-L41) (0.75) | Type: SUPPORT_TEST
+   -> [INFO] This event was generated retroactively during a sweep.
+      Confluence With: Fan_H43_L42_0.75: 22856.59, Fan_H43_L41_0.75: 22885.06, Fan_H43_L43_0.75: 22922.00
+      Price: 22885.06
+      Outcome: WIN (MFE: 548.49, MAE: 9.71)
+------------------------------------------------------------
+EVENT [RETROACTIVE]: 3/30/2026, 9:15:00 AM | P3 (L41-H29) (0.75) | Type: SUPPORT_TEST
+   -> [INFO] This event was generated retroactively during a sweep.
+      Confluence With: Fan_L41_H29_0.75: 22483.07
+      Price: 22483.07
+      Outcome: WIN (MFE: 230.23, MAE: 29.92)
+------------------------------------------------------------
+EVENT [RETROACTIVE]: 3/30/2026, 10:30:00 AM | P1 (L46-H45) (0.875) | Type: RESISTANCE_TEST
+   -> [INFO] This event was generated retroactively during a sweep.
+      Confluence With: Fan_L46_H45_0.875: 22538.99
+      Price: 22538.99
+      Outcome: LOSS (MFE: 85.84, MAE: 55.51)
+------------------------------------------------------------
+EVENT [RETROACTIVE]: 3/30/2026, 1:15:00 PM | P1 (H46-L46) (horizontal) | Type: SUPPORT_TEST
+   -> [INFO] This event was generated retroactively during a sweep.
+      Confluence With: Fan_L46_H45_0.875: 22480.61, Fan_H46_L46_0.25: 22484.95, Fan_H46_L46_horizontal: 22465.61
+      Price: 22465.61
+      Outcome: WIN (MFE: 471.29, MAE: 180.06)
+------------------------------------------------------------
+EVENT [RETROACTIVE]: 4/1/2026, 11:15:00 AM | P1 (H47-L47) (0.875) | Type: SUPPORT_TEST
+   -> [INFO] This event was generated retroactively during a sweep.
+      Confluence With: Fan_L47_H45_horizontal: 22748.66, Fan_H47_L47_0.875: 22749.52
+      Price: 22749.52
+      Outcome: LOSS (MFE: 148.43, MAE: 99.77)
+------------------------------------------------------------
+EVENT [RETROACTIVE]: 4/6/2026, 12:15:00 PM | P1 (L50-H49) (horizontal) | Type: RESISTANCE_TEST
+   -> [INFO] This event was generated retroactively during a sweep.
+      Confluence With: Fan_L49_H48_0.25: 22677.39, Fan_L49_H47_0.25: 22702.52, Fan_L49_H47_horizontal: 22719.70, Fan_H49_L49_0.75: 22693.25, Fan_L50_H49_0.25: 22735.19, Fan_L50_H49_horizontal: 22720.57
+      Price: 22720.57
+      Outcome: WIN (MFE: 219.38, MAE: 76.12)
+------------------------------------------------------------
+EVENT [RETROACTIVE]: 4/7/2026, 10:30:00 AM | P1 (L51-H50) (0.25) | Type: RESISTANCE_TEST
+   -> [INFO] This event was generated retroactively during a sweep.
+      Confluence With: Fan_L49_H44_horizontal: 22940.10, Fan_H50_L49_0.875: 22928.06, Fan_L51_H50_0.25: 22960.60, Fan_L51_H50_horizontal: 22972.78
+      Price: 22960.60
+      Outcome: WIN (MFE: 132.85, MAE: 30.95)
+------------------------------------------------------------
+EVENT [RETROACTIVE]: 4/7/2026, 10:30:00 AM | P1 (L51-H50) (0.5) | Type: SUPPORT_TEST
+   -> [INFO] This event was generated retroactively during a sweep.
+      Confluence With: Fan_L49_H44_horizontal: 22940.10, Fan_H50_L50_0.75: 22895.85, Fan_H50_L49_0.875: 22928.06, Fan_L51_H50_0.5: 22910.61
+      Price: 22910.61
+      Outcome: LOSS (MFE: 82.86, MAE: 80.94)
+------------------------------------------------------------
+EVENT [RETROACTIVE]: 4/7/2026, 1:00:00 PM | P1 (H51-L51) (0.75) | Type: RESISTANCE_TEST
+   -> [INFO] This event was generated retroactively during a sweep.
+      Confluence With: Fan_L51_H50_0.25: 22907.68, Fan_L51_H50_horizontal: 22972.78, Fan_H51_L51_0.75: 22944.04
+      Price: 22944.04
+      Outcome: WIN (MFE: 984.06, MAE: 10.29)
+------------------------------------------------------------
+EVENT [RETROACTIVE]: 4/8/2026, 2:45:00 PM | P1 (H52-L52) (0.5) | Type: SUPPORT_TEST
+   -> [INFO] This event was generated retroactively during a sweep.
+      Confluence With: Fan_H52_L52_0.5: 23982.19, Fan_H52_L52_0.25: 23938.73, Fan_H52_L52_horizontal: 23937.78
+      Price: 23982.19
+      Outcome: WIN (MFE: 221.64, MAE: 36.06)
+------------------------------------------------------------
+EVENT [RETROACTIVE]: 4/10/2026, 1:00:00 PM | P1 (L55-H54) (0.25) | Type: RESISTANCE_TEST
+   -> [INFO] This event was generated retroactively during a sweep.
+      Confluence With: Fan_H54_L54_0.75: 24049.17, Fan_L55_H54_0.5: 23973.36, Fan_L55_H54_0.25: 24005.70, Fan_L55_H54_horizontal: 24001.65
+      Price: 24005.70
+      Outcome: WIN (MFE: 449.55, MAE: 68.10)
+------------------------------------------------------------
+EVENT [RETROACTIVE]: 4/10/2026, 1:00:00 PM | P1 (L55-H54) (horizontal) | Type: SUPPORT_TEST
+   -> [INFO] This event was generated retroactively during a sweep.
+      Confluence With: Fan_H54_L54_0.75: 24049.17, Fan_L55_H54_0.5: 23973.36, Fan_L55_H54_0.25: 24005.70, Fan_L55_H54_horizontal: 24001.65
+      Price: 24001.65
+      Outcome: WIN (MFE: 445.50, MAE: 72.15)
+------------------------------------------------------------
+EVENT [RETROACTIVE]: 4/10/2026, 1:30:00 PM | P1 (H55-L55) (0.5) | Type: RESISTANCE_TEST
+   -> [INFO] This event was generated retroactively during a sweep.
+      Confluence With: Fan_L55_H54_0.25: 24000.26, Fan_L55_H54_horizontal: 24001.65, Fan_H55_L55_0.5: 24022.07, Fan_H55_L55_0.25: 23984.46
+      Price: 24022.07
+      Outcome: WIN (MFE: 465.92, MAE: 51.73)
+------------------------------------------------------------
+EVENT [RETROACTIVE]: 4/13/2026, 3:00:00 PM | P1 (H56-L56) (0.75) | Type: SUPPORT_TEST
+   -> [INFO] This event was generated retroactively during a sweep.
+      Confluence With: Fan_H55_L51_0.75: 23854.11, Fan_H55_L50_0.75: 23795.42, Fan_H56_L56_0.75: 23831.14
+      Price: 23831.14
+      Outcome: WIN (MFE: 442.01, MAE: 16.49)
+------------------------------------------------------------
+EVENT [RETROACTIVE]: 4/16/2026, 10:30:00 AM | P3 (H58-L56) (0.875) | Type: SUPPORT_TEST
+   -> [INFO] This event was generated retroactively during a sweep.
+      Confluence With: Fan_H58_L58_0.5: 24296.61, Fan_H58_L58_horizontal: 24268.86, Fan_H58_L56_0.875: 24298.58, Fan_H58_L57_0.875: 24345.87
+      Price: 24298.58
+      Outcome: WIN (MFE: 190.48, MAE: 34.62)
+------------------------------------------------------------
+EVENT [RETROACTIVE]: 4/16/2026, 10:30:00 AM | P1 (H58-L58) (0.5) | Type: SUPPORT_TEST
+   -> [INFO] This event was generated retroactively during a sweep.
+      Confluence With: Fan_H58_L58_0.5: 24296.61, Fan_H58_L58_horizontal: 24268.86, Fan_H58_L56_0.875: 24298.58
+      Price: 24296.61
+      Outcome: WIN (MFE: 188.51, MAE: 36.59)
+------------------------------------------------------------
+EVENT [RETROACTIVE]: 4/17/2026, 9:45:00 AM | P1 (H59-L59) (0.5) | Type: SUPPORT_TEST
+   -> [INFO] This event was generated retroactively during a sweep.
+      Confluence With: Fan_H58_L57_0.5: 24223.18, Fan_L59_H58_0.5: 24213.22, Fan_H59_L59_0.5: 24190.04, Fan_H59_L59_0.25: 24143.46, Fan_H59_L59_horizontal: 24150.52
+      Price: 24190.04
+      Outcome: WIN (MFE: 132.21, MAE: 0.00)
+------------------------------------------------------------
+EVENT [RETROACTIVE]: 4/22/2026, 3:15:00 PM | P1 (H63-L62) (0.25) | Type: RESISTANCE_TEST
+   -> [INFO] This event was generated retroactively during a sweep.
+      Confluence With: Fan_L62_H61_0.5: 24340.00, Fan_H61_L59_0.5: 24428.28, Fan_H63_L62_0.5: 24419.41, Fan_H63_L62_0.25: 24386.10, Fan_H63_L62_horizontal: 24402.98
+      Price: 24386.10
+      Outcome: WIN (MFE: 247.25, MAE: 0.00)
+------------------------------------------------------------
+EVENT [RETROACTIVE]: 4/23/2026, 9:15:00 AM | P3 (H61-L57) (horizontal) | Type: SUPPORT_TEST
+   -> [INFO] This event was generated retroactively during a sweep.
+      Confluence With: Fan_H61_L57_horizontal: 24180.86
+      Price: 24180.86
+      Outcome: WIN (MFE: 129.04, MAE: 8.01)
+------------------------------------------------------------
+EVENT [RETROACTIVE]: 4/24/2026, 9:15:00 AM | P1 (H61-L57) (horizontal) | Type: RESISTANCE_TEST
+   -> [INFO] This event was generated retroactively during a sweep.
+      Confluence With: Fan_H64_L64_0.25: 24188.50, Fan_H64_L64_horizontal: 24203.76, Fan_H61_L57_horizontal: 24180.86
+      Price: 24180.86
+      Outcome: WIN (MFE: 286.31, MAE: 0.00)
+------------------------------------------------------------
+EVENT [RETROACTIVE]: 4/27/2026, 11:00:00 AM | P1 (H65-L65) (0.75) | Type: SUPPORT_TEST
+   -> [INFO] This event was generated retroactively during a sweep.
+      Confluence With: Fan_L65_H64_0.5: 24015.85, Fan_H65_L65_0.75: 24044.10
+      Price: 24044.10
+      Outcome: LOSS (MFE: 82.70, MAE: 69.70)
+------------------------------------------------------------
+EVENT [RETROACTIVE]: 4/27/2026, 12:45:00 PM | P1 (L66-H65) (0.25) | Type: SUPPORT_TEST
+   -> [INFO] This event was generated retroactively during a sweep.
+      Confluence With: Fan_L65_H63_0.5: 24078.51, Fan_L65_H64_horizontal: 24099.96, Fan_L66_H65_0.5: 24023.16, Fan_L66_H65_0.25: 24067.70, Fan_L66_H65_horizontal: 24058.24
+      Price: 24067.70
+      Outcome: WIN (MFE: 62.61, MAE: 0.00)
+------------------------------------------------------------
