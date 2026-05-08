@@ -527,6 +527,7 @@ class PostBreachPullbackHypothesis(Hypothesis):
                 "breach_time": breach_time,
                 "fan": fan,
                 "fraction": fraction,
+                "breach_fraction": fraction,
                 "direction": direction,
                 "is_retro": is_retro,
                 "status": "NO_PULLBACK_FOUND", # Default status
@@ -534,6 +535,8 @@ class PostBreachPullbackHypothesis(Hypothesis):
                 "pullback_type": None,
                 "mfe": 0.0,
                 "mae": 0.0,
+                "mfe_10": 0.0,
+                "mae_10": 0.0,
                 "outcome": None,
                 "reason": "No subsequent test within window"
             }
@@ -583,6 +586,8 @@ class PostBreachPullbackHypothesis(Hypothesis):
             if test_idx > b_idx + N:
                 breach_record["status"] = "REJECTED"
                 breach_record["reason"] = f"Test occurred outside {N}-bar window (happened {test_idx - b_idx} bars later)"
+                breach_record["mfe_10"] = float(first_test.get("MFE_10", 0.0) or 0.0)
+                breach_record["mae_10"] = float(first_test.get("MAE_10", 0.0) or 0.0)
                 self.detailed_log.append(breach_record)
                 continue
 
@@ -590,11 +595,15 @@ class PostBreachPullbackHypothesis(Hypothesis):
             if direction == "up" and test_type != "SUPPORT_TEST":
                 breach_record["status"] = "REJECTED"
                 breach_record["reason"] = f"Breach UP requires SUPPORT_TEST, but got {test_type} ({test_idx - b_idx} bars later)"
+                breach_record["mfe_10"] = float(first_test.get("MFE_10", 0.0) or 0.0)
+                breach_record["mae_10"] = float(first_test.get("MAE_10", 0.0) or 0.0)
                 self.detailed_log.append(breach_record)
                 continue
             elif direction == "down" and test_type != "RESISTANCE_TEST":
                 breach_record["status"] = "REJECTED"
                 breach_record["reason"] = f"Breach DOWN requires RESISTANCE_TEST, but got {test_type} ({test_idx - b_idx} bars later)"
+                breach_record["mfe_10"] = float(first_test.get("MFE_10", 0.0) or 0.0)
+                breach_record["mae_10"] = float(first_test.get("MAE_10", 0.0) or 0.0)
                 self.detailed_log.append(breach_record)
                 continue
 
@@ -610,6 +619,8 @@ class PostBreachPullbackHypothesis(Hypothesis):
             breach_record["reason"] = "Valid Post-Breach Pullback"
             breach_record["mfe"] = mfe
             breach_record["mae"] = mae
+            breach_record["mfe_10"] = mfe
+            breach_record["mae_10"] = mae
             breach_record["outcome"] = "WIN" if is_win else "LOSS"
             self.detailed_log.append(breach_record)
 

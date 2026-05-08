@@ -14,12 +14,23 @@ from analysis.strategy_analyzer import (
 )
 
 
-def _row_to_fan_state(active_angles_str, entry):
+def _row_to_fan_state(active_angles_str, entry, df=None):
     """Extract fan geometry from Active_Angles JSON string."""
     try:
         active_angles = json.loads(active_angles_str)
     except (json.JSONDecodeError, TypeError):
         return {'fans': [], 'intersections': []}
+
+    # Look up bar_index from df if not in entry
+    bar_index = entry.get('bar_index', 0)
+    if bar_index == 0 and df is not None:
+        time_key = str(entry.get('time', ''))
+        if not time_key:
+            time_key = str(entry.get('breach_time', ''))
+        if time_key:
+            match = df[df['Time'] == time_key]
+            if not match.empty and pd.notna(match.iloc[0]['bar_index']):
+                bar_index = int(match.iloc[0]['bar_index'])
 
     # Group by fan identity
     fan_groups = {}
@@ -50,12 +61,11 @@ def _row_to_fan_state(active_angles_str, entry):
         for line in lines:
             fraction = line['fraction']
             price = float(line['price'])
+            fraction_val = float(fraction) if fraction not in ('horizontal', 'full_coverage', 'main') else None
             color_map = {'0.875': '#2196F3', '0.75': '#4CAF50', '0.5': '#FF9800', '0.25': '#F44336'}
             color = color_map.get(fraction, '#888888')
             width = 4 if fraction == '0.5' else 2
 
-            bar_index = int(entry.get('bar_index', 0))
-            fraction_val = float(fraction) if fraction not in ('horizontal', 'full_coverage', 'main') else None
             fan['lines'].append({
                 'id': f'{fan_id}_{fraction}',
                 'fraction': fraction_val,
@@ -88,10 +98,28 @@ def _row_to_fan_state(active_angles_str, entry):
     return {'fans': fans, 'intersections': intersections}
 
 
-def _row_to_event_record(entry, fan_display_label, active_angles_str):
+def _get_metadata(df):
+    """Extract instrument, timeframe, start_date, end_date from dataframe once."""
+    instrument = df['Instrument'].iloc[0] if not df.empty and 'Instrument' in df.columns else "Unknown"
+    timeframe = df['Timeframe'].iloc[0] if not df.empty and 'Timeframe' in df.columns else "Unknown"
+    if not df.empty and 'Start_Date' in df.columns:
+        start_date_str = df['Start_Date'].iloc[0]
+    else:
+        try:
+            start_date_str = pd.to_datetime(df['Time'].iloc[0]).strftime('%Y-%m-%d')
+        except:
+            start_date_str = "Unknown"
+    try:
+        end_date_str = pd.to_datetime(df['Time'].iloc[-1]).strftime('%Y-%m-%d')
+    except:
+        end_date_str = "Unknown"
+    return instrument, timeframe, start_date_str, end_date_str
+
+
+def _row_to_event_record(entry, fan_display_label, active_angles_str, df=None):
     """Convert a single event dict to the frontend's expected event format with fan geometry."""
     fan_id = entry.get('fan', 'Unknown')
-    fan_state = _row_to_fan_state(active_angles_str, entry)
+    fan_state = _row_to_fan_state(active_angles_str, entry, df)
 
     return {
         'event_id': int(entry.get('event_id', 0)),
@@ -111,6 +139,8 @@ def _row_to_event_record(entry, fan_display_label, active_angles_str):
         'breach_direction': str(entry.get('breach_direction', '')),
         'mfe': float(entry.get('mfe_10', 0)),
         'mae': float(entry.get('mae_10', 0)),
+        'mfe_10': float(entry.get('mfe_10', 0)),
+        'mae_10': float(entry.get('mae_10', 0)),
         'O': float(entry.get('O', 0)),
         'H': float(entry.get('H', 0)),
         'L': float(entry.get('L', 0)),
@@ -170,25 +200,9 @@ for hyp in hypotheses:
     with open(filepath, 'w') as f:
         f.write(f"=== {hyp.name.upper()} VERBOSE REPORT ===\n")
         f.write("=== REPRODUCTION INSTRUCTIONS ===\n")
-        
-        # Extract instrument and timeframe from df
-        instrument = df['Instrument'].iloc[0] if not df.empty and 'Instrument' in df.columns else "Unknown"
-        timeframe = df['Timeframe'].iloc[0] if not df.empty and 'Timeframe' in df.columns else "Unknown"
-        
-        # Try to extract the requested start_date from the new column, fallback to the first event's date
-        if not df.empty and 'Start_Date' in df.columns:
-            start_date_str = df['Start_Date'].iloc[0]
-        else:
-            try:
-                start_date_str = pd.to_datetime(df['Time'].iloc[0]).strftime('%Y-%m-%d')
-            except:
-                start_date_str = "Unknown"
-            
-        try:
-            end_date_str = pd.to_datetime(df['Time'].iloc[-1]).strftime('%Y-%m-%d')
-        except:
-            end_date_str = "Unknown"
-            
+
+        instrument, timeframe, start_date_str, end_date_str = _get_metadata(df)
+
         f.write(f"To replicate these results on the frontend, use the following parameters:\n")
         f.write(f"Symbol:     {instrument}\n")
         f.write(f"Timeframe:  {timeframe}m\n")
@@ -275,30 +289,25 @@ for hyp in hypotheses:
 
     for e in live_events:
         fan_display = f"{e.get('fan', 'Unknown')}"
-        time_key = str(e.get('time', ''))
+        # Use breach_time for PostBreach, time for all others
+        if hyp.name == "Post-Breach Pullback Continuation":
+            time_key = str(e.get('breach_time', ''))
+        else:
+            time_key = str(e.get('time', ''))
         active_angles_raw = time_to_active_angles.get(time_key, '{}')
-        live_events_geometry.append(_row_to_event_record(e, fan_display, active_angles_raw))
+        live_events_geometry.append(_row_to_event_record(e, fan_display, active_angles_raw, df))
 
     for e in retro_events:
         fan_display = f"{e.get('fan', 'Unknown')} [RETRO]"
-        time_key = str(e.get('time', ''))
+        if hyp.name == "Post-Breach Pullback Continuation":
+            time_key = str(e.get('breach_time', ''))
+        else:
+            time_key = str(e.get('time', ''))
         active_angles_raw = time_to_active_angles.get(time_key, '{}')
-        retro_events_geometry.append(_row_to_event_record(e, fan_display, active_angles_raw))
+        retro_events_geometry.append(_row_to_event_record(e, fan_display, active_angles_raw, df))
 
     # Extract metadata
-    instrument = df['Instrument'].iloc[0] if not df.empty and 'Instrument' in df.columns else "Unknown"
-    timeframe = df['Timeframe'].iloc[0] if not df.empty and 'Timeframe' in df.columns else "Unknown"
-    if not df.empty and 'Start_Date' in df.columns:
-        start_date_str = df['Start_Date'].iloc[0]
-    else:
-        try:
-            start_date_str = pd.to_datetime(df['Time'].iloc[0]).strftime('%Y-%m-%d')
-        except:
-            start_date_str = "Unknown"
-    try:
-        end_date_str = pd.to_datetime(df['Time'].iloc[-1]).strftime('%Y-%m-%d')
-    except:
-        end_date_str = "Unknown"
+    instrument, timeframe, start_date_str, end_date_str = _get_metadata(df)
 
     json_output = {
         'metadata': {
