@@ -398,6 +398,9 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
     // Track the last processed interaction to avoid duplicate processing
     const lastProcessedInteractionRef = useRef(null);
 
+    // Track hypothesis markers for cleanup
+    const hypothesisMarkerRef = useRef([]);
+
     // Re-draw selected interaction
     useEffect(() => {
         console.log('[TVChart] selectedInteraction changed:', selectedInteraction);
@@ -1056,6 +1059,72 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
 
         // --- ADDED: Extract available fan labels from incoming drawings ---
         updateAvailableFans: updateAvailableFans,
+
+        // Navigate to a hypothesis event: pan chart, draw arrow marker, render fan geometry
+        navigateToHypothesisEvent: (event) => {
+            if (!widgetRef.current) return;
+            const chart = widgetRef.current.activeChart();
+
+            // Clear previous hypothesis markers
+            hypothesisMarkerRef.current.forEach(m => {
+                try { chart.removeEntity(m); } catch (_) {}
+            });
+            hypothesisMarkerRef.current = [];
+
+            // Clear existing study shapes (fans from previous selection)
+            Object.keys(studyShapesRef.current).forEach(k => {
+                const id = studyShapesRef.current[k];
+                if (id && typeof id !== 'object') {
+                    try { chart.removeEntity(id); } catch (_) {}
+                }
+            });
+            studyShapesRef.current = {};
+
+            // Pan chart to center the event timestamp
+            const eventTimeSec = toSeconds(event.timestamp);
+
+            try {
+                const visibleRange = chart.getVisibleRange();
+                const rangeWidth = visibleRange.to - visibleRange.from;
+                const newFrom = eventTimeSec - rangeWidth / 2;
+                const newTo = eventTimeSec + rangeWidth / 2;
+                chart.setVisibleRange({ from: newFrom, to: newTo }).catch(() => {});
+            } catch (e) {}
+
+            // Draw target price arrow marker
+            if (event.target_price) {
+                const shapeId = chart.createShape(
+                    { time: eventTimeSec, price: event.target_price },
+                    {
+                        shape: 'arrow_down',
+                        lock: true,
+                        disableUndo: true,
+                        overrides: { color: '#FFEB3B', backgroundColor: '#FFEB3B', size: 1 }
+                    }
+                );
+                if (shapeId) hypothesisMarkerRef.current.push(shapeId);
+            }
+
+            // Render fan geometry if available
+            if (event.fan_state && event.fan_state.fans && event.fan_state.fans.length > 0) {
+                const studyData = {
+                    drawings: event.fan_state.fans.flatMap(fan =>
+                        fan.lines.map(line => ({
+                            id: line.id,
+                            type: 'trend_line',
+                            points: line.points,
+                            options: {
+                                ...line.options,
+                                fanIdentity: fan.fan_id,
+                                fanLabel: fan.display_label
+                            }
+                        }))
+                    ),
+                    pivot_markers: []
+                };
+                studyShapesRef.current = processStudyResponse(chart, studyData, studyShapesRef.current);
+            }
+        },
 
         // INSTANT MODE: Plot all candles and signals at once
         startBacktestInstant: (candles, trades, resolution = '1', markers = [], drawings = []) => {
