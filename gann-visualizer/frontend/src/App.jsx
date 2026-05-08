@@ -76,6 +76,11 @@ function App() {
     const [selectedInteractionIndex, setSelectedInteractionIndex] = useState(0) // Track selected interaction
     const [isChartPlaying, setIsChartPlaying] = useState(false)
 
+    // Hypothesis Navigator State
+    const [hypothesisEvents, setHypothesisEvents] = useState([]);
+    const [selectedHypothesisEvent, setSelectedHypothesisEvent] = useState(null);
+    const [hypothesisFilter, setHypothesisFilter] = useState('all'); // 'all' | 'live' | 'retro' | 'win' | 'miss'
+
     // Reset selected interaction when filter changes
     useEffect(() => {
         setSelectedInteractionIndex(0);
@@ -392,6 +397,15 @@ function App() {
         };
     }, [handleResizeMove, handleResizeEnd]); // Dependency updated to handle stable callbacks
 
+    // Hypothesis Navigator Filter
+    const filteredHypothesisEvents = hypothesisEvents.filter(evt => {
+        if (hypothesisFilter === 'live') return evt.type === 'live';
+        if (hypothesisFilter === 'retro') return evt.type === 'retroactive';
+        if (hypothesisFilter === 'win') return evt.outcome === 'WIN';
+        if (hypothesisFilter === 'miss') return evt.outcome === 'MISS';
+        return true;
+    });
+
     const filteredInteractions = priceInteractions.filter(hit => filterFan === 'all' || (hit.fanIdentity || hit.fan) === filterFan);
     const selectedInteraction = filteredInteractions[selectedInteractionIndex] || null;
 
@@ -559,6 +573,12 @@ function App() {
                             onClick={() => { setBottomPanelTab('interactions'); if (resultsHeight <= 40) setResultsHeight(180); }}
                         >
                             Price Interactions {priceInteractions.length > 0 && <span className="tab-badge">{priceInteractions.length}</span>}
+                        </button>
+                        <button
+                            className={`panel-tab${bottomPanelTab === 'hypothesis' ? ' active' : ''}`}
+                            onClick={() => { setBottomPanelTab('hypothesis'); if (resultsHeight <= 40) setResultsHeight(200); }}
+                        >
+                            Hypothesis Navigator {hypothesisEvents.length > 0 && <span className="tab-badge">{hypothesisEvents.length}</span>}
                         </button>
                         <span className="panel-drag-hint">
                             {resultsHeight <= 40 ? '↑ Drag to expand' : ''}
@@ -775,6 +795,108 @@ function App() {
                                             </table>
                                         </div>
                                     </>
+                                )}
+                            </div>
+                        )}
+
+                        {bottomPanelTab === 'hypothesis' && (
+                            <div className="hypothesis-navigator">
+                                <div style={{ marginBottom: '10px', display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+                                    <input
+                                        type="file"
+                                        accept=".json"
+                                        onChange={(e) => {
+                                            const file = e.target.files[0];
+                                            if (!file) return;
+                                            const reader = new FileReader();
+                                            reader.onload = (ev) => {
+                                                try {
+                                                    const data = JSON.parse(ev.target.result);
+                                                    const allEvents = [
+                                                        ...(data.live_events || []).map((e, i) => ({ ...e, event_id: i + 1, type: 'live' })),
+                                                        ...(data.retro_events || []).map((e, i) => ({ ...e, event_id: i + 1, type: 'retroactive' }))
+                                                    ];
+                                                    setHypothesisEvents(allEvents);
+                                                    setSelectedHypothesisEvent(null);
+                                                    console.log("[Hypothesis] Loaded", allEvents.length, "events from", data.metadata?.symbol);
+                                                } catch (err) {
+                                                    console.error("[Hypothesis] Failed to parse JSON:", err);
+                                                    alert("Invalid hypothesis JSON file");
+                                                }
+                                            };
+                                            reader.readAsText(file);
+                                        }}
+                                        style={{ fontSize: '11px' }}
+                                    />
+                                    <select
+                                        value={hypothesisFilter}
+                                        onChange={(e) => setHypothesisFilter(e.target.value)}
+                                        style={{ padding: '2px 5px', fontSize: '11px' }}
+                                    >
+                                        <option value="all">All Events</option>
+                                        <option value="live">Live Only</option>
+                                        <option value="retro">Retroactive Only</option>
+                                        <option value="win">WIN Only</option>
+                                        <option value="miss">MISS Only</option>
+                                    </select>
+                                    <span style={{ fontSize: '11px', color: '#888' }}>
+                                        {filteredHypothesisEvents.length} of {hypothesisEvents.length} events
+                                    </span>
+                                    {selectedHypothesisEvent && (
+                                        <span style={{ fontSize: '11px', color: '#FFEB3B' }}>
+                                            Selected: {selectedHypothesisEvent.datetime} | {selectedHypothesisEvent.fan} | {selectedHypothesisEvent.outcome}
+                                        </span>
+                                    )}
+                                </div>
+                                {hypothesisEvents.length === 0 ? (
+                                    <p style={{ fontSize: '12px', color: '#888' }}>Load a hypothesis JSON file to begin verification.</p>
+                                ) : (
+                                    <div className="table-container" style={{ overflowX: 'auto' }}>
+                                        <table className="interactions-table" style={{ whiteSpace: 'nowrap', fontSize: '11px' }}>
+                                            <thead>
+                                                <tr>
+                                                    <th>#</th>
+                                                    <th>Type</th>
+                                                    <th>DateTime</th>
+                                                    <th>Fan</th>
+                                                    <th>Fraction</th>
+                                                    <th>Target Price</th>
+                                                    <th>Outcome</th>
+                                                    <th>MFE</th>
+                                                    <th>MAE</th>
+                                                    <th>Breach Time</th>
+                                                    <th>Breach Price</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {filteredHypothesisEvents.map((evt, i) => (
+                                                    <tr
+                                                        key={i}
+                                                        className={selectedHypothesisEvent === evt ? 'selected-row' : ''}
+                                                        onClick={() => {
+                                                            setSelectedHypothesisEvent(evt);
+                                                            if (chartRef.current?.navigateToHypothesisEvent) {
+                                                                chartRef.current.navigateToHypothesisEvent(evt);
+                                                            }
+                                                        }}
+                                                        style={{ cursor: 'pointer' }}
+                                                    >
+                                                        <td>{i + 1}</td>
+                                                        <td style={{ color: evt.type === 'live' ? '#00E676' : '#FF9800' }}>{evt.type === 'live' ? 'LIVE' : 'RETRO'}</td>
+                                                        <td>{evt.datetime}</td>
+                                                        <td style={{ color: '#90CAF9' }}>{evt.fan}</td>
+                                                        <td style={{ color: '#FFEB3B' }}>{evt.fraction}</td>
+                                                        <td>{evt.target_price}</td>
+                                                        <td style={{ color: evt.outcome === 'WIN' ? '#00E676' : '#FF5252', fontWeight: 'bold' }}>{evt.outcome}</td>
+                                                        <td>{evt.mfe ? evt.mfe.toFixed(2) : '-'}</td>
+                                                        <td>{evt.mae ? evt.mae.toFixed(2) : '-'}</td>
+                                                        <td>{evt.breach_time || '-'}</td>
+                                                        <td>{evt.breach_price || '-'}</td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
                                 )}
                             </div>
                         )}
