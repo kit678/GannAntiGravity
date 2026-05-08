@@ -14,7 +14,7 @@ from analysis.strategy_analyzer import (
 )
 
 
-def _row_to_fan_state(active_angles_str, entry, df=None):
+def _row_to_fan_state(active_angles_str, entry, df=None, anchor_bar_index=0, scale_ratio=1.0, anchor_price=0):
     """Extract fan geometry from Active_Angles JSON string."""
     try:
         active_angles = json.loads(active_angles_str)
@@ -66,20 +66,55 @@ def _row_to_fan_state(active_angles_str, entry, df=None):
             color = color_map.get(fraction, '#888888')
             width = 4 if fraction == '0.5' else 2
 
-            fan['lines'].append({
-                'id': f'{fan_id}_{fraction}',
-                'fraction': fraction_val,
-                'points': [
-                    {'time': bar_index - 500, 'price': price},
-                    {'time': bar_index + 2000, 'price': price}
-                ],
-                'options': {
-                    'linecolor': color,
-                    'linewidth': width,
-                    'linestyle': 1,
-                    'extendRight': True
-                }
-            })
+            # Only compute angular fan rays for fraction lines (0.875, 0.75, 0.5, 0.25)
+            if fraction_val is not None and anchor_bar_index and anchor_price and scale_ratio:
+                # Compute angular fan ray from anchor to event bar and beyond
+                # Line equation: price = anchor_price + fraction * (bars_from_anchor) * scale_ratio
+                event_bar = bar_index
+                bars_from_anchor = event_bar - anchor_bar_index
+
+                # Point at event bar (known from Active_Angles)
+                point1_time = event_bar
+                point1_price = price
+
+                # Point far to the right (extended line)
+                point2_time = event_bar + 2000
+                point2_price = anchor_price + (point2_time - anchor_bar_index) * fraction_val * scale_ratio
+
+                # Point far to the left (extended backward from anchor)
+                point0_time = anchor_bar_index - 500
+                point0_price = anchor_price + (point0_time - anchor_bar_index) * fraction_val * scale_ratio
+
+                fan['lines'].append({
+                    'id': f'{fan_id}_{fraction}',
+                    'fraction': fraction_val,
+                    'points': [
+                        {'time': point0_time, 'price': point0_price},
+                        {'time': point2_time, 'price': point2_price}
+                    ],
+                    'options': {
+                        'linecolor': color,
+                        'linewidth': width,
+                        'linestyle': 1,
+                        'extendRight': True
+                    }
+                })
+            else:
+                # Fallback: horizontal lines (for non-fraction lines or missing geometry)
+                fan['lines'].append({
+                    'id': f'{fan_id}_{fraction}',
+                    'fraction': fraction_val,
+                    'points': [
+                        {'time': bar_index - 500, 'price': price},
+                        {'time': bar_index + 2000, 'price': price}
+                    ],
+                    'options': {
+                        'linecolor': color,
+                        'linewidth': width,
+                        'linestyle': 1,
+                        'extendRight': True
+                    }
+                })
 
         fans.append(fan)
 
@@ -119,7 +154,39 @@ def _get_metadata(df):
 def _row_to_event_record(entry, fan_display_label, active_angles_str, df=None):
     """Convert a single event dict to the frontend's expected event format with fan geometry."""
     fan_id = entry.get('fan', 'Unknown')
-    fan_state = _row_to_fan_state(active_angles_str, entry, df)
+    # Extract fan geometry from entry (populated from events.csv)
+    anchor_bar_index = entry.get('anchor_bar_index', 0)
+    if not anchor_bar_index and df is not None:
+        # Try to look up from df using time as key
+        time_key = str(entry.get('time', ''))
+        if not time_key:
+            time_key = str(entry.get('breach_time', ''))
+        if time_key:
+            match = df[df['Time'] == time_key]
+            if not match.empty:
+                anchor_bar_index = match.iloc[0].get('anchor_bar_index', 0)
+                if pd.isna(anchor_bar_index):
+                    anchor_bar_index = 0
+    scale_ratio = entry.get('scale_ratio', 1.0)
+    if scale_ratio is None or (isinstance(scale_ratio, str) and not scale_ratio):
+        scale_ratio = 1.0
+    try:
+        scale_ratio = float(scale_ratio)
+    except:
+        scale_ratio = 1.0
+    anchor_price = entry.get('anchor_price', 0)
+    if not anchor_price and df is not None:
+        # Try to look up from df using time as key
+        time_key = str(entry.get('time', ''))
+        if not time_key:
+            time_key = str(entry.get('breach_time', ''))
+        if time_key:
+            match = df[df['Time'] == time_key]
+            if not match.empty:
+                anchor_price = match.iloc[0].get('anchor_price', 0)
+                if pd.isna(anchor_price):
+                    anchor_price = 0
+    fan_state = _row_to_fan_state(active_angles_str, entry, df, anchor_bar_index, scale_ratio, anchor_price)
 
     return {
         'event_id': int(entry.get('event_id', 0)),

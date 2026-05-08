@@ -74,7 +74,11 @@ class StrongSRHypothesis(Hypothesis):
                 "is_retro": is_retro,
                 "outcome": "WIN" if is_win else "LOSS",
                 "mfe": mfe,
-                "mae": mae
+                "mae": mae,
+                # Fan geometry for angular fan ray reconstruction
+                "anchor_bar_index": row.get("anchor_bar_index", 0),
+                "scale_ratio": row.get("scale_ratio", 1.0),
+                "anchor_price": row.get("anchor_price", 0.0),
             }
             self.detailed_log.append(record)
             
@@ -274,6 +278,10 @@ class TargetProgressionHypothesis(Hypothesis):
             "H": row.get('High', 0.0),
             "L": row.get('Low', 0.0),
             "C": row.get('Close', 0.0),
+            # Fan geometry for angular fan ray reconstruction
+            "anchor_bar_index": row.get('anchor_bar_index', 0),
+            "scale_ratio": row.get('scale_ratio', 1.0),
+            "anchor_price": row.get('anchor_price', 0.0),
         }
         
         if preceding_breach:
@@ -340,7 +348,11 @@ class QuarterReversalAnomalyHypothesis(Hypothesis):
                 "is_retro": is_retro,
                 "outcome": "WIN" if is_win else "LOSS",
                 "mfe": mfe,
-                "mae": mae
+                "mae": mae,
+                # Fan geometry for angular fan ray reconstruction
+                "anchor_bar_index": row.get("anchor_bar_index", 0),
+                "scale_ratio": row.get("scale_ratio", 1.0),
+                "anchor_price": row.get("anchor_price", 0.0),
             }
             self.detailed_log.append(record)
             
@@ -447,7 +459,11 @@ class ConfluenceBounceHypothesis(Hypothesis):
                     "outcome": "WIN" if is_win else "LOSS",
                     "mfe": mfe,
                     "mae": mae,
-                    "confluence_lines": confluence_lines
+                    "confluence_lines": confluence_lines,
+                    # Fan geometry for angular fan ray reconstruction
+                    "anchor_bar_index": row.get("anchor_bar_index", 0),
+                    "scale_ratio": row.get("scale_ratio", 1.0),
+                    "anchor_price": row.get("anchor_price", 0.0),
                 }
                 self.detailed_log.append(record)
                 
@@ -538,7 +554,11 @@ class PostBreachPullbackHypothesis(Hypothesis):
                 "mfe_10": 0.0,
                 "mae_10": 0.0,
                 "outcome": None,
-                "reason": "No subsequent test within window"
+                "reason": "No subsequent test within window",
+                # Fan geometry for angular fan ray reconstruction
+                "anchor_bar_index": brc.get("anchor_bar_index", 0),
+                "scale_ratio": brc.get("scale_ratio", 1.0),
+                "anchor_price": brc.get("anchor_price", 0.0),
             }
 
             # Find ALL tests on this line after the breach (even beyond N bars, to see why they might be rejected)

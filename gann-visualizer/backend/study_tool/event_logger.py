@@ -81,6 +81,11 @@ class Event:
     mfe_50: Optional[float] = None
     mae_50: Optional[float] = None
 
+    # Fan geometry context (for true angular fan ray reconstruction)
+    anchor_bar_index: Optional[int] = None
+    scale_ratio: Optional[float] = None
+    anchor_price: Optional[float] = None
+
     def to_dict(self) -> Dict:
         return {
             "timestamp": self.timestamp,
@@ -109,7 +114,11 @@ class Event:
             "mae_20": self.mae_20,
             "mfe_50": self.mfe_50,
             "mae_50": self.mae_50,
-            "details": self.details or {}
+            "details": self.details or {},
+            # Fan geometry context
+            "anchor_bar_index": self.anchor_bar_index,
+            "scale_ratio": self.scale_ratio,
+            "anchor_price": self.anchor_price
         }
 
     @classmethod
@@ -149,6 +158,10 @@ class Event:
         event.mfe_50 = data.get("mfe_50")
         event.mae_50 = data.get("mae_50")
         event.details = data.get("details", {})
+        # Fan geometry context
+        event.anchor_bar_index = data.get("anchor_bar_index")
+        event.scale_ratio = data.get("scale_ratio")
+        event.anchor_price = data.get("anchor_price")
         return event
 
 
@@ -190,7 +203,10 @@ class EventLogger:
         current_zone: Optional[str] = None,
         zone_highest_close: Optional[float] = None,
         zone_lowest_close: Optional[float] = None,
-        next_angle_line: Optional[str] = None
+        next_angle_line: Optional[str] = None,
+        anchor_bar_index: Optional[int] = None,
+        scale_ratio: Optional[float] = None,
+        anchor_price: Optional[float] = None
     ) -> Event:
         """
         Log a generic event.
@@ -232,7 +248,10 @@ class EventLogger:
             current_zone=current_zone,
             zone_highest_close=zone_highest_close,
             zone_lowest_close=zone_lowest_close,
-            next_angle_line=next_angle_line
+            next_angle_line=next_angle_line,
+            anchor_bar_index=anchor_bar_index,
+            scale_ratio=scale_ratio,
+            anchor_price=anchor_price
         )
         self.events.append(event)
         return event
@@ -560,7 +579,11 @@ class EventLogger:
                 "MFE_50": round(event.mfe_50, 4) if event.mfe_50 is not None else "",
                 "MAE_50": round(event.mae_50, 4) if event.mae_50 is not None else "",
                 "Raw_Timestamp": event.timestamp,
-                "Direction": event.direction or ""
+                "Direction": event.direction or "",
+                # Fan geometry context
+                "anchor_bar_index": event.anchor_bar_index if event.anchor_bar_index is not None else "",
+                "scale_ratio": round(event.scale_ratio, 4) if event.scale_ratio is not None else "",
+                "anchor_price": round(event.anchor_price, 2) if event.anchor_price is not None else ""
             }
 
             rows.append(row)
@@ -574,7 +597,8 @@ class EventLogger:
                           "Instrument", "Timeframe",
                           "MFE_5", "MAE_5", "MFE_10", "MAE_10",
                           "MFE_20", "MAE_20", "MFE_50", "MAE_50",
-                          "Raw_Timestamp", "Direction"]
+                          "Raw_Timestamp", "Direction",
+                          "anchor_bar_index", "scale_ratio", "anchor_price"]
             
             with open(path, 'w', newline='') as f:
                 writer = csv.DictWriter(f, fieldnames=fieldnames)

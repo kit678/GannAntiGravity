@@ -314,7 +314,8 @@ def run_simulation(symbol="^NSEI", resolution="4", data_source="yfinance", from_
                              'Instrument', 'Timeframe', 'Start_Date',
                              'MFE_5', 'MAE_5', 'MFE_10', 'MAE_10',
                              'MFE_20', 'MAE_20', 'MFE_50', 'MAE_50',
-                             'Raw_Timestamp', 'Direction', 'bar_index', 'bars_elapsed'])
+                             'Raw_Timestamp', 'Direction', 'bar_index', 'bars_elapsed',
+                             'anchor_bar_index', 'scale_ratio', 'anchor_price'])
             
             # Use IST timezone for formatting to match frontend
             ist = pytz.timezone('Asia/Kolkata')
@@ -387,6 +388,10 @@ def run_simulation(symbol="^NSEI", resolution="4", data_source="yfinance", from_
                     direction,
                     bar_idx,
                     bars_elapsed,
+                    # Fan geometry for true angular fan ray reconstruction
+                    event.get('anchor_bar_index', ''),
+                    event.get('scale_ratio', ''),
+                    event.get('anchor_price', ''),
                 ])
                 
         logging.info(f"Exported {len(all_intersection_events)} identical frontend events to {csv_path}")

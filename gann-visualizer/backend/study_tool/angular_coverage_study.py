@@ -293,6 +293,9 @@ class AngularPriceCoverageStudy:
                 
                 if self.zone_tracker.has_zone_changed(fan_id, snapshot.zone):
                     # For zone change, use the NEW snapshot's extremes
+                    # Get fan geometry context from persisted fans
+                    fan_data = self._persisted_fans.get(fan_id, {})
+                    fan_geom = fan_data.get('anchor', {})
                     self.event_logger.log_event(
                         timestamp=current_candle['time'],
                         event_type=EventType.ZONE_CHANGE,
@@ -306,7 +309,9 @@ class AngularPriceCoverageStudy:
                         current_zone=snapshot.zone,
                         zone_highest_close=snapshot.zone_highest_close,
                         zone_lowest_close=snapshot.zone_lowest_close,
-                        
+                        anchor_bar_index=fan_geom.get('bar_index', 0),
+                        scale_ratio=self.config.get('scale_ratio', 1.0),
+                        anchor_price=fan_geom.get('price', 0),
                         details={
                             'fan_id': fan_id,
                             'new_zone': snapshot.zone,
@@ -317,46 +322,33 @@ class AngularPriceCoverageStudy:
         # Process retroactive events only for fans that remain active after sync
         # We need to process them chronologically by bar_index so the state machine works correctly
         if self._pending_retro_events:
-            # Group all retro events by bar index
-            retro_events_by_bar = {}
-            
-            # We also need to track the min anchor bar index to know where to start the sweep
+            # We need to track the min anchor bar index to know where to start the sweep
             min_anchor_idx = bar_index
             
             for fan_id, retro_data in self._pending_retro_events.items():
                 if fan_id in self._persisted_fans:
-                    events = retro_data.get('events', [])
                     anchor_idx = retro_data.get('anchor_idx', bar_index)
                     min_anchor_idx = min(min_anchor_idx, anchor_idx)
-                    
-                    if events:
-                        print(f"[RetroSweep] Queuing {len(events)} retro events for active fan {fan_id}")
-                        for event in events:
-                            # Find the candle for this event
-                            bar_idx = -1
-                            for i, c in enumerate(candles):
-                                if int(c['time']) == event.time:
-                                    bar_idx = i
-                                    break
-                            
-                            if bar_idx >= 0:
-                                if bar_idx not in retro_events_by_bar:
-                                    retro_events_by_bar[bar_idx] = []
-                                retro_events_by_bar[bar_idx].append(event)
-                else:
-                    events = retro_data.get('events', [])
-                    if events:
-                        print(f"[RetroSweep] Skipping {len(events)} retro events for deactivated fan {fan_id}")
             
             # Process chronologically for EVERY bar from min_anchor_idx to current bar_index - 1
-            # This ensures we log the distance to the new fan's lines even if there are no intersections
-            # Note: min_anchor_idx is included (not +1) to capture anchor bar events
             if min_anchor_idx < bar_index:
                 retro_fan_ids = [fid for fid in self._pending_retro_events.keys() if fid in self._persisted_fans]
+                retro_fans = {fid: self.angle_engine.active_fans[fid] for fid in retro_fan_ids if fid in self.angle_engine.active_fans}
+                
                 for b_idx in range(min_anchor_idx, bar_index):
-                    r_events = retro_events_by_bar.get(b_idx, [])
                     r_candle = candles[b_idx]
                     r_prev_candle = candles[b_idx - 1] if b_idx > 0 else None
+                    
+                    # Detect intersections for the retro fans on this historical bar
+                    r_events = self.intersection_detector.detect(r_candle, r_prev_candle, retro_fans, b_idx)
+                    
+                    if r_events:
+                        for event in r_events:
+                            if event.fan_id in retro_fans:
+                                fan_obj = retro_fans[event.fan_id]
+                                fan_obj.intersections.append(event)
+                                label_id = f"hit_{event.fan_id}_{event.line_id}_{event.time}_{event.price}"
+                                fan_obj.label_ids.append(label_id)
                     
                     ui_events = []
                     self._process_tracking_modules(
@@ -504,6 +496,11 @@ class AngularPriceCoverageStudy:
             z_extremes = {'highest_close': last_zone.zone_highest_close, 'lowest_close': last_zone.zone_lowest_close} if last_zone else None
             b_in_zone = last_zone.bars_in_zone if last_zone else None
 
+            # Get fan geometry context
+            fan_obj = self.angle_engine.active_fans.get(validation.fan_id)
+            fan_data = self._persisted_fans.get(validation.fan_id, {})
+            fan_geom = fan_data.get('anchor', {})
+
             self.event_logger.log_event(
                 timestamp=timestamp,
                 event_type=EventType.FAN_VALIDATED,
@@ -518,8 +515,10 @@ class AngularPriceCoverageStudy:
                 current_zone=current_zone_str,
                 zone_highest_close=z_extremes.get('highest_close') if z_extremes else None,
                 zone_lowest_close=z_extremes.get('lowest_close') if z_extremes else None,
-
                 next_angle_line=target_info.get('next_angle_line'),
+                anchor_bar_index=fan_geom.get('bar_index', 0) if fan_obj is None else getattr(fan_obj, 'anchor_bar_index', fan_geom.get('bar_index', 0)),
+                scale_ratio=self.config.get('scale_ratio', 1.0),
+                anchor_price=fan_geom.get('price', 0),
                 details={
                     'fan_id': validation.fan_id,
                     'validation_type': validation.validation_type,
@@ -553,8 +552,12 @@ class AngularPriceCoverageStudy:
                 'cluster': is_cluster,
                 'zone': current_zone_str or "",
                 'zoneExtremes': z_extremes or "",
-
-                'nextAngleLine': target_info.get('next_angle_line') or ""
+                'bar_index': bar_index,
+                'nextAngleLine': target_info.get('next_angle_line') or "",
+                # Fan geometry for angular fan ray reconstruction
+                'anchor_bar_index': fan_geom.get('bar_index', 0) if fan_obj is None else getattr(fan_obj, 'anchor_bar_index', fan_geom.get('bar_index', 0)),
+                'scale_ratio': self.config.get('scale_ratio', 1.0),
+                'anchor_price': fan_geom.get('price', 0),
             })
 
         # Provide the correct ZEC context using historical zone state BEFORE calling state machine.
@@ -619,6 +622,11 @@ class AngularPriceCoverageStudy:
 
             target_info = get_target_info_for_event(state_event.fan_id)
 
+            # Get fan geometry context
+            fan_obj_sm = self.angle_engine.active_fans.get(state_event.fan_id)
+            fan_data_sm = self._persisted_fans.get(state_event.fan_id, {})
+            fan_geom_sm = fan_data_sm.get('anchor', {})
+
             self.event_logger.log_event(
                 timestamp=timestamp,
                 event_type=evt_enum,
@@ -634,8 +642,10 @@ class AngularPriceCoverageStudy:
                 current_zone=current_zone_str,
                 zone_highest_close=z_extremes.get('highest_close') if z_extremes else None,
                 zone_lowest_close=z_extremes.get('lowest_close') if z_extremes else None,
-                
                 next_angle_line=target_info.get('next_angle_line'),
+                anchor_bar_index=fan_geom_sm.get('bar_index', 0) if fan_obj_sm is None else getattr(fan_obj_sm, 'anchor_bar_index', fan_geom_sm.get('bar_index', 0)),
+                scale_ratio=self.config.get('scale_ratio', 1.0),
+                anchor_price=fan_geom_sm.get('price', 0),
                 details={
                     'fan_id': state_event.fan_id,
                     'ui_type': state_event.event_type,
@@ -660,7 +670,11 @@ class AngularPriceCoverageStudy:
                 'zone': current_zone_str or "",
                 'zoneExtremes': z_extremes or "",
                 'bar_index': state_event.bar_index,
-                'nextAngleLine': target_info.get('next_angle_line') or ""
+                'nextAngleLine': target_info.get('next_angle_line') or "",
+                # Fan geometry for angular fan ray reconstruction
+                'anchor_bar_index': fan_geom_sm.get('bar_index', 0) if fan_obj_sm is None else getattr(fan_obj_sm, 'anchor_bar_index', fan_geom_sm.get('bar_index', 0)),
+                'scale_ratio': self.config.get('scale_ratio', 1.0),
+                'anchor_price': fan_geom_sm.get('price', 0),
             })
 
             # Emit target hit event if applicable
@@ -674,6 +688,11 @@ class AngularPriceCoverageStudy:
                 z_extremes = {'highest_close': last_zone.zone_highest_close, 'lowest_close': last_zone.zone_lowest_close} if last_zone else None
                 b_in_zone = last_zone.bars_in_zone if last_zone else None
                 target_info = get_target_info_for_event(state_event.fan_id)
+
+                # Get fan geometry context
+                target_fan_obj = self.angle_engine.active_fans.get(target_hit.fan_id)
+                target_fan_data = self._persisted_fans.get(target_hit.fan_id, {})
+                target_fan_geom = target_fan_data.get('anchor', {})
 
                 self.event_logger.log_event(
                     timestamp=timestamp,
@@ -689,7 +708,9 @@ class AngularPriceCoverageStudy:
                     current_zone=current_zone_str,
                     zone_highest_close=z_extremes.get('highest_close') if z_extremes else None,
                     zone_lowest_close=z_extremes.get('lowest_close') if z_extremes else None,
-
+                    anchor_bar_index=target_fan_geom.get('bar_index', 0) if target_fan_obj is None else getattr(target_fan_obj, 'anchor_bar_index', target_fan_geom.get('bar_index', 0)),
+                    scale_ratio=self.config.get('scale_ratio', 1.0),
+                    anchor_price=target_fan_geom.get('price', 0),
                     details={
                         'fan_id': target_hit.fan_id,
                         'hit_bar': target_hit.hit_bar,
@@ -739,7 +760,11 @@ class AngularPriceCoverageStudy:
                     'zone': current_zone_str or "",
                     'zoneExtremes': z_extremes or "",
                     'bar_index': bar_index,
-                    'nextAngleLine': target_info.get('next_angle_line') or ""
+                    'nextAngleLine': target_info.get('next_angle_line') or "",
+                    # Fan geometry for angular fan ray reconstruction
+                    'anchor_bar_index': target_fan_geom.get('bar_index', 0) if target_fan_obj is None else getattr(target_fan_obj, 'anchor_bar_index', target_fan_geom.get('bar_index', 0)),
+                    'scale_ratio': self.config.get('scale_ratio', 1.0),
+                    'anchor_price': target_fan_geom.get('price', 0),
                 })
             elif state_event.event_type in ('CROSS_UP', 'CROSS_DOWN'):
                 target_failed = self.target_progression.on_cross(
@@ -758,6 +783,11 @@ class AngularPriceCoverageStudy:
                     z_extremes = {'highest_close': last_zone.zone_highest_close, 'lowest_close': last_zone.zone_lowest_close} if last_zone else None
                     b_in_zone = last_zone.bars_in_zone if last_zone else None
 
+                    # Get fan geometry context
+                    failed_fan_obj = self.angle_engine.active_fans.get(state_event.fan_id)
+                    failed_fan_data = self._persisted_fans.get(state_event.fan_id, {})
+                    failed_fan_geom = failed_fan_data.get('anchor', {})
+
                     self.event_logger.log_event(
                         timestamp=timestamp,
                         event_type=EventType.TARGET_FAILED,
@@ -772,7 +802,9 @@ class AngularPriceCoverageStudy:
                         current_zone=current_zone_str,
                         zone_highest_close=z_extremes.get('highest_close') if z_extremes else None,
                         zone_lowest_close=z_extremes.get('lowest_close') if z_extremes else None,
-                        
+                        anchor_bar_index=failed_fan_geom.get('bar_index', 0) if failed_fan_obj is None else getattr(failed_fan_obj, 'anchor_bar_index', failed_fan_geom.get('bar_index', 0)),
+                        scale_ratio=self.config.get('scale_ratio', 1.0),
+                        anchor_price=failed_fan_geom.get('price', 0),
                         details={
                             'fan_id': state_event.fan_id,
                             'fail_bar': bar_index,
@@ -796,8 +828,11 @@ class AngularPriceCoverageStudy:
                         'cluster': is_cluster,
                         'zone': current_zone_str or "",
                         'zoneExtremes': z_extremes or "",
-
-                        'nextAngleLine': target_info.get('next_angle_line') or ""
+                        'nextAngleLine': target_info.get('next_angle_line') or "",
+                        # Fan geometry for angular fan ray reconstruction
+                        'anchor_bar_index': failed_fan_geom.get('bar_index', 0) if failed_fan_obj is None else getattr(failed_fan_obj, 'anchor_bar_index', failed_fan_geom.get('bar_index', 0)),
+                        'scale_ratio': self.config.get('scale_ratio', 1.0),
+                        'anchor_price': failed_fan_geom.get('price', 0),
                     })
 
         # Flush deferred BREACH_CONFIRMED events now that TARGET_HIT has had a chance
@@ -820,6 +855,11 @@ class AngularPriceCoverageStudy:
                 except ValueError:
                     evt_enum = EventType.BREACH_CONFIRMED
 
+            # Get fan geometry context
+            def_fan_obj = self.angle_engine.active_fans.get(evt.fan_id)
+            def_fan_data = self._persisted_fans.get(evt.fan_id, {})
+            def_fan_geom = def_fan_data.get('anchor', {})
+
             self.event_logger.log_event(
                 timestamp=timestamp,
                 event_type=evt_enum,
@@ -835,6 +875,9 @@ class AngularPriceCoverageStudy:
                 current_zone=c_zone_str,
                 zone_highest_close=z_ext.get('highest_close') if z_ext else None,
                 zone_lowest_close=z_ext.get('lowest_close') if z_ext else None,
+                anchor_bar_index=def_fan_geom.get('bar_index', 0) if def_fan_obj is None else getattr(def_fan_obj, 'anchor_bar_index', def_fan_geom.get('bar_index', 0)),
+                scale_ratio=self.config.get('scale_ratio', 1.0),
+                anchor_price=def_fan_geom.get('price', 0),
                 details={
                     'fan_id': evt.fan_id,
                     'bars_elapsed': evt.details.split('(')[-1].replace(')', '').strip() if 'bars)' in evt.details else evt.details
@@ -858,7 +901,11 @@ class AngularPriceCoverageStudy:
                 'zone': c_zone_str or "",
                 'zoneExtremes': z_ext or "",
                 'bar_index': evt.bar_index,
-                'nextAngleLine': ''
+                'nextAngleLine': '',
+                # Fan geometry for angular fan ray reconstruction
+                'anchor_bar_index': def_fan_geom.get('bar_index', 0) if def_fan_obj is None else getattr(def_fan_obj, 'anchor_bar_index', def_fan_geom.get('bar_index', 0)),
+                'scale_ratio': self.config.get('scale_ratio', 1.0),
+                'anchor_price': def_fan_geom.get('price', 0),
             })
 
         # CRITICAL FIX: If this is the EXACT bar where the fan was created, the trader 
@@ -1163,6 +1210,9 @@ class AngularPriceCoverageStudy:
                                 zone_highest_close=None,
                                 zone_lowest_close=None,
                                 next_angle_line=None,
+                                anchor_bar_index=fan_data.get('anchor', {}).get('bar_index', 0),
+                                scale_ratio=self.config.get('scale_ratio', 1.0),
+                                anchor_price=fan_data.get('anchor', {}).get('price', 0),
                                 details={
                                     'fan_id': fan_id,
                                     'fan_label': fan_priority,
@@ -1187,7 +1237,11 @@ class AngularPriceCoverageStudy:
                                 'zone': "",
                                 'zoneExtremes': {},
                                 'bar_index': current_bar_index,
-                                'nextAngleLine': ""
+                                'nextAngleLine': '',
+                                # Fan geometry for angular fan ray reconstruction
+                                'anchor_bar_index': fan_data.get('anchor', {}).get('bar_index', 0),
+                                'scale_ratio': self.config.get('scale_ratio', 1.0),
+                                'anchor_price': fan_data.get('anchor', {}).get('price', 0),
                             }
                             # Apply Retro flag if needed
                             creation_bar = fan_data.get('creation_bar_index', -1)
@@ -1213,6 +1267,9 @@ class AngularPriceCoverageStudy:
                                 angle_name=pending_state.origin_angle,
                                 price=current_close,
                                 direction='down' if fan_data.get('anchor', {}).get('type') == 'high' else 'up',
+                                anchor_bar_index=fan_data.get('anchor', {}).get('bar_index', 0),
+                                scale_ratio=self.config.get('scale_ratio', 1.0),
+                                anchor_price=fan_data.get('anchor', {}).get('price', 0),
                                 details={
                                     'fan_id': fan_id,
                                     'fan_label': fan_priority,
@@ -1239,7 +1296,11 @@ class AngularPriceCoverageStudy:
                                 'zone': "",
                                 'zoneExtremes': {},
                                 'bar_index': current_bar_index,
-                                'nextAngleLine': pending_state.current_target or ""
+                                'nextAngleLine': pending_state.current_target or "",
+                                # Fan geometry for angular fan ray reconstruction
+                                'anchor_bar_index': fan_data.get('anchor', {}).get('bar_index', 0),
+                                'scale_ratio': self.config.get('scale_ratio', 1.0),
+                                'anchor_price': fan_data.get('anchor', {}).get('price', 0),
                             }
                             # Apply Retro flag if needed
                             creation_bar = fan_data.get('creation_bar_index', -1)
@@ -1263,10 +1324,15 @@ class AngularPriceCoverageStudy:
                     # Log FAN_DEACTIVATED event
                     if anchor_time:
                         try:
+                            # Get fan geometry context
+                            deact_anchor = fan_data.get('anchor', {})
                             self.event_logger.log_event(
                                 timestamp=current_time,
                                 event_type=EventType.FAN_DEACTIVATED,
                                 price=current_close,
+                                anchor_bar_index=deact_anchor.get('bar_index', 0),
+                                scale_ratio=self.config.get('scale_ratio', 1.0),
+                                anchor_price=deact_anchor.get('price', 0),
                                 details={
                                     'fan_id': fan_id,
                                     'fan_label': fan_priority,
@@ -1291,7 +1357,11 @@ class AngularPriceCoverageStudy:
                                 'zone': "",
                                 'zoneExtremes': {},
                                 'bar_index': current_bar_index,
-                                'nextAngleLine': ""
+                                'nextAngleLine': '',
+                                # Fan geometry for angular fan ray reconstruction
+                                'anchor_bar_index': deact_anchor.get('bar_index', 0),
+                                'scale_ratio': self.config.get('scale_ratio', 1.0),
+                                'anchor_price': deact_anchor.get('price', 0),
                             }
                             # Apply Retro flag if needed
                             creation_bar = fan_data.get('creation_bar_index', -1)
@@ -1540,6 +1610,10 @@ class AngularPriceCoverageStudy:
         self.state_machine.mark_breach_confirmed(fan_id, prev_line)
 
         # 1. Emit to Event Logger (CSV)
+        # Get fan geometry context
+        noalpha_fan_data = self._persisted_fans.get(fan_id, {})
+        noalpha_fan_geom = noalpha_fan_data.get('anchor', {})
+
         self.event_logger.log_event(
             timestamp=timestamp,
             event_type=EventType.BREACH_CONFIRMED_NO_ALPHA,
@@ -1555,6 +1629,9 @@ class AngularPriceCoverageStudy:
             current_zone=last_zone.zone if last_zone else None,
             zone_highest_close=last_zone.zone_highest_close if last_zone else None,
             zone_lowest_close=last_zone.zone_lowest_close if last_zone else None,
+            anchor_bar_index=noalpha_fan_geom.get('bar_index', 0),
+            scale_ratio=self.config.get('scale_ratio', 1.0),
+            anchor_price=noalpha_fan_geom.get('price', 0),
             details={
                 'fan_id': fan_id,
                 'cross_bar': True
@@ -1598,7 +1675,11 @@ class AngularPriceCoverageStudy:
                 'lowest_close': last_zone.zone_lowest_close if last_zone else None
             },
             'bar_index': bar_index,
-            'nextAngleLine': ''
+            'nextAngleLine': '',
+            # Fan geometry for angular fan ray reconstruction
+            'anchor_bar_index': noalpha_fan_geom.get('bar_index', 0),
+            'scale_ratio': self.config.get('scale_ratio', 1.0),
+            'anchor_price': noalpha_fan_geom.get('price', 0),
         })
 
         self.log(f"[Tracking] BREACH_CONFIRMED_NO_ALPHA (via target progression): {fan_id} {prev_line}")
