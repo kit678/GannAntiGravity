@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from 'react'
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import './App.css'
 import { TVChartContainer } from './TVChartContainer'
 
@@ -77,9 +77,66 @@ function App() {
     const [isChartPlaying, setIsChartPlaying] = useState(false)
 
     // Hypothesis Navigator State
+    const [hypothesisReports, setHypothesisReports] = useState([]);
+    const [selectedSymbolRes, setSelectedSymbolRes] = useState('');
+    const [selectedRun, setSelectedRun] = useState('');
+    const [selectedTimestamp, setSelectedTimestamp] = useState('');
+    const [selectedReport, setSelectedReport] = useState('');
     const [hypothesisEvents, setHypothesisEvents] = useState([]);
     const [selectedHypothesisEvent, setSelectedHypothesisEvent] = useState(null);
-    const [hypothesisFilter, setHypothesisFilter] = useState('all'); // 'all' | 'live' | 'retro' | 'win' | 'miss'
+    const [hypothesisFilter, setHypothesisFilter] = useState('all'); // 'all' | 'win' | 'miss'
+
+    // Cascading dropdown options
+    const symbolResOptions = useMemo(() => {
+        const seen = new Set();
+        return hypothesisReports.filter(r => {
+            const key = `${r.symbol}/${r.resolution}`;
+            if (seen.has(key)) return false;
+            seen.add(key);
+            return true;
+        });
+    }, [hypothesisReports]);
+
+    const runOptions = useMemo(() => {
+        if (!selectedSymbolRes) return [];
+        const [sym, res] = selectedSymbolRes.split('/');
+        const seen = new Set();
+        return hypothesisReports
+            .filter(r => r.symbol === sym && r.resolution === res)
+            .filter(r => { const k = r.run_id; if (seen.has(k)) return false; seen.add(k); return true; });
+    }, [hypothesisReports, selectedSymbolRes]);
+
+    const timestampOptions = useMemo(() => {
+        if (!selectedSymbolRes || !selectedRun) return [];
+        const [sym, res] = selectedSymbolRes.split('/');
+        const seen = new Set();
+        return hypothesisReports
+            .filter(r => r.symbol === sym && r.resolution === res && r.run_id === selectedRun)
+            .filter(r => {
+                // Extract timestamp from path: .../hypothesis_reports/HHMMSS_all/...
+                const parts = r.path.split('/');
+                const ts = parts.find(p => p.match(/^\d{6}_all$/));
+                if (!ts) return false;
+                if (seen.has(ts)) return false;
+                seen.add(ts);
+                return true;
+            });
+    }, [hypothesisReports, selectedSymbolRes, selectedRun]);
+
+    const reportOptions = useMemo(() => {
+        if (!selectedSymbolRes || !selectedRun || !selectedTimestamp) return [];
+        const [sym, res] = selectedSymbolRes.split('/');
+        return hypothesisReports
+            .filter(r => r.symbol === sym && r.resolution === res && r.run_id === selectedRun && r.path.includes(selectedTimestamp));
+    }, [hypothesisReports, selectedSymbolRes, selectedRun, selectedTimestamp]);
+
+    // Fetch available hypothesis reports on mount
+    useEffect(() => {
+        fetch('http://localhost:8005/api/hypothesis-reports')
+            .then(r => r.json())
+            .then(data => setHypothesisReports(data.reports || []))
+            .catch(() => {});
+    }, []);
 
     // Reset selected interaction when filter changes
     useEffect(() => {
@@ -399,10 +456,8 @@ function App() {
 
     // Hypothesis Navigator Filter
     const filteredHypothesisEvents = hypothesisEvents.filter(evt => {
-        if (hypothesisFilter === 'live') return evt.type === 'live';
-        if (hypothesisFilter === 'retro') return evt.type === 'retroactive';
-        if (hypothesisFilter === 'win') return evt.outcome === 'WIN';
-        if (hypothesisFilter === 'miss') return evt.outcome === 'MISS';
+        if (hypothesisFilter === 'win') return evt.outcome === 'WIN' || evt.status === 'ACCEPTED';
+        if (hypothesisFilter === 'miss') return evt.outcome === 'MISS' || evt.status === 'REJECTED' || evt.status === 'NO_PULLBACK_FOUND';
         return true;
     });
 
@@ -416,6 +471,7 @@ function App() {
                     <select value={strategy} onChange={(e) => setStrategy(e.target.value)}>
                         <option value="mechanical_3day">Mechanical 3-Day Swing</option>
                         <option value="five_ema">5 EMA Breakout Strategy</option>
+                        <option value="ema_crossover">9/21 EMA Crossover Strategy</option>
                         <option value="angular_coverage">Angular Price Coverage Study</option>
                         <option value="pivot_points_only">Pivot Points Only</option>
                         <option value="ichimoku_cloud">Ichimoku Cloud Breakout</option>
@@ -801,41 +857,137 @@ function App() {
 
                         {bottomPanelTab === 'hypothesis' && (
                             <div className="hypothesis-navigator">
-                                <div style={{ marginBottom: '10px', display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
-                                    <input
-                                        type="file"
-                                        accept=".json"
+                                <div style={{ marginBottom: '10px', display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
+                                    <select
+                                        value={selectedSymbolRes}
                                         onChange={(e) => {
-                                            const file = e.target.files[0];
-                                            if (!file) return;
-                                            const reader = new FileReader();
-                                            reader.onload = (ev) => {
-                                                try {
-                                                    const data = JSON.parse(ev.target.result);
-                                                    const allEvents = [
-                                                        ...(data.live_events || []).map((e, i) => ({ ...e, event_id: i + 1, type: 'live' })),
-                                                        ...(data.retro_events || []).map((e, i) => ({ ...e, event_id: i + 1, type: 'retroactive' }))
-                                                    ];
-                                                    setHypothesisEvents(allEvents);
-                                                    setSelectedHypothesisEvent(null);
-                                                    console.log("[Hypothesis] Loaded", allEvents.length, "events from", data.metadata?.symbol);
-                                                } catch (err) {
-                                                    console.error("[Hypothesis] Failed to parse JSON:", err);
-                                                    alert("Invalid hypothesis JSON file");
-                                                }
-                                            };
-                                            reader.readAsText(file);
+                                            const val = e.target.value;
+                                            setSelectedSymbolRes(val);
+                                            setSelectedRun('');
+                                            setSelectedTimestamp('');
+                                            setSelectedReport('');
+                                            setHypothesisEvents([]);
+                                            setSelectedHypothesisEvent(null);
+                                            // Load the symbol at the selected resolution on the chart
+                                            if (val && chartRef.current?.loadSymbolResolution) {
+                                                const [sym, res] = val.split('/');
+                                                chartRef.current.loadSymbolResolution(sym, res);
+                                            }
                                         }}
-                                        style={{ fontSize: '11px' }}
-                                    />
+                                        style={{ padding: '2px 5px', fontSize: '11px', maxWidth: '120px' }}
+                                    >
+                                        <option value="">Symbol / TF</option>
+                                        {symbolResOptions.map(r => (
+                                            <option key={`${r.symbol}/${r.resolution}`} value={`${r.symbol}/${r.resolution}`}>
+                                                {r.symbol} / {r.resolution}m
+                                            </option>
+                                        ))}
+                                    </select>
+                                    <select
+                                        value={selectedRun}
+                                        onChange={(e) => {
+                                            setSelectedRun(e.target.value);
+                                            setSelectedTimestamp('');
+                                            setSelectedReport('');
+                                            setHypothesisEvents([]);
+                                            setSelectedHypothesisEvent(null);
+                                        }}
+                                        disabled={!selectedSymbolRes}
+                                        style={{ padding: '2px 5px', fontSize: '11px', maxWidth: '170px' }}
+                                    >
+                                        <option value="">Run</option>
+                                        {runOptions.map(r => (
+                                            <option key={r.run_id} value={r.run_id}>{r.run_id}</option>
+                                        ))}
+                                    </select>
+                                    <select
+                                        value={selectedTimestamp}
+                                        onChange={(e) => {
+                                            setSelectedTimestamp(e.target.value);
+                                            setSelectedReport('');
+                                            setHypothesisEvents([]);
+                                            setSelectedHypothesisEvent(null);
+                                        }}
+                                        disabled={!selectedRun}
+                                        style={{ padding: '2px 5px', fontSize: '11px', maxWidth: '110px' }}
+                                    >
+                                        <option value="">Timestamp</option>
+                                        {timestampOptions.map(r => {
+                                            const parts = r.path.split('/');
+                                            const ts = parts.find(p => p.match(/^\d{6}_all$/)) || '';
+                                            const hour = ts.slice(0, 2);
+                                            const min = ts.slice(2, 4);
+                                            const sec = ts.slice(4, 6);
+                                            return <option key={ts} value={ts}>{hour}:{min}:{sec}</option>;
+                                        })}
+                                    </select>
+                                    <select
+                                        value={selectedReport}
+                                        onChange={(e) => {
+                                            const path = e.target.value;
+                                            setSelectedReport(path);
+                                            setHypothesisEvents([]);
+                                            setSelectedHypothesisEvent(null);
+                                            if (chartRef.current?.resetNavigationState) {
+                                                chartRef.current.resetNavigationState();
+                                            }
+                                            if (!path) return;
+                                            fetch(`http://localhost:8005/api/hypothesis-reports/${path}`)
+                                                .then(r => r.json())
+                                                .then(data => {
+                                                    let raw = [];
+                                                    if (data.live_events || data.retro_events) {
+                                                        raw = [
+                                                            ...(data.live_events || []).map(e => ({ ...e, is_retro: false })),
+                                                            ...(data.retro_events || []).map(e => ({ ...e, is_retro: true })),
+                                                        ];
+                                                    } else if (data.events) {
+                                                        raw = data.events;
+                                                    }
+                                                    const events = raw.map((evt, i) => {
+                                                        const timeStr = evt.time || evt.datetime || '';
+                                                        let timestamp = null;
+                                                        if (timeStr && typeof timeStr === 'string') {
+                                                            // pandas format: "4/29/2026, 1:35:00 PM" — strip commas for reliable parsing
+                                                            const clean = timeStr.replace(/,/g, '');
+                                                            const ts = new Date(clean).getTime();
+                                                            if (!isNaN(ts)) timestamp = Math.floor(ts / 1000);
+                                                        }
+                                                        return {
+                                                            ...evt,
+                                                            event_id: i + 1,
+                                                            event_type: evt.event_type || evt.type || '-',
+                                                            datetime: timeStr || '-',
+                                                            timestamp: timestamp,  // numeric unix seconds
+                                                            fan_display: evt.fan_display || evt.fan || evt.fan_identity || 'Unknown',
+                                                            price: evt.price != null ? evt.price : (evt.target_price != null ? evt.target_price : null),
+                                                            mfe: evt.mfe != null ? evt.mfe : (evt.mfe_10 != null ? evt.mfe_10 : null),
+                                                            mae: evt.mae != null ? evt.mae : (evt.mae_10 != null ? evt.mae_10 : null),
+                                                            outcome: evt.outcome || evt.status || null,
+                                                            fan_geometry: evt.fan_geometry || null,
+                                                        };
+                                                    });
+                                                    setHypothesisEvents(events);
+                                                })
+                                                .catch(err => {
+                                                    console.error("[Hypothesis] Failed to load report:", err);
+                                                    alert("Failed to load hypothesis report");
+                                                });
+                                        }}
+                                        disabled={!selectedRun}
+                                        style={{ padding: '2px 5px', fontSize: '11px', maxWidth: '220px' }}
+                                    >
+                                        <option value="">Report</option>
+                                        {reportOptions.map(r => (
+                                            <option key={r.path} value={r.path}>{r.report_name}</option>
+                                        ))}
+                                    </select>
                                     <select
                                         value={hypothesisFilter}
                                         onChange={(e) => setHypothesisFilter(e.target.value)}
                                         style={{ padding: '2px 5px', fontSize: '11px' }}
                                     >
                                         <option value="all">All Events</option>
-                                        <option value="live">Live Only</option>
-                                        <option value="retro">Retroactive Only</option>
                                         <option value="win">WIN Only</option>
                                         <option value="miss">MISS Only</option>
                                     </select>
@@ -844,12 +996,12 @@ function App() {
                                     </span>
                                     {selectedHypothesisEvent && (
                                         <span style={{ fontSize: '11px', color: '#FFEB3B' }}>
-                                            Selected: {selectedHypothesisEvent.datetime} | {selectedHypothesisEvent.fan} | {selectedHypothesisEvent.outcome}
+                                            Selected: {selectedHypothesisEvent.datetime} | {selectedHypothesisEvent.fan_display} | {selectedHypothesisEvent.event_type}
                                         </span>
                                     )}
                                 </div>
                                 {hypothesisEvents.length === 0 ? (
-                                    <p style={{ fontSize: '12px', color: '#888' }}>Load a hypothesis JSON file to begin verification.</p>
+                                    <p style={{ fontSize: '12px', color: '#888' }}>Select a report to begin verification.</p>
                                 ) : (
                                     <div className="table-container" style={{ overflowX: 'auto' }}>
                                         <table className="interactions-table" style={{ whiteSpace: 'nowrap', fontSize: '11px' }}>
@@ -859,13 +1011,13 @@ function App() {
                                                     <th>Type</th>
                                                     <th>DateTime</th>
                                                     <th>Fan</th>
-                                                    <th>Fraction</th>
-                                                    <th>Target Price</th>
+                                                    <th>Frac</th>
+                                                    <th>Target</th>
+                                                    <th>Price</th>
+                                                    <th>Breach</th>
                                                     <th>Outcome</th>
                                                     <th>MFE</th>
                                                     <th>MAE</th>
-                                                    <th>Breach Time</th>
-                                                    <th>Breach Price</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -881,17 +1033,23 @@ function App() {
                                                         }}
                                                         style={{ cursor: 'pointer' }}
                                                     >
-                                                        <td>{i + 1}</td>
-                                                        <td style={{ color: evt.type === 'live' ? '#00E676' : '#FF9800' }}>{evt.type === 'live' ? 'LIVE' : 'RETRO'}</td>
-                                                        <td>{evt.datetime}</td>
-                                                        <td style={{ color: '#90CAF9' }}>{evt.fan}</td>
-                                                        <td style={{ color: '#FFEB3B' }}>{evt.fraction}</td>
-                                                        <td>{evt.target_price}</td>
-                                                        <td style={{ color: evt.outcome === 'WIN' ? '#00E676' : '#FF5252', fontWeight: 'bold' }}>{evt.outcome}</td>
-                                                        <td>{evt.mfe ? evt.mfe.toFixed(2) : '-'}</td>
-                                                        <td>{evt.mae ? evt.mae.toFixed(2) : '-'}</td>
-                                                        <td>{evt.breach_time || '-'}</td>
-                                                        <td>{evt.breach_price || '-'}</td>
+                                                        <td>{evt.event_id}</td>
+                                                        <td style={{ color: evt.is_retro ? '#FF9800' : '#4CAF50', fontSize: '10px' }}>
+                                                            {evt.is_retro ? 'RETRO' : 'LIVE'}
+                                                        </td>
+                                                        <td style={{ fontSize: '10px' }}>{evt.datetime}</td>
+                                                        <td style={{ color: '#90CAF9', fontSize: '10px' }}>{evt.fan_display}</td>
+                                                        <td style={{ color: '#FFEB3B' }}>{evt.fraction != null ? evt.fraction : '-'}</td>
+                                                        <td style={{ color: '#FFEB3B' }}>{evt.next_angle != null ? evt.next_angle : '-'}</td>
+                                                        <td>{evt.price != null ? Number(evt.price).toFixed(2) : '-'}</td>
+                                                        <td style={{ fontSize: '9px' }}>
+                                                            {evt.breach_time ? `${evt.breach_time} ${(evt.breach_direction||'').toUpperCase()}${evt.breach_fraction ? ' @'+evt.breach_fraction : ''}${evt.breach_price ? ' '+Number(evt.breach_price).toFixed(2) : ''}` : '-'}
+                                                        </td>
+                                                        <td style={{ color: evt.outcome === 'WIN' || evt.status === 'ACCEPTED' ? '#4CAF50' : evt.outcome === 'MISS' || evt.status === 'REJECTED' || evt.status === 'NO_PULLBACK_FOUND' ? '#F44336' : '#888', fontWeight: 600 }}>
+                                                            {evt.outcome || (evt.status ? evt.status.replace(/_/g, ' ') : '-')}
+                                                        </td>
+                                                        <td>{evt.mfe != null ? Number(evt.mfe).toFixed(2) : '-'}</td>
+                                                        <td>{evt.mae != null ? Number(evt.mae).toFixed(2) : '-'}</td>
                                                     </tr>
                                                 ))}
                                             </tbody>

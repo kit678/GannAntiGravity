@@ -174,6 +174,7 @@ class TimeCycleBreakoutStrategy(BaseStrategy):
 
 # Import additional strategies
 from five_ema_strategy import FiveEMAStrategy
+from ema_crossover_strategy import EMACrossoverStrategy
 
 # Strategy registry - maps strategy names to classes
 STRATEGY_REGISTRY = {
@@ -182,6 +183,7 @@ STRATEGY_REGISTRY = {
     'time_cycle_breakout': TimeCycleBreakoutStrategy,
     'ichimoku_cloud': TimeCycleBreakoutStrategy,  # Placeholder
     'five_ema': FiveEMAStrategy,
+    'ema_crossover': EMACrossoverStrategy,
     'angular_coverage': TimeCycleBreakoutStrategy, # Placeholder for backtest compatibility
     'pivot_points_only': TimeCycleBreakoutStrategy, # Placeholder
 }
