@@ -282,11 +282,11 @@ def run_simulation(symbol="^NSEI", resolution="4", data_source="yfinance", from_
         ev.instrument = symbol
         ev.timeframe = resolution
 
-    # Create a lookup for enriched events by timestamp and price
+    # Create a lookup for enriched events by timestamp+rounded_price and timestamp+fan_id
     enriched_events = {}
     for event in study.event_logger.events:
-        key = (event.timestamp, event.price)
-        enriched_events[key] = {
+        fan_id = (event.details or {}).get('fan_id', '')
+        enrichment = {
             'mfe_5':  getattr(event, 'mfe_5',  0) or 0,
             'mae_5':  getattr(event, 'mae_5',  0) or 0,
             'mfe_10': getattr(event, 'mfe_10', 0) or 0,
@@ -297,9 +297,64 @@ def run_simulation(symbol="^NSEI", resolution="4", data_source="yfinance", from_
             'mae_50': getattr(event, 'mae_50', 0) or 0,
             'bars_elapsed': getattr(event, 'bars_elapsed', 0) or 0,
             'direction': getattr(event, 'direction', '') or '',
+            'exc_up_10': getattr(event, 'exc_up_10', None),
+            'exc_down_10': getattr(event, 'exc_down_10', None),
+            'reversal_outcome': getattr(event, 'reversal_outcome', None),
         }
-    
-    # Write the exact frontend intersection events to CSV
+        enriched_events[(event.timestamp, round(event.price, 2))] = enrichment
+        if fan_id:
+            enriched_events[(event.timestamp, fan_id)] = enrichment
+
+        # Build direct reversal_outcome lookup from event_logger + candle fallback  
+    logger_reversal = {}
+    for levent in study.event_logger.events:
+        lfan = (levent.details or {}).get('fan_id', '')
+        if lfan and getattr(levent, 'reversal_outcome', None):
+            logger_reversal[(levent.timestamp, lfan)] = levent.reversal_outcome
+
+    candle_idx_by_ts = {int(c['time']): i for i, c in enumerate(candles)}
+
+    def compute_first_break(ievent: dict, n_bars: int = 10):
+        fraction = ievent.get('fraction')
+        if str(fraction if fraction is not None else '') != '0.25':
+            return None
+        etype = ievent.get('type', '')
+        if etype not in ('SUPPORT_TEST', 'RESISTANCE_TEST', 'TARGET_HIT'):
+            return None
+        event_high = ievent.get('high')
+        event_low = ievent.get('low')
+        if not event_high or not event_low:
+            return None
+        fan = ievent.get('fan', '')
+        is_ha = '(H' in fan
+        if not is_ha and '(L' not in fan:
+            return None
+        if etype == 'SUPPORT_TEST':
+            exp = 'up' if is_ha else 'down'
+        elif etype == 'RESISTANCE_TEST':
+            exp = 'down' if is_ha else 'up'
+        else:
+            exp = 'up' if is_ha else 'down'
+        ts = int(ievent['time'])
+        idx = candle_idx_by_ts.get(ts)
+        if idx is None:
+            return None
+        end_i = min(idx + n_bars + 1, len(candles))
+        for i in range(idx + 1, end_i):
+            cl = candles[i].get('close', 0)
+            if exp == 'up':
+                if cl > event_high:
+                    return 'WIN'
+                if cl < event_low:
+                    return 'LOSS'
+            else:
+                if cl < event_low:
+                    return 'WIN'
+                if cl > event_high:
+                    return 'LOSS'
+        return None
+
+# Write the exact frontend intersection events to CSV
     import csv
     if all_intersection_events:
         # Sort events chronologically by timestamp for pure chronological order
@@ -315,7 +370,9 @@ def run_simulation(symbol="^NSEI", resolution="4", data_source="yfinance", from_
                              'MFE_5', 'MAE_5', 'MFE_10', 'MAE_10',
                              'MFE_20', 'MAE_20', 'MFE_50', 'MAE_50',
                              'Raw_Timestamp', 'Direction', 'bar_index', 'bars_elapsed',
-                             'anchor_bar_index', 'scale_ratio', 'anchor_price'])
+                             'Exc_Up_10', 'Exc_Down_10', 'Reversal_Outcome',
+                             'anchor_bar_index', 'scale_ratio', 'anchor_price',
+                         'origin_bar_index', 'origin_price'])
             
             # Use IST timezone for formatting to match frontend
             ist = pytz.timezone('Asia/Kolkata')
@@ -338,9 +395,14 @@ def run_simulation(symbol="^NSEI", resolution="4", data_source="yfinance", from_
                 # Format details exactly like frontend JS does
                 details_str = str(event.get('details', '')).replace(',', ';')
                 
-                # Get enriched data - match by timestamp and price
-                event_key = (event['time'], event.get('price', 0))
+                # Get enriched data (MFE/MAE) from event_logger lookup
+                event_key = (event['time'], round(event.get('price', 0), 2))
                 enriched = enriched_events.get(event_key, {})
+                if not enriched:
+                    fan_id = event.get('fan', '')
+                    if fan_id:
+                        fan_key = (event['time'], fan_id)
+                        enriched = enriched_events.get(fan_key, {})
                 if not enriched:
                     logging.debug(f"No enriched data for event at time={event.get('time')} price={event.get('price', 0):.2f}")
                 mfe_5  = enriched.get('mfe_5',  0)
@@ -353,6 +415,9 @@ def run_simulation(symbol="^NSEI", resolution="4", data_source="yfinance", from_
                 mae_50 = enriched.get('mae_50', 0)
                 bars_elapsed = enriched.get('bars_elapsed', 0)
                 direction = enriched.get('direction', '')
+                reversal_outcome = enriched.get('reversal_outcome') or compute_first_break(event) or ''
+                exc_up_10 = enriched.get('exc_up_10')
+                exc_down_10 = enriched.get('exc_down_10')
                 bar_idx = event.get('bar_index', '')
 
                 writer.writerow([
@@ -388,16 +453,32 @@ def run_simulation(symbol="^NSEI", resolution="4", data_source="yfinance", from_
                     direction,
                     bar_idx,
                     bars_elapsed,
+                    f"{exc_up_10:.4f}" if exc_up_10 is not None else "",
+                    f"{exc_down_10:.4f}" if exc_down_10 is not None else "",
+                    reversal_outcome,
                     # Fan geometry for true angular fan ray reconstruction
                     event.get('anchor_bar_index', ''),
                     event.get('scale_ratio', ''),
                     event.get('anchor_price', ''),
+                    event.get('origin_bar_index', ''),
+                    event.get('origin_price', ''),
                 ])
                 
         logging.info(f"Exported {len(all_intersection_events)} identical frontend events to {csv_path}")
+
+        # Export raw OHLC candles for EMA crossover and other indicator-based hypotheses
+        candles_csv_path = str(run_dir / "candles.csv")
+        candles_df = pd.DataFrame(candles)
+        candles_df.to_csv(candles_csv_path, index=False)
+        logging.info(f"Exported {len(candles_df)} candles to {candles_csv_path}")
+
+        # Export hypothesis navigator JSON with fan geometry
+        hypothesis_json_path = str(run_dir / "hypothesis_events.json")
+        study.event_logger.export_hypothesis_json(hypothesis_json_path, symbol=symbol, resolution=resolution)
+        logging.info(f"Exported hypothesis navigator JSON to {hypothesis_json_path}")
     else:
         logging.warning("No intersection events found to export.")
-    
+
     # Print stats
     stats = study.event_logger.get_statistics()
     logging.info("\n--- Simulation Statistics ---")
@@ -421,6 +502,7 @@ def run_simulation(symbol="^NSEI", resolution="4", data_source="yfinance", from_
         logging.warning(f"Failed to mirror logs to run dir: {e}")
 
     logging.info(f"Simulation run finished. Log saved to {log_file}")
+    return str(run_dir)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run Gann Angular Price Coverage Simulation")
