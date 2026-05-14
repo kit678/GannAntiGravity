@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState, useImperativeHandle, forwardRef } from 'react';
 import createChartDatafeed from './chart/ChartDatafeed';
-import { processStudyResponse } from './study_tool/StudyDrawingUtils';
+import { processStudyResponse, clearAllStudyDrawings } from './study_tool/StudyDrawingUtils';
 
 export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, interval = '60', onTradeLogged, dataSource = 'dhan', cycleType = '24_hour', sessionDuration = 'standard', onSymbolChange, onPlayingStateChange, selectedInteraction, showPatternLegend = false, showPatternDots = false, ...props }, ref) => {
     const chartContainerRef = useRef(null);
@@ -24,6 +24,12 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
     const studyShapesRef = useRef({});
     // Track fan labels for visibility toggling
     const fanLabelsRef = useRef({});
+
+    // Track indicator line series (EMA, etc.) for cleanup
+    const indicatorLinesRef = useRef({});
+
+    // Track current clean symbol for fallback when chart.symbol() is unavailable
+    const currentCleanSymbolRef = useRef(symbol);
 
     // Store latest visible labels so callbacks don't capture stale state
     const visibleFanLabelsRef = useRef(['Primary', 'Secondary', 'Tertiary']);
@@ -205,6 +211,7 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
                         if (cleanName && cleanName.endsWith(':YF')) {
                             cleanName = cleanName.replace(':YF', '');
                         }
+                        currentCleanSymbolRef.current = cleanName;
 
                         if (onSymbolChange) onSymbolChange(cleanName);
 
@@ -249,14 +256,19 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
                 try {
                     chart.onIntervalChanged().subscribe(null, (interval, timeframeObj) => {
                         console.log("[Chart] Interval Changed to:", interval);
-                        
+
                         let cleanName;
                         try {
                             cleanName = chart.symbolExt ? chart.symbolExt().symbol : chart.symbol();
                         } catch (e) {
-                            return;
+                            // fall through to fallback
                         }
-                        
+
+                        if (!cleanName) {
+                            cleanName = currentCleanSymbolRef.current;
+                            console.log("[TVChart] Using fallback symbol for interval change:", cleanName);
+                        }
+
                         if (!cleanName) {
                             console.warn("[TVChart] Interval changed but symbol is undefined, skipping ratio update");
                             return;
@@ -265,6 +277,7 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
                         if (cleanName && cleanName.endsWith(':YF')) {
                             cleanName = cleanName.replace(':YF', '');
                         }
+                        currentCleanSymbolRef.current = cleanName;
 
                         fetch(`http://localhost:8005/api/scale_ratio?symbol=${encodeURIComponent(cleanName)}&resolution=${encodeURIComponent(interval)}&cycle_type=${encodeURIComponent(cycleType)}&session_duration=${encodeURIComponent(sessionDuration)}`)
                             .then(res => res.json())
@@ -339,6 +352,7 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
             studyShapesRef.current = {};
             fanLabelsRef.current = {};
             fanDisplayMapRef.current = {};
+            indicatorLinesRef.current = {};
 
             // Only remove script if we created one
             if (scriptElement && scriptElement.parentNode) {
@@ -400,6 +414,9 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
 
     // Track hypothesis markers for cleanup
     const hypothesisMarkerRef = useRef([]);
+    // Track last navigated event key to skip re-render for same fan
+    const lastNavigatedEventKeyRef = useRef(null);
+    const navigationGenerationRef = useRef(0);
 
     // Re-draw selected interaction
     useEffect(() => {
@@ -1064,66 +1081,142 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
         navigateToHypothesisEvent: (event) => {
             if (!widgetRef.current) return;
             const chart = widgetRef.current.activeChart();
+            if (!chart) return;
 
-            // Clear previous hypothesis markers
+            // Skip if clicking the same event again (use event_id for uniqueness).
+            const eventKey = event.event_id != null ? String(event.event_id) : ((event.fan_display || '') + '|' + (event.datetime || event.time || ''));
+            if (lastNavigatedEventKeyRef.current === eventKey) return;
+            lastNavigatedEventKeyRef.current = eventKey;
+
+            // Bump generation so any pending draw from a previous rapid click is discarded
+            const gen = ++navigationGenerationRef.current;
+
+            // Clear previous hypothesis markers (handle both direct IDs and Promises)
             hypothesisMarkerRef.current.forEach(m => {
-                try { chart.removeEntity(m); } catch (_) {}
+                try {
+                    if (m && typeof m.then === 'function') {
+                        m.then(id => { if (id) chart.removeEntity(id); }).catch(() => {});
+                    } else if (m) {
+                        chart.removeEntity(m);
+                    }
+                } catch (_) {}
             });
             hypothesisMarkerRef.current = [];
 
-            // Clear existing study shapes (fans from previous selection)
-            Object.keys(studyShapesRef.current).forEach(k => {
-                const id = studyShapesRef.current[k];
-                if (id && typeof id !== 'object') {
-                    try { chart.removeEntity(id); } catch (_) {}
-                }
-            });
+            // Clear existing study shapes (fans from previous selection), including Promise-based IDs
+            clearAllStudyDrawings(chart, studyShapesRef.current);
             studyShapesRef.current = {};
 
-            // Pan chart to center the event timestamp
-            const eventTimeSec = toSeconds(event.timestamp);
+            // Clear existing indicator lines
+            Object.values(indicatorLinesRef.current).forEach(ids => {
+                const idList = Array.isArray(ids) ? ids : [ids];
+                idList.forEach(id => {
+                    try { chart.removeEntity(id); } catch (e) { /* ignore */ }
+                });
+            });
+            indicatorLinesRef.current = {};
 
+            // Timestamp: prefer numeric event.timestamp (set during normalization),
+            // fall back to parsing event.time string (strip commas from pandas format).
+            let eventTimeSec;
+            if (typeof event.timestamp === 'number' && !isNaN(event.timestamp)) {
+                eventTimeSec = event.timestamp < 2000000000 ? event.timestamp : Math.floor(event.timestamp / 1000);
+            } else if (event.time && typeof event.time === 'string') {
+                const clean = event.time.replace(/,/g, '');
+                const ts = new Date(clean).getTime();
+                eventTimeSec = !isNaN(ts) ? Math.floor(ts / 1000) : Math.floor(Date.now() / 1000);
+            } else {
+                eventTimeSec = Math.floor(Date.now() / 1000);
+            }
+
+            // Center on the fan's origin pivot so both the pivot labels and the
+            // radiating fan rays are visible. origin.time is a Unix-timestamp
+            // integer; fall back to the first ray's first point if it is missing
+            // or zero (which can happen for fans reconstructed from sparse data).
+            let originTime = event.fan_geometry?.origin?.time;
+            if ((originTime == null || originTime <= 0) && event.fan_geometry?.rays?.[0]?.points?.[0]?.time) {
+                originTime = event.fan_geometry.rays[0].points[0].time;
+            }
+            const centerTimeSec = (typeof originTime === 'number' && originTime > 0)
+                ? originTime
+                : eventTimeSec;
+
+            // Keep the chart at its current resolution — avoid setResolution
+            // because it triggers PBR reloads and data re-fetches that race
+            // with setVisibleRange.
+
+            let rangeWidth = 240 * 60; // default 4 hours in seconds
             try {
                 const visibleRange = chart.getVisibleRange();
-                const rangeWidth = visibleRange.to - visibleRange.from;
-                const newFrom = eventTimeSec - rangeWidth / 2;
-                const newTo = eventTimeSec + rangeWidth / 2;
-                chart.setVisibleRange({ from: newFrom, to: newTo }).catch(() => {});
-            } catch (e) {}
+                if (visibleRange && visibleRange.to - visibleRange.from > 0) {
+                    rangeWidth = visibleRange.to - visibleRange.from;
+                }
+            } catch (_) {}
 
-            // Draw target price arrow marker
-            if (event.target_price) {
-                const shapeId = chart.createShape(
-                    { time: eventTimeSec, price: event.target_price },
-                    {
-                        shape: 'arrow_down',
-                        lock: true,
-                        disableUndo: true,
-                        overrides: { color: '#FFEB3B', backgroundColor: '#FFEB3B', size: 1 }
-                    }
-                );
-                if (shapeId) hypothesisMarkerRef.current.push(shapeId);
+            // Ensure the range is wide enough to show both the fan label
+            // (at the origin pivot) and the event marker, with 20% padding.
+            const span = Math.abs(eventTimeSec - centerTimeSec) * 2;
+            const minRange = span * 1.2;
+            if (minRange > rangeWidth) {
+                rangeWidth = minRange;
             }
 
-            // Render fan geometry if available
-            if (event.fan_state && event.fan_state.fans && event.fan_state.fans.length > 0) {
-                const studyData = {
-                    drawings: event.fan_state.fans.flatMap(fan =>
-                        fan.lines.map(line => ({
-                            id: line.id,
+            const newFrom = centerTimeSec - rangeWidth / 2;
+            const newTo = centerTimeSec + rangeWidth / 2;
+
+            function drawMarkerAndFan() {
+                // Discard if a newer navigation has started since this was scheduled
+                if (gen !== navigationGenerationRef.current) return;
+                if (event.price != null) {
+                    const shapeId = chart.createShape(
+                        { time: eventTimeSec, price: event.price },
+                        {
+                            shape: 'arrow_down',
+                            lock: true,
+                            disableUndo: true,
+                            overrides: { color: '#FFEB3B', backgroundColor: '#FFEB3B', size: 1 }
+                        }
+                    );
+                    if (shapeId) hypothesisMarkerRef.current.push(shapeId);
+                }
+
+                if (event.fan_geometry && event.fan_geometry.rays && event.fan_geometry.rays.length > 0) {
+                    const studyData = {
+                        drawings: event.fan_geometry.rays.map(ray => ({
+                            id: ray.id,
                             type: 'trend_line',
-                            points: line.points,
+                            points: ray.points,
                             options: {
-                                ...line.options,
-                                fanIdentity: fan.fan_id,
-                                fanLabel: fan.display_label
+                                linecolor: ray.color,
+                                linewidth: ray.width,
+                                linestyle: 0,
+                                extendRight: true,
+                                fanIdentity: event.fan_display,
+                                fanLabel: event.fan_display
                             }
-                        }))
-                    ),
-                    pivot_markers: []
-                };
-                studyShapesRef.current = processStudyResponse(chart, studyData, studyShapesRef.current);
+                        })),
+                        pivot_markers: (() => {
+                            const m = [];
+                            const g = event.fan_geometry;
+                            if (g.origin && g.origin.time) m.push({ type: g.origin.label === 'high' ? 'pivot_high' : 'pivot_low', time: g.origin.time, price: g.origin.price, text: event.fan_display || (g.origin.label||'').toUpperCase() });
+                            if (g.anchor && g.anchor.time) m.push({ type: g.anchor.label === 'high' ? 'pivot_high' : 'pivot_low', time: g.anchor.time, price: g.anchor.price });
+                            return m;
+                        })()
+                    };
+                    studyShapesRef.current = processStudyResponse(chart, studyData, studyShapesRef.current);
+                }
             }
+
+            // Pan chart to center on the origin pivot, then draw after a short
+            // settle delay. Avoid dataReady — it can fire for the OLD range's
+            // cached data before the new range has rendered, which would place
+            // shapes at coordinates outside the current viewport.
+            chart.setVisibleRange({ from: newFrom, to: newTo }).then(() => {
+                setTimeout(() => drawMarkerAndFan(), 400);
+            }).catch(() => {
+                // setVisibleRange failed — draw anyway at current position
+                drawMarkerAndFan();
+            });
         },
 
         // INSTANT MODE: Plot all candles and signals at once
@@ -1139,6 +1232,18 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
             // Clear old study UI state
             clearAvailableFans();
             studyShapesRef.current = {};
+
+            // Clear existing indicator lines
+            try {
+                const chart = widgetRef.current.activeChart();
+                Object.values(indicatorLinesRef.current).forEach(ids => {
+                    const idList = Array.isArray(ids) ? ids : [ids];
+                    idList.forEach(id => {
+                        try { chart.removeEntity(id); } catch (e) { /* ignore */ }
+                    });
+                });
+            } catch (e) { /* ignore */ }
+            indicatorLinesRef.current = {};
 
             // Ensure candle times are in milliseconds for datafeed
             const normalizedCandles = candles.map(c => ({
@@ -1186,6 +1291,7 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
                 studyShapesRef.current = {}; // Clear study shapes
                 fanLabelsRef.current = {};
                 fanDisplayMapRef.current = {};
+                indicatorLinesRef.current = {};
 
                 // CRITICAL FIX: Set visible range FIRST to force TradingView to index all bars
                 // This ensures that when we call createShape later, the bars exist in the chart
@@ -1317,6 +1423,18 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
             // Clear old study UI state
             clearAvailableFans();
             studyShapesRef.current = {};
+
+            // Clear existing indicator lines
+            try {
+                const chart = widgetRef.current.activeChart();
+                Object.values(indicatorLinesRef.current).forEach(ids => {
+                    const idList = Array.isArray(ids) ? ids : [ids];
+                    idList.forEach(id => {
+                        try { chart.removeEntity(id); } catch (e) { /* ignore */ }
+                    });
+                });
+            } catch (e) { /* ignore */ }
+            indicatorLinesRef.current = {};
 
             // TradingView-style replay logic:
             // 1. Show ALL candles for context (don't filter)
@@ -1470,6 +1588,58 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
                     try {
                         const chart = widgetRef.current.activeChart();
                         studyShapesRef.current = processStudyResponse(chart, studyData, studyShapesRef.current);
+
+                        // Render indicator lines (EMA 9, EMA 21) from indicator_series
+                        if (studyData.indicator_series && chart) {
+                            const colors = { ema_9: '#2196F3', ema_21: '#FF9800' };
+                            const labels = { ema_9: 'EMA 9', ema_21: 'EMA 21' };
+
+                            Object.entries(studyData.indicator_series).forEach(([key, data]) => {
+                                if (!data || data.length < 2) return;
+
+                                const points = data.map(p => ({
+                                    time: p.time,
+                                    price: p.price
+                                })).filter(p => p.time != null && p.price != null && !isNaN(p.time) && !isNaN(p.price));
+
+                                if (points.length < 2) return;
+
+                                const overrideColor = colors[key] || '#888888';
+
+                                // Remove existing polyline segments for this indicator
+                                if (indicatorLinesRef.current[key]) {
+                                    const existing = indicatorLinesRef.current[key];
+                                    const ids = Array.isArray(existing) ? existing : [existing];
+                                    ids.forEach(id => {
+                                        try { chart.removeEntity(id); } catch (e) { /* ignore */ }
+                                    });
+                                }
+
+                                // Draw polyline as connected trend_line segments
+                                const segmentIds = [];
+                                const options = {
+                                    shape: 'trend_line',
+                                    lock: true,
+                                    disableUndo: true,
+                                    overrides: {
+                                        linecolor: overrideColor,
+                                        linewidth: 1,
+                                        linestyle: 0
+                                    },
+                                    zOrder: 'top'
+                                };
+
+                                for (let i = 0; i < points.length - 1; i++) {
+                                    const result = chart.createMultipointShape(
+                                        [points[i], points[i + 1]],
+                                        options
+                                    );
+                                    if (result) segmentIds.push(result);
+                                }
+
+                                indicatorLinesRef.current[key] = segmentIds;
+                            });
+                        }
 
                         // Plot candle pattern label if present
                         if (studyData.candle_pattern && studyData.candle_pattern !== 'NO_PATTERN') {
@@ -1642,6 +1812,7 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
                 studyShapesRef.current = {};    // Reset study shape tracking
                 fanLabelsRef.current = {};
                 fanDisplayMapRef.current = {};
+                indicatorLinesRef.current = {};
                 console.log("[Progressive Replay] Chart ready - cleared existing shapes");
 
                 // COORD: Promise to ensure visible range is set BEFORE we lock the scale
@@ -1837,7 +2008,31 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
             }
             setIsPlaybackMode(false);
             setIsPlaying(false);
-        }
+        },
+
+        // Load a symbol at a specific resolution on the chart
+        loadSymbolResolution: (symbolName, resolution) => {
+            if (!widgetRef.current) return;
+            const chart = widgetRef.current.activeChart();
+            // Restore ^ prefix if it was sanitized to _ (Windows-safe path encoding)
+            let fixedSymbol = symbolName;
+            if (fixedSymbol.startsWith('_') && fixedSymbol.length > 1 && /[A-Za-z]/.test(fixedSymbol[1])) {
+                fixedSymbol = '^' + fixedSymbol.slice(1);
+            }
+            currentCleanSymbolRef.current = fixedSymbol;
+            const ticker = fixedSymbol.includes(':YF') ? fixedSymbol : fixedSymbol + ':YF';
+            chart.setSymbol(ticker, () => {
+                chart.setResolution(String(resolution), () => {
+                    console.log(`[TVChart] Loaded ${ticker} @ ${resolution}m`);
+                });
+            });
+        },
+
+        // Reset the navigation dedup state (call when switching reports)
+        resetNavigationState: () => {
+            lastNavigatedEventKeyRef.current = null;
+            navigationGenerationRef.current = 0;
+        },
     }));
 
     return (

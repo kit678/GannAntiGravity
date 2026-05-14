@@ -1,5 +1,6 @@
 from fastapi import FastAPI, HTTPException, Query, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from typing import Optional, Dict, Any
 import uvicorn
@@ -676,65 +677,58 @@ def udf_history(symbol: str, resolution: str, from_: int = Query(..., alias="fro
         print(f"DEBUG: df timestamp range: {df['timestamp'].min()} - {df['timestamp'].max()}")
         print(f"DEBUG: df timestamp as dates: {datetime.fromtimestamp(df['timestamp'].min()).isoformat()} - {datetime.fromtimestamp(df['timestamp'].max()).isoformat()}")
     
-    # CRITICAL FIX FOR LAZY LOADING: For intraday intervals, return ALL available bars
-    # This ensures TradingView can cache all historical data and support lazy loading/scroll-back
-    # For daily+ intervals, apply the normal filtering
-    is_intraday = resolution in ["1", "2", "3", "4", "5", "10", "15", "20", "30", "60", "120", "180", "1", "2", "3", "4", "5", "10", "15", "20", "30", "60"]
-    
+    # Lenient time-range filter for ALL resolutions.
+    # Returning unfiltered data causes TradingView to see bars far before the
+    # requested range, triggering an infinite scroll-back loop: it keeps requesting
+    # earlier data, gets the same full dataset again, and repeats forever.
+    original_df = df.copy()
     original_len = len(df)
-    
-    if is_intraday:
-        # For intraday intervals, return ALL available bars for lazy loading
-        print(f"[LazyLoadFix] Intraday interval ({resolution}). Returning all {original_len} bars without filtering.")
-        # No filtering - return all available data
-    else:
-        # For daily+ intervals, apply normal filtering
-        print(f"[LazyLoadFix] Non-intraday interval ({resolution}). Applying date range filter.")
-        original_df = df.copy()  # Keep a copy before filtering
-        
-        # ADJUSTMENT: For Daily (1D/D) resolution, the timestamps might be aligned to Exchange Time (IST) 
-        # which is 00:00 IST = 18:30 UTC (Previous Day). 
-        # TradingView requests usually align to UTC Midnight.
-        # So a bar for "June 11" might have timestamp June 10 18:30 UTC.
-        # If TV requests from=June 11 00:00 UTC, strict filtering expels this bar.
-        # We apply a buffer for Daily resolution.
-        filter_from = from_
+
+    if original_len > 0 and 'timestamp' in df.columns:
+        try:
+            res_minutes = int(resolution)
+        except ValueError:
+            res_minutes = 1
+        buffer_seconds = max(86400, res_minutes * 60 * 300)  # 1 day or 300 bars
+        filter_from = from_ - buffer_seconds
+
+        # For daily+ resolutions, use a larger buffer to handle IST/UTC misalignment
         if resolution in ["1D", "D", "W", "1W", "M", "1M"]:
-             filter_from = from_ - 43200 # -12 hours buffer
-             print(f"Daily/Weekly Resolution detected: Applying -12h buffer to start filter (From: {from_} -> {filter_from})")
+            filter_from = from_ - 86400  # 1 day buffer
 
         df = df[(df['timestamp'] >= filter_from) & (df['timestamp'] <= to)]
-        print(f"Filtered data from {original_len} to {len(df)} bars (filter_from={filter_from}, to={to})")
-        
-        if len(df) == 0 and original_len > 0:
-            print(f"  [DEBUG] Data was filtered out! Data range: {original_df['timestamp'].min()} - {original_df['timestamp'].max()}")
-            print(f"  [DEBUG] Filter range: {filter_from} - {to}")
-        
-        # SMART FIX: If strict filtering eliminated ALL data, but we had valid data,
-        # this often means the request's 'from_' timestamp falls outside market hours.
-        # Example: TradingView requests from 15:33 IST, but market closes at 15:30.
-        # In this case, return the most recent available data that's within 'to' range.
-        if df.empty and original_len > 0:
-            # Check if data exists that ends before 'from_' but is still relevant
+
+        # If buffer eliminated all data, determine WHY before falling back.
+        if len(df) == 0:
             data_max_ts = original_df['timestamp'].max()
             data_min_ts = original_df['timestamp'].min()
-            
-            # Case 1: Request 'from_' is AFTER all our data (common with Yahoo Finance)
-            # This happens when TradingView calculates 'from' based on current time which
-            # may be outside market hours. Return data that's at least within the 'to' range.
+            # Case 1: Requested from_ is past the last available bar.
+            # Extend the filter backwards to include recent data so the chart
+            # has something to display. (Returning no_data here would break the
+            # initial chart load on weekends/holidays when "now" is past data end.)
             if from_ > data_max_ts:
-                print(f"[SmartFilter] Request 'from' ({from_}) is after all available data (max: {data_max_ts})")
-                print(f"[SmartFilter] Returning all {original_len} bars since they fall before 'from' but are the best available data")
-                # Return data that's <= 'to' (all data before end of request is valid)
-                df = original_df[original_df['timestamp'] <= to]
-                if not df.empty:
-                    print(f"[SmartFilter] Recovered {len(df)} bars by relaxing 'from' filter")
-            
-            # Case 2: Request 'to' is BEFORE all our data (shouldn't happen normally)
+                extended_filter_from = data_max_ts - buffer_seconds * 2
+                df = original_df[original_df['timestamp'] >= extended_filter_from]
+                print(f"[History] from_ ({from_}, {datetime.fromtimestamp(from_)}) is past last bar "
+                      f"({data_max_ts}, {datetime.fromtimestamp(data_max_ts)}). "
+                      f"Extended filter back to include last {len(df)} bars.")
+            # Case 2: Requested range is entirely before available data.
             elif to < data_min_ts:
-                print(f"[SmartFilter] Request 'to' ({to}) is before all available data (min: {data_min_ts})")
-                # This is a genuine no-data scenario for this range
-    
+                print(f"[History] to ({to}) is before first bar. Returning no_data.")
+                return {
+                    "s": "no_data",
+                    "t": [], "o": [], "h": [], "l": [], "c": [], "v": [],
+                }
+            # Case 3: Genuine gap (e.g. outside market hours within data range).
+            # Return the full dataset so TradingView can fill the screen.
+            else:
+                df = original_df
+                print(f"[History] Filter eliminated all {original_len} bars (from={from_}, to={to}). Returning full dataset.")
+        else:
+            print(f"[History] Filtered from {original_len} to {len(df)} bars (from={from_}, to={to})")
+    else:
+        print(f"[History] No data or no timestamp column. Skipping filter.")
+
     if df.empty:
         print(f"No data in requested range after filtering.")
         # If we return "no_data", TradingView stops requesting history.
@@ -1290,6 +1284,8 @@ async def _process_strategy_bar(req: EvaluateStrategyRequest):
     """Process a single bar for trading strategies (returns signals)"""
     global _replay_positions
     
+    indicator_series = None
+    
     try:
         # Clear position state when new replay starts (current_index < 10 suggests new replay)
         if req.current_index < 10 and req.strategy in _replay_positions:
@@ -1303,7 +1299,7 @@ async def _process_strategy_bar(req: EvaluateStrategyRequest):
         # Ensure required columns exist
         required_cols = ['timestamp', 'open', 'high', 'low', 'close']
         if not all(col in df.columns for col in required_cols):
-            return {"type": "none", "signal": None}
+            return {"type": "none", "signal": None, "indicator_series": indicator_series}
         
         # Ensure numeric types
         for col in ['open', 'high', 'low', 'close']:
@@ -1317,11 +1313,15 @@ async def _process_strategy_bar(req: EvaluateStrategyRequest):
             strategy = get_strategy(req.strategy, df)
             signals_df = strategy.generate_signals()
             
+            indicator_series = None
+            if hasattr(strategy, 'get_indicator_series'):
+                indicator_series = strategy.get_indicator_series()
+            
         except Exception as strategy_error:
             print(f"[Strategy] Strategy error: {strategy_error}")
             import traceback
             traceback.print_exc()
-            return {"type": "none", "signal": None}
+            return {"type": "none", "signal": None, "indicator_series": indicator_series}
         
         # Find signal at current candle
         current_trade = None
@@ -1488,13 +1488,14 @@ async def _process_strategy_bar(req: EvaluateStrategyRequest):
         return {
             "type": "signal", 
             "signal": current_trade,
-            "indicator_drawings": indicator_drawings  # New field for indicators
+            "indicator_drawings": indicator_drawings,
+            "indicator_series": indicator_series
         }
         
     except Exception as e:
         import traceback
         traceback.print_exc()
-        return {"type": "none", "signal": None}
+        return {"type": "none", "signal": None, "indicator_series": indicator_series}
 
 
 # -----------------------------------------------------------
@@ -1736,6 +1737,62 @@ def run_backtest(req: BacktestRequest):
         import traceback
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Backend Error: {str(e)}")
+
+# --- Hypothesis Navigator Endpoints ---
+
+@app.get("/api/hypothesis-reports")
+def list_hypothesis_reports():
+    """List available hypothesis event JSON files from runs directory."""
+    import glob
+    repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    runs_base = os.path.join(repo_root, "logs", "backend", "runs")
+    files = []
+    for pattern in [
+        os.path.join(runs_base, "**", "hypothesis_events.json"),
+        os.path.join(runs_base, "**", "hypothesis_reports", "**", "*_report.json"),
+    ]:
+        files.extend(glob.glob(pattern, recursive=True))
+    reports = []
+    for f in sorted(files, reverse=True):
+        rel = os.path.relpath(f, runs_base).replace("\\", "/")
+        parts = rel.split("/")
+        is_per_hypothesis = "hypothesis_reports" in parts
+        symbol = parts[0] if len(parts) >= 1 else ""
+        # Restore ^ prefix sanitized to _ by Windows-safe path encoding
+        if symbol.startswith("_") and len(symbol) > 1 and symbol[1].isalpha():
+            symbol = "^" + symbol[1:]
+        resolution = parts[1] if len(parts) >= 2 else ""
+        run_id = parts[2] if len(parts) >= 3 else ""
+        filename = parts[-1]
+        if filename == "hypothesis_events.json":
+            report_name = "All Events"
+        else:
+            report_name = filename.replace("_report.json", "").replace("_", " ").title()
+        try:
+            mtime = os.path.getmtime(f)
+        except OSError:
+            mtime = 0
+        reports.append({
+            "path": rel,
+            "symbol": symbol,
+            "resolution": resolution,
+            "run_id": run_id,
+            "report_name": report_name,
+            "is_per_hypothesis": is_per_hypothesis,
+            "modified": mtime,
+        })
+    return {"reports": reports}
+
+
+@app.get("/api/hypothesis-reports/{path:path}")
+def get_hypothesis_report(path: str):
+    """Serve a specific hypothesis events JSON file."""
+    repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    file_path = os.path.join(repo_root, "logs", "backend", "runs", path)
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="Report not found")
+    return FileResponse(file_path, media_type="application/json")
+
 
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=8005, reload=True)

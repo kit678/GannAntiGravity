@@ -669,14 +669,15 @@ class ChartDatafeed {
                         }
 
                         // INDICATOR DRAWINGS: Handle EMA line and other indicators
-                        if (data.indicator_drawings && data.indicator_drawings.length > 0 && this.studyCallback) {
-                            console.log("[Progressive] Indicator drawings at step", this.currentStep, ":", data.indicator_drawings.length, "drawings");
+                        if ((data.indicator_drawings && data.indicator_drawings.length > 0 || data.indicator_series) && this.studyCallback) {
+                            console.log("[Progressive] Indicator drawings at step", this.currentStep, ":", data.indicator_drawings?.length || 0, "drawings");
                             // Convert to study format for unified drawing handling
                             this.studyCallback({
                                 type: 'drawing_update',
-                                drawings: data.indicator_drawings,
+                                drawings: data.indicator_drawings || [],
                                 pivot_markers: [],
-                                remove_drawings: []
+                                remove_drawings: [],
+                                indicator_series: data.indicator_series || null
                             });
                         }
                     } else if (responseType === 'drawing_update') {
