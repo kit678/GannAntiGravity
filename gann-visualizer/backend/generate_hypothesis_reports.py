@@ -141,7 +141,7 @@ def _generate_single_report(hyp, df, geometry_lookup, output_dir, candles_df=Non
     filename = hyp.name.lower().replace(' ', '_').replace('/', '').replace('(', '').replace(')', '') + "_report.txt"
     filepath = os.path.join(output_dir, filename)
 
-    with open(filepath, 'w') as f:
+    with open(filepath, 'w', encoding='utf-8') as f:
         f.write(f"=== {hyp.name.upper()} VERBOSE REPORT ===\n")
         f.write("=== REPRODUCTION INSTRUCTIONS ===\n")
 
@@ -199,7 +199,7 @@ def _generate_single_report(hyp, df, geometry_lookup, output_dir, candles_df=Non
                     f.write(f"   -> [ACCEPTED] Pullback at {entry['pullback_time']} ({entry['pullback_type']})\n")
                     f.write(f"      Timing: Occurred {entry['bars_elapsed']} bars after breach\n")
                     f.write(f"      Prices: Breach @ {entry.get('breach_price', 0):.2f}, Pullback @ {entry.get('pullback_price', 0):.2f}\n")
-                    f.write(f"      Outcome: {entry['outcome']} (MFE: {entry['mfe']:.2f}, MAE: {entry['mae']:.2f}\n")
+                    f.write(f"      Outcome: {entry['outcome']} (MFE: {entry['mfe']:.2f}, MAE: {entry['mae']:.2f})\n")
 
             else:
                 f.write(f"EVENT{retro_flag}: {entry['time']} | {entry['fan']} ({entry['fraction']}) | Type: {entry['type']}\n")
@@ -208,7 +208,7 @@ def _generate_single_report(hyp, df, geometry_lookup, output_dir, candles_df=Non
                 if entry.get('confluence_lines'):
                     f.write(f"      Confluence With: {', '.join(entry['confluence_lines'])}\n")
                 f.write(f"      Price: {entry['price']:.2f}\n")
-                f.write(f"      Outcome: {entry['outcome']} (MFE: {entry['mfe']:.2f}, MAE: {entry['mae']:.2f}\n")
+                f.write(f"      Outcome: {entry['outcome']} (MFE: {entry['mfe']:.2f}, MAE: {entry['mae']:.2f})\n")
             f.write("-" * 60 + "\n")
 
         if hyp.name == "9/21 EMA Crossover Strategy":
@@ -257,7 +257,7 @@ def _generate_single_report(hyp, df, geometry_lookup, output_dir, candles_df=Non
         "live_events": live_events,
         "retro_events": retro_events,
     }
-    with open(json_filepath, 'w') as f:
+    with open(json_filepath, 'w', encoding='utf-8') as f:
         json.dump(_sanitize_json(json_data), f, indent=2, default=str)
 
     print(f"  - {filename}")
