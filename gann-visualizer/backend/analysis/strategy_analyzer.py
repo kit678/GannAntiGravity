@@ -3,6 +3,7 @@ import numpy as np
 from typing import List, Dict, Any, Optional
 import os
 import json
+from datetime import datetime, timezone
 
 class Hypothesis:
     """Base class for all strategy hypotheses."""
@@ -305,62 +306,105 @@ class QuarterReversalAnomalyHypothesis(Hypothesis):
             name="The 1/4 Reversal Anomaly",
             description="If price reaches the 1/4 angle line, the trend is exhausted. The 1/4 line will act as a major reversal point."
         )
-        self.set_parameters(min_mfe_reward_ratio=2.0)
         self.detailed_log = []
-        
+
     def evaluate(self, df: pd.DataFrame) -> Dict[str, Any]:
         self.detailed_log = []
-        # Interactions specifically on the 0.25 fraction
-        interactions = df[(df['Fraction'] == '0.25') & (df['Type'].isin(['TOUCH', 'SUPPORT_TEST', 'RESISTANCE_TEST']))].copy()
-        
+
+        empty_result = {"sample_size": 0, "win_rate": 0.0, "live_sample_size": 0, "live_win_rate": 0.0,
+                        "retro_sample_size": 0, "retro_win_rate": 0.0,
+                        "avg_mfe_10": 0.0, "avg_mae_10": 0.0, "detailed_log": []}
+
+        breach_half_mask = (df['Fraction'].astype(str) == '0.5') & \
+                           df['Type'].isin(['BREACH_CONFIRMED', 'BREACH_CONFIRMED_NO_ALPHA'])
+        breach_half_map = {}
+        for _, row in df[breach_half_mask].iterrows():
+            fan = row['Fan']
+            ts = row.get('Raw_Timestamp', 0)
+            if pd.notna(ts) and ts > 0 and (fan not in breach_half_map or ts < breach_half_map[fan]):
+                breach_half_map[fan] = ts
+
+        horizontal_mask = (df['Fraction'].astype(str) == 'horizontal') & \
+                          (df['Type'] == 'TARGET_HIT')
+        horizontal_hit_map = {}
+        for _, row in df[horizontal_mask].iterrows():
+            fan = row['Fan']
+            ts = row.get('Raw_Timestamp', 0)
+            if pd.notna(ts) and ts > 0 and (fan not in horizontal_hit_map or ts < horizontal_hit_map[fan]):
+                horizontal_hit_map[fan] = ts
+
+        interactions = df[(df['Fraction'].astype(str) == '0.25') &
+                          (df['Type'].isin(['SUPPORT_TEST', 'RESISTANCE_TEST', 'TARGET_HIT']))].copy()
+
         if interactions.empty:
-            return {"sample_size": 0, "win_rate": 0.0, "live_sample_size": 0, "live_win_rate": 0.0, "retro_sample_size": 0, "retro_win_rate": 0.0, "avg_mfe_10": 0.0, "avg_mae_10": 0.0, "detailed_log": []}
-            
+            return empty_result
+
         wins = 0
         live_wins = 0
         live_total = 0
         retro_wins = 0
         retro_total = 0
-        
+
         total_mfe = 0.0
         total_mae = 0.0
-        ratio = self.parameters['min_mfe_reward_ratio']
-        
+
+        excluded_no_breach = 0
+        excluded_horizontal_first = 0
+        excluded_inconclusive = 0
+
         for _, row in interactions.iterrows():
+            fan = row.get('Fan', '')
+            event_ts = row.get('Raw_Timestamp', 0)
+            event_type = row.get('Type', '')
+
+            if pd.isna(event_ts):
+                continue
+
+            breach_ts = breach_half_map.get(fan)
+            if breach_ts is None or breach_ts > event_ts:
+                excluded_no_breach += 1
+                continue
+
+            horiz_ts = horizontal_hit_map.get(fan)
+            if horiz_ts is not None and horiz_ts < event_ts:
+                excluded_horizontal_first += 1
+                continue
+
+            outcome = row.get('Reversal_Outcome', None)
+            if pd.isna(outcome) or str(outcome).strip() == '':
+                excluded_inconclusive += 1
+                continue
+
+            is_win = str(outcome).strip() == 'WIN'
             mfe = row.get('MFE_10', np.nan)
             mae = row.get('MAE_10', np.nan)
-            
-            if pd.isna(mfe) or pd.isna(mae):
-                continue
-                
-            safe_mae = max(mae, 0.1)
-            is_win = mfe > safe_mae * ratio
-            
+
             details = str(row.get("Details", ""))
             is_retro = "[Retro]" in details
-            
+
             record = {
                 "time": row.get("Time", ""),
                 "fan": row.get("Fan", ""),
                 "fraction": row.get("Fraction", ""),
-                "type": row.get("Type", ""),
+                "type": event_type,
                 "price": row.get("Price", 0.0),
                 "is_retro": is_retro,
                 "outcome": "WIN" if is_win else "LOSS",
-                "mfe": mfe,
-                "mae": mae,
-                # Fan geometry for angular fan ray reconstruction
+                "mfe": mfe if not pd.isna(mfe) else 0.0,
+                "mae": mae if not pd.isna(mae) else 0.0,
                 "anchor_bar_index": row.get("anchor_bar_index", 0),
                 "scale_ratio": row.get("scale_ratio", 1.0),
                 "anchor_price": row.get("anchor_price", 0.0),
             }
             self.detailed_log.append(record)
-            
+
             if is_win:
                 wins += 1
-            total_mfe += mfe
-            total_mae += mae
-            
+            if not pd.isna(mfe):
+                total_mfe += mfe
+            if not pd.isna(mae):
+                total_mae += mae
+
             if is_retro:
                 retro_total += 1
                 if is_win:
@@ -369,7 +413,7 @@ class QuarterReversalAnomalyHypothesis(Hypothesis):
                 live_total += 1
                 if is_win:
                     live_wins += 1
-            
+
         n = len(self.detailed_log)
         return {
             "sample_size": n,
@@ -380,7 +424,12 @@ class QuarterReversalAnomalyHypothesis(Hypothesis):
             "retro_win_rate": retro_wins / retro_total if retro_total > 0 else 0.0,
             "avg_mfe_10": total_mfe / n if n > 0 else 0.0,
             "avg_mae_10": total_mae / n if n > 0 else 0.0,
-            "detailed_log": self.detailed_log
+            "detailed_log": self.detailed_log,
+            "excluded_stats": {
+                "no_1h_breach": excluded_no_breach,
+                "horizontal_first": excluded_horizontal_first,
+                "inconclusive": excluded_inconclusive
+            }
         }
 
 class ConfluenceBounceHypothesis(Hypothesis):
@@ -796,6 +845,156 @@ class MultiTFReversalHypothesis(Hypothesis):
             "win_rate": wins / n,
             "avg_mfe_10": total_mfe / n,
             "avg_mae_10": total_mae / n,
+        }
+
+
+class EMACrossoverHypothesis(Hypothesis):
+    def __init__(self):
+        super().__init__(
+            name="9/21 EMA Crossover Strategy",
+            description="Evaluates simple two-line EMA (9/21) crossover signals across multiple symbols and timeframes. BUY when 9 EMA crosses above 21 EMA, SELL when it crosses below. Outcomes scored by MFE/MAE ratio within a configurable lookahead window."
+        )
+        self.set_parameters(
+            fast_ema=9,
+            slow_ema=21,
+            min_mfe_reward_ratio=2.0,
+            lookahead_bars=10,
+        )
+        self.detailed_log = []
+
+    def _compute_emas(self, df):
+        fast = self.parameters['fast_ema']
+        slow = self.parameters['slow_ema']
+        df = df.copy()
+        df['ema_9'] = df['close'].ewm(span=fast, adjust=False).mean()
+        df['ema_21'] = df['close'].ewm(span=slow, adjust=False).mean()
+        return df
+
+    def _detect_crossovers(self, df):
+        prev_9_above = df['ema_9'].shift(1) > df['ema_21'].shift(1)
+        curr_9_above = df['ema_9'] > df['ema_21']
+        buy_signal = ~prev_9_above & curr_9_above
+        sell_signal = prev_9_above & ~curr_9_above
+        crossovers = []
+        for idx in range(1, len(df)):
+            if pd.isna(df['ema_9'].iloc[idx]) or pd.isna(df['ema_21'].iloc[idx]):
+                continue
+            if buy_signal.iloc[idx]:
+                crossovers.append((idx, 'BUY'))
+            elif sell_signal.iloc[idx]:
+                crossovers.append((idx, 'SELL'))
+        return crossovers
+
+    def _evaluate_outcome(self, df, entry_idx, direction):
+        lookahead = self.parameters['lookahead_bars']
+        end_idx = min(entry_idx + lookahead + 1, len(df))
+        entry_price = df['close'].iloc[entry_idx]
+
+        if end_idx <= entry_idx + 1:
+            return 'LOSS', 0.0, 0.0, entry_price, entry_price
+
+        if direction == 'BUY':
+            high_in_window = df['high'].iloc[entry_idx + 1:end_idx].max()
+            low_in_window = df['low'].iloc[entry_idx + 1:end_idx].min()
+            mfe = ((high_in_window - entry_price) / entry_price) * 100
+            mae = ((entry_price - low_in_window) / entry_price) * 100
+            high_reached = high_in_window
+            low_reached = low_in_window
+        else:
+            high_in_window = df['high'].iloc[entry_idx + 1:end_idx].max()
+            low_in_window = df['low'].iloc[entry_idx + 1:end_idx].min()
+            mfe = ((entry_price - low_in_window) / entry_price) * 100
+            mae = ((high_in_window - entry_price) / entry_price) * 100
+            high_reached = high_in_window
+            low_reached = low_in_window
+
+        ratio = self.parameters['min_mfe_reward_ratio']
+        outcome = 'WIN' if mfe > mae * ratio else 'LOSS'
+        return outcome, mfe, mae, high_reached, low_reached
+
+    def evaluate(self, df: pd.DataFrame, candles_df: pd.DataFrame = None) -> Dict[str, Any]:
+        self.detailed_log = []
+
+        if candles_df is None:
+            return {
+                "sample_size": 0, "win_rate": 0.0,
+                "live_sample_size": 0, "live_win_rate": 0.0,
+                "retro_sample_size": 0, "retro_win_rate": 0.0,
+                "avg_mfe_10": 0.0, "avg_mae_10": 0.0,
+                "detailed_log": []
+            }
+
+        required_cols = ['time', 'open', 'high', 'low', 'close']
+        missing = [c for c in required_cols if c not in candles_df.columns]
+        if missing:
+            return {
+                "sample_size": 0, "win_rate": 0.0,
+                "live_sample_size": 0, "live_win_rate": 0.0,
+                "retro_sample_size": 0, "retro_win_rate": 0.0,
+                "avg_mfe_10": 0.0, "avg_mae_10": 0.0,
+                "detailed_log": []
+            }
+
+        df_with_emas = self._compute_emas(candles_df)
+        crossovers = self._detect_crossovers(df_with_emas)
+
+        if not crossovers:
+            return {
+                "sample_size": 0, "win_rate": 0.0,
+                "live_sample_size": 0, "live_win_rate": 0.0,
+                "retro_sample_size": 0, "retro_win_rate": 0.0,
+                "avg_mfe_10": 0.0, "avg_mae_10": 0.0,
+                "detailed_log": []
+            }
+
+        wins = 0
+        total_mfe = 0.0
+        total_mae = 0.0
+        timeframe = str(df.get('Timeframe', '')).strip() if isinstance(df, pd.DataFrame) and 'Timeframe' in df.columns else ''
+
+        for entry_idx, direction in crossovers:
+            outcome, mfe, mae, high_reached, low_reached = self._evaluate_outcome(
+                df_with_emas, entry_idx, direction
+            )
+
+            time_unix = int(df_with_emas['time'].iloc[entry_idx])
+            time_str = datetime.fromtimestamp(time_unix, tz=timezone.utc).strftime('%Y-%m-%dT%H:%M:%S')
+            entry_price = df_with_emas['close'].iloc[entry_idx]
+
+            record = {
+                "time": time_str,
+                "timestamp": time_unix,
+                "entry_price": float(entry_price),
+                "direction": direction,
+                "outcome": outcome,
+                "mfe_pct": round(mfe, 4),
+                "mae_pct": round(mae, 4),
+                "ema_9": float(df_with_emas['ema_9'].iloc[entry_idx]),
+                "ema_21": float(df_with_emas['ema_21'].iloc[entry_idx]),
+                "high_reached": float(high_reached),
+                "low_reached": float(low_reached),
+                "is_retro": False,
+                "bar_index": int(entry_idx),
+                "timeframe": timeframe,
+            }
+            self.detailed_log.append(record)
+
+            if outcome == 'WIN':
+                wins += 1
+            total_mfe += mfe
+            total_mae += mae
+
+        n = len(self.detailed_log)
+        return {
+            "sample_size": n,
+            "win_rate": wins / n if n > 0 else 0.0,
+            "live_sample_size": n,
+            "live_win_rate": wins / n if n > 0 else 0.0,
+            "retro_sample_size": 0,
+            "retro_win_rate": 0.0,
+            "avg_mfe_10": total_mfe / n if n > 0 else 0.0,
+            "avg_mae_10": total_mae / n if n > 0 else 0.0,
+            "detailed_log": self.detailed_log,
         }
 
 
