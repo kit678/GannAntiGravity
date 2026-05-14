@@ -260,7 +260,7 @@ function App() {
             // Trigger Instant Chart Update
             if (chartRef.current) {
                 // Pass the requested resolution to ensure chart alignment
-                chartRef.current.startBacktestInstant(result.candles, result.trades, currentResolution, result.markers, result.drawings);
+                chartRef.current.startBacktestInstant(result.candles, result.trades, currentResolution, result.markers, result.drawings, result.indicator_series);
             }
 
             // Hide replay controls in instant mode

@@ -1220,7 +1220,7 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
         },
 
         // INSTANT MODE: Plot all candles and signals at once
-        startBacktestInstant: (candles, trades, resolution = '1', markers = [], drawings = []) => {
+        startBacktestInstant: (candles, trades, resolution = '1', markers = [], drawings = [], indicator_series = null) => {
             console.log("Starting Instant Backtest", candles.length, "candles,", trades.length, "trades, resolution:", resolution);
             console.log("Instant Study Data:", markers.length, "markers,", drawings.length, "drawings");
 
@@ -1372,6 +1372,31 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
                                 }
                             }
 
+                            // Render indicator lines (EMA 9, EMA 21) on instant backtest
+                            if (indicator_series && chart) {
+                                const colors = { ema_9: '#2196F3', ema_21: '#FF9800' };
+                                const labels = { ema_9: 'EMA 9', ema_21: 'EMA 21' };
+                                Object.entries(indicator_series).forEach(([key, data]) => {
+                                    if (!data || data.length === 0) return;
+                                    const points = data.filter(p => p.time && (p.value != null)).map(p => ({
+                                        time: toSeconds(p.time),
+                                        price: p.value
+                                    })).sort((a, b) => a.time - b.time);
+                                    if (points.length > 1) {
+                                        if (indicatorLinesRef.current[key]) {
+                                            try { chart.removeEntity(indicatorLinesRef.current[key]); } catch (e) {}
+                                        }
+                                        const id = chart.createMultipointShape(points, {
+                                            shape: 'polyline',
+                                            zOrder: 'top',
+                                            color: colors[key] || '#888888',
+                                            lineWidth: 2,
+                                        });
+                                        indicatorLinesRef.current[key] = id;
+                                    }
+                                });
+                            }
+
                         }, 500); // 500ms delay to allow bar indexing
                     }).catch(err => {
                         console.error("Error setting visible range:", err);
@@ -1397,6 +1422,30 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
                             } catch (studyErr) {
                                 console.error("Error plotting study data:", studyErr);
                             }
+                        }
+
+                        // Render indicator lines fallback (EMA 9, EMA 21)
+                        if (indicator_series && chart) {
+                            const colors = { ema_9: '#2196F3', ema_21: '#FF9800' };
+                            Object.entries(indicator_series).forEach(([key, data]) => {
+                                if (!data || data.length === 0) return;
+                                const points = data.filter(p => p.time && (p.value != null)).map(p => ({
+                                    time: toSeconds(p.time),
+                                    price: p.value
+                                })).sort((a, b) => a.time - b.time);
+                                if (points.length > 1) {
+                                    if (indicatorLinesRef.current[key]) {
+                                        try { chart.removeEntity(indicatorLinesRef.current[key]); } catch (e) {}
+                                    }
+                                    const id = chart.createMultipointShape(points, {
+                                        shape: 'polyline',
+                                        zOrder: 'top',
+                                        color: colors[key] || '#888888',
+                                        lineWidth: 2,
+                                    });
+                                    indicatorLinesRef.current[key] = id;
+                                }
+                            });
                         }
                     });
                 } else {
@@ -1599,7 +1648,7 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
 
                                 const points = data.map(p => ({
                                     time: p.time,
-                                    price: p.price
+                                    price: p.value
                                 })).filter(p => p.time != null && p.price != null && !isNaN(p.time) && !isNaN(p.price));
 
                                 if (points.length < 2) return;

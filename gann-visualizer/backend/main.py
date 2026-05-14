@@ -1552,6 +1552,7 @@ def run_backtest(req: BacktestRequest):
         
         drawings = []
         markers = []
+        indicator_series = None
         filtered_trades = []
         
         if is_study(req.strategy):
@@ -1649,6 +1650,11 @@ def run_backtest(req: BacktestRequest):
                 # Get strategy instance (pure signal generator)
                 strategy = get_strategy(req.strategy, df, params=strategy_params)
                 
+                # Extract indicator series for chart rendering (e.g., EMA lines)
+                indicator_series = None
+                if hasattr(strategy, 'get_indicator_series'):
+                    indicator_series = strategy.get_indicator_series()
+                
                 # Create backtesting engine (handles position management and P&L)
                 backtest_engine = BacktestEngine(strategy)
                 
@@ -1731,7 +1737,8 @@ def run_backtest(req: BacktestRequest):
             "markers": filtered_markers,
             "drawings": drawings,
             "strategy": req.strategy,
-            "symbol": req.symbol
+            "symbol": req.symbol,
+            "indicator_series": indicator_series,
         }
     except Exception as e:
         import traceback
