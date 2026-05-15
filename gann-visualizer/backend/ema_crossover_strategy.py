@@ -13,7 +13,8 @@ from typing import Dict, Any, Optional
 from base_strategy import BaseStrategy, SignalType
 
 
-def safe_float(val):
+def safe_float(val: any) -> float:
+    """Convert value to float, returning 0.0 for None or NaN."""
     if val is None or (isinstance(val, float) and math.isnan(val)):
         return 0.0
     return float(val)
@@ -31,6 +32,25 @@ class EMACrossoverStrategy(BaseStrategy):
 
     def get_strategy_description(self) -> str:
         return "Two-line EMA crossover on 9 and 21 periods"
+
+    def _build_crossover_event(self, df: pd.DataFrame, bar_index: int,
+                               time_val: int, curr_9: float, curr_21: float,
+                               event_type: str, direction: str, direction_word: str) -> dict:
+        return {
+            "time": time_val,
+            "price": float(df['close'].iloc[bar_index]),
+            "type": event_type,
+            "details": f"9 EMA ({curr_9:.2f}) crossed {direction_word} 21 EMA ({curr_21:.2f})",
+            "open": safe_float(df['open'].iloc[bar_index]),
+            "high": safe_float(df['high'].iloc[bar_index]),
+            "low": safe_float(df['low'].iloc[bar_index]),
+            "close": safe_float(df['close'].iloc[bar_index]),
+            "strategy_data": {
+                "crossover_direction": direction,
+                "fast_ema_value": round(float(curr_9), 2),
+                "slow_ema_value": round(float(curr_21), 2),
+            }
+        }
 
     def extract_events(self, df: pd.DataFrame, bar_index: int) -> list:
         if bar_index < self.slow_period + 1 or bar_index >= len(df):
@@ -55,37 +75,13 @@ class EMACrossoverStrategy(BaseStrategy):
         time_val = int(ts.timestamp()) if hasattr(ts, 'timestamp') else int(ts)
 
         if not prev_9_above and curr_9_above:
-            events.append({
-                "time": time_val,
-                "price": float(df['close'].iloc[bar_index]),
-                "type": "EMA_CROSSOVER_UP",
-                "details": f"9 EMA ({curr_9:.2f}) crossed above 21 EMA ({curr_21:.2f})",
-                "open": safe_float(df['open'].iloc[bar_index]),
-                "high": safe_float(df['high'].iloc[bar_index]),
-                "low": safe_float(df['low'].iloc[bar_index]),
-                "close": safe_float(df['close'].iloc[bar_index]),
-                "strategy_data": {
-                    "crossover_direction": "BUY",
-                    "fast_ema_value": round(float(curr_9), 2),
-                    "slow_ema_value": round(float(curr_21), 2),
-                }
-            })
+            events.append(self._build_crossover_event(
+                df, bar_index, time_val, curr_9, curr_21,
+                "EMA_CROSSOVER_UP", "BUY", "above"))
         elif prev_9_above and not curr_9_above:
-            events.append({
-                "time": time_val,
-                "price": float(df['close'].iloc[bar_index]),
-                "type": "EMA_CROSSOVER_DOWN",
-                "details": f"9 EMA ({curr_9:.2f}) crossed below 21 EMA ({curr_21:.2f})",
-                "open": safe_float(df['open'].iloc[bar_index]),
-                "high": safe_float(df['high'].iloc[bar_index]),
-                "low": safe_float(df['low'].iloc[bar_index]),
-                "close": safe_float(df['close'].iloc[bar_index]),
-                "strategy_data": {
-                    "crossover_direction": "SELL",
-                    "fast_ema_value": round(float(curr_9), 2),
-                    "slow_ema_value": round(float(curr_21), 2),
-                }
-            })
+            events.append(self._build_crossover_event(
+                df, bar_index, time_val, curr_9, curr_21,
+                "EMA_CROSSOVER_DOWN", "SELL", "below"))
 
         return events
 
