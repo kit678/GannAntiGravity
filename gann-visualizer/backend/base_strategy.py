@@ -6,8 +6,8 @@ Strategies should focus ONLY on signal generation, not position management or P&
 """
 
 from abc import ABC, abstractmethod
-import pandas as pd
 from typing import Dict, Any, Optional
+import pandas as pd
 
 
 class SignalType:
@@ -79,7 +79,75 @@ class BaseStrategy(ABC):
     def get_strategy_description(self) -> str:
         """Return a description of the strategy (optional override)"""
         return f"{self.get_strategy_name()} - No description provided"
-    
+
+    def get_indicator_series(self) -> Dict[str, list]:
+        """
+        Return indicator time-value pairs for chart rendering.
+
+        Override in strategies that have indicators (EMA lines, etc.).
+
+        Returns:
+            Dict mapping indicator name to list of {"time": int, "value": float} dicts
+        """
+        return {}
+
+    def extract_events(self, df: pd.DataFrame, bar_index: int) -> list:
+        """
+        Extract strategy-specific interaction events at the given bar index.
+
+        Called during step-by-step replay for the Price Interactions tab.
+        Default returns empty list. Override per strategy.
+
+        Args:
+            df: DataFrame with signal columns (after generate_signals)
+            bar_index: Index of the current bar being evaluated
+
+        Returns:
+            List of event dicts with keys: time, price, type, details,
+            open, high, low, close, strategy_data
+        """
+        return []
+
+    def get_strategy_meta(self) -> dict:
+        """
+        Return strategy metadata used by frontend for column rendering.
+
+        Returns:
+            dict with keys: name, display_name, is_study, column_schema,
+            filter_field, filter_options
+        """
+        return {
+            "name": self.__class__.__name__,
+            "display_name": self.get_strategy_name(),
+            "is_study": False,
+            "column_schema": self.get_interaction_column_schema(),
+            "filter_field": None,
+            "filter_options": [],
+        }
+
+    def get_interaction_column_schema(self) -> list:
+        """
+        Return column definitions for Price Interactions table.
+
+        Override per strategy. Default returns universal columns only.
+
+        Each column dict has: key (dot-notation path), label (display name),
+        width (CSS width), format (datetime|price|text).
+
+        Returns:
+            List of column definition dicts
+        """
+        return [
+            {"key": "time", "label": "Time", "width": "140px", "format": "datetime"},
+            {"key": "type", "label": "Event", "width": "110px", "format": "text"},
+            {"key": "price", "label": "Price", "width": "80px", "format": "price"},
+            {"key": "details", "label": "Details", "width": "200px", "format": "text"},
+            {"key": "open", "label": "Open", "width": "70px", "format": "price"},
+            {"key": "high", "label": "High", "width": "70px", "format": "price"},
+            {"key": "low", "label": "Low", "width": "70px", "format": "price"},
+            {"key": "close", "label": "Close", "width": "70px", "format": "price"},
+        ]
+
     def validate_data(self) -> bool:
         """
         Validate that the input data has the required columns and format.
