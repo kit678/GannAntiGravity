@@ -34,9 +34,23 @@ const calculateSummary = (trades) => {
     };
 };
 
+const resolveNestedKey = (obj, key) => {
+    if (!obj || !key) return null;
+    const parts = key.split('.');
+    let current = obj;
+    for (const part of parts) {
+        if (current == null) return null;
+        current = current[part];
+    }
+    return current;
+};
+
 function App() {
     const [strategy, setStrategy] = useState('mechanical_3day')
     const [filterFan, setFilterFan] = useState('all') // Filter by fan in Price Interactions tab
+    const [interactionColumnSchema, setInteractionColumnSchema] = useState(null)
+    const [interactionFilterField, setInteractionFilterField] = useState(null)
+    const [interactionFilterOptions, setInteractionFilterOptions] = useState([])
 
     const [instrumentType, setInstrumentType] = useState('spot') // User requested default
     const [dataSource, setDataSource] = useState('yfinance') // User requested default
@@ -115,7 +129,7 @@ function App() {
             .filter(r => {
                 // Extract timestamp from path: .../hypothesis_reports/HHMMSS_all/...
                 const parts = r.path.split('/');
-                const ts = parts.find(p => p.match(/^\d{6}_all$/));
+                const ts = parts.find(p => p.match(/^\d{6}(_all)?$/));
                 if (!ts) return false;
                 if (seen.has(ts)) return false;
                 seen.add(ts);
@@ -153,14 +167,19 @@ function App() {
                 setSelectedInteractionIndex(prev => Math.max(0, prev - 1));
             } else if (e.key === 'ArrowDown') {
                 e.preventDefault();
-                const filteredCount = priceInteractions.filter(hit => filterFan === 'all' || (hit.fanIdentity || hit.fan) === filterFan).length;
+                const filterField = interactionFilterField || 'fanIdentity';
+                const filteredCount = priceInteractions.filter(hit => {
+                    if (filterFan === 'all') return true;
+                    const val = resolveNestedKey(hit, filterField);
+                    return val === filterFan || (hit.fanIdentity || hit.fan) === filterFan;
+                }).length;
                 setSelectedInteractionIndex(prev => Math.min(filteredCount - 1, prev + 1));
             }
         };
 
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [bottomPanelTab, priceInteractions, filterFan]);
+    }, [bottomPanelTab, priceInteractions, filterFan, interactionFilterField]);
 
     // Replay Toolbar Position State
     const [replayPos, setReplayPos] = useState({ x: window.innerWidth / 2 - 300, y: window.innerHeight - 200 });
@@ -344,6 +363,12 @@ function App() {
             const data = await response.json();
             console.log(`[Step-by-Step] Fetched ${data.candles.length} candles (includes ${LOOKBACK_BARS} lookback bars for context). Initial Markers: ${data.markers ? data.markers.length : 0}`);
 
+            if (data.strategy_meta && data.strategy_meta.column_schema) {
+                setInteractionColumnSchema(data.strategy_meta.column_schema);
+                setInteractionFilterField(data.strategy_meta.filter_field || null);
+                setInteractionFilterOptions(data.strategy_meta.filter_options || []);
+            }
+
             // Activate UI only after data is ready to prevent race conditions
             setIsReplayMode(true);
             setReplayProgress(0);
@@ -461,7 +486,12 @@ function App() {
         return true;
     });
 
-    const filteredInteractions = priceInteractions.filter(hit => filterFan === 'all' || (hit.fanIdentity || hit.fan) === filterFan);
+    const filterField = interactionFilterField || 'fanIdentity';
+    const filteredInteractions = priceInteractions.filter(hit => {
+        if (filterFan === 'all') return true;
+        const val = resolveNestedKey(hit, filterField);
+        return val === filterFan || (hit.fanIdentity || hit.fan) === filterFan;
+    });
     const selectedInteraction = filteredInteractions[selectedInteractionIndex] || null;
 
     return (
@@ -610,6 +640,17 @@ function App() {
                                 return [...prev, hit];
                             });
                         }}
+                        onStrategyMeta={(meta) => {
+                            if (meta.column_schema) {
+                                setInteractionColumnSchema(meta.column_schema);
+                            }
+                            if (meta.filter_field) {
+                                setInteractionFilterField(meta.filter_field);
+                            }
+                            if (meta.filter_options) {
+                                setInteractionFilterOptions(meta.filter_options);
+                            }
+                        }}
                     />
                 </div>
 
@@ -688,169 +729,146 @@ function App() {
                                 {priceInteractions.length === 0 ? (
                                     <p>No price interactions recorded yet. Start a step-by-step simulation with Show Intersections enabled.</p>
                                 ) : (
-                                    <>
-                                        <div style={{ marginBottom: '10px', display: 'flex', gap: '10px', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 10, backgroundColor: '#1e1e1e', paddingTop: '4px' }}>
-                                            <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                                                <label style={{ fontSize: '12px' }}>
-                                                    Filter by Fan:
-                                                    <select
-                                                        value={filterFan}
-                                                        onChange={(e) => setFilterFan(e.target.value)}
-                                                        style={{ marginLeft: '5px', padding: '2px 5px', fontSize: '11px' }}
-                                                    >
-                                                        <option value="all">All Fans</option>
-                                                        {[...new Set(priceInteractions.map(h => h.fanIdentity || h.fan))].sort().map(identity => (
-                                                            <option key={identity} value={identity}>{identity}</option>
-                                                        ))}
-                                                    </select>
-                                                </label>
-                                                <span style={{ fontSize: '11px', color: '#888' }}>
-                                                    Showing {priceInteractions.filter(h => filterFan === 'all' || (h.fanIdentity || h.fan) === filterFan).length} of {priceInteractions.length} events
-                                                </span>
-                                            </div>
-                                            <div style={{ display: 'flex', gap: '8px' }}>
-                                                <button 
-                                                    onClick={() => {
-                                                        const rows = [
-                                                            ['#', 'Time', 'Fan', 'Fraction', 'Price', 'Type', 'Details', 'Open', 'High', 'Low', 'Close', 'Cluster', 'Zone', 'Zone Extremes', 'Next Angle Line', 'Active Angles']
-                                                        ];
-                                                        priceInteractions.filter(hit => filterFan === 'all' || (hit.fanIdentity || hit.fan) === filterFan).forEach((hit, i) => {
-                                                            rows.push([
-                                                                i + 1,
-                                                                new Date(hit.time * 1000).toLocaleString().replace(/,/g, ''),
-                                                                hit.fan,
-                                                                hit.fraction,
-                                                                hit.price != null ? hit.price.toFixed(2) : '-',
-                                                                hit.type || '-',
-                                                                (hit.details || '').replace(/,/g, ';'),
-                                                                hit.open != null ? hit.open.toFixed(2) : '-',
-                                                                hit.high != null ? hit.high.toFixed(2) : '-',
-                                                                hit.low != null ? hit.low.toFixed(2) : '-',
-                                                                hit.close != null ? hit.close.toFixed(2) : '-',
-                                                                hit.cluster ? 'Yes' : 'No',
-                                                                hit.zone || '-',
-                                                                hit.zoneExtremes && hit.zoneExtremes.highest_close
-                                                                    ? `${hit.zoneExtremes.lowest_close?.toFixed(2)} - ${hit.zoneExtremes.highest_close?.toFixed(2)}`
-                                                                    : '-',
-                                                                hit.nextAngleLine || '-',
-                                                                hit.activeAngles ? JSON.stringify(hit.activeAngles).replace(/,/g, ';') : ''
-                                                            ]);
-                                                        });
-                                                        
-                                                        // Format as a tab-separated string for clipboard
-                                                        const tsvContent = rows.map(e => e.join("\t")).join("\n");
-                                                        navigator.clipboard.writeText(tsvContent).then(() => {
-                                                            alert("Table copied to clipboard!");
-                                                        }).catch(err => {
-                                                            console.error("Could not copy text: ", err);
-                                                            alert("Failed to copy to clipboard.");
-                                                        });
-                                                    }}
-                                                    style={{ padding: '4px 8px', fontSize: '11px', cursor: 'pointer', backgroundColor: '#4CAF50', color: 'white', border: 'none', borderRadius: '3px' }}
-                                                >
-                                                    📋 Copy Table
-                                                </button>
-                                                <button 
-                                                    onClick={() => {
-                                                        const rows = [
-                                                            ['#', 'Time', 'Fan', 'Fraction', 'Price', 'Type', 'Details', 'Open', 'High', 'Low', 'Close', 'Cluster', 'Zone', 'Zone Extremes', 'Next Angle Line', 'Active Angles']
-                                                        ];
-                                                        priceInteractions.forEach((hit, i) => {
-                                                            rows.push([
-                                                                i + 1,
-                                                                new Date(hit.time * 1000).toLocaleString().replace(/,/g, ''),
-                                                                hit.fan,
-                                                                hit.fraction,
-                                                                hit.price != null ? hit.price.toFixed(2) : 'N/A',
-                                                                hit.type || 'N/A',
-                                                                (hit.details || '').replace(/,/g, ';'),
-                                                                hit.open != null ? hit.open.toFixed(2) : 'N/A',
-                                                                hit.high != null ? hit.high.toFixed(2) : 'N/A',
-                                                                hit.low != null ? hit.low.toFixed(2) : 'N/A',
-                                                                hit.close != null ? hit.close.toFixed(2) : 'N/A',
-                                                                hit.cluster ? 'Yes' : 'No',
-                                                                hit.zone || '-',
-                                                                hit.zoneExtremes && hit.zoneExtremes.highest_close
-                                                                    ? `${hit.zoneExtremes.lowest_close?.toFixed(2)} - ${hit.zoneExtremes.highest_close?.toFixed(2)}`
-                                                                    : '-',
-                                                                hit.nextAngleLine || '-',
-                                                                hit.activeAngles ? JSON.stringify(hit.activeAngles).replace(/,/g, ';') : ''
-                                                            ]);
-                                                        });
-                                                        const csvContent = rows.map(e => e.join(",")).join("\n");
-                                                        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-                                                        const url = URL.createObjectURL(blob);
-                                                        const link = document.createElement("a");
-                                                        link.setAttribute("href", url);
-                                                        link.setAttribute("download", "frontend_price_interactions.csv");
-                                                        document.body.appendChild(link);
-                                                        link.click();
-                                                        document.body.removeChild(link);
-                                                        URL.revokeObjectURL(url);
-                                                    }}
-                                                    style={{ padding: '4px 8px', fontSize: '11px', cursor: 'pointer', backgroundColor: '#2196F3', color: 'white', border: 'none', borderRadius: '3px' }}
-                                                >
-                                                    Export CSV
-                                                </button>
-                                            </div>
-                                        </div>
-                                        <div className="table-container" style={{ overflowX: 'auto' }}>
-                                            <table className="interactions-table" style={{ whiteSpace: 'nowrap' }}>
-                                                <thead>
-                                                    <tr>
-                                                        <th>#</th>
-                                                        <th>Time</th>
-                                                        <th>Fan</th>
-                                                        <th>Fraction</th>
-                                                        <th>Price</th>
-                                                        <th>Type</th>
-                                                        <th>Details</th>
-                                                        <th>O</th>
-                                                        <th>H</th>
-                                                        <th>L</th>
-                                                        <th>C</th>
-                                                        <th>Cluster</th>        
-                                                        <th>Zone</th>
-                                                        <th>Zone Extremes</th>  
-                                                        <th>Next Angle Line</th>    
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                    {filteredInteractions
-                                                        .map((hit, i) => (
-                                                            <tr 
-                                                                key={i}
-                                                                className={i === selectedInteractionIndex ? 'selected-row' : ''}
-                                                                onClick={() => setSelectedInteractionIndex(i)}
-                                                                style={{ cursor: 'pointer' }}
+                                    (() => {
+                                        const schema = interactionColumnSchema || [
+                                            {"key": "time",                          "label": "Time",            "width": "140px", "format": "datetime"},
+                                            {"key": "strategy_data.fan",             "label": "Fan",             "width": "120px", "format": "text"},
+                                            {"key": "strategy_data.fraction",        "label": "Fraction",        "width": "70px",  "format": "text"},
+                                            {"key": "type",                          "label": "Type",            "width": "110px", "format": "text"},
+                                            {"key": "price",                         "label": "Price",           "width": "80px",  "format": "price"},
+                                            {"key": "details",                       "label": "Details",         "width": "200px", "format": "text"},
+                                            {"key": "open",                          "label": "O",               "width": "60px",  "format": "price"},
+                                            {"key": "high",                          "label": "H",               "width": "60px",  "format": "price"},
+                                            {"key": "low",                           "label": "L",               "width": "60px",  "format": "price"},
+                                            {"key": "close",                         "label": "C",               "width": "60px",  "format": "price"},
+                                            {"key": "strategy_data.cluster",         "label": "Cluster",         "width": "70px",  "format": "text"},
+                                            {"key": "strategy_data.zone",            "label": "Zone",            "width": "80px",  "format": "text"},
+                                            {"key": "strategy_data.zoneExtremes",    "label": "Zone Extremes",   "width": "140px", "format": "text"},
+                                            {"key": "strategy_data.nextAngleLine",   "label": "Next Angle Line", "width": "110px", "format": "text"},
+                                        ];
+                                        
+                                        const filterFieldLocal = interactionFilterField || 'fanIdentity';
+                                        const filterOptions = interactionFilterOptions.length > 0 
+                                            ? interactionFilterOptions 
+                                            : [...new Set(priceInteractions.map(h => resolveNestedKey(h, filterFieldLocal)))]
+                                                .filter(Boolean).sort();
+                                        
+                                        const filteredData = priceInteractions.filter(hit => {
+                                            if (filterFan === 'all') return true;
+                                            const val = resolveNestedKey(hit, filterFieldLocal);
+                                            return val === filterFan || (hit.fanIdentity || hit.fan) === filterFan;
+                                        });
+
+                                        const formatCell = (hit, col) => {
+                                            const val = resolveNestedKey(hit, col.key);
+                                            if (val == null || val === '') return '-';
+                                            if (col.format === 'datetime') return new Date(val * 1000).toLocaleString().replace(/,/g, '');
+                                            if (col.format === 'price' && typeof val === 'number') return val.toFixed(2);
+                                            if (typeof val === 'object') {
+                                                if (val.highest_close != null) return `${val.lowest_close?.toFixed(2) || '-'} - ${val.highest_close?.toFixed(2)}`;
+                                                return JSON.stringify(val).replace(/,/g, ';');
+                                            }
+                                            if (typeof val === 'boolean') return val ? 'Yes' : 'No';
+                                            return String(val);
+                                        };
+
+                                        const buildCsvRows = (data, includeHeader) => {
+                                            const rows = [];
+                                            if (includeHeader) rows.push(schema.map(c => c.label));
+                                            data.forEach((hit) => {
+                                                rows.push(schema.map(c => formatCell(hit, c)));
+                                            });
+                                            return rows;
+                                        };
+
+                                        const displayLabel = interactionFilterField 
+                                            ? interactionFilterField.split('.').pop().replace(/_/g, ' ') 
+                                            : 'Fan';
+
+                                        return (
+                                            <>
+                                                <div style={{ marginBottom: '10px', display: 'flex', gap: '10px', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 10, backgroundColor: '#1e1e1e', paddingTop: '4px' }}>
+                                                    <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                                                        <label style={{ fontSize: '12px' }}>
+                                                            Filter by {displayLabel}:
+                                                            <select
+                                                                value={filterFan}
+                                                                onChange={(e) => setFilterFan(e.target.value)}
+                                                                style={{ marginLeft: '5px', padding: '2px 5px', fontSize: '11px', textTransform: 'capitalize' }}
                                                             >
-                                                                <td>{i + 1}</td>
-                                                                <td>{new Date(hit.time * 1000).toLocaleString()}</td>
-                                                                <td style={{ color: '#90CAF9' }}>{hit.fan}</td>
-                                                                <td style={{ color: '#FFEB3B' }}>{hit.fraction}</td>
-                                                                <td>{hit.price != null ? hit.price.toFixed(2) : 'N/A'}</td>
-                                                                <td>{hit.type || 'N/A'}</td>
-                                                                <td style={{ fontSize: '11px', color: '#AAA' }}>
-                                                                    {hit.details || ''}
-                                                                </td>
-                                                                <td style={{ fontSize: '11px' }}>{hit.open != null ? hit.open.toFixed(2) : '-'}</td>
-                                                                <td style={{ fontSize: '11px' }}>{hit.high != null ? hit.high.toFixed(2) : '-'}</td>
-                                                                <td style={{ fontSize: '11px' }}>{hit.low != null ? hit.low.toFixed(2) : '-'}</td>
-                                                                <td style={{ fontSize: '11px' }}>{hit.close != null ? hit.close.toFixed(2) : '-'}</td>
-                                                                <td style={{ fontSize: '11px' }}>{hit.cluster ? 'Yes' : 'No'}</td>
-                                                                <td style={{ fontSize: '11px', color: '#81C784' }}>{hit.zone || '-'}</td>
-                                                                <td style={{ fontSize: '11px' }}>
-                                                                    {hit.zoneExtremes && hit.zoneExtremes.highest_close
-                                                                        ? `${hit.zoneExtremes.lowest_close?.toFixed(2)} - ${hit.zoneExtremes.highest_close?.toFixed(2)}`
-                                                                        : '-'}  
-                                                                </td>
-                                                                <td style={{ fontSize: '11px', color: '#64B5F6' }}>{hit.nextAngleLine || '-'}</td>
+                                                                <option value="all">All</option>
+                                                                {filterOptions.map(opt => (
+                                                                    <option key={String(opt)} value={String(opt)}>{String(opt)}</option>
+                                                                ))}
+                                                            </select>
+                                                        </label>
+                                                        <span style={{ fontSize: '11px', color: '#888' }}>
+                                                            Showing {filteredData.length} of {priceInteractions.length} events
+                                                        </span>
+                                                    </div>
+                                                    <div style={{ display: 'flex', gap: '8px' }}>
+                                                        <button 
+                                                            onClick={() => {
+                                                                const rows = buildCsvRows(filteredData, true);
+                                                                const tsvContent = rows.map(e => e.join("\t")).join("\n");
+                                                                navigator.clipboard.writeText(tsvContent).then(() => {
+                                                                    alert("Table copied to clipboard!");
+                                                                }).catch(err => console.error(err));
+                                                            }}
+                                                            style={{ padding: '4px 8px', fontSize: '11px', cursor: 'pointer', backgroundColor: '#4CAF50', color: 'white', border: 'none', borderRadius: '3px' }}
+                                                        >Copy Table</button>
+                                                        <button 
+                                                            onClick={() => {
+                                                                const rows = buildCsvRows(priceInteractions, true);
+                                                                const csvContent = rows.map(e => e.join(",")).join("\n");
+                                                                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                                                                const url = URL.createObjectURL(blob);
+                                                                const link = document.createElement("a");
+                                                                link.setAttribute("href", url);
+                                                                link.setAttribute("download", "frontend_price_interactions.csv");
+                                                                document.body.appendChild(link);
+                                                                link.click();
+                                                                document.body.removeChild(link);
+                                                                URL.revokeObjectURL(url);
+                                                            }}
+                                                            style={{ padding: '4px 8px', fontSize: '11px', cursor: 'pointer', backgroundColor: '#2196F3', color: 'white', border: 'none', borderRadius: '3px' }}
+                                                        >Export CSV</button>
+                                                    </div>
+                                                </div>
+                                                <div className="table-container" style={{ overflowX: 'auto' }}>
+                                                    <table className="interactions-table" style={{ whiteSpace: 'nowrap' }}>
+                                                        <thead>
+                                                            <tr>
+                                                                <th>#</th>
+                                                                {schema.map(col => (
+                                                                    <th key={col.key} style={col.width ? {minWidth: col.width} : {}}>
+                                                                        {col.label}
+                                                                    </th>
+                                                                ))}
                                                             </tr>
-                                                        ))}
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                    </>
+                                                        </thead>
+                                                        <tbody>
+                                                            {filteredData.map((hit, i) => (
+                                                                <tr 
+                                                                    key={i}
+                                                                    className={i === selectedInteractionIndex ? 'selected-row' : ''}
+                                                                    onClick={() => setSelectedInteractionIndex(i)}
+                                                                    style={{ cursor: 'pointer' }}
+                                                                >
+                                                                    <td>{i + 1}</td>
+                                                                    {schema.map(col => (
+                                                                        <td key={col.key} style={{ fontSize: '11px' }}>
+                                                                            {formatCell(hit, col)}
+                                                                        </td>
+                                                                    ))}
+                                                                </tr>
+                                                            ))}
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            </>
+                                        );
+                                    })()
                                 )}
                             </div>
                         )}
@@ -914,7 +932,7 @@ function App() {
                                         <option value="">Timestamp</option>
                                         {timestampOptions.map(r => {
                                             const parts = r.path.split('/');
-                                            const ts = parts.find(p => p.match(/^\d{6}_all$/)) || '';
+                                            const ts = parts.find(p => p.match(/^\d{6}(_all)?$/)) || '';
                                             const hour = ts.slice(0, 2);
                                             const min = ts.slice(2, 4);
                                             const sec = ts.slice(4, 6);
