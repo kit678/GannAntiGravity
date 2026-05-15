@@ -271,7 +271,11 @@ class ChartDatafeed {
         console.log("[Datafeed] Updating replay strategy params:", strategy, instrumentType, scaleRatio, pivotSettings);
         this.strategyName = strategy;
         this.instrumentType = instrumentType;
-        this.tradeCallback = onTradeCallback;
+        // NOTE: Do NOT overwrite this.tradeCallback here!
+        // It was already set in setProgressiveReplayData() to the anonymous function
+        // that calls plotTradeShape(chart, ...). Overwriting it with the App-level
+        // onTradeCallback (which only calls handleTradeLogged) would prevent BUY/SELL
+        // arrows from being drawn on the chart.
         if (scaleRatio) this.scaleRatio = scaleRatio;
         if (pivotSettings) this.pivotSettings = pivotSettings;
 
@@ -657,57 +661,25 @@ class ChartDatafeed {
             })
                 .then(res => res.json())
                 .then(data => {
-                    // Handle different response types
-                    const responseType = data.type || 'legacy';
+                    // Forward trade signals
+                    if (data.signal && this.tradeCallback) {
+                        console.log("[Progressive] Signal found at step", this.currentStep, ":", data.signal.type, "@", data.signal.price);
+                        this.lastSignalType = data.signal.type;
+                        this.tradeCallback(data.signal);
+                    }
 
-                    if (responseType === 'signal' || responseType === 'legacy') {
-                        // STRATEGY RESPONSE: Trade signals
-                        if (data.signal && this.tradeCallback) {
-                            console.log("[Progressive] Signal found at step", this.currentStep, ":", data.signal.type, "@", data.signal.price);
-                            this.lastSignalType = data.signal.type;
-                            this.tradeCallback(data.signal);
+                    // All responses now use step_update type — pass through to studyCallback
+                    if (this.studyCallback) {
+                        if (data.drawings?.length > 0 || data.pivot_markers?.length > 0) {
+                            console.log("[Progressive] step_update:", data.drawings?.length || 0, "drawings,", data.pivot_markers?.length || 0, "pivots");
                         }
-
-                        // INDICATOR DRAWINGS: Handle EMA line and other indicators
-                        if ((data.indicator_drawings && data.indicator_drawings.length > 0 || data.indicator_series) && this.studyCallback) {
-                            console.log("[Progressive] Indicator drawings at step", this.currentStep, ":", data.indicator_drawings?.length || 0, "drawings");
-                            // Convert to study format for unified drawing handling
-                            this.studyCallback({
-                                type: 'drawing_update',
-                                drawings: data.indicator_drawings || [],
-                                pivot_markers: [],
-                                remove_drawings: [],
-                                indicator_series: data.indicator_series || null
-                            });
+                        if (data.intersection_events?.length > 0) {
+                            console.log("[Progressive] intersection_events:", data.intersection_events.length);
                         }
-                    } else if (responseType === 'drawing_update') {
-                        // STUDY RESPONSE: Drawing commands
-                        if (this.studyCallback) {
-                            console.log("=== [STUDY DEBUG] ===");
-                            console.log("[Study] Step:", this.currentStep);
-                            console.log("[Study] Drawings:", data.drawings?.length || 0);
-                            console.log("[Study] Pivot Markers:", data.pivot_markers?.length || 0);
-
-                            // Log each pivot marker for debugging
-                            if (data.pivot_markers && data.pivot_markers.length > 0) {
-                                console.table(data.pivot_markers.map(p => ({
-                                    id: p.id,
-                                    text: p.text,
-                                    type: p.type,
-                                    price: p.price,
-                                    time: new Date(p.time * 1000).toLocaleString(),
-                                    bar_index: p.bar_index
-                                })));
-                            }
-
-                            // Log debug_info if provided by backend
-                            if (data.debug_info) {
-                                console.log("[Study] Debug Info:", data.debug_info);
-                            }
-                            console.log("===================");
-
-                            this.studyCallback(data);
+                        if (data.debug_info) {
+                            console.log("[Progressive] Debug Info:", data.debug_info);
                         }
+                        this.studyCallback(data);
                     }
                 })
                 .catch(err => console.error("[Progressive] Evaluation error:", err));
