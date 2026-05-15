@@ -1038,12 +1038,39 @@ async def fetch_candles(req: FetchCandlesRequest):
                     traceback.print_exc()
         
         print(f"[Replay] Returning {len(candles_list)} candles, option_cache_ready: {option_cache_ready}, Initial Markers: {len(initial_markers)}")
-        
+
+        strategy_meta = None
+        if is_study(req.strategy):
+            strategy_meta = {
+                "name": req.strategy,
+                "display_name": "Angular Price Coverage" if req.strategy == "angular_coverage" else "Pivot Points Only",
+                "is_study": True,
+                "column_schema": [
+                    {"key": "time", "label": "Time", "width": "140px", "format": "datetime"},
+                    {"key": "strategy_data.fan", "label": "Fan", "width": "120px", "format": "text"},
+                    {"key": "strategy_data.fraction", "label": "Fraction", "width": "70px", "format": "text"},
+                    {"key": "type", "label": "Type", "width": "110px", "format": "text"},
+                    {"key": "price", "label": "Price", "width": "80px", "format": "price"},
+                    {"key": "details", "label": "Details", "width": "200px", "format": "text"},
+                    {"key": "open", "label": "O", "width": "60px", "format": "price"},
+                    {"key": "high", "label": "H", "width": "60px", "format": "price"},
+                    {"key": "low", "label": "L", "width": "60px", "format": "price"},
+                    {"key": "close", "label": "C", "width": "60px", "format": "price"},
+                    {"key": "strategy_data.cluster", "label": "Cluster", "width": "70px", "format": "text"},
+                    {"key": "strategy_data.zone", "label": "Zone", "width": "80px", "format": "text"},
+                    {"key": "strategy_data.zoneExtremes", "label": "Zone Extremes", "width": "140px", "format": "text"},
+                    {"key": "strategy_data.nextAngleLine", "label": "Next Angle Line", "width": "110px", "format": "text"},
+                ],
+                "filter_field": "strategy_data.fanIdentity",
+                "filter_options": [],
+            }
+
         return {
-            "candles": candles_list, 
-            "option_cache_ready": option_cache_ready, 
+            "candles": candles_list,
+            "option_cache_ready": option_cache_ready,
             "markers": initial_markers,
             "drawings": initial_drawings,
+            "strategy_meta": strategy_meta,
             "actual_start_date": actual_start_date,
             "actual_start_timestamp": actual_start_timestamp
         }
@@ -1077,7 +1104,7 @@ async def evaluate_strategy_step(req: EvaluateStrategyRequest):
     except Exception as e:
         import traceback
         traceback.print_exc()
-        return {"type": "none", "signal": None}
+        return {"type": "step_update", "signal": None, "drawings": [], "remove_drawings": [], "pivot_markers": [], "intersection_events": [], "indicator_series": None, "candle_pattern": None, "debug_info": None, "hypothesis_updates": [], "strategy_meta": None}
 
 
 # Alias endpoint for backwards compatibility
@@ -1257,22 +1284,74 @@ async def _process_study_bar(req: EvaluateStrategyRequest):
                 'right_bars': study.config.get('right_bars', 5)
             }
         
+        # Wrap intersection_events: move angle-specific fields into strategy_data
+        wrapped_events = []
+        for evt in output_intersection_events:
+            wrapped_events.append({
+                "time": evt.get("time", 0),
+                "price": evt.get("price", 0),
+                "type": evt.get("type", ""),
+                "details": evt.get("details", ""),
+                "open": evt.get("open", 0),
+                "high": evt.get("high", 0),
+                "low": evt.get("low", 0),
+                "close": evt.get("close", 0),
+                "strategy_data": {
+                    "fan": evt.get("fan", ""),
+                    "fanIdentity": evt.get("fanIdentity", evt.get("fan", "")),
+                    "fraction": evt.get("fraction", ""),
+                    "activeAngles": evt.get("activeAngles", {}),
+                    "zone": evt.get("zone", ""),
+                    "zoneExtremes": evt.get("zoneExtremes", {}),
+                    "nextAngleLine": evt.get("nextAngleLine", ""),
+                    "cluster": evt.get("cluster", False),
+                    "bar_index": evt.get("bar_index", 0),
+                }
+            })
+
+        study_meta = {
+            "name": "angular_coverage",
+            "display_name": "Angular Price Coverage",
+            "is_study": True,
+            "column_schema": [
+                {"key": "time",                          "label": "Time",            "width": "140px", "format": "datetime"},
+                {"key": "strategy_data.fan",             "label": "Fan",             "width": "120px", "format": "text"},
+                {"key": "strategy_data.fraction",        "label": "Fraction",        "width": "70px",  "format": "text"},
+                {"key": "type",                          "label": "Type",            "width": "110px", "format": "text"},
+                {"key": "price",                         "label": "Price",           "width": "80px",  "format": "price"},
+                {"key": "details",                       "label": "Details",         "width": "200px", "format": "text"},
+                {"key": "open",                          "label": "O",               "width": "60px",  "format": "price"},
+                {"key": "high",                          "label": "H",               "width": "60px",  "format": "price"},
+                {"key": "low",                           "label": "L",               "width": "60px",  "format": "price"},
+                {"key": "close",                         "label": "C",               "width": "60px",  "format": "price"},
+                {"key": "strategy_data.cluster",         "label": "Cluster",         "width": "70px",  "format": "text"},
+                {"key": "strategy_data.zone",            "label": "Zone",            "width": "80px",  "format": "text"},
+                {"key": "strategy_data.zoneExtremes",    "label": "Zone Extremes",   "width": "140px", "format": "text"},
+                {"key": "strategy_data.nextAngleLine",   "label": "Next Angle Line", "width": "110px", "format": "text"},
+            ],
+            "filter_field": "strategy_data.fanIdentity",
+            "filter_options": [],
+        }
+
         return {
-            "type": "drawing_update",
+            "type": "step_update",
+            "signal": None,
             "drawings": output_drawings,
             "pivot_markers": output_pivots,
             "remove_drawings": output_remove,
-            "intersection_events": output_intersection_events,
+            "intersection_events": wrapped_events,
+            "indicator_series": None,
             "candle_pattern": output_candle_pattern,
             "debug_info": debug_info,
-            "state": {}
+            "hypothesis_updates": [],
+            "strategy_meta": study_meta,
         }
         
     except Exception as e:
         import traceback
         print(f"[Study] Error processing bar: {e}")
         traceback.print_exc()
-        return {"type": "none", "drawings": [], "pivot_markers": []}
+        return {"type": "step_update", "signal": None, "drawings": [], "remove_drawings": [], "pivot_markers": [], "intersection_events": [], "indicator_series": None, "candle_pattern": None, "debug_info": None, "hypothesis_updates": [], "strategy_meta": None}
 
 
 
@@ -1299,7 +1378,7 @@ async def _process_strategy_bar(req: EvaluateStrategyRequest):
         # Ensure required columns exist
         required_cols = ['timestamp', 'open', 'high', 'low', 'close']
         if not all(col in df.columns for col in required_cols):
-            return {"type": "none", "signal": None, "indicator_series": indicator_series}
+            return {"type": "step_update", "signal": None, "drawings": [], "remove_drawings": [], "pivot_markers": [], "intersection_events": [], "indicator_series": indicator_series, "candle_pattern": None, "debug_info": None, "hypothesis_updates": [], "strategy_meta": None}
         
         # Ensure numeric types
         for col in ['open', 'high', 'low', 'close']:
@@ -1321,7 +1400,7 @@ async def _process_strategy_bar(req: EvaluateStrategyRequest):
             print(f"[Strategy] Strategy error: {strategy_error}")
             import traceback
             traceback.print_exc()
-            return {"type": "none", "signal": None, "indicator_series": indicator_series}
+            return {"type": "step_update", "signal": None, "drawings": [], "remove_drawings": [], "pivot_markers": [], "intersection_events": [], "indicator_series": indicator_series, "candle_pattern": None, "debug_info": None, "hypothesis_updates": [], "strategy_meta": None}
         
         # Find signal at current candle
         current_trade = None
@@ -1483,19 +1562,40 @@ async def _process_strategy_bar(req: EvaluateStrategyRequest):
         
         # ENRICH SIGNAL WITH ACTUAL OPTION PRICE FROM CACHE
 
-        
-        # Return both signal and indicator drawings
+        # Extract interaction events from strategy
+        interaction_events = []
+        try:
+            if hasattr(strategy, 'extract_events'):
+                interaction_events = strategy.extract_events(signals_df, req.current_index)
+        except Exception as evt_err:
+            print(f"[Strategy] Error extracting events: {evt_err}")
+
+        # Build strategy_meta
+        strategy_meta = None
+        try:
+            if hasattr(strategy, 'get_strategy_meta'):
+                strategy_meta = strategy.get_strategy_meta()
+        except Exception as meta_err:
+            print(f"[Strategy] Error getting meta: {meta_err}")
+
         return {
-            "type": "signal", 
+            "type": "step_update",
             "signal": current_trade,
-            "indicator_drawings": indicator_drawings,
-            "indicator_series": indicator_series
+            "drawings": indicator_drawings,
+            "remove_drawings": [],
+            "pivot_markers": [],
+            "intersection_events": interaction_events,
+            "indicator_series": indicator_series,
+            "candle_pattern": None,
+            "debug_info": None,
+            "hypothesis_updates": [],
+            "strategy_meta": strategy_meta
         }
         
     except Exception as e:
         import traceback
         traceback.print_exc()
-        return {"type": "none", "signal": None, "indicator_series": indicator_series}
+        return {"type": "step_update", "signal": None, "drawings": [], "remove_drawings": [], "pivot_markers": [], "intersection_events": [], "indicator_series": indicator_series, "candle_pattern": None, "debug_info": None, "hypothesis_updates": [], "strategy_meta": None}
 
 
 # -----------------------------------------------------------
