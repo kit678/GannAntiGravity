@@ -922,10 +922,12 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
         }
 
         let price1, price2;
+        // Use a fixed percentage of the price to ensure consistent gap and line length
+        // regardless of the individual candle's size.
+        const gap = shapePrice * 0.0015;
+        const length = shapePrice * 0.0025;
+
         if (matchedCandle) {
-            const candleRange = parseFloat(matchedCandle.high) - parseFloat(matchedCandle.low);
-            const gap = candleRange * 0.2;
-            const length = candleRange * 0.4;
             if (isBuy) {
                 price1 = parseFloat(matchedCandle.low) - gap;
                 price2 = parseFloat(matchedCandle.low) - gap - length;
@@ -934,8 +936,6 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
                 price2 = parseFloat(matchedCandle.high) + gap + length;
             }
         } else {
-            const gap = shapePrice * 0.002;
-            const length = shapePrice * 0.004;
             if (isBuy) {
                 price1 = shapePrice - gap;
                 price2 = shapePrice - gap - length;
