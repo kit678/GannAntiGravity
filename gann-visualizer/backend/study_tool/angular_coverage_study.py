@@ -18,7 +18,7 @@ from .fan_manager import FanManager
 from .intersection_detector import IntersectionDetector
 from .angle_zone_tracker import AngleZoneTracker
 from .fan_validator import FanValidator
-from .target_progression import TargetProgression
+from analysis.target_progression import TargetProgression
 from .event_logger import EventLogger, EventType
 from .unified_state_machine import UnifiedStateMachine, EventOutput
 from .cluster_detector import ClusterDetector
@@ -221,7 +221,8 @@ class AngularPriceCoverageStudy:
         self,
         candles: List[Dict[str, Any]],
         bar_index: int,
-        state: Optional[Dict[str, Any]] = None
+        state: Optional[Dict[str, Any]] = None,
+        is_closed: bool = True
     ) -> Dict[str, Any]:
         """
         Process a single bar: detect pivots, find active fans, sync drawings.
@@ -280,10 +281,11 @@ class AngularPriceCoverageStudy:
         self._historical_clusters[bar_index] = self.cluster_detector.get_state()['in_cluster']
 
         # 1. Detect pivots at this bar
-        self.pivot_detector.detect_pivots(candles, bar_index)
+        if is_closed:
+            self.pivot_detector.detect_pivots(candles, bar_index)
 
-        # 2. Run unified backward traversal (same logic every bar) - BUILD PHASE ONLY
-        self._sync_fans_build(candles, bar_index, result)
+            # 2. Run unified backward traversal (same logic every bar) - BUILD PHASE ONLY
+            self._sync_fans_build(candles, bar_index, result)
         
         # 2.5 Process Zone Tracking for ALL active fans for the LIVE bar
         for fan_id, fan_obj in self.angle_engine.active_fans.items():
@@ -296,6 +298,17 @@ class AngularPriceCoverageStudy:
                     # Get fan geometry context from persisted fans
                     fan_data = self._persisted_fans.get(fan_id, {})
                     fan_geom = fan_data.get('anchor', {})
+                    fan_obj = self.angle_engine.active_fans.get(fan_id)
+                    # Origin: where fan lines radiate from (temporally first pivot)
+                    origin_bar_index = int(fan_obj.from_pivot.get('bar_index', 0)) if fan_obj else int(fan_data.get('from_pivot', {}).get('bar_index', 0))
+                    origin_price = float(fan_obj.from_pivot.get('price', 0.0)) if fan_obj else float(fan_data.get('from_pivot', {}).get('price', 0.0))
+                    fan_geometry = None
+                    if fan_obj and fan_obj.lines:
+                        fan_geometry = {
+                            "origin": {"bar_index": int(fan_obj.from_pivot.get("bar_index", 0)), "time": int(fan_obj.from_pivot.get("time", 0)), "price": float(fan_obj.from_pivot.get("price", 0.0)), "label": str(fan_obj.from_pivot.get("type", ""))},
+                            "anchor": {"bar_index": int(fan_obj.to_pivot.get("bar_index", 0)), "time": int(fan_obj.to_pivot.get("time", 0)), "price": float(fan_obj.to_pivot.get("price", 0.0)), "label": str(fan_obj.to_pivot.get("type", ""))},
+                            "rays": [{"id": line.id, "fraction": line.fraction, "points": [{"time": line.start_time, "price": line.start_price}, {"time": line.end_time, "price": line.end_price}], "color": line.color, "width": line.width} for line in fan_obj.lines]
+                        }
                     self.event_logger.log_event(
                         timestamp=current_candle['time'],
                         event_type=EventType.ZONE_CHANGE,
@@ -312,6 +325,9 @@ class AngularPriceCoverageStudy:
                         anchor_bar_index=fan_geom.get('bar_index', 0),
                         scale_ratio=self.config.get('scale_ratio', 1.0),
                         anchor_price=fan_geom.get('price', 0),
+                        origin_bar_index=origin_bar_index,
+                        origin_price=origin_price,
+                        fan_geometry=fan_geometry,
                         details={
                             'fan_id': fan_id,
                             'new_zone': snapshot.zone,
@@ -407,7 +423,8 @@ class AngularPriceCoverageStudy:
             result['intersection_events'].extend(ui_events)
 
         # 5. Run unified backward traversal - TEARDOWN PHASE ONLY
-        self._sync_fans_teardown(candles, bar_index, result)
+        if is_closed:
+            self._sync_fans_teardown(candles, bar_index, result)
 
         # 6. Save state
         result['state'] = self._get_state()
@@ -500,6 +517,16 @@ class AngularPriceCoverageStudy:
             fan_obj = self.angle_engine.active_fans.get(validation.fan_id)
             fan_data = self._persisted_fans.get(validation.fan_id, {})
             fan_geom = fan_data.get('anchor', {})
+            # Origin: where fan lines radiate from (temporally first pivot)
+            origin_bar_index = int(fan_obj.from_pivot.get('bar_index', 0)) if fan_obj else int(fan_data.get('from_pivot', {}).get('bar_index', 0))
+            origin_price = float(fan_obj.from_pivot.get('price', 0.0)) if fan_obj else float(fan_data.get('from_pivot', {}).get('price', 0.0))
+            fan_geometry = None
+            if fan_obj and fan_obj.lines:
+                fan_geometry = {
+                    "origin": {"bar_index": int(fan_obj.from_pivot.get("bar_index", 0)), "time": int(fan_obj.from_pivot.get("time", 0)), "price": float(fan_obj.from_pivot.get("price", 0.0)), "label": str(fan_obj.from_pivot.get("type", ""))},
+                    "anchor": {"bar_index": int(fan_obj.to_pivot.get("bar_index", 0)), "time": int(fan_obj.to_pivot.get("time", 0)), "price": float(fan_obj.to_pivot.get("price", 0.0)), "label": str(fan_obj.to_pivot.get("type", ""))},
+                    "rays": [{"id": line.id, "fraction": line.fraction, "points": [{"time": line.start_time, "price": line.start_price}, {"time": line.end_time, "price": line.end_price}], "color": line.color, "width": line.width} for line in fan_obj.lines]
+                }
 
             self.event_logger.log_event(
                 timestamp=timestamp,
@@ -519,6 +546,9 @@ class AngularPriceCoverageStudy:
                 anchor_bar_index=fan_geom.get('bar_index', 0) if fan_obj is None else getattr(fan_obj, 'anchor_bar_index', fan_geom.get('bar_index', 0)),
                 scale_ratio=self.config.get('scale_ratio', 1.0),
                 anchor_price=fan_geom.get('price', 0),
+                origin_bar_index=origin_bar_index,
+                origin_price=origin_price,
+                fan_geometry=fan_geometry,
                 details={
                     'fan_id': validation.fan_id,
                     'validation_type': validation.validation_type,
@@ -558,6 +588,10 @@ class AngularPriceCoverageStudy:
                 'anchor_bar_index': fan_geom.get('bar_index', 0) if fan_obj is None else getattr(fan_obj, 'anchor_bar_index', fan_geom.get('bar_index', 0)),
                 'scale_ratio': self.config.get('scale_ratio', 1.0),
                 'anchor_price': fan_geom.get('price', 0),
+                'origin_bar_index': int(fan_obj.from_pivot.get('bar_index', 0)) if fan_obj else int(fan_data.get('from_pivot', {}).get('bar_index', 0)),
+                'origin_price': float(fan_obj.from_pivot.get('price', 0.0)) if fan_obj else float(fan_data.get('from_pivot', {}).get('price', 0.0)),
+                'horizontalTargetPrice': self._get_horizontal_target_price(fan_obj) if fan_obj else None,
+                'fullCoverageTargetPrice': float(fan_data.get('target', {}).get('price', 0)) if fan_data else None,
             })
 
         # Provide the correct ZEC context using historical zone state BEFORE calling state machine.
@@ -626,6 +660,16 @@ class AngularPriceCoverageStudy:
             fan_obj_sm = self.angle_engine.active_fans.get(state_event.fan_id)
             fan_data_sm = self._persisted_fans.get(state_event.fan_id, {})
             fan_geom_sm = fan_data_sm.get('anchor', {})
+            # Origin: where fan lines radiate from (temporally first pivot)
+            origin_bar_index = int(fan_obj_sm.from_pivot.get('bar_index', 0)) if fan_obj_sm else int(fan_data_sm.get('from_pivot', {}).get('bar_index', 0))
+            origin_price = float(fan_obj_sm.from_pivot.get('price', 0.0)) if fan_obj_sm else float(fan_data_sm.get('from_pivot', {}).get('price', 0.0))
+            fan_geometry = None
+            if fan_obj_sm and fan_obj_sm.lines:
+                fan_geometry = {
+                    "origin": {"bar_index": int(fan_obj_sm.from_pivot.get("bar_index", 0)), "time": int(fan_obj_sm.from_pivot.get("time", 0)), "price": float(fan_obj_sm.from_pivot.get("price", 0.0)), "label": str(fan_obj_sm.from_pivot.get("type", ""))},
+                    "anchor": {"bar_index": int(fan_obj_sm.to_pivot.get("bar_index", 0)), "time": int(fan_obj_sm.to_pivot.get("time", 0)), "price": float(fan_obj_sm.to_pivot.get("price", 0.0)), "label": str(fan_obj_sm.to_pivot.get("type", ""))},
+                    "rays": [{"id": line.id, "fraction": line.fraction, "points": [{"time": line.start_time, "price": line.start_price}, {"time": line.end_time, "price": line.end_price}], "color": line.color, "width": line.width} for line in fan_obj_sm.lines]
+                }
 
             self.event_logger.log_event(
                 timestamp=timestamp,
@@ -646,6 +690,9 @@ class AngularPriceCoverageStudy:
                 anchor_bar_index=fan_geom_sm.get('bar_index', 0) if fan_obj_sm is None else getattr(fan_obj_sm, 'anchor_bar_index', fan_geom_sm.get('bar_index', 0)),
                 scale_ratio=self.config.get('scale_ratio', 1.0),
                 anchor_price=fan_geom_sm.get('price', 0),
+                origin_bar_index=origin_bar_index,
+                origin_price=origin_price,
+                fan_geometry=fan_geometry,
                 details={
                     'fan_id': state_event.fan_id,
                     'ui_type': state_event.event_type,
@@ -675,6 +722,8 @@ class AngularPriceCoverageStudy:
                 'anchor_bar_index': fan_geom_sm.get('bar_index', 0) if fan_obj_sm is None else getattr(fan_obj_sm, 'anchor_bar_index', fan_geom_sm.get('bar_index', 0)),
                 'scale_ratio': self.config.get('scale_ratio', 1.0),
                 'anchor_price': fan_geom_sm.get('price', 0),
+                'origin_bar_index': origin_bar_index,
+                'origin_price': origin_price,
             })
 
             # Emit target hit event if applicable
@@ -693,6 +742,16 @@ class AngularPriceCoverageStudy:
                 target_fan_obj = self.angle_engine.active_fans.get(target_hit.fan_id)
                 target_fan_data = self._persisted_fans.get(target_hit.fan_id, {})
                 target_fan_geom = target_fan_data.get('anchor', {})
+                # Origin: where fan lines radiate from (temporally first pivot)
+                origin_bar_index = int(target_fan_obj.from_pivot.get('bar_index', 0)) if target_fan_obj else int(target_fan_data.get('from_pivot', {}).get('bar_index', 0))
+                origin_price = float(target_fan_obj.from_pivot.get('price', 0.0)) if target_fan_obj else float(target_fan_data.get('from_pivot', {}).get('price', 0.0))
+                fan_geometry = None
+                if target_fan_obj and target_fan_obj.lines:
+                    fan_geometry = {
+                        "origin": {"bar_index": int(target_fan_obj.from_pivot.get("bar_index", 0)), "time": int(target_fan_obj.from_pivot.get("time", 0)), "price": float(target_fan_obj.from_pivot.get("price", 0.0)), "label": str(target_fan_obj.from_pivot.get("type", ""))},
+                        "anchor": {"bar_index": int(target_fan_obj.to_pivot.get("bar_index", 0)), "time": int(target_fan_obj.to_pivot.get("time", 0)), "price": float(target_fan_obj.to_pivot.get("price", 0.0)), "label": str(target_fan_obj.to_pivot.get("type", ""))},
+                        "rays": [{"id": line.id, "fraction": line.fraction, "points": [{"time": line.start_time, "price": line.start_price}, {"time": line.end_time, "price": line.end_price}], "color": line.color, "width": line.width} for line in target_fan_obj.lines]
+                    }
 
                 self.event_logger.log_event(
                     timestamp=timestamp,
@@ -711,6 +770,9 @@ class AngularPriceCoverageStudy:
                     anchor_bar_index=target_fan_geom.get('bar_index', 0) if target_fan_obj is None else getattr(target_fan_obj, 'anchor_bar_index', target_fan_geom.get('bar_index', 0)),
                     scale_ratio=self.config.get('scale_ratio', 1.0),
                     anchor_price=target_fan_geom.get('price', 0),
+                    origin_bar_index=origin_bar_index,
+                    origin_price=origin_price,
+                    fan_geometry=fan_geometry,
                     details={
                         'fan_id': target_hit.fan_id,
                         'hit_bar': target_hit.hit_bar,
@@ -765,6 +827,8 @@ class AngularPriceCoverageStudy:
                     'anchor_bar_index': target_fan_geom.get('bar_index', 0) if target_fan_obj is None else getattr(target_fan_obj, 'anchor_bar_index', target_fan_geom.get('bar_index', 0)),
                     'scale_ratio': self.config.get('scale_ratio', 1.0),
                     'anchor_price': target_fan_geom.get('price', 0),
+                    'origin_bar_index': origin_bar_index,
+                    'origin_price': origin_price,
                 })
             elif state_event.event_type in ('CROSS_UP', 'CROSS_DOWN'):
                 target_failed = self.target_progression.on_cross(
@@ -787,6 +851,16 @@ class AngularPriceCoverageStudy:
                     failed_fan_obj = self.angle_engine.active_fans.get(state_event.fan_id)
                     failed_fan_data = self._persisted_fans.get(state_event.fan_id, {})
                     failed_fan_geom = failed_fan_data.get('anchor', {})
+                    # Origin: where fan lines radiate from (temporally first pivot)
+                    origin_bar_index = int(failed_fan_obj.from_pivot.get('bar_index', 0)) if failed_fan_obj else int(failed_fan_data.get('from_pivot', {}).get('bar_index', 0))
+                    origin_price = float(failed_fan_obj.from_pivot.get('price', 0.0)) if failed_fan_obj else float(failed_fan_data.get('from_pivot', {}).get('price', 0.0))
+                    fan_geometry = None
+                    if failed_fan_obj and failed_fan_obj.lines:
+                        fan_geometry = {
+                            "origin": {"bar_index": int(failed_fan_obj.from_pivot.get("bar_index", 0)), "time": int(failed_fan_obj.from_pivot.get("time", 0)), "price": float(failed_fan_obj.from_pivot.get("price", 0.0)), "label": str(failed_fan_obj.from_pivot.get("type", ""))},
+                            "anchor": {"bar_index": int(failed_fan_obj.to_pivot.get("bar_index", 0)), "time": int(failed_fan_obj.to_pivot.get("time", 0)), "price": float(failed_fan_obj.to_pivot.get("price", 0.0)), "label": str(failed_fan_obj.to_pivot.get("type", ""))},
+                            "rays": [{"id": line.id, "fraction": line.fraction, "points": [{"time": line.start_time, "price": line.start_price}, {"time": line.end_time, "price": line.end_price}], "color": line.color, "width": line.width} for line in failed_fan_obj.lines]
+                        }
 
                     self.event_logger.log_event(
                         timestamp=timestamp,
@@ -805,6 +879,9 @@ class AngularPriceCoverageStudy:
                         anchor_bar_index=failed_fan_geom.get('bar_index', 0) if failed_fan_obj is None else getattr(failed_fan_obj, 'anchor_bar_index', failed_fan_geom.get('bar_index', 0)),
                         scale_ratio=self.config.get('scale_ratio', 1.0),
                         anchor_price=failed_fan_geom.get('price', 0),
+                        origin_bar_index=origin_bar_index,
+                        origin_price=origin_price,
+                        fan_geometry=fan_geometry,
                         details={
                             'fan_id': state_event.fan_id,
                             'fail_bar': bar_index,
@@ -833,6 +910,8 @@ class AngularPriceCoverageStudy:
                         'anchor_bar_index': failed_fan_geom.get('bar_index', 0) if failed_fan_obj is None else getattr(failed_fan_obj, 'anchor_bar_index', failed_fan_geom.get('bar_index', 0)),
                         'scale_ratio': self.config.get('scale_ratio', 1.0),
                         'anchor_price': failed_fan_geom.get('price', 0),
+                        'origin_bar_index': origin_bar_index,
+                        'origin_price': origin_price,
                     })
 
         # Flush deferred BREACH_CONFIRMED events now that TARGET_HIT has had a chance
@@ -859,6 +938,16 @@ class AngularPriceCoverageStudy:
             def_fan_obj = self.angle_engine.active_fans.get(evt.fan_id)
             def_fan_data = self._persisted_fans.get(evt.fan_id, {})
             def_fan_geom = def_fan_data.get('anchor', {})
+            # Origin: where fan lines radiate from (temporally first pivot)
+            origin_bar_index = int(def_fan_obj.from_pivot.get('bar_index', 0)) if def_fan_obj else int(def_fan_data.get('from_pivot', {}).get('bar_index', 0))
+            origin_price = float(def_fan_obj.from_pivot.get('price', 0.0)) if def_fan_obj else float(def_fan_data.get('from_pivot', {}).get('price', 0.0))
+            fan_geometry = None
+            if def_fan_obj and def_fan_obj.lines:
+                fan_geometry = {
+                    "origin": {"bar_index": int(def_fan_obj.from_pivot.get("bar_index", 0)), "time": int(def_fan_obj.from_pivot.get("time", 0)), "price": float(def_fan_obj.from_pivot.get("price", 0.0)), "label": str(def_fan_obj.from_pivot.get("type", ""))},
+                    "anchor": {"bar_index": int(def_fan_obj.to_pivot.get("bar_index", 0)), "time": int(def_fan_obj.to_pivot.get("time", 0)), "price": float(def_fan_obj.to_pivot.get("price", 0.0)), "label": str(def_fan_obj.to_pivot.get("type", ""))},
+                    "rays": [{"id": line.id, "fraction": line.fraction, "points": [{"time": line.start_time, "price": line.start_price}, {"time": line.end_time, "price": line.end_price}], "color": line.color, "width": line.width} for line in def_fan_obj.lines]
+                }
 
             self.event_logger.log_event(
                 timestamp=timestamp,
@@ -878,6 +967,9 @@ class AngularPriceCoverageStudy:
                 anchor_bar_index=def_fan_geom.get('bar_index', 0) if def_fan_obj is None else getattr(def_fan_obj, 'anchor_bar_index', def_fan_geom.get('bar_index', 0)),
                 scale_ratio=self.config.get('scale_ratio', 1.0),
                 anchor_price=def_fan_geom.get('price', 0),
+                origin_bar_index=origin_bar_index,
+                origin_price=origin_price,
+                fan_geometry=fan_geometry,
                 details={
                     'fan_id': evt.fan_id,
                     'bars_elapsed': evt.details.split('(')[-1].replace(')', '').strip() if 'bars)' in evt.details else evt.details
@@ -906,6 +998,8 @@ class AngularPriceCoverageStudy:
                 'anchor_bar_index': def_fan_geom.get('bar_index', 0) if def_fan_obj is None else getattr(def_fan_obj, 'anchor_bar_index', def_fan_geom.get('bar_index', 0)),
                 'scale_ratio': self.config.get('scale_ratio', 1.0),
                 'anchor_price': def_fan_geom.get('price', 0),
+                'origin_bar_index': origin_bar_index,
+                'origin_price': origin_price,
             })
 
         # CRITICAL FIX: If this is the EXACT bar where the fan was created, the trader 
@@ -1195,6 +1289,17 @@ class AngularPriceCoverageStudy:
 
                         if is_full_coverage_hit:
                             # Log TARGET_HIT instead of TARGET_FAILED
+                            # Origin: from persisted fan data
+                            origin_bar_index = int(fan_data.get('from_pivot', {}).get('bar_index', 0))
+                            origin_price = float(fan_data.get('from_pivot', {}).get('price', 0.0))
+                            fc_fan_obj = self.angle_engine.active_fans.get(fan_id)
+                            fan_geometry = None
+                            if fc_fan_obj and fc_fan_obj.lines:
+                                fan_geometry = {
+                                    "origin": {"bar_index": int(fc_fan_obj.from_pivot.get("bar_index", 0)), "time": int(fc_fan_obj.from_pivot.get("time", 0)), "price": float(fc_fan_obj.from_pivot.get("price", 0.0)), "label": str(fc_fan_obj.from_pivot.get("type", ""))},
+                                    "anchor": {"bar_index": int(fc_fan_obj.to_pivot.get("bar_index", 0)), "time": int(fc_fan_obj.to_pivot.get("time", 0)), "price": float(fc_fan_obj.to_pivot.get("price", 0.0)), "label": str(fc_fan_obj.to_pivot.get("type", ""))},
+                                    "rays": [{"id": line.id, "fraction": line.fraction, "points": [{"time": line.start_time, "price": line.start_price}, {"time": line.end_time, "price": line.end_price}], "color": line.color, "width": line.width} for line in fc_fan_obj.lines]
+                                }
                             self.event_logger.log_event(
                                 timestamp=current_time,
                                 event_type=EventType.TARGET_HIT,
@@ -1213,6 +1318,9 @@ class AngularPriceCoverageStudy:
                                 anchor_bar_index=fan_data.get('anchor', {}).get('bar_index', 0),
                                 scale_ratio=self.config.get('scale_ratio', 1.0),
                                 anchor_price=fan_data.get('anchor', {}).get('price', 0),
+                                origin_bar_index=origin_bar_index,
+                                origin_price=origin_price,
+                                fan_geometry=fan_geometry,
                                 details={
                                     'fan_id': fan_id,
                                     'fan_label': fan_priority,
@@ -1261,6 +1369,16 @@ class AngularPriceCoverageStudy:
                             result['intersection_events'].append(ui_event_dict)
                             self.log(f"[Tracking] Target HIT: {fan_id} reached full_coverage!")
                         else:
+                            origin_bar_index = int(fan_data.get('from_pivot', {}).get('bar_index', 0))
+                            origin_price = float(fan_data.get('from_pivot', {}).get('price', 0.0))
+                            tf_fan_obj = self.angle_engine.active_fans.get(fan_id)
+                            fan_geometry = None
+                            if tf_fan_obj and tf_fan_obj.lines:
+                                fan_geometry = {
+                                    "origin": {"bar_index": int(tf_fan_obj.from_pivot.get("bar_index", 0)), "time": int(tf_fan_obj.from_pivot.get("time", 0)), "price": float(tf_fan_obj.from_pivot.get("price", 0.0)), "label": str(tf_fan_obj.from_pivot.get("type", ""))},
+                                    "anchor": {"bar_index": int(tf_fan_obj.to_pivot.get("bar_index", 0)), "time": int(tf_fan_obj.to_pivot.get("time", 0)), "price": float(tf_fan_obj.to_pivot.get("price", 0.0)), "label": str(tf_fan_obj.to_pivot.get("type", ""))},
+                                    "rays": [{"id": line.id, "fraction": line.fraction, "points": [{"time": line.start_time, "price": line.start_price}, {"time": line.end_time, "price": line.end_price}], "color": line.color, "width": line.width} for line in tf_fan_obj.lines]
+                                }
                             self.event_logger.log_event(
                                 timestamp=current_time,
                                 event_type=EventType.TARGET_FAILED,
@@ -1270,6 +1388,9 @@ class AngularPriceCoverageStudy:
                                 anchor_bar_index=fan_data.get('anchor', {}).get('bar_index', 0),
                                 scale_ratio=self.config.get('scale_ratio', 1.0),
                                 anchor_price=fan_data.get('anchor', {}).get('price', 0),
+                                origin_bar_index=origin_bar_index,
+                                origin_price=origin_price,
+                                fan_geometry=fan_geometry,
                                 details={
                                     'fan_id': fan_id,
                                     'fan_label': fan_priority,
@@ -1326,6 +1447,16 @@ class AngularPriceCoverageStudy:
                         try:
                             # Get fan geometry context
                             deact_anchor = fan_data.get('anchor', {})
+                            origin_bar_index = int(fan_data.get('from_pivot', {}).get('bar_index', 0))
+                            origin_price = float(fan_data.get('from_pivot', {}).get('price', 0.0))
+                            deact_fan_obj = self.angle_engine.active_fans.get(fan_id)
+                            fan_geometry = None
+                            if deact_fan_obj and deact_fan_obj.lines:
+                                fan_geometry = {
+                                    "origin": {"bar_index": int(deact_fan_obj.from_pivot.get("bar_index", 0)), "time": int(deact_fan_obj.from_pivot.get("time", 0)), "price": float(deact_fan_obj.from_pivot.get("price", 0.0)), "label": str(deact_fan_obj.from_pivot.get("type", ""))},
+                                    "anchor": {"bar_index": int(deact_fan_obj.to_pivot.get("bar_index", 0)), "time": int(deact_fan_obj.to_pivot.get("time", 0)), "price": float(deact_fan_obj.to_pivot.get("price", 0.0)), "label": str(deact_fan_obj.to_pivot.get("type", ""))},
+                                    "rays": [{"id": line.id, "fraction": line.fraction, "points": [{"time": line.start_time, "price": line.start_price}, {"time": line.end_time, "price": line.end_price}], "color": line.color, "width": line.width} for line in deact_fan_obj.lines]
+                                }
                             self.event_logger.log_event(
                                 timestamp=current_time,
                                 event_type=EventType.FAN_DEACTIVATED,
@@ -1333,6 +1464,9 @@ class AngularPriceCoverageStudy:
                                 anchor_bar_index=deact_anchor.get('bar_index', 0),
                                 scale_ratio=self.config.get('scale_ratio', 1.0),
                                 anchor_price=deact_anchor.get('price', 0),
+                                origin_bar_index=origin_bar_index,
+                                origin_price=origin_price,
+                                fan_geometry=fan_geometry,
                                 details={
                                     'fan_id': fan_id,
                                     'fan_label': fan_priority,
@@ -1567,7 +1701,7 @@ class AngularPriceCoverageStudy:
         state_machine_state = self.state_machine.pending_breaches
 
         # Build prev_line based on which target was just hit
-        # After 0.5, both horizontal and 0.25 are reached from 0.5 (concurrent)
+        # After 0.5, horizontal is reached from 0.5
         if target_name in ('horizontal', '0.25'):
             prev_line = '0.5'
         elif target_name in ('0.875', '0.75'):
@@ -1613,6 +1747,17 @@ class AngularPriceCoverageStudy:
         # Get fan geometry context
         noalpha_fan_data = self._persisted_fans.get(fan_id, {})
         noalpha_fan_geom = noalpha_fan_data.get('anchor', {})
+        noalpha_fan_obj = self.angle_engine.active_fans.get(fan_id)
+        # Origin: where fan lines radiate from (temporally first pivot)
+        origin_bar_index = int(noalpha_fan_obj.from_pivot.get('bar_index', 0)) if noalpha_fan_obj else int(noalpha_fan_data.get('from_pivot', {}).get('bar_index', 0))
+        origin_price = float(noalpha_fan_obj.from_pivot.get('price', 0.0)) if noalpha_fan_obj else float(noalpha_fan_data.get('from_pivot', {}).get('price', 0.0))
+        fan_geometry = None
+        if noalpha_fan_obj and noalpha_fan_obj.lines:
+            fan_geometry = {
+                "origin": {"bar_index": int(noalpha_fan_obj.from_pivot.get("bar_index", 0)), "time": int(noalpha_fan_obj.from_pivot.get("time", 0)), "price": float(noalpha_fan_obj.from_pivot.get("price", 0.0)), "label": str(noalpha_fan_obj.from_pivot.get("type", ""))},
+                "anchor": {"bar_index": int(noalpha_fan_obj.to_pivot.get("bar_index", 0)), "time": int(noalpha_fan_obj.to_pivot.get("time", 0)), "price": float(noalpha_fan_obj.to_pivot.get("price", 0.0)), "label": str(noalpha_fan_obj.to_pivot.get("type", ""))},
+                "rays": [{"id": line.id, "fraction": line.fraction, "points": [{"time": line.start_time, "price": line.start_price}, {"time": line.end_time, "price": line.end_price}], "color": line.color, "width": line.width} for line in noalpha_fan_obj.lines]
+            }
 
         self.event_logger.log_event(
             timestamp=timestamp,
@@ -1632,6 +1777,9 @@ class AngularPriceCoverageStudy:
             anchor_bar_index=noalpha_fan_geom.get('bar_index', 0),
             scale_ratio=self.config.get('scale_ratio', 1.0),
             anchor_price=noalpha_fan_geom.get('price', 0),
+            origin_bar_index=origin_bar_index,
+            origin_price=origin_price,
+            fan_geometry=fan_geometry,
             details={
                 'fan_id': fan_id,
                 'cross_bar': True
@@ -1680,6 +1828,8 @@ class AngularPriceCoverageStudy:
             'anchor_bar_index': noalpha_fan_geom.get('bar_index', 0),
             'scale_ratio': self.config.get('scale_ratio', 1.0),
             'anchor_price': noalpha_fan_geom.get('price', 0),
+            'origin_bar_index': origin_bar_index,
+            'origin_price': origin_price,
         })
 
         self.log(f"[Tracking] BREACH_CONFIRMED_NO_ALPHA (via target progression): {fan_id} {prev_line}")
