@@ -739,86 +739,26 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
     };
 
     const plotSingleTradeMarker = (chart, trade) => {
-        const candles = currentCandlesRef.current || [];
         const isLong = trade.side === 'LONG';
 
-        const findCandle = (targetTimeSec) => {
-            if (candles.length > 0) {
-                const candleTimesSec = candles.map(c => toSeconds(c.time));
-                let matchedIndex = -1;
-                for (let i = 0; i < candleTimesSec.length - 1; i++) {
-                    if (targetTimeSec >= candleTimesSec[i] && targetTimeSec < candleTimesSec[i + 1]) {
-                        matchedIndex = i;
-                        break;
-                    }
-                }
-                if (matchedIndex === -1) {
-                    if (targetTimeSec >= candleTimesSec[candleTimesSec.length - 1]) {
-                        matchedIndex = candleTimesSec.length - 1;
-                    } else if (targetTimeSec < candleTimesSec[0]) {
-                        matchedIndex = 0;
-                    }
-                }
-                if (matchedIndex !== -1) return { candle: candles[matchedIndex], time: candleTimesSec[matchedIndex] };
-            }
-            if (datafeedRef.current && datafeedRef.current.getBarAtTime) {
-                const bar = datafeedRef.current.getBarAtTime(targetTimeSec);
-                if (bar) return { candle: bar, time: toSeconds(bar.time) };
-            }
-            return null;
-        };
-
         if (trade.entry_time && trade.entry_price) {
-            const result = findCandle(toSeconds(trade.entry_time));
-            let entryPrice;
-            let entryTime = trade.entry_time;
-            if (result) {
-                const candleRange = parseFloat(result.candle.high) - parseFloat(result.candle.low);
-                const gapOffset = candleRange * 0.45;
-                entryTime = result.time;
-                if (isLong) {
-                    entryPrice = parseFloat(result.candle.low) - gapOffset;
-                } else {
-                    entryPrice = parseFloat(result.candle.high) + gapOffset;
-                }
-                console.log(`[plotSingleTradeMarker] Entry label for ${isLong ? 'LONG' : 'SHORT'} at ${entryTime}, candle H=${result.candle.high} L=${result.candle.low}, label price=${entryPrice.toFixed(2)}`);
-            } else {
-                const gapPct = 0.003;
-                entryPrice = trade.entry_price * (1 - gapPct);
-                console.log(`[plotSingleTradeMarker] Entry label FALLBACK (no candle found) at ${trade.entry_time}, price=${entryPrice.toFixed(2)}`);
-            }
             const entryMarker = {
-                time: entryTime,
+                time: trade.entry_time,
                 type: 'entry',
-                price: entryPrice,
-                label: 'E',
+                price: trade.entry_price,
+                side: trade.side,
+                isBuy: isLong
             };
             plotTradeShape(chart, entryMarker);
         }
+        
         if (trade.exit_time && trade.exit_price) {
-            const result = findCandle(toSeconds(trade.exit_time));
-            let exitPrice;
-            let exitTime = trade.exit_time;
-            if (result) {
-                const candleRange = parseFloat(result.candle.high) - parseFloat(result.candle.low);
-                const gapOffset = candleRange * 0.45;
-                exitTime = result.time;
-                if (isLong) {
-                    exitPrice = parseFloat(result.candle.high) + gapOffset;
-                } else {
-                    exitPrice = parseFloat(result.candle.low) - gapOffset;
-                }
-                console.log(`[plotSingleTradeMarker] Exit label for ${isLong ? 'LONG' : 'SHORT'} at ${exitTime}, candle H=${result.candle.high} L=${result.candle.low}, label price=${exitPrice.toFixed(2)}`);
-            } else {
-                const gapPct = 0.003;
-                exitPrice = trade.exit_price * (1 + gapPct);
-                console.log(`[plotSingleTradeMarker] Exit label FALLBACK (no candle found) at ${trade.exit_time}, price=${exitPrice.toFixed(2)}`);
-            }
             const exitMarker = {
-                time: exitTime,
+                time: trade.exit_time,
                 type: 'exit',
-                price: exitPrice,
-                label: 'X',
+                price: trade.exit_price,
+                side: trade.side,
+                isBuy: !isLong
             };
             plotTradeShape(chart, exitMarker);
         }
