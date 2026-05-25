@@ -884,7 +884,7 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
 
         const isEntry = trade.type === 'entry';
         const isExit = trade.type === 'exit';
-        const color = isEntry ? '#00C853' : isExit ? '#9E9E9E' : '#FF1744';
+        const color = isEntry ? '#2196F3' : isExit ? '#FF9800' : '#FF9800'; // Blue for entry, Orange for exit
         
         let isBuy = trade.isBuy;
         if (isBuy === undefined) {
@@ -920,12 +920,17 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
                 matchedCandle = allCandles[matchedIndex];
             }
         }
+        
+        // Fallback to datafeed if candle not found in current view
+        if (!matchedCandle && datafeedRef.current && typeof datafeedRef.current.getBarAtTime === 'function') {
+            matchedCandle = datafeedRef.current.getBarAtTime(shapeTime);
+        }
 
         let price1, price2;
         // Use a fixed percentage of the price to ensure consistent gap and line length
         // regardless of the individual candle's size.
         const gap = shapePrice * 0.0015;
-        const length = shapePrice * 0.0025;
+        const length = shapePrice * 0.00125; // Reduced length to half
 
         if (matchedCandle) {
             if (isBuy) {
