@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState, useImperativeHandle, forwardRef } f
 import createChartDatafeed from './chart/ChartDatafeed';
 import { processStudyResponse, clearAllStudyDrawings } from './study_tool/StudyDrawingUtils';
 
-export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, interval = '60', onTradeLogged, dataSource = 'dhan', cycleType = '24_hour', sessionDuration = 'standard', onSymbolChange, onPlayingStateChange, selectedInteraction, showPatternLegend = false, showPatternDots = false, ...props }, ref) => {
+export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, interval = '60', onTradeLogged, dataSource = 'dhan', cycleType = '24_hour', sessionDuration = 'standard', onSymbolChange, onPlayingStateChange, selectedInteraction, showPatternLegend = false, showPatternDots = false, onStrategyMeta, ...props }, ref) => {
     const chartContainerRef = useRef(null);
     const datafeedRef = useRef(null);
     const widgetRef = useRef(null);
@@ -24,6 +24,7 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
     const studyShapesRef = useRef({});
     // Track fan labels for visibility toggling
     const fanLabelsRef = useRef({});
+    const tradeMarkersRef = useRef({});
 
     // Track indicator line series (EMA, etc.) for cleanup
     const indicatorLinesRef = useRef({});
@@ -106,7 +107,7 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
             const widget = new window.TradingView.widget({
             symbol: symbol,
             interval: interval,
-            timezone: 'Asia/Kolkata',
+            timezone: dataSource === 'binance' ? 'Etc/UTC' : 'Asia/Kolkata',
             fullscreen: false,
             container: chartContainerRef.current,
             datafeed: customDatafeed,
@@ -352,6 +353,7 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
             studyShapesRef.current = {};
             fanLabelsRef.current = {};
             fanDisplayMapRef.current = {};
+            tradeMarkersRef.current = {};
             indicatorLinesRef.current = {};
 
             // Only remove script if we created one
@@ -570,21 +572,36 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
                     console.warn('[TVChart] Could not adjust visible range:', e);
                 }
                 
-                // Create a single prominent marker sitting above the candle high
-                // (Removed invalid 'icon' and 'vertical_line' shape types that cause crashes)
+                // Create a combination of two shapes:
+                // 1. White icon marker sitting above the candle high
+                // 2. White dashed vertical line to mark the time axis
                 const shapesToCreate = [
                     {
                         point: { time: targetTime, price: targetPrice },
                         options: {
-                            shape: 'arrow_down',
+                            shape: 'icon',
                             lock: true,
                             disableSelection: true,
                             disableSave: true,
                             overrides: {
-                                color: '#FFEB3B', // High visibility color (Yellow/Gold)
-                                backgroundColor: '#FFEB3B',
-                                borderColor: '#FFEB3B',
-                                size: 1, // Full size for visibility
+                                color: '#FFFFFF',
+                                size: 10,
+                            },
+                            icon: 0xf0ab,
+                        }
+                    },
+                    {
+                        point: { time: targetTime, price: targetPrice },
+                        options: {
+                            shape: 'vertical_line',
+                            lock: true,
+                            disableSelection: true,
+                            disableSave: true,
+                            overrides: {
+                                color: '#FFFFFF',
+                                linestyle: 2,
+                                linewidth: 1,
+                                showLabel: false,
                             }
                         }
                     }
@@ -709,6 +726,103 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
     // Track which trades have been plotted to prevent duplicate markers
     // Key: unique trade identifier (time_type_price), Value: true
     const plottedTradesRef = useRef({});
+    const tradeShapeIdsRef = useRef([]);
+
+    const clearTradeMarkerShapes = (chart) => {
+        tradeShapeIdsRef.current.forEach(id => {
+            try { chart.removeEntity(id); } catch (_) {}
+        });
+        tradeShapeIdsRef.current = [];
+        tradeMarkersRef.current = {};
+        plottedTradesRef.current = {};
+        recentMarkersRef.current = {};
+    };
+
+    const plotSingleTradeMarker = (chart, trade) => {
+        const candles = currentCandlesRef.current || [];
+        const isLong = trade.side === 'LONG';
+
+        const findCandle = (targetTimeSec) => {
+            if (candles.length > 0) {
+                const candleTimesSec = candles.map(c => toSeconds(c.time));
+                let matchedIndex = -1;
+                for (let i = 0; i < candleTimesSec.length - 1; i++) {
+                    if (targetTimeSec >= candleTimesSec[i] && targetTimeSec < candleTimesSec[i + 1]) {
+                        matchedIndex = i;
+                        break;
+                    }
+                }
+                if (matchedIndex === -1) {
+                    if (targetTimeSec >= candleTimesSec[candleTimesSec.length - 1]) {
+                        matchedIndex = candleTimesSec.length - 1;
+                    } else if (targetTimeSec < candleTimesSec[0]) {
+                        matchedIndex = 0;
+                    }
+                }
+                if (matchedIndex !== -1) return { candle: candles[matchedIndex], time: candleTimesSec[matchedIndex] };
+            }
+            if (datafeedRef.current && datafeedRef.current.getBarAtTime) {
+                const bar = datafeedRef.current.getBarAtTime(targetTimeSec);
+                if (bar) return { candle: bar, time: toSeconds(bar.time) };
+            }
+            return null;
+        };
+
+        if (trade.entry_time && trade.entry_price) {
+            const result = findCandle(toSeconds(trade.entry_time));
+            let entryPrice;
+            let entryTime = trade.entry_time;
+            if (result) {
+                const candleRange = parseFloat(result.candle.high) - parseFloat(result.candle.low);
+                const gapOffset = candleRange * 0.45;
+                entryTime = result.time;
+                if (isLong) {
+                    entryPrice = parseFloat(result.candle.low) - gapOffset;
+                } else {
+                    entryPrice = parseFloat(result.candle.high) + gapOffset;
+                }
+                console.log(`[plotSingleTradeMarker] Entry label for ${isLong ? 'LONG' : 'SHORT'} at ${entryTime}, candle H=${result.candle.high} L=${result.candle.low}, label price=${entryPrice.toFixed(2)}`);
+            } else {
+                const gapPct = 0.003;
+                entryPrice = trade.entry_price * (1 - gapPct);
+                console.log(`[plotSingleTradeMarker] Entry label FALLBACK (no candle found) at ${trade.entry_time}, price=${entryPrice.toFixed(2)}`);
+            }
+            const entryMarker = {
+                time: entryTime,
+                type: 'entry',
+                price: entryPrice,
+                label: 'E',
+            };
+            plotTradeShape(chart, entryMarker);
+        }
+        if (trade.exit_time && trade.exit_price) {
+            const result = findCandle(toSeconds(trade.exit_time));
+            let exitPrice;
+            let exitTime = trade.exit_time;
+            if (result) {
+                const candleRange = parseFloat(result.candle.high) - parseFloat(result.candle.low);
+                const gapOffset = candleRange * 0.45;
+                exitTime = result.time;
+                if (isLong) {
+                    exitPrice = parseFloat(result.candle.high) + gapOffset;
+                } else {
+                    exitPrice = parseFloat(result.candle.low) - gapOffset;
+                }
+                console.log(`[plotSingleTradeMarker] Exit label for ${isLong ? 'LONG' : 'SHORT'} at ${exitTime}, candle H=${result.candle.high} L=${result.candle.low}, label price=${exitPrice.toFixed(2)}`);
+            } else {
+                const gapPct = 0.003;
+                exitPrice = trade.exit_price * (1 + gapPct);
+                console.log(`[plotSingleTradeMarker] Exit label FALLBACK (no candle found) at ${trade.exit_time}, price=${exitPrice.toFixed(2)}`);
+            }
+            const exitMarker = {
+                time: exitTime,
+                type: 'exit',
+                price: exitPrice,
+                label: 'X',
+            };
+            plotTradeShape(chart, exitMarker);
+        }
+    };
 
     // Track pattern label markers to prevent stacking
     // Key: time bucket, Value: array of { price, time }
@@ -763,6 +877,57 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
         });
     }, [showPatternDots]);
 
+    const loadTradeFanGeometry = (chart, trade) => {
+        if (!chart || !trade?.fan_geometry) return;
+
+        clearAllStudyDrawings(chart, studyShapesRef.current);
+        studyShapesRef.current = {};
+        Object.values(indicatorLinesRef.current).forEach(ids => {
+            const idList = Array.isArray(ids) ? ids : [ids];
+            idList.forEach(id => { try { chart.removeEntity(id); } catch (e) {} });
+        });
+        indicatorLinesRef.current = {};
+
+        const g = trade.fan_geometry;
+
+        const studyData = {
+            drawings: (g.rays || []).map(ray => ({
+                id: ray.id || `${trade.fan || 'fan'}_ray`,
+                type: 'trend_line',
+                points: ray.points || [],
+                options: {
+                    linecolor: ray.color || '#2196F3',
+                    linewidth: ray.width || 2,
+                    linestyle: 0,
+                    extendRight: true,
+                    fanIdentity: trade.fan || '',
+                    fanLabel: trade.fan || ''
+                }
+            })),
+            pivot_markers: (() => {
+                const markers = [];
+                if (g.origin?.time) {
+                    markers.push({
+                        type: g.origin.label === 'high' ? 'pivot_high' : 'pivot_low',
+                        time: g.origin.time,
+                        price: g.origin.price,
+                        text: trade.fan || ''
+                    });
+                }
+                if (g.anchor?.time) {
+                    markers.push({
+                        type: g.anchor.label === 'high' ? 'pivot_high' : 'pivot_low',
+                        time: g.anchor.time,
+                        price: g.anchor.price
+                    });
+                }
+                return markers;
+            })()
+        };
+
+        studyShapesRef.current = processStudyResponse(chart, studyData, studyShapesRef.current);
+    };
+
     // Plot a single trade shape - now accepts optional candles for time snapping
     const plotTradeShape = (chart, trade, candles = null) => {
         // Validate trade data before calling TradingView API
@@ -771,109 +936,111 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
             return false;
         }
 
-        // DUPLICATE PREVENTION: Create unique key for this trade
-        // Using time + type + price to identify unique trades
         const tradeKey = `${trade.time}_${trade.type}_${trade.price}`;
         if (plottedTradesRef.current[tradeKey]) {
-            console.log(`[plotTradeShape] Skipping duplicate trade: ${tradeKey}`);
             return false;
         }
         plottedTradesRef.current[tradeKey] = true;
 
-        const color = trade.type === 'buy' ? '#00E676' : '#FF5252';
+        const isEntry = trade.type === 'entry';
+        const isExit = trade.type === 'exit';
+        const color = isEntry ? '#00C853' : isExit ? '#9E9E9E' : '#FF1744';
+        
+        let isBuy = trade.isBuy;
+        if (isBuy === undefined) {
+            if (trade.type === 'buy') isBuy = true;
+            else if (trade.type === 'sell') isBuy = false;
+            else if (trade.type === 'entry' && trade.side === 'LONG') isBuy = true;
+            else if (trade.type === 'entry' && trade.side === 'SHORT') isBuy = false;
+            else if (trade.type === 'exit' && trade.side === 'LONG') isBuy = false;
+            else if (trade.type === 'exit' && trade.side === 'SHORT') isBuy = true;
+            else isBuy = true; // Fallback
+        }
 
-        // Use arrows with proper sizing
-        const shape = trade.type === 'buy' ? 'arrow_up' : 'arrow_down';
-
-        // Use exact trade time from backend (no snapping)
         const shapeTime = toSeconds(trade.time);
+        const shapePrice = trade.price;
 
-        // Find the matching candle for this trade to get high/low
-        let candleHigh = trade.price;
-        let candleLow = trade.price;
-
-        if (candles && candles.length > 0) {
-            // Find candle that contains this trade time
-            const matchingCandle = candles.find(c => {
-                const candleTime = toSeconds(c.time);
-                // Trade belongs to candle if it's within the candle's time window
-                return Math.abs(candleTime - shapeTime) < 60; // Within 1 minute
-            });
-
-            if (matchingCandle) {
-                candleHigh = matchingCandle.high;
-                candleLow = matchingCandle.low;
+        // Find matching candle to scale the line
+        const allCandles = candles || currentCandlesRef.current || [];
+        let matchedCandle = null;
+        if (allCandles.length > 0) {
+            const candleTimesSec = allCandles.map(c => toSeconds(c.time));
+            let matchedIndex = -1;
+            for (let i = 0; i < candleTimesSec.length - 1; i++) {
+                if (shapeTime >= candleTimesSec[i] && shapeTime < candleTimesSec[i + 1]) {
+                    matchedIndex = i;
+                    break;
+                }
+            }
+            if (matchedIndex === -1) {
+                if (shapeTime >= candleTimesSec[candleTimesSec.length - 1]) matchedIndex = candleTimesSec.length - 1;
+                else if (shapeTime < candleTimesSec[0]) matchedIndex = 0;
+            }
+            if (matchedIndex !== -1) {
+                matchedCandle = allCandles[matchedIndex];
             }
         }
 
-        // FIX FOR STACKED MARKERS: Track markers in time buckets and apply progressive offsets
-        // Round time to nearest 5-minute bucket to group nearby trades
-        const timeBucket = Math.floor(shapeTime / 300) * 300; // 300 seconds = 5 minutes
-        const bucketKey = `${timeBucket}_${trade.type}`;
-
-        // Initialize or get existing markers in this bucket for this type
-        if (!recentMarkersRef.current[bucketKey]) {
-            recentMarkersRef.current[bucketKey] = [];
+        let price1, price2;
+        if (matchedCandle) {
+            const candleRange = parseFloat(matchedCandle.high) - parseFloat(matchedCandle.low);
+            const gap = candleRange * 0.2;
+            const length = candleRange * 0.4;
+            if (isBuy) {
+                price1 = parseFloat(matchedCandle.low) - gap;
+                price2 = parseFloat(matchedCandle.low) - gap - length;
+            } else {
+                price1 = parseFloat(matchedCandle.high) + gap;
+                price2 = parseFloat(matchedCandle.high) + gap + length;
+            }
+        } else {
+            const gap = shapePrice * 0.002;
+            const length = shapePrice * 0.004;
+            if (isBuy) {
+                price1 = shapePrice - gap;
+                price2 = shapePrice - gap - length;
+            } else {
+                price1 = shapePrice + gap;
+                price2 = shapePrice + gap + length;
+            }
         }
 
-        // Count how many markers of the same type are already in this bucket
-        const existingCount = recentMarkersRef.current[bucketKey].length;
-
-        // Position markers just outside the candle extremes
-        // Small base offset (0.15% of price) to separate from candle
-        const baseOffset = trade.price * 0.0015;
-
-        // Additional offset per stacked marker (0.1% per level)
-        const stackOffset = trade.price * 0.001 * existingCount;
-
-        // Calculate final price based on candle high/low
-        // Buy arrows: positioned below the candle's LOW, pointing up
-        // Sell arrows: positioned above the candle's HIGH, pointing down
-        const shapePrice = trade.type === 'buy'
-            ? candleLow - baseOffset - stackOffset  // Below lowest point
-            : candleHigh + baseOffset + stackOffset; // Above highest point
-
-        // Record this marker in the bucket
-        recentMarkersRef.current[bucketKey].push({ price: shapePrice, time: shapeTime });
-
-        // Format trade info for console logging only
         const tradeDate = new Date(trade.time * 1000);
-        const dateStr = tradeDate.toLocaleDateString('en-GB', {
-            day: '2-digit',
-            month: 'short'
-        });
-        const timeStr = tradeDate.toLocaleTimeString('en-GB', {
-            hour: '2-digit',
-            minute: '2-digit',
-            hour12: false
-        });
+        const dateStr = tradeDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
+        const timeStr = tradeDate.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
 
-        console.log(`[plotTradeShape] ${trade.type.toUpperCase()} at ${dateStr} ${timeStr}, time=${shapeTime}, price=${trade.price}, candle H/L=${candleHigh}/${candleLow} -> marker@${shapePrice.toFixed(2)} (stack level ${existingCount})`);
+        console.log(`[plotTradeShape] ${trade.type.toUpperCase()} at ${dateStr} ${timeStr}, time=${shapeTime}, isBuy=${isBuy}`);
 
         try {
-            const createdShape = chart.createShape({ time: shapeTime, price: shapePrice }, {
-                shape: shape,
-                text: '',  // No text label - tooltip will show on hover
-                overrides: {
-                    color: color,
-                    backgroundColor: color,
-                    size: 1,  // Numeric size: 1 is smallest
-                    fontsize: 0,
-                    bold: false
+            const createdShape = chart.createMultipointShape(
+                [{ time: shapeTime, price: price1 }, { time: shapeTime, price: price2 }],
+                {
+                    shape: 'trend_line',
+                    lock: true,
+                    disableUndo: true,
+                    overrides: {
+                        linecolor: color,
+                        linewidth: 3,
+                        linestyle: 0
+                    }
                 }
-            });
+            );
 
-            console.log(`[plotTradeShape] Shape created successfully:`, createdShape);
+            const storeId = (id) => {
+                if (id) tradeShapeIdsRef.current.push(id);
+            };
+            if (createdShape && typeof createdShape.then === 'function') {
+                createdShape.then(storeId).catch(() => {});
+            } else if (createdShape) {
+                storeId(createdShape);
+            }
+
+            if (trade.fan_geometry) {
+                tradeMarkersRef.current[`${shapeTime}_${shapePrice}`] = trade;
+            }
             return true;
         } catch (err) {
             console.error("[plotTradeShape] Error creating shape:", err);
-            console.error("[plotTradeShape] Error details:", {
-                message: err.message,
-                stack: err.stack,
-                trade: trade,
-                shapeTime: shapeTime,
-                shapePrice: shapePrice
-            });
             return false;
         }
     };
@@ -1129,10 +1296,7 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
                 eventTimeSec = Math.floor(Date.now() / 1000);
             }
 
-            // Center on the fan's origin pivot so both the pivot labels and the
-            // radiating fan rays are visible. origin.time is a Unix-timestamp
-            // integer; fall back to the first ray's first point if it is missing
-            // or zero (which can happen for fans reconstructed from sparse data).
+            // Center on the fan's origin pivot so the fan label is immediately visible.
             let originTime = event.fan_geometry?.origin?.time;
             if ((originTime == null || originTime <= 0) && event.fan_geometry?.rays?.[0]?.points?.[0]?.time) {
                 originTime = event.fan_geometry.rays[0].points[0].time;
@@ -1141,10 +1305,7 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
                 ? originTime
                 : eventTimeSec;
 
-            // Keep the chart at its current resolution — avoid setResolution
-            // because it triggers PBR reloads and data re-fetches that race
-            // with setVisibleRange.
-
+            // Keep the chart at its current resolution and visible range.
             let rangeWidth = 240 * 60; // default 4 hours in seconds
             try {
                 const visibleRange = chart.getVisibleRange();
@@ -1153,14 +1314,6 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
                 }
             } catch (_) {}
 
-            // Ensure the range is wide enough to show both the fan label
-            // (at the origin pivot) and the event marker, with 20% padding.
-            const span = Math.abs(eventTimeSec - centerTimeSec) * 2;
-            const minRange = span * 1.2;
-            if (minRange > rangeWidth) {
-                rangeWidth = minRange;
-            }
-
             const newFrom = centerTimeSec - rangeWidth / 2;
             const newTo = centerTimeSec + rangeWidth / 2;
 
@@ -1168,16 +1321,31 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
                 // Discard if a newer navigation has started since this was scheduled
                 if (gen !== navigationGenerationRef.current) return;
                 if (event.price != null) {
-                    const shapeId = chart.createShape(
+                    // White icon marker above the candle
+                    const iconId = chart.createShape(
                         { time: eventTimeSec, price: event.price },
                         {
-                            shape: 'arrow_down',
+                            shape: 'icon',
                             lock: true,
-                            disableUndo: true,
-                            overrides: { color: '#FFEB3B', backgroundColor: '#FFEB3B', size: 1 }
+                            disableSelection: true,
+                            disableSave: true,
+                            overrides: { color: '#FFFFFF', size: 10 },
+                            icon: 0xf0ab,
                         }
                     );
-                    if (shapeId) hypothesisMarkerRef.current.push(shapeId);
+                    if (iconId) hypothesisMarkerRef.current.push(iconId);
+                    // White dashed vertical line through the candle
+                    const lineId = chart.createShape(
+                        { time: eventTimeSec, price: event.price },
+                        {
+                            shape: 'vertical_line',
+                            lock: true,
+                            disableSelection: true,
+                            disableSave: true,
+                            overrides: { color: '#FFFFFF', linestyle: 2, linewidth: 1, showLabel: false },
+                        }
+                    );
+                    if (lineId) hypothesisMarkerRef.current.push(lineId);
                 }
 
                 if (event.fan_geometry && event.fan_geometry.rays && event.fan_geometry.rays.length > 0) {
@@ -1217,6 +1385,48 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
                 // setVisibleRange failed — draw anyway at current position
                 drawMarkerAndFan();
             });
+        },
+
+        navigateToTrade: (trade) => {
+            if (!widgetRef.current || !trade) return;
+            const chart = widgetRef.current.activeChart();
+            if (!chart) return;
+
+            clearTradeMarkerShapes(chart);
+
+            const g = trade.fan_geometry;
+            let centerTime = trade.entry_time || trade.time;
+            if (g?.origin?.time) {
+                centerTime = g.origin.time;
+            }
+
+            let rangeWidth = 28 * 3600;
+            try {
+                const visibleRange = chart.getVisibleRange();
+                if (visibleRange && visibleRange.to - visibleRange.from > 0) {
+                    rangeWidth = visibleRange.to - visibleRange.from;
+                }
+            } catch (_) {}
+
+            const newFrom = centerTime - rangeWidth / 2;
+            const newTo = centerTime + rangeWidth / 2;
+
+            chart.setVisibleRange({ from: newFrom, to: newTo }).then(() => {
+                setTimeout(() => {
+                    loadTradeFanGeometry(chart, trade);
+                    plotSingleTradeMarker(chart, trade);
+                }, 400);
+            }).catch(() => {
+                loadTradeFanGeometry(chart, trade);
+                plotSingleTradeMarker(chart, trade);
+            });
+        },
+
+        clearTradeMarkers: () => {
+            if (!widgetRef.current) return;
+            const chart = widgetRef.current.activeChart();
+            if (!chart) return;
+            clearTradeMarkerShapes(chart);
         },
 
         // INSTANT MODE: Plot all candles and signals at once
@@ -1639,9 +1849,10 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
                         studyShapesRef.current = processStudyResponse(chart, studyData, studyShapesRef.current);
 
                         // Render indicator lines (EMA 9, EMA 21) from indicator_series
+                        // OPTIMIZED: Only draw the one new segment each step instead of
+                        // removing and recreating ALL segments (was O(n²) API calls per step).
                         if (studyData.indicator_series && chart) {
                             const colors = { ema_9: '#2196F3', ema_21: '#FF9800' };
-                            const labels = { ema_9: 'EMA 9', ema_21: 'EMA 21' };
 
                             Object.entries(studyData.indicator_series).forEach(([key, data]) => {
                                 if (!data || data.length < 2) return;
@@ -1654,18 +1865,6 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
                                 if (points.length < 2) return;
 
                                 const overrideColor = colors[key] || '#888888';
-
-                                // Remove existing polyline segments for this indicator
-                                if (indicatorLinesRef.current[key]) {
-                                    const existing = indicatorLinesRef.current[key];
-                                    const ids = Array.isArray(existing) ? existing : [existing];
-                                    ids.forEach(id => {
-                                        try { chart.removeEntity(id); } catch (e) { /* ignore */ }
-                                    });
-                                }
-
-                                // Draw polyline as connected trend_line segments
-                                const segmentIds = [];
                                 const options = {
                                     shape: 'trend_line',
                                     lock: true,
@@ -1678,15 +1877,39 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
                                     zOrder: 'top'
                                 };
 
-                                for (let i = 0; i < points.length - 1; i++) {
-                                    const result = chart.createMultipointShape(
-                                        [points[i], points[i + 1]],
-                                        options
-                                    );
-                                    if (result) segmentIds.push(result);
+                                // Track how many segments exist for incremental updates
+                                if (!indicatorLinesRef.current[key]) {
+                                    indicatorLinesRef.current[key] = [];
                                 }
+                                const existingSegments = indicatorLinesRef.current[key];
+                                const existingCount = existingSegments.length;
+                                const totalSegmentsNeeded = points.length - 1;
 
-                                indicatorLinesRef.current[key] = segmentIds;
+                                // If we somehow lost segments or this is a replay restart, rebuild
+                                if (existingCount === 0 || existingCount >= totalSegmentsNeeded) {
+                                    existingSegments.forEach(id => {
+                                        try { chart.removeEntity(id); } catch (e) { /* ignore */ }
+                                    });
+                                    const newSegments = [];
+                                    for (let i = 0; i < totalSegmentsNeeded; i++) {
+                                        const result = chart.createMultipointShape(
+                                            [points[i], points[i + 1]],
+                                            options
+                                        );
+                                        if (result) newSegments.push(result);
+                                    }
+                                    indicatorLinesRef.current[key] = newSegments;
+                                } else {
+                                    // Incremental: only add the one new segment
+                                    const i = existingCount;
+                                    if (i < totalSegmentsNeeded) {
+                                        const result = chart.createMultipointShape(
+                                            [points[i], points[i + 1]],
+                                            options
+                                        );
+                                        if (result) existingSegments.push(result);
+                                    }
+                                }
                             });
                         }
 
@@ -1788,13 +2011,14 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
 
                         // Emit price interaction events from backend intersection_events (always present)
                         if (props.onPriceInteraction && studyData.intersection_events && studyData.intersection_events.length > 0) {
-                            console.log(`[TVChart] Emitting ${studyData.intersection_events.length} price interactions to App.jsx`, studyData.intersection_events);
+                            console.log(`[TVChart] Emitting ${studyData.intersection_events.length} price interactions to App.jsx`);
                             studyData.intersection_events.forEach(evt => {
+                                const sd = evt.strategy_data || {};
                                 props.onPriceInteraction({
                                     time: evt.time,
-                                    fan: evt.fan,
-                                    fanIdentity: evt.fanIdentity || evt.fan, // Fallback just in case
-                                    fraction: evt.fraction,
+                                    fan: sd.fan || evt.fan || '',
+                                    fanIdentity: sd.fanIdentity || sd.fan || evt.fanIdentity || evt.fan || '',
+                                    fraction: sd.fraction || evt.fraction || '',
                                     price: evt.price,
                                     type: evt.type,
                                     details: evt.details,
@@ -1802,13 +2026,19 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
                                     high: evt.high,
                                     low: evt.low,
                                     close: evt.close,
-                                    activeAngles: evt.activeAngles,
-                                    cluster: evt.cluster,
-                                    zone: evt.zone,
-                                    zoneExtremes: evt.zoneExtremes,
-                                    nextAngleLine: evt.nextAngleLine
+                                    activeAngles: sd.activeAngles || evt.activeAngles || {},
+                                    cluster: sd.cluster !== undefined ? sd.cluster : (evt.cluster || false),
+                                    zone: sd.zone || evt.zone || '',
+                                    zoneExtremes: sd.zoneExtremes || evt.zoneExtremes || {},
+                                    nextAngleLine: sd.nextAngleLine || evt.nextAngleLine || '',
+                                    strategy_data: sd
                                 });
                             });
+                        }
+
+                        // Forward strategy_meta to App.jsx (column schema, filter options)
+                        if (onStrategyMeta && studyData.strategy_meta) {
+                            onStrategyMeta(studyData.strategy_meta);
                         }
 
                         // Handle Fan Visibility
@@ -2055,6 +2285,7 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
             if (datafeedRef.current) {
                 datafeedRef.current.exitCustomMode();
             }
+            indicatorLinesRef.current = {};
             setIsPlaybackMode(false);
             setIsPlaying(false);
         },
