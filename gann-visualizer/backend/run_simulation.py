@@ -22,7 +22,7 @@ WARMUP_DAYS = {
     "5":  75,
     "15": 120,
     "30": 120,
-    "60": 250,
+    "60": 90,
     "240": 250,
     "1D": 365,
     "D":  365,
@@ -71,7 +71,7 @@ def setup_logging():
     logging.info(f"Logging initialized. Output writing to {log_file}")
     return log_file
 
-def get_frontend_parity_data(symbol="^NSEI", resolution="4", data_source="yfinance", lookback_bars=5000, from_date=None, to_date=None):
+def get_frontend_parity_data(symbol="^NSEI", resolution="4", data_source="yfinance", lookback_bars=5000, from_date=None, to_date=None, warmup_days=0):
     """Fetch data exactly how the frontend's /fetch_candles endpoint does."""
     logging.info(f"Fetching {resolution}m data for {symbol} using {data_source} with {lookback_bars} lookback bars...")
     client = get_data_client(data_source)
@@ -86,7 +86,6 @@ def get_frontend_parity_data(symbol="^NSEI", resolution="4", data_source="yfinan
         from_dt = datetime.strptime(from_date, "%Y-%m-%d")
         target_from_dt = from_dt
         from_dt_utc = from_dt.astimezone(timezone.utc)
-        warmup_days = WARMUP_DAYS.get(resolution, 250)
         ideal_warmup_from_dt = from_dt_utc - timedelta(days=warmup_days)
 
         # Check if YFinance can provide this warmup depth
@@ -182,7 +181,7 @@ def get_frontend_parity_data(symbol="^NSEI", resolution="4", data_source="yfinan
         
     return candles, target_from_dt, actual_start_dt
 
-def run_simulation(symbol="^NSEI", resolution="4", data_source="yfinance", from_date=None, to_date=None, lookback_bars=5000):
+def run_simulation(symbol="^NSEI", resolution="4", data_source="yfinance", from_date=None, to_date=None, lookback_bars=5000, left_bars=5, right_bars=5, warmup_days=0):
     log_file = setup_logging()
     logging.info(f"Starting simulation run for {symbol} at {resolution}m resolution")
     
@@ -193,7 +192,8 @@ def run_simulation(symbol="^NSEI", resolution="4", data_source="yfinance", from_
         data_source=data_source, 
         lookback_bars=lookback_bars,
         from_date=from_date,
-        to_date=to_date
+        to_date=to_date,
+        warmup_days=warmup_days
     )
     
     if not candles:
@@ -214,8 +214,8 @@ def run_simulation(symbol="^NSEI", resolution="4", data_source="yfinance", from_
         'symbol': symbol,
         'resolution': resolution,
         'scale_ratio': scale_ratio,
-        'left_bars': 5, 
-        'right_bars': 5,
+        'left_bars': left_bars, 
+        'right_bars': right_bars,
         'successive_closes_required': 2,
         'run_mode': 'simulation'
     })
@@ -468,7 +468,12 @@ def run_simulation(symbol="^NSEI", resolution="4", data_source="yfinance", from_
 
         # Export raw OHLC candles for EMA crossover and other indicator-based hypotheses
         candles_csv_path = str(run_dir / "candles.csv")
-        candles_df = pd.DataFrame(candles)
+        # Filter to candles within the tracking window only (not the full warmup period)
+        if target_start_ts is not None:
+            filtered_candles = [c for c in candles if int(c['time']) >= target_start_ts]
+        else:
+            filtered_candles = candles
+        candles_df = pd.DataFrame(filtered_candles)
         candles_df.to_csv(candles_csv_path, index=False)
         logging.info(f"Exported {len(candles_df)} candles to {candles_csv_path}")
 
@@ -493,11 +498,14 @@ def run_simulation(symbol="^NSEI", resolution="4", data_source="yfinance", from_
     # Mirror session artifacts into the run directory for reproducibility
     try:
         session_log = os.path.join(repo_root, "logs", "backend", "simulation_run.log")
-        trace_log   = os.path.join(repo_root, "logs", "backend", "replay_trace.log")
+        simulation_trace_log = os.path.join(repo_root, "logs", "backend", "simulation_trace.log")
+        replay_trace_log = os.path.join(repo_root, "logs", "backend", "replay_trace.log")
         if os.path.exists(session_log):
             shutil.copy2(session_log, run_dir / "simulation_run.log")
-        if os.path.exists(trace_log):
-            shutil.copy2(trace_log, run_dir / "trace.log")
+        if os.path.exists(simulation_trace_log):
+            shutil.copy2(simulation_trace_log, run_dir / "simulation_trace.log")
+        if os.path.exists(replay_trace_log):
+            shutil.copy2(replay_trace_log, run_dir / "replay_trace.log")
     except Exception as e:
         logging.warning(f"Failed to mirror logs to run dir: {e}")
 
@@ -508,10 +516,13 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run Gann Angular Price Coverage Simulation")
     parser.add_argument("--symbol", type=str, default="^NSEI", help="Ticker symbol (e.g., ^NSEI, RELIANCE.NS)")
     parser.add_argument("--resolution", type=str, default="4", help="Timeframe resolution (e.g., 1, 4, 5, 15, 60, D)")
-    parser.add_argument("--source", type=str, default="yfinance", choices=["yfinance", "dhan"], help="Data source")
+    parser.add_argument("--source", type=str, default="yfinance", choices=["yfinance", "dhan", "binance"], help="Data source")
     parser.add_argument("--from-date", type=str, default=None, help="Start date (YYYY-MM-DD). Defaults to earliest available data.")
     parser.add_argument("--to-date", type=str, default=None, help="End date (YYYY-MM-DD). Defaults to today.")
     parser.add_argument("--lookback", type=int, default=5000, help="Number of lookback bars for context building")
+    parser.add_argument("--left-bars", type=int, default=5, help="Number of bars to the left for pivot detection (default: 5)")
+    parser.add_argument("--right-bars", type=int, default=5, help="Number of bars to the right for pivot confirmation (default: 5)")
+    parser.add_argument("--warmup-days", type=int, default=0, help="Days of history to fetch before from-date for macro fans. Defaults to 0.")
     
     args = parser.parse_args()
     
@@ -521,5 +532,8 @@ if __name__ == "__main__":
         data_source=args.source,
         from_date=args.from_date,
         to_date=args.to_date,
-        lookback_bars=args.lookback
+        lookback_bars=args.lookback,
+        left_bars=args.left_bars,
+        right_bars=args.right_bars,
+        warmup_days=args.warmup_days
     )
