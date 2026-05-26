@@ -1127,7 +1127,8 @@ def run_replay(symbol, interval, from_date, to_date, warmup_days, client, moment
         },
         'model_a': [t for t in model_a_trades if 'outcome' in t],
     }
-    output_path = f'strategy_trades_{symbol}_{interval}.json'
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    output_path = os.path.join(base_dir, f'strategy_trades_{symbol}_{interval}.json')
     with open(output_path, 'w') as f:
         json.dump(output, f, indent=2, default=str)
     print(f"\nTrades written to {output_path}")
