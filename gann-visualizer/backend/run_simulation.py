@@ -181,7 +181,7 @@ def get_frontend_parity_data(symbol="^NSEI", resolution="4", data_source="yfinan
         
     return candles, target_from_dt, actual_start_dt
 
-def run_simulation(symbol="^NSEI", resolution="4", data_source="yfinance", from_date=None, to_date=None, lookback_bars=5000, left_bars=5, right_bars=5, warmup_days=0):
+def run_simulation(symbol="^NSEI", resolution="4", data_source="yfinance", from_date=None, to_date=None, lookback_bars=5000, left_bars=5, right_bars=5, warmup_days=0, timezone="UTC"):
     log_file = setup_logging()
     logging.info(f"Starting simulation run for {symbol} at {resolution}m resolution")
     
@@ -217,7 +217,8 @@ def run_simulation(symbol="^NSEI", resolution="4", data_source="yfinance", from_
         'left_bars': left_bars, 
         'right_bars': right_bars,
         'successive_closes_required': 2,
-        'run_mode': 'simulation'
+        'run_mode': 'simulation',
+        'timezone': timezone
     })
     
     logging.info("Starting simulation...")
@@ -374,19 +375,19 @@ def run_simulation(symbol="^NSEI", resolution="4", data_source="yfinance", from_
                              'anchor_bar_index', 'scale_ratio', 'anchor_price',
                          'origin_bar_index', 'origin_price'])
             
-            # Use IST timezone for formatting to match frontend
-            ist = pytz.timezone('Asia/Kolkata')
+            # Use configured timezone for timestamp formatting
+            tz = pytz.timezone(timezone)
             
             for i, event in enumerate(all_intersection_events):
-                # Convert timestamp to IST datetime
+                # Convert timestamp to configured timezone
                 dt_utc = datetime.fromtimestamp(event['time'], pytz.utc)
-                dt_ist = dt_utc.astimezone(ist)
+                dt_tz = dt_utc.astimezone(tz)
                 
                 # Format: 3/11/2026, 11:07:00 AM
-                m = dt_ist.month
-                d = dt_ist.day
-                y = dt_ist.year
-                time_str = dt_ist.strftime("%I:%M:%S %p")
+                m = dt_tz.month
+                d = dt_tz.day
+                y = dt_tz.year
+                time_str = dt_tz.strftime("%I:%M:%S %p")
                 if time_str.startswith('0'):
                     time_str = time_str[1:]
                     
@@ -523,6 +524,7 @@ if __name__ == "__main__":
     parser.add_argument("--left-bars", type=int, default=5, help="Number of bars to the left for pivot detection (default: 5)")
     parser.add_argument("--right-bars", type=int, default=5, help="Number of bars to the right for pivot confirmation (default: 5)")
     parser.add_argument("--warmup-days", type=int, default=0, help="Days of history to fetch before from-date for macro fans. Defaults to 0.")
+    parser.add_argument("--timezone", type=str, default="UTC", help="Timezone for output timestamps (default: UTC). Use 'Asia/Kolkata' for IST.")
     
     args = parser.parse_args()
     
@@ -535,5 +537,6 @@ if __name__ == "__main__":
         lookback_bars=args.lookback,
         left_bars=args.left_bars,
         right_bars=args.right_bars,
-        warmup_days=args.warmup_days
+        warmup_days=args.warmup_days,
+        timezone=args.timezone
     )

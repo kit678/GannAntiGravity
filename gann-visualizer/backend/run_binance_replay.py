@@ -978,7 +978,7 @@ def _print_mode_summary(mode_label, trades):
     return {'trades': len(closed), 'wr': wr, 'pf': pf, 'total_pnl': total_pnl}
 
 
-def run_replay(symbol, interval, from_date, to_date, warmup_days, client, momentum_filter=False):
+def run_replay(symbol, interval, from_date, to_date, warmup_days, client, momentum_filter=False, timezone="UTC"):
     print(f"=== Target Progression Replay ===")
     print(f"Symbol: {symbol}  Interval: {interval}  From: {from_date} To: {to_date} Warmup: {warmup_days} days")
     if momentum_filter:
@@ -1014,6 +1014,7 @@ def run_replay(symbol, interval, from_date, to_date, warmup_days, client, moment
     study = AngularPriceCoverageStudy(config={
         "scale_ratio": scale_ratio, "left_bars": 5, "right_bars": 5,
         "symbol": symbol, "resolution": interval,
+        "timezone": timezone
     })
 
     min_warmup = study.config["left_bars"] + study.config["right_bars"] + 1
@@ -1141,6 +1142,7 @@ def main():
     parser.add_argument("--from-date", type=str, required=True, help="Start date (YYYY-MM-DD)")
     parser.add_argument("--to-date", type=str, required=True, help="End date (YYYY-MM-DD)")
     parser.add_argument("--warmup-days", type=int, default=0, help="Days of history to fetch before from-date (default: 0)")
+    parser.add_argument("--timezone", type=str, default="UTC", help="Timezone for output timestamps (default: UTC). Use 'Asia/Kolkata' for IST.")
     parser.add_argument("--momentum-filter", action="store_true", dest="momentum_filter",
                         help="Only enter on retest if breach momentum was 'momentum' (not exhaustion/neutral)")
     parser.add_argument('--target-progression', action='store_true',
@@ -1149,7 +1151,7 @@ def main():
 
     client = BinanceClient(use_testnet=True)
 
-    run_replay(args.symbol.upper(), args.interval, args.from_date, args.to_date, args.warmup_days, client, momentum_filter=args.momentum_filter)
+    run_replay(args.symbol.upper(), args.interval, args.from_date, args.to_date, args.warmup_days, client, momentum_filter=args.momentum_filter, timezone=args.timezone)
 
 
 if __name__ == "__main__":

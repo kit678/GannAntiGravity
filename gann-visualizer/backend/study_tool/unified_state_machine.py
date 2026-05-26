@@ -3,6 +3,7 @@ Unified State Machine for Event Classification
 """
 import os
 import datetime
+import pytz
 from typing import Dict, List, Any, Optional
 from dataclasses import dataclass
 from .event_logger import EventType
@@ -28,6 +29,8 @@ class UnifiedStateMachine:
         self.bounce_threshold_percent = config.get('bounce_threshold_percent', 0.3)
         self.rejection_lookback_bars = config.get('rejection_lookback_bars', 5)
         self.run_mode = config.get('run_mode', 'simulation')
+        tz_name = config.get('timezone', 'UTC')
+        self.tz = pytz.timezone(tz_name)
         
         # Setup trace logger
         log_dir = os.path.join(
@@ -172,7 +175,7 @@ class UnifiedStateMachine:
 
     def _log_trace(self, bar_index: int, c_time: int, c_open: float, c_high: float, c_low: float, c_close: float, evaluations: List[str], active_lines: List[str], is_retro: bool = False):
         """Write a structured one-liner trace for the current bar."""
-        dt_str = datetime.datetime.fromtimestamp(c_time).strftime('%Y-%m-%d %H:%M')
+        dt_str = datetime.datetime.fromtimestamp(c_time, tz=self.tz).strftime('%Y-%m-%d %H:%M')
         retro_str = "[RETRO] " if is_retro else ""
 
         # Detect candlestick pattern
@@ -418,11 +421,13 @@ class UnifiedStateMachine:
                 elif is_support_test:
                     hit_type = 'SUPPORT_TEST'
                     details = 'Testing Support'
+                    direction = 'up'
                     self._start_pending_test(state_key, event.fan_id, line_id, 'SUPPORT_TEST', bar_index, line_price, event.fraction, c_close)
                     evaluations.append(f"[{fan_identity} {frac_name} @ {line_price:.2f}] O >= Line & C >= Line & L <= Line -> SUPPORT_TEST (Pending Bounce)")
                 elif is_resistance_test:
                     hit_type = 'RESISTANCE_TEST'
                     details = 'Testing Resistance'
+                    direction = 'down'
                     self._start_pending_test(state_key, event.fan_id, line_id, 'RESISTANCE_TEST', bar_index, line_price, event.fraction, c_close)
                     evaluations.append(f"[{fan_identity} {frac_name} @ {line_price:.2f}] O <= Line & C <= Line & H >= Line -> RESISTANCE_TEST (Pending Rejection)")
                 else:
@@ -432,6 +437,9 @@ class UnifiedStateMachine:
                         f"Line price={line_price:.2f}. This is an unhandled edge case."
                     )
 
+                if hit_type in ('SUPPORT_TEST', 'RESISTANCE_TEST') and direction is None:
+                    import sys
+                    print(f"[DEBUG-BUG] {hit_type} emitted with direction=None! fan={fan_identity} frac={frac_name} bar={bar_index} O={c_open:.2f} H={c_high:.2f} L={c_low:.2f} C={c_close:.2f} line={line_price:.2f} is_support={is_support_test} is_resist={is_resistance_test} is_cross_up={is_cross_up} is_cross_down={is_cross_down}", file=sys.stderr)
                 results.append(EventOutput(
                     fan_id=event.fan_id,
                     fan_identity=fan_identity,
