@@ -978,15 +978,25 @@ def _print_mode_summary(mode_label, trades):
     return {'trades': len(closed), 'wr': wr, 'pf': pf, 'total_pnl': total_pnl}
 
 
-def run_replay(symbol, interval, bars, client, momentum_filter=False):
+def run_replay(symbol, interval, from_date, to_date, warmup_days, client, momentum_filter=False):
     print(f"=== Target Progression Replay ===")
-    print(f"Symbol: {symbol}  Interval: {interval}  Bars: {bars}")
+    print(f"Symbol: {symbol}  Interval: {interval}  From: {from_date} To: {to_date} Warmup: {warmup_days} days")
     if momentum_filter:
         print(f"Momentum Filter:  ENABLED (only enter if breach momentum == 'momentum')")
     print()
 
-    print(f"Fetching {bars} {interval} candles for {symbol}...")
-    raw_candles = client.fetch_klines(symbol, interval, limit=bars)
+    from datetime import timezone
+    from_dt = datetime.strptime(from_date, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+    to_dt = datetime.strptime(to_date, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+    
+    warmup_from_dt = from_dt - timedelta(days=warmup_days)
+    
+    start_ms = int(warmup_from_dt.timestamp() * 1000)
+    end_ms = int(to_dt.timestamp() * 1000)
+    execution_start_ts = int(from_dt.timestamp())
+
+    print(f"Fetching candles from {warmup_from_dt.strftime('%Y-%m-%d')} to {to_dt.strftime('%Y-%m-%d')}...")
+    raw_candles = client.fetch_klines_range(symbol, interval, start_ms, end_ms)
     if not raw_candles:
         print("ERROR: No candles returned.")
         return
@@ -1007,7 +1017,14 @@ def run_replay(symbol, interval, bars, client, momentum_filter=False):
     })
 
     min_warmup = study.config["left_bars"] + study.config["right_bars"] + 1
-    warmup_end = max(min_warmup, len(candles) // 4)
+    
+    start_index = 0
+    for i, c in enumerate(candles):
+        if int(c['time']) >= execution_start_ts:
+            start_index = i
+            break
+            
+    warmup_end = max(min_warmup, start_index)
     print(f"Warmup: {warmup_end} bars (min required: {min_warmup})")
     study.initialize_history(candles[:warmup_end])
     study._initialized = True
