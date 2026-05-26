@@ -429,18 +429,26 @@ def _process_bar_events(bar_events, candles, bar_index, breached_setups, active_
             continue
 
         if evt_type == 'FAN_DEACTIVATED':
+            print(f"  [DEBUG] FAN_DEACTIVATED received for {fan_id}")
             if prog:
-                result = prog.on_fan_deactivated(fan_id)
-                if result == 'FAILED' and fan_id in active_trades:
-                    trade = active_trades.pop(fan_id)
-                    _apply_close_event(
-                        {'type': 'TARGET_FAILED', 'fan': fan, 'time': bar_time},
-                        trade, candles, bar_index, current_candle['close'], '', False, None, '', 0
-                    )
-                    trades.append(trade)
+                prog.on_fan_deactivated(fan_id)
                 prog.remove_fan(fan_id)
-            if fan_id in breached_setups:
-                del breached_setups[fan_id]
+            if fan_id in active_trades:
+                print(f"  [DEBUG] Closing active trade for {fan_id} due to FAN_DEACTIVATED")
+                trade = active_trades.pop(fan_id)
+                _apply_close_event(
+                    {'type': 'TARGET_FAILED', 'fan': fan, 'time': bar_time},
+                    trade, candles, bar_index, current_candle['close'], '', live_mode, client, symbol, qty
+                )
+                trade['outcome'] = 'ABORTED'
+                trade['abort_reason'] = 'FAN_INVALIDATED'
+                trades.append(trade)
+            
+            # Find and remove any breached setups associated with this fan
+            keys_to_remove = [k for k, v in breached_setups.items() if v.get('fan_id') == fan_id]
+            for k in keys_to_remove:
+                del breached_setups[k]
+                
             continue
 
         if evt_type in _BREACH_EVENTS:
@@ -838,6 +846,25 @@ def _process_bar_events_model_a(bar_events, candles, bar_index, breached_setups,
             del breached_setups[setup_key]
             print(f"  [ENTRY-MODEL_A] [{side}] {fan} retest ({evt_type}) on {fraction} @ {price:.2f}")
 
+        elif evt_type == 'FAN_DEACTIVATED':
+            target_fan_id = fan_id
+            trade = active_trades.get(target_fan_id)
+            if trade and target_fan_id not in close_applied:
+                close_applied.add(target_fan_id)
+                trade = active_trades.pop(target_fan_id)
+                _apply_close_event(
+                    {'type': 'TARGET_FAILED', 'fan': fan, 'time': evt_time},
+                    trade, candles, bar_index, current_candle['close'], '', live_mode, client, symbol, qty
+                )
+                trade['outcome'] = 'ABORTED'
+                trade['abort_reason'] = 'FAN_INVALIDATED'
+                trades.append(trade)
+                
+            # Find and remove any breached setups associated with this fan
+            keys_to_remove = [k for k, v in breached_setups.items() if v.get('fan_id') == target_fan_id]
+            for k in keys_to_remove:
+                del breached_setups[k]
+
         elif evt_type in _CLOSE_EVENTS:
             target_fan_id = fan_id
             trade = active_trades.get(target_fan_id)
@@ -949,144 +976,6 @@ def _print_mode_summary(mode_label, trades):
         print(f"  {step}: {stats['trades']} trades, {swr:.1f}% WR, {stats['pnl']:+.2f}")
 
     return {'trades': len(closed), 'wr': wr, 'pf': pf, 'total_pnl': total_pnl}
-
-
-def run_replay(symbol, interval, bars, client, momentum_filter=False):
-    print(f"=== Target Progression Replay ===")
-    print(f"Symbol: {symbol}  Interval: {interval}  Bars: {bars}")
-    if momentum_filter:
-        print(f"Momentum Filter:  ENABLED (only enter if breach momentum == 'momentum')")
-    print()
-
-    print(f"Fetching {bars} {interval} candles for {symbol}...")
-    raw_candles = client.fetch_klines(symbol, interval, limit=bars)
-    if not raw_candles:
-        print("ERROR: No candles returned.")
-        return
-    print(f"Fetched {len(raw_candles)} candles.")
-
-    candles = [_candle_to_dict(c) for c in raw_candles]
-
-    start_ts = datetime.fromtimestamp(candles[0]["time"])
-    end_ts = datetime.fromtimestamp(candles[-1]["time"])
-    print(f"Range: {start_ts} --> {end_ts}")
-
-    scale_ratio = _load_ticker_scale_ratio(symbol, interval) or compute_scale_ratio(candles, interval)
-    print(f"Scale ratio: {scale_ratio:.4f}")
-
-    study = AngularPriceCoverageStudy(config={
-        "scale_ratio": scale_ratio, "left_bars": 5, "right_bars": 5,
-        "symbol": symbol, "resolution": interval,
-    })
-
-    min_warmup = study.config["left_bars"] + study.config["right_bars"] + 1
-    warmup_end = max(min_warmup, len(candles) // 4)
-    print(f"Warmup: {warmup_end} bars (min required: {min_warmup})")
-    study.initialize_history(candles[:warmup_end])
-    study._initialized = True
-    print(f"Initialized. Pivots: {len(study.pivot_detector.confirmed_pivots)}")
-
-    all_events = []
-
-    tracker = BounceRejectionTracker({
-        'bounce_threshold_percent': 0.3,
-        'rejection_lookback_bars': 5,
-        'rest_tolerance_percent': 0.15,
-        'rest_required_bars': 3
-    })
-
-    entry_modes = ['retest_baseline', 'breach_immediate', 'retest_momentum']
-    mode_trades = {mode: [] for mode in entry_modes}
-    mode_active = {mode: {} for mode in entry_modes}
-    mode_breached = {mode: {} for mode in entry_modes}
-    mode_skipped_retests = {mode: [] for mode in entry_modes}
-
-    model_a_active = {}
-    model_a_breached = {}
-    model_a_trades = []
-
-    for i in range(warmup_end, len(candles)):
-        result = study.process_bar(candles, i, state=None)
-        bar_events = result.get("intersection_events", []) if result else []
-        for e in bar_events:
-            all_events.append(e)
-
-        tracker_results = tracker.process_bar(
-            candles[i], i, bar_events, study.angle_engine.active_fans if study else {}
-        )
-
-        for mode in entry_modes:
-            _process_bar_events(bar_events, candles, i, mode_breached[mode], mode_active[mode], mode_trades[mode],
-                                live_mode=False, client=None, symbol=symbol, qty=0,
-                                momentum_filter=False, unfiltered_trades=None,
-                                unfiltered_active_trades=None,
-                                study=study, entry_mode=mode, tracker_results=tracker_results)
-
-        _process_bar_events_model_a(bar_events, candles, i, model_a_breached, model_a_active, model_a_trades,
-                                    live_mode=False, client=None, symbol=symbol, qty=None)
-
-        for mode in entry_modes:
-            for fan_id, trade in mode_active[mode].items():
-                if 'fan_geometry' not in trade:
-                    trade['fan_geometry'] = _capture_fan_geometry(study, fan_id)
-
-    for mode in entry_modes:
-        for trade in mode_active[mode].values():
-            trade["outcome"] = "OPEN"
-            trade["exit_price"] = candles[-1]["close"]
-            trade["exit_time"] = candles[-1]["time"]
-            trade["exit_bar"] = len(candles) - 1
-            trade["pnl"] = trade["exit_price"] - trade["entry_price"] if trade["side"] == "LONG" else trade["entry_price"] - trade["exit_price"]
-            mode_trades[mode].append(trade)
-
-    for trade in model_a_active.values():
-        trade["outcome"] = "OPEN"
-        trade["exit_price"] = candles[-1]["close"]
-        trade["exit_time"] = candles[-1]["time"]
-        trade["exit_bar"] = len(candles) - 1
-        trade["pnl"] = trade["exit_price"] - trade["entry_price"] if trade["side"] == "LONG" else trade["entry_price"] - trade["exit_price"]
-        model_a_trades.append(trade)
-
-    for mode in entry_modes:
-        for trade in mode_trades[mode]:
-            if 'fan_geometry' not in trade and trade.get('fan_id'):
-                trade['fan_geometry'] = _capture_fan_geometry(study, trade['fan_id'])
-
-    for trade in model_a_trades:
-        if 'fan_geometry' not in trade and trade.get('fan_id'):
-            trade['fan_geometry'] = _capture_fan_geometry(study, trade['fan_id'])
-
-    print("\n" + "=" * 60)
-    print("ALL-MODE COMPARISON")
-    print("=" * 60)
-
-    _print_mode_summary("Model A (Generic Breach+Retest)", model_a_trades)
-
-    mode_labels = {
-        'retest_baseline': 'Model B / Mode 1: Retest-only baseline',
-        'breach_immediate': 'Model B / Mode 2: Post-breach immediate + retest',
-        'retest_momentum': 'Model B / Mode 3: Post-breach immediate + momentum-gated retest',
-    }
-    for mode in entry_modes:
-        _print_mode_summary(mode_labels[mode], mode_trades[mode])
-
-    print()
-    print("=" * 60)
-
-    output = {
-        'symbol': symbol,
-        'interval': interval,
-        'bars': len(candles),
-        'modes': {
-            mode: [t for t in mode_trades[mode] if 'outcome' in t]
-            for mode in entry_modes
-        },
-        'model_a': [t for t in model_a_trades if 'outcome' in t],
-    }
-    output_path = f'strategy_trades_{symbol}_{interval}.json'
-    with open(output_path, 'w') as f:
-        json.dump(output, f, indent=2, default=str)
-    print(f"\nTrades written to {output_path}")
 
 
 def run_live(symbol, interval, qty, client, momentum_filter=False):
@@ -1274,24 +1163,18 @@ def run_live(symbol, interval, qty, client, momentum_filter=False):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Target Progression Strategy on Binance Testnet")
+    parser = argparse.ArgumentParser(description="Target Progression Strategy - Live on Binance Testnet")
     parser.add_argument("symbol", default="BTCUSDT", nargs="?", help="Trading pair (default: BTCUSDT)")
     parser.add_argument("interval", default="1h", nargs="?", help="Kline interval (default: 1h)")
-    parser.add_argument("bars", type=int, default=500, nargs="?", help="[replay] Number of bars (default: 500)")
-    parser.add_argument("--live", action="store_true", help="Run in live paper trading mode")
-    parser.add_argument("--qty", type=float, default=0.01, help="[live] Position size in contracts (default: 0.01)")
+    parser.add_argument("--qty", type=float, default=0.01, help="Position size in contracts (default: 0.01)")
     parser.add_argument("--momentum-filter", action="store_true", dest="momentum_filter",
-                        help="Only enter on retest if breach momentum was 'momentum' (not exhaustion/neutral)")
+                        help="Only enter on retest if breach momentum was 'momentum'")
     parser.add_argument('--target-progression', action='store_true',
-                        help='Run Model B (target progression sequential) alongside Model A for comparison')
+                        help='Run Model B (target progression sequential) alongside Model A')
     args = parser.parse_args()
 
     client = BinanceClient(use_testnet=True)
-
-    if args.live:
-        run_live(args.symbol.upper(), args.interval, args.qty, client, momentum_filter=args.momentum_filter)
-    else:
-        run_replay(args.symbol.upper(), args.interval, args.bars, client, momentum_filter=args.momentum_filter)
+    run_live(args.symbol.upper(), args.interval, args.qty, client, momentum_filter=args.momentum_filter)
 
 
 if __name__ == "__main__":
