@@ -22,6 +22,7 @@ from analysis.target_progression import TargetProgression
 from .event_logger import EventLogger, EventType
 from .unified_state_machine import UnifiedStateMachine, EventOutput
 from .cluster_detector import ClusterDetector
+from study_tool.event_pipeline import EventPipeline
 
 # --- LOGGING CONFIGURATION (Unified Strategy) ---
 # We maintain single files for both debug logs and intersection data per backend process run.
@@ -139,6 +140,7 @@ class AngularPriceCoverageStudy:
         self.target_progression = TargetProgression()
         self.event_logger = EventLogger()
         self.cluster_detector = ClusterDetector()
+        self.event_pipeline = EventPipeline(self.config)
         self.state_machine = UnifiedStateMachine({
             'bounce_threshold_percent': self.config.get('bounce_threshold_percent', 0.3),
             'rejection_lookback_bars': self.config.get('rejection_lookback_bars', 5),
@@ -1031,6 +1033,19 @@ class AngularPriceCoverageStudy:
                                 if 'details_str' not in logged_evt.details:
                                     logged_evt.details['details_str'] = ui_event['details']
                             break
+
+        try:
+            pipeline_output = self.event_pipeline.process_bar(
+                candles=candles,
+                bar_index=bar_index,
+                active_fans=self.angle_engine.active_fans,
+                fan_validator=self.fan_validator,
+            )
+            for i, pie in enumerate(pipeline_output.events):
+                if i < len(intersection_events):
+                    setattr(intersection_events[i], "_typed_event", pie)
+        except Exception:
+            pass
 
     def _extend_active_fans(self, candles: List[Dict[str, Any]], current_bar_index: int, result: Dict[str, Any]):
         """
