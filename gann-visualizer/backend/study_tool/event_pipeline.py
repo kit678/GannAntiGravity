@@ -129,8 +129,17 @@ class EventPipeline:
             current_candle, prev_candle, active_fans, bar_index
         )
 
+        zec_info = {}
+        for fan_id in active_fans.keys():
+            prev_snapshot = self.zone_tracker.get_zone_at_bar(fan_id, bar_index - 1)
+            if prev_snapshot:
+                zec_info[fan_id] = {
+                    'zec_high': prev_snapshot.zone_highest_close,
+                    'zec_low': prev_snapshot.zone_lowest_close,
+                }
+
         state_machine_outputs = self.state_machine.process_bar(
-            current_candle, prev_candle, bar_index, intersections, active_fans, candles=candles
+            current_candle, prev_candle, bar_index, intersections, active_fans, candles=candles, zec_info=zec_info
         )
 
         zone_contexts: Dict[str, Dict[str, Any]] = {}
@@ -242,6 +251,7 @@ class EventPipeline:
             try:
                 event_type = EventType(event_type_str)
             except ValueError:
+                print(f"[EventPipeline] WARNING: Unknown event type '{event_type_str}', falling back to CROSS_UP")
                 event_type = EventType.CROSS_UP
 
             fan_id = output.fan_id or ""
