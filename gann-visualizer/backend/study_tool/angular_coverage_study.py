@@ -140,7 +140,18 @@ class AngularPriceCoverageStudy:
         self.target_progression = TargetProgression()
         self.event_logger = EventLogger()
         self.cluster_detector = ClusterDetector()
-        self.event_pipeline = EventPipeline(self.config)
+        timezone_val = self.config.get('timezone', 'UTC')
+        if not isinstance(timezone_val, str):
+            timezone_val = 'UTC'
+        event_pipeline_config = {
+            'bounce_threshold_percent': self.config.get('bounce_threshold_percent', 0.3),
+            'rejection_lookback_bars': self.config.get('rejection_lookback_bars', 5),
+            'rest_tolerance_percent': self.config.get('rest_tolerance_percent', 0.15),
+            'rest_required_bars': self.config.get('rest_required_bars', 3),
+            'run_mode': self.config.get('run_mode', 'simulation'),
+            'timezone': timezone_val,
+        }
+        self.event_pipeline = EventPipeline(event_pipeline_config)
         self.state_machine = UnifiedStateMachine({
             'bounce_threshold_percent': self.config.get('bounce_threshold_percent', 0.3),
             'rejection_lookback_bars': self.config.get('rejection_lookback_bars', 5),

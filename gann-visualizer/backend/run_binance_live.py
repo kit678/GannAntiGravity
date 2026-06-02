@@ -24,6 +24,9 @@ from study_tool.pivot_detector import PivotDetector
 from analysis.momentum_indicators import classify_momentum, compute_atr
 from analysis.target_progression import TargetProgression
 from study_tool.bounce_rejection_tracker import BounceRejectionTracker
+from study_tool.event_pipeline import EventPipeline
+from strategy.fan_price_action_strategy import FanPriceActionStrategy
+from strategy.entry_detectors.base import MomentumContext
 
 
 BASE_DIGITS = {
@@ -978,7 +981,7 @@ def _print_mode_summary(mode_label, trades):
     return {'trades': len(closed), 'wr': wr, 'pf': pf, 'total_pnl': total_pnl}
 
 
-def run_live(symbol, interval, qty, client, momentum_filter=False):
+def run_live(symbol, interval, qty, client, momentum_filter=False, strategy_mode='target_progression'):
     print(f"=== Target Progression LIVE Paper Trading ===")
     print(f"Symbol: {symbol}  Interval: {interval}  Qty: {qty}")
     if momentum_filter:
@@ -1014,6 +1017,17 @@ def run_live(symbol, interval, qty, client, momentum_filter=False):
     print(f"Initialized. Pivots: {len(study.pivot_detector.confirmed_pivots)}. "
           f"Bars: {len(candles)}, Warmup: {warmup_end}")
     print()
+
+    pipeline_config = {
+        'bounce_threshold_percent': study.config.get('bounce_threshold_percent', 0.3),
+        'rejection_lookback_bars': study.config.get('rejection_lookback_bars', 5),
+        'rest_tolerance_percent': study.config.get('rest_tolerance_percent', 0.15),
+        'rest_required_bars': study.config.get('rest_required_bars', 3),
+        'run_mode': study.config.get('run_mode', 'simulation'),
+        'timezone': 'UTC',
+    }
+    event_pipeline = EventPipeline(pipeline_config)
+    strategy = FanPriceActionStrategy(study.target_progression)
 
     all_events = []
 
@@ -1061,6 +1075,28 @@ def run_live(symbol, interval, qty, client, momentum_filter=False):
                 bar_events = result.get("intersection_events", []) if result else []
                 for e in bar_events:
                     all_events.append(e)
+
+                if strategy_mode == 'fan_price_action':
+                    try:
+                        pipeline_output = event_pipeline.process_bar(
+                            candles=candles,
+                            bar_index=bar_index,
+                            active_fans=study.angle_engine.active_fans,
+                            fan_validator=study.fan_validator,
+                        )
+                        mom = classify_momentum(candles, bar_index, "up")
+                        mom_ctx = MomentumContext(
+                            state=mom.get("state", "neutral"),
+                            adx=mom.get("adx", 0),
+                            rsi=mom.get("rsi", 0),
+                            rsi_divergence=mom.get("rsi_divergence"),
+                            macd_histogram_slope=mom.get("macd_histogram_slope", 0),
+                        )
+                        atr_vals = compute_atr(candles)
+                        atr = atr_vals[-1] if atr_vals else 0.0
+                        strategy.process_bar(pipeline_output, candles, bar_index, atr, mom_ctx)
+                    except Exception:
+                        pass
 
                 tracker_results = tracker.process_bar(
                     candles[bar_index], bar_index, bar_events, study.angle_engine.active_fans if study else {}
@@ -1146,6 +1182,13 @@ def run_live(symbol, interval, qty, client, momentum_filter=False):
     print()
     print("=" * 60)
 
+    if strategy_mode == 'fan_price_action':
+        print("\n=== Fan Price Action Strategy ===")
+        summary = strategy.get_summary()
+        for det_name in ["BreachRetestDetector", "MomentumImmediateDetector", "CounterDirectionalDetector", "RejectionEntryDetector"]:
+            s = summary.get(det_name, {})
+            print(f"  {det_name}: {s.get('trades', 0)} trades, {s.get('wr', 0):.1f}% WR, PF {s.get('pf', 0):.2f}, PnL {s.get('total_pnl', 0):+.2f}")
+
     output = {
         'symbol': symbol,
         'interval': interval,
@@ -1172,10 +1215,13 @@ def main():
                         help="Only enter on retest if breach momentum was 'momentum'")
     parser.add_argument('--target-progression', action='store_true',
                         help='Run Model B (target progression sequential) alongside Model A')
+    parser.add_argument('--strategy', type=str, default='target_progression',
+                        choices=['target_progression', 'fan_price_action'],
+                        help='Strategy to use')
     args = parser.parse_args()
 
     client = BinanceClient(use_testnet=True)
-    run_live(args.symbol.upper(), args.interval, args.qty, client, momentum_filter=args.momentum_filter)
+    run_live(args.symbol.upper(), args.interval, args.qty, client, momentum_filter=args.momentum_filter, strategy_mode=args.strategy)
 
 
 if __name__ == "__main__":

@@ -24,6 +24,9 @@ from study_tool.pivot_detector import PivotDetector
 from analysis.momentum_indicators import classify_momentum, compute_atr
 from analysis.target_progression import TargetProgression
 from study_tool.bounce_rejection_tracker import BounceRejectionTracker
+from study_tool.event_pipeline import EventPipeline
+from strategy.fan_price_action_strategy import FanPriceActionStrategy
+from strategy.entry_detectors.base import MomentumContext
 
 
 BASE_DIGITS = {
@@ -442,13 +445,15 @@ def _process_bar_events(bar_events, candles, bar_index, breached_setups, active_
                 )
                 trade['outcome'] = 'ABORTED'
                 trade['abort_reason'] = 'FAN_INVALIDATED'
+                if study:
+                    trade['fan_geometry'] = _capture_fan_geometry(study, fan_id)
                 trades.append(trade)
-            
+
             # Find and remove any breached setups associated with this fan
             keys_to_remove = [k for k, v in breached_setups.items() if v.get('fan_id') == fan_id]
             for k in keys_to_remove:
                 del breached_setups[k]
-                
+
             continue
 
         if evt_type in _BREACH_EVENTS:
@@ -624,6 +629,8 @@ def _process_bar_events(bar_events, candles, bar_index, breached_setups, active_
                 if (side == "SHORT" and evt_type == "CROSS_UP") or (side == "LONG" and evt_type == "CROSS_DOWN"):
                     setup["outcome"] = "ABORTED"
                     setup["abort_reason"] = "FAKEOUT_CLOSE"
+                    if study:
+                        setup["fan_geometry"] = _capture_fan_geometry(study, setup.get("fan_id", fan_id))
                     trades.append(dict(setup))
                     del breached_setups[setup_key]
                     print(f"  [ABORTED] [{side}] {fan} fakeout close on {fraction}")
@@ -661,6 +668,8 @@ def _process_bar_events(bar_events, candles, bar_index, breached_setups, active_
         if is_invalid:
             setup["outcome"] = "ABORTED"
             setup["abort_reason"] = abort_reason
+            if study:
+                setup["fan_geometry"] = _capture_fan_geometry(study, fan_id)
             trades.append(dict(setup))
             del breached_setups[setup_key]
             print(f"  [ABORTED] [{side}] {fan_id} {abort_reason} on {fraction}")
@@ -786,7 +795,7 @@ def _build_step(origin, target, fallback_origin=None, concurrent_targets=None):
 
 
 def _process_bar_events_model_a(bar_events, candles, bar_index, breached_setups, active_trades, trades,
-                                live_mode=False, client=None, symbol=None, qty=None):
+                                live_mode=False, client=None, symbol=None, qty=None, study=None):
     """
     Model A (old): Generic breach+retest on any fraction. No sequence awareness.
     Enters on first retest of any breached line. Exits on TARGET_HIT/TARGET_FAILED.
@@ -858,8 +867,10 @@ def _process_bar_events_model_a(bar_events, candles, bar_index, breached_setups,
                 )
                 trade['outcome'] = 'ABORTED'
                 trade['abort_reason'] = 'FAN_INVALIDATED'
+                if study:
+                    trade['fan_geometry'] = _capture_fan_geometry(study, target_fan_id)
                 trades.append(trade)
-                
+
             # Find and remove any breached setups associated with this fan
             keys_to_remove = [k for k, v in breached_setups.items() if v.get('fan_id') == target_fan_id]
             for k in keys_to_remove:
@@ -1031,6 +1042,17 @@ def run_replay(symbol, interval, from_date, to_date, warmup_days, client, moment
     study._initialized = True
     print(f"Initialized. Pivots: {len(study.pivot_detector.confirmed_pivots)}")
 
+    pipeline_config = {
+        'bounce_threshold_percent': study.config.get('bounce_threshold_percent', 0.3),
+        'rejection_lookback_bars': study.config.get('rejection_lookback_bars', 5),
+        'rest_tolerance_percent': study.config.get('rest_tolerance_percent', 0.15),
+        'rest_required_bars': study.config.get('rest_required_bars', 3),
+        'run_mode': study.config.get('run_mode', 'simulation'),
+        'timezone': 'UTC',
+    }
+    event_pipeline = EventPipeline(pipeline_config)
+    strategy = FanPriceActionStrategy(study.target_progression)
+
     all_events = []
 
     tracker = BounceRejectionTracker({
@@ -1056,6 +1078,27 @@ def run_replay(symbol, interval, from_date, to_date, warmup_days, client, moment
         for e in bar_events:
             all_events.append(e)
 
+        try:
+            pipeline_output = event_pipeline.process_bar(
+                candles=candles,
+                bar_index=i,
+                active_fans=study.angle_engine.active_fans,
+                fan_validator=study.fan_validator,
+            )
+            mom = classify_momentum(candles, i, "up")
+            mom_ctx = MomentumContext(
+                state=mom.get("state", "neutral"),
+                adx=mom.get("adx", 0),
+                rsi=mom.get("rsi", 0),
+                rsi_divergence=mom.get("rsi_divergence"),
+                macd_histogram_slope=mom.get("macd_histogram_slope", 0),
+            )
+            atr_vals = compute_atr(candles)
+            atr = atr_vals[-1] if atr_vals else 0.0
+            strategy.process_bar(pipeline_output, candles, i, atr, mom_ctx)
+        except Exception:
+            pass
+
         tracker_results = tracker.process_bar(
             candles[i], i, bar_events, study.angle_engine.active_fans if study else {}
         )
@@ -1068,7 +1111,7 @@ def run_replay(symbol, interval, from_date, to_date, warmup_days, client, moment
                                 study=study, entry_mode=mode, tracker_results=tracker_results)
 
         _process_bar_events_model_a(bar_events, candles, i, model_a_breached, model_a_active, model_a_trades,
-                                    live_mode=False, client=None, symbol=symbol, qty=None)
+                                    live_mode=False, client=None, symbol=symbol, qty=None, study=study)
 
         for mode in entry_modes:
             for fan_id, trade in mode_active[mode].items():
@@ -1117,6 +1160,12 @@ def run_replay(symbol, interval, from_date, to_date, warmup_days, client, moment
 
     print()
     print("=" * 60)
+
+    print("\n=== Fan Price Action Strategy ===")
+    summary = strategy.get_summary()
+    for det_name in ["BreachRetestDetector", "MomentumImmediateDetector", "CounterDirectionalDetector", "RejectionEntryDetector"]:
+        s = summary.get(det_name, {})
+        print(f"  {det_name}: {s.get('trades', 0)} trades, {s.get('wr', 0):.1f}% WR, PF {s.get('pf', 0):.2f}, PnL {s.get('total_pnl', 0):+.2f}")
 
     output = {
         'symbol': symbol,
