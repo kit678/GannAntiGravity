@@ -263,12 +263,13 @@ class FanPriceActionStrategy:
                     )
 
         if evt_type_str == 'TARGET_HIT':
+            target_price = getattr(event, 'price', None) or (event.get('price', close_price) if isinstance(event, dict) else close_price)
             for det_name, det_trades in self.active_trades.items():
                 trade = det_trades.get(fan_id)
                 if trade:
                     self._close_trade(
                         det_name, trade, bar_index, bar_time,
-                        close_price, "WIN", "target_hit"
+                        target_price, "WIN", "target_hit"
                     )
 
         if evt_type_str == 'TARGET_FAILED':
