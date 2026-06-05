@@ -674,7 +674,7 @@ class UnifiedStateMachine:
                 if c_close >= line_price + threshold:
                     results.append(EventOutput(
                         fan_id=fan_id, fan_identity=fan_identity, priority_label=fan_obj.priority_label,
-                        fraction=frac_name, price=c_close, event_type='SUPPORT_BOUNCE',
+                        fraction=frac_name, price=line_price, event_type='SUPPORT_BOUNCE',
                         details=f"Bounced (T+{bars_elapsed} bars)", direction='up',
                         bar_index=bar_index
                     ))
@@ -702,7 +702,7 @@ class UnifiedStateMachine:
                 if c_close <= line_price - threshold:
                     results.append(EventOutput(
                         fan_id=fan_id, fan_identity=fan_identity, priority_label=fan_obj.priority_label,
-                        fraction=frac_name, price=c_close, event_type='RESISTANCE_REJECTION',
+                        fraction=frac_name, price=line_price, event_type='RESISTANCE_REJECTION',
                         details=f"Rejected (T+{bars_elapsed} bars)", direction='down',
                         bar_index=bar_index
                     ))
