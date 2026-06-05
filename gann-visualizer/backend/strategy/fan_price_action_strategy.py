@@ -101,8 +101,6 @@ class FanPriceActionStrategy:
         if event.event_type == EventType.FAN_DEACTIVATED:
             self.progression.on_fan_deactivated(event.fan_id)
             self.progression.remove_fan(event.fan_id)
-            for det_name in self.active_trades:
-                self.active_trades[det_name].pop(event.fan_id, None)
             keys_to_remove = [
                 k for k, v in self.breached_setups.items()
                 if v.get("fan_id") == event.fan_id
@@ -272,14 +270,15 @@ class FanPriceActionStrategy:
                         target_price, "WIN", "target_hit"
                     )
 
-        if evt_type_str == 'TARGET_FAILED':
-            for det_name, det_trades in self.active_trades.items():
-                trade = det_trades.get(fan_id)
-                if trade:
-                    self._close_trade(
-                        det_name, trade, bar_index, bar_time,
-                        close_price, "LOSS", "target_failed"
-                    )
+        # Commented out TARGET_FAILED exit block so trades aren't aborted upon eviction
+        # if evt_type_str == 'TARGET_FAILED':
+        #     for det_name, det_trades in self.active_trades.items():
+        #         trade = det_trades.get(fan_id)
+        #         if trade:
+        #             self._close_trade(
+        #                 det_name, trade, bar_index, bar_time,
+        #                 close_price, "LOSS", "target_failed"
+        #             )
 
     def _build_explanation(
         self,
