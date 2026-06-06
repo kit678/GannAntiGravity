@@ -253,12 +253,6 @@ class EventLogger:
         Returns:
             The logged Event object
         """
-        if event_type in (EventType.RESISTANCE_TEST, EventType.SUPPORT_TEST) and direction is None:
-            import traceback
-            with open("/tmp/debug_log_bug.txt", "a") as f:
-                f.write(f"[LOG-BUG] log_event called with {event_type.value}, direction=None! angle={angle_name} price={price}\n")
-                traceback.print_stack(limit=10, file=f)
-                f.write("---\n")
         event = Event(
             timestamp=timestamp,
             event_type=event_type,
