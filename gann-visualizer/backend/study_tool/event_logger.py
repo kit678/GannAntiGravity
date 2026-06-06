@@ -483,6 +483,8 @@ class EventLogger:
         timestamp_to_idx = {int(c['time']): i for i, c in enumerate(candles)}
         
         for event in self.events:
+            if event.event_type.value == "zone_change":
+                continue  # ZONE_CHANGE events are excluded from CSV, skip enrichment
             if event.timestamp not in timestamp_to_idx or event.price is None:
                 continue
                 
