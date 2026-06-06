@@ -375,9 +375,8 @@ def parse_events_csv(path: Path) -> List[CSVEvent]:
             zone = parts[13].strip('"')
             zone_high = float(parts[14]) if parts[14] else 0.0
             zone_low = float(parts[15]) if parts[15] else 0.0
-            bars_el = int(parts[18]) if len(parts) > 18 and parts[18] else 0
-            # bar_index is col 20 (col 19 is MAE_10, always 0)
-            bar_index = int(parts[20]) if len(parts) > 20 and parts[20] else 0
+            bars_el = int(parts[31]) if len(parts) > 31 and parts[31] else 0
+            bar_index = int(parts[30]) if len(parts) > 30 and parts[30] else 0
             events.append(CSVEvent(
                 row_num=i,
                 bar_index=bar_index,
