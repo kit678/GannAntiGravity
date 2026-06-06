@@ -5,6 +5,8 @@ import os
 import json
 from datetime import datetime, timezone
 
+from .momentum_indicators import classify_momentum
+
 class Hypothesis:
     """Base class for all strategy hypotheses."""
     def __init__(self, name: str, description: str):
@@ -20,10 +22,15 @@ class Hypothesis:
         """
         Evaluate the hypothesis against the dataset.
         Must return a dictionary with at least:
-        - 'win_rate': float
         - 'sample_size': int
+        - 'win_rate': float
         - 'avg_mfe_10': float
         - 'avg_mae_10': float
+        - 'live_sample_size': int
+        - 'live_win_rate': float
+        - 'retro_sample_size': int
+        - 'retro_win_rate': float
+        - 'detailed_log': list of dicts
         """
         raise NotImplementedError("Subclasses must implement evaluate()")
 
@@ -118,7 +125,7 @@ class TargetProgressionHypothesis(Hypothesis):
         )
         self.detailed_log: List[Dict[str, Any]] = []
         
-    def evaluate(self, df: pd.DataFrame) -> Dict[str, Any]:
+    def evaluate(self, df: pd.DataFrame, candles_df: pd.DataFrame = None) -> Dict[str, Any]:
         hits_df = df[df['Type'] == 'TARGET_HIT'].copy()
         fails_df = df[df['Type'] == 'TARGET_FAILED'].copy()
         breaches_df = df[df['Type'] == 'BREACH_CONFIRMED'].copy()
@@ -126,20 +133,35 @@ class TargetProgressionHypothesis(Hypothesis):
         breaches_df['ts_index'] = range(len(breaches_df))
         hits_df['ts_index'] = range(len(hits_df))
         fails_df['ts_index'] = range(len(fails_df))
+
+        momentum_map = {}
+        if candles_df is not None and not candles_df.empty:
+            candles_list = candles_df.to_dict('records')
+            min_bar = int(breaches_df['bar_index'].min()) if not breaches_df.empty else 0
+            for _, breach_row in breaches_df.iterrows():
+                b_idx = int(breach_row.get('bar_index', -1))
+                b_idx_rel = b_idx - min_bar
+                if b_idx_rel < 0 or b_idx_rel >= len(candles_list):
+                    continue
+                direction = str(breach_row.get('Direction', breach_row.get('Details', ''))).lower()
+                momentum_map[b_idx] = classify_momentum(candles_list, b_idx_rel, direction)
         
         self.detailed_log = []
         
         for _, row in hits_df.iterrows():
-            self._log_target_event(row, "WIN", breaches_df)
+            self._log_target_event(row, "WIN", breaches_df, momentum_map)
             
         for _, row in fails_df.iterrows():
-            self._log_target_event(row, "MISS", breaches_df)
+            self._log_target_event(row, "MISS", breaches_df, momentum_map)
             
         hits = 0
         live_hits = 0
         live_total = 0
         retro_hits = 0
         retro_total = 0
+
+        momentum_hits = {"momentum": 0, "exhaustion": 0, "neutral": 0}
+        momentum_total = {"momentum": 0, "exhaustion": 0, "neutral": 0}
         
         for record in self.detailed_log:
             is_win = record["outcome"] == "WIN"
@@ -154,10 +176,15 @@ class TargetProgressionHypothesis(Hypothesis):
                 live_total += 1
                 if is_win:
                     live_hits += 1
+
+            mstate = record.get("breach_momentum", "neutral")
+            momentum_total[mstate] = momentum_total.get(mstate, 0) + 1
+            if is_win:
+                momentum_hits[mstate] = momentum_hits.get(mstate, 0) + 1
         
         n = len(self.detailed_log)
-        
-        return {
+
+        result = {
             "sample_size": n,
             "win_rate": hits / n if n > 0 else 0.0,
             "live_sample_size": live_total,
@@ -170,6 +197,18 @@ class TargetProgressionHypothesis(Hypothesis):
             "total_fails": n - hits,
             "detailed_log": self.detailed_log
         }
+
+        if momentum_map:
+            result.update({
+                "momentum_sample": momentum_total["momentum"],
+                "momentum_win_rate": momentum_hits["momentum"] / momentum_total["momentum"] if momentum_total["momentum"] > 0 else 0.0,
+                "exhaustion_sample": momentum_total["exhaustion"],
+                "exhaustion_win_rate": momentum_hits["exhaustion"] / momentum_total["exhaustion"] if momentum_total["exhaustion"] > 0 else 0.0,
+                "neutral_sample": momentum_total["neutral"],
+                "neutral_win_rate": momentum_hits["neutral"] / momentum_total["neutral"] if momentum_total["neutral"] > 0 else 0.0,
+            })
+
+        return result
     
     def _find_preceding_breach(self, target_row: pd.Series, breaches_df: pd.DataFrame) -> Optional[Dict[str, Any]]:
         fan = target_row.get('Fan', '')
@@ -181,9 +220,8 @@ class TargetProgressionHypothesis(Hypothesis):
         origin_angle_map = {
             '0.75': '0.875',
             '0.5': '0.75',
-            '0.25': '0.5',
             'horizontal': '0.5',
-            'full_coverage': ['0.25', 'horizontal'] # full_coverage can originate from either
+            'full_coverage': ['horizontal']
         }
         
         # Determine the expected origin angle(s) for this hit
@@ -246,10 +284,11 @@ class TargetProgressionHypothesis(Hypothesis):
             "breach_time": last_breach.get('Time', ''),
             "breach_fraction": last_breach.get('Fraction', ''),
             "breach_price": last_breach.get('Price', 0.0),
-            "breach_direction": str(breach_dir).replace('[Retro]', '').strip()
+            "breach_direction": str(breach_dir).replace('[Retro]', '').strip(),
+            "breach_bar_index": int(last_breach.get('bar_index', -1)),
         }
     
-    def _log_target_event(self, row: pd.Series, outcome: str, breaches_df: pd.DataFrame):
+    def _log_target_event(self, row: pd.Series, outcome: str, breaches_df: pd.DataFrame, momentum_map: Dict = None):
         time_val = row.get('Time', 'Unknown')
         fan_val = row.get('Fan', 'Unknown')
         fraction = row.get('Fraction', 'Unknown')
@@ -258,14 +297,16 @@ class TargetProgressionHypothesis(Hypothesis):
         
         preceding_breach = self._find_preceding_breach(row, breaches_df)
         
-        # CRITICAL FILTER: If there is no confirmed breach preceding this target hit/miss,
-        # it is an invalid attempt (e.g. instant hit NO_ALPHA, or failed breakout).
-        # We only log and evaluate progressions that actually had a valid setup.
         if not preceding_breach:
             return
 
         details = str(row.get("Details", ""))
         is_retro = "[Retro]" in details
+
+        breach_bar = int(preceding_breach.get("breach_bar_index", -1))
+        momentum_info = {}
+        if momentum_map and breach_bar >= 0:
+            momentum_info = momentum_map.get(breach_bar, {})
         
         log_entry = {
             "outcome": outcome,
@@ -279,10 +320,14 @@ class TargetProgressionHypothesis(Hypothesis):
             "H": row.get('High', 0.0),
             "L": row.get('Low', 0.0),
             "C": row.get('Close', 0.0),
-            # Fan geometry for angular fan ray reconstruction
             "anchor_bar_index": row.get('anchor_bar_index', 0),
             "scale_ratio": row.get('scale_ratio', 1.0),
             "anchor_price": row.get('anchor_price', 0.0),
+            "breach_momentum": momentum_info.get("state", "neutral") if momentum_info else "neutral",
+            "breach_adx": momentum_info.get("adx", 0.0) if momentum_info else 0.0,
+            "breach_rsi": momentum_info.get("rsi", 0.0) if momentum_info else 0.0,
+            "breach_rsi_divergence": momentum_info.get("rsi_divergence", "none") if momentum_info else "none",
+            "breach_macd_slope": momentum_info.get("macd_histogram_slope", 0.0) if momentum_info else 0.0,
         }
         
         if preceding_breach:
@@ -1160,3 +1205,36 @@ if __name__ == "__main__":
         analyzer.export_detailed_logs()
     else:
         print(f"Please run the simulation first to generate {csv_file}")
+
+
+def events_df_to_csv_adapter(events_df: pd.DataFrame, csv_path: str) -> None:
+    """
+    Writes an events_df (from trace_miner) to a CSV file that existing
+    Hypothesis classes (which expect a CSV path) can read.
+    
+    Only writes columns that Hypothesis.evaluate() actually uses:
+    Type, Fan, Fraction, Price, Details, MFE_10, MAE_10, Time, 
+    Reversal_Outcome, Close, Open, High, Low, Start_Date, Pattern.
+    """
+    import os
+    os.makedirs(os.path.dirname(csv_path) if os.path.dirname(csv_path) else '.', exist_ok=True)
+    
+    export_df = pd.DataFrame()
+    export_df['Type'] = events_df.get('event_type', '')
+    export_df['Fan'] = events_df.get('fan_id', '')
+    export_df['Fraction'] = events_df.get('line_fraction', '')
+    export_df['Price'] = events_df.get('line_price', '')
+    export_df['Details'] = events_df.get('event_detail', '')
+    export_df['MFE_10'] = events_df.get('fwd_mfe_10', '')
+    export_df['MAE_10'] = events_df.get('fwd_mae_10', '')
+    export_df['Time'] = events_df.get('timestamp', '')
+    export_df['Reversal_Outcome'] = events_df.get('fwd_win_10', '')
+    export_df['Close'] = events_df.get('close', '')
+    export_df['Open'] = events_df.get('open', '')
+    export_df['High'] = events_df.get('high', '')
+    export_df['Low'] = events_df.get('low', '')
+    export_df['Start_Date'] = events_df.get('timestamp', '')
+    export_df['Pattern'] = events_df.get('candle_pattern', '')
+    export_df['is_retro'] = events_df.get('is_retro', False)
+    
+    export_df.to_csv(csv_path, index=False)

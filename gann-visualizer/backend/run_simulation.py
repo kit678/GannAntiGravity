@@ -373,7 +373,7 @@ def run_simulation(symbol="^NSEI", resolution="4", data_source="yfinance", from_
                              'Raw_Timestamp', 'Direction', 'bar_index', 'bars_elapsed',
                              'Exc_Up_10', 'Exc_Down_10', 'Reversal_Outcome',
                              'anchor_bar_index', 'scale_ratio', 'anchor_price',
-                         'origin_bar_index', 'origin_price'])
+                         'origin_bar_index', 'origin_price', 'is_retro'])
             
             # Use configured timezone for timestamp formatting
             tz = pytz.timezone(timezone)
@@ -463,6 +463,7 @@ def run_simulation(symbol="^NSEI", resolution="4", data_source="yfinance", from_
                     event.get('anchor_price', ''),
                     event.get('origin_bar_index', ''),
                     event.get('origin_price', ''),
+                    "True" if details_str.startswith("[Retro]") else "False",
                 ])
                 
         logging.info(f"Exported {len(all_intersection_events)} identical frontend events to {csv_path}")
