@@ -80,11 +80,17 @@ class Event:
     mae_20: Optional[float] = None
     mfe_50: Optional[float] = None
     mae_50: Optional[float] = None
+    exc_up_10: Optional[float] = None
+    exc_down_10: Optional[float] = None
+    reversal_outcome: Optional[str] = None  # "WIN", "LOSS", or None for first-break detection
 
     # Fan geometry context (for true angular fan ray reconstruction)
     anchor_bar_index: Optional[int] = None
     scale_ratio: Optional[float] = None
     anchor_price: Optional[float] = None
+    origin_bar_index: Optional[int] = None   # Bar index of the fan's temporal origin (where lines radiate from)
+    origin_price: Optional[float] = None     # Price at the fan's temporal origin
+    fan_geometry: Optional[Dict] = None      # Captured fan ray geometry for hypothesis navigator
 
     def to_dict(self) -> Dict:
         return {
@@ -114,11 +120,17 @@ class Event:
             "mae_20": self.mae_20,
             "mfe_50": self.mfe_50,
             "mae_50": self.mae_50,
+            "exc_up_10": self.exc_up_10,
+            "exc_down_10": self.exc_down_10,
+            "reversal_outcome": self.reversal_outcome,
             "details": self.details or {},
             # Fan geometry context
             "anchor_bar_index": self.anchor_bar_index,
             "scale_ratio": self.scale_ratio,
-            "anchor_price": self.anchor_price
+            "anchor_price": self.anchor_price,
+            "origin_bar_index": self.origin_bar_index,
+            "origin_price": self.origin_price,
+            "fan_geometry": self.fan_geometry
         }
 
     @classmethod
@@ -157,11 +169,17 @@ class Event:
         event.mae_20 = data.get("mae_20")
         event.mfe_50 = data.get("mfe_50")
         event.mae_50 = data.get("mae_50")
+        event.exc_up_10 = data.get("exc_up_10")
+        event.exc_down_10 = data.get("exc_down_10")
+        event.reversal_outcome = data.get("reversal_outcome")
         event.details = data.get("details", {})
         # Fan geometry context
         event.anchor_bar_index = data.get("anchor_bar_index")
         event.scale_ratio = data.get("scale_ratio")
         event.anchor_price = data.get("anchor_price")
+        event.origin_bar_index = data.get("origin_bar_index")
+        event.origin_price = data.get("origin_price")
+        event.fan_geometry = data.get("fan_geometry")
         return event
 
 
@@ -206,7 +224,10 @@ class EventLogger:
         next_angle_line: Optional[str] = None,
         anchor_bar_index: Optional[int] = None,
         scale_ratio: Optional[float] = None,
-        anchor_price: Optional[float] = None
+        anchor_price: Optional[float] = None,
+        origin_bar_index: Optional[int] = None,
+        origin_price: Optional[float] = None,
+        fan_geometry: Optional[Dict] = None
     ) -> Event:
         """
         Log a generic event.
@@ -232,6 +253,12 @@ class EventLogger:
         Returns:
             The logged Event object
         """
+        if event_type in (EventType.RESISTANCE_TEST, EventType.SUPPORT_TEST) and direction is None:
+            import traceback
+            with open("/tmp/debug_log_bug.txt", "a") as f:
+                f.write(f"[LOG-BUG] log_event called with {event_type.value}, direction=None! angle={angle_name} price={price}\n")
+                traceback.print_stack(limit=10, file=f)
+                f.write("---\n")
         event = Event(
             timestamp=timestamp,
             event_type=event_type,
@@ -251,7 +278,10 @@ class EventLogger:
             next_angle_line=next_angle_line,
             anchor_bar_index=anchor_bar_index,
             scale_ratio=scale_ratio,
-            anchor_price=anchor_price
+            anchor_price=anchor_price,
+            origin_bar_index=origin_bar_index,
+            origin_price=origin_price,
+            fan_geometry=fan_geometry
         )
         self.events.append(event)
         return event
@@ -451,13 +481,7 @@ class EventLogger:
         return stats
     
     def enrich_with_forward_outcomes(self, candles: List[Dict]):
-        """
-        Post-process events to calculate forward-looking outcomes (MFE/MAE).
-        This is crucial for strategy formulation and ML data collection.
-        
-        Args:
-            candles: The full list of candles used in the simulation.
-        """
+        'Post-process events to calculate forward-looking outcomes (MFE/MAE). Args: candles - The full list of candles used in the simulation.'
         if not self.events or not candles:
             return
             
@@ -476,48 +500,102 @@ class EventLogger:
             # For now, let's calculate absolute max high and min low over next N bars.
             
             def calc_excursions(n_bars: int):
+                fix_applied = 0
                 end_idx = min(idx + n_bars + 1, len(candles))
                 if end_idx <= idx + 1:
-                    return None, None
-                    
+                    return None, None, None, None
+
                 future_candles = candles[idx+1:end_idx]
                 max_high = max(c['high'] for c in future_candles)
                 min_low = min(c['low'] for c in future_candles)
-                
+
+                exc_up = max_high - event.price
+                exc_down = event.price - min_low
+
                 # If we have a direction, we can define Favorable vs Adverse
                 if event.direction == 'up':
-                    mfe = max_high - event.price
-                    mae = event.price - min_low
+                    mfe = exc_up
+                    mae = exc_down
                 elif event.direction == 'down':
-                    mfe = event.price - min_low
-                    mae = max_high - event.price
+                    mfe = exc_down
+                    mae = exc_up
                 else:
-                    # If no direction, we calculate the maximum excursion in both directions
-                    # and assign the larger one to MFE and the smaller to MAE.
-                    # This represents the "potential" of the move regardless of direction.
-                    exc_up = max_high - event.price
-                    exc_down = event.price - min_low
-                    mfe = max(exc_up, exc_down)
-                    mae = min(exc_up, exc_down)
-                    
+                    # Infer direction from event type when possible
+                    if event.event_type == EventType.SUPPORT_TEST:
+                        # Support bounce goes UP
+                        mfe = exc_up
+                        mae = exc_down
+                        fix_applied += 1
+                    elif event.event_type == EventType.RESISTANCE_TEST:
+                        # Resistance rejection goes DOWN
+                        mfe = exc_down
+                        mae = exc_up
+                        fix_applied += 1
+                    else:
+                        # If no direction, we calculate the maximum excursion in both directions
+                        # and assign the larger one to MFE and the smaller to MAE.
+                        mfe = max(exc_up, exc_down)
+                        mae = min(exc_up, exc_down)
+
                 # Ensure MFE and MAE are positive values representing the excursion distance
                 mfe = max(0, mfe)
                 mae = max(0, mae)
-                    
-                return mfe, mae
+                exc_up = max(0, exc_up)
+                exc_down = max(0, exc_down)
 
-            event.mfe_5, event.mae_5 = calc_excursions(5)
-            event.mfe_10, event.mae_10 = calc_excursions(10)
-            event.mfe_20, event.mae_20 = calc_excursions(20)
-            event.mfe_50, event.mae_50 = calc_excursions(50)
+                return mfe, mae, exc_up, exc_down
+
+            event.mfe_5, event.mae_5, _, _ = calc_excursions(5)
+            event.mfe_10, event.mae_10, event.exc_up_10, event.exc_down_10 = calc_excursions(10)
+            event.mfe_20, event.mae_20, _, _ = calc_excursions(20)
+            event.mfe_50, event.mae_50, _, _ = calc_excursions(50)
+
+            # First-break reversal detection: did price reverse at the line?
+            if (event.event_type in (EventType.SUPPORT_TEST, EventType.RESISTANCE_TEST,
+                                     EventType.TARGET_HIT)
+                    and event.angle_name == '0.25'
+                    and event.high_price is not None
+                    and event.low_price is not None
+                    and event.timestamp in timestamp_to_idx):
+                # Determine expected reversal direction
+                if event.event_type == EventType.SUPPORT_TEST:
+                    expected_dir = 'up'
+                elif event.event_type == EventType.RESISTANCE_TEST:
+                    expected_dir = 'down'
+                else:
+                    fan_id = (event.details or {}).get('fan_id', '')
+                    if '(H' in fan_id:
+                        expected_dir = 'up'
+                    elif '(L' in fan_id:
+                        expected_dir = 'down'
+                    else:
+                        expected_dir = None
+
+                if expected_dir:
+                    event_high = event.high_price
+                    event_low = event.low_price
+                    bar_idx = timestamp_to_idx[event.timestamp]
+                    end_i = min(bar_idx + 10 + 1, len(candles))
+
+                    for i in range(bar_idx + 1, end_i):
+                        bar_close = candles[i].get('close', 0)
+                        if expected_dir == 'up':
+                            if bar_close > event_high:
+                                event.reversal_outcome = "WIN"
+                                break
+                            if bar_close < event_low:
+                                event.reversal_outcome = "LOSS"
+                                break
+                        else:
+                            if bar_close < event_low:
+                                event.reversal_outcome = "WIN"
+                                break
+                            if bar_close > event_high:
+                                event.reversal_outcome = "LOSS"
+                                break
 
     def export_csv(self, filepath: str):
-        """
-        Export events to CSV file, aligned with frontend UI columns and enriched data.
-        
-        Args:
-            filepath: Path to output CSV file
-        """
+        'Export events to CSV file, aligned with frontend UI columns and enriched data.'
         if not self.events:
             return
             
@@ -580,10 +658,15 @@ class EventLogger:
                 "MAE_50": round(event.mae_50, 4) if event.mae_50 is not None else "",
                 "Raw_Timestamp": event.timestamp,
                 "Direction": event.direction or "",
+                "Exc_Up_10": round(event.exc_up_10, 4) if event.exc_up_10 is not None else "",
+                "Exc_Down_10": round(event.exc_down_10, 4) if event.exc_down_10 is not None else "",
+                "Reversal_Outcome": event.reversal_outcome or "",
                 # Fan geometry context
                 "anchor_bar_index": event.anchor_bar_index if event.anchor_bar_index is not None else "",
                 "scale_ratio": round(event.scale_ratio, 4) if event.scale_ratio is not None else "",
-                "anchor_price": round(event.anchor_price, 2) if event.anchor_price is not None else ""
+                "anchor_price": round(event.anchor_price, 2) if event.anchor_price is not None else "",
+                "origin_bar_index": event.origin_bar_index if event.origin_bar_index is not None else "",
+                "origin_price": round(event.origin_price, 2) if event.origin_price is not None else ""
             }
 
             rows.append(row)
@@ -598,7 +681,9 @@ class EventLogger:
                           "MFE_5", "MAE_5", "MFE_10", "MAE_10",
                           "MFE_20", "MAE_20", "MFE_50", "MAE_50",
                           "Raw_Timestamp", "Direction",
-                          "anchor_bar_index", "scale_ratio", "anchor_price"]
+                          "Exc_Up_10", "Exc_Down_10",
+                          "Reversal_Outcome",
+                          "anchor_bar_index", "scale_ratio", "anchor_price", "origin_bar_index", "origin_price"]
             
             with open(path, 'w', newline='') as f:
                 writer = csv.DictWriter(f, fieldnames=fieldnames)
@@ -606,12 +691,7 @@ class EventLogger:
                 writer.writerows(rows)
     
     def export_json(self, filepath: str):
-        """
-        Export events to JSON file.
-        
-        Args:
-            filepath: Path to output JSON file
-        """
+        'Export events to JSON file.'
         path = Path(filepath)
         path.parent.mkdir(parents=True, exist_ok=True)
         
@@ -625,8 +705,45 @@ class EventLogger:
         
         with open(path, 'w') as f:
             json.dump(data, f, indent=2)
-    
+
+    def export_hypothesis_json(self, filepath: str, symbol: str = "", resolution: str = ""):
+        'Export events with fan geometry for the Hypothesis Navigator frontend.'
+        from datetime import datetime, timezone as dt_timezone
+
+        path = Path(filepath)
+        path.parent.mkdir(parents=True, exist_ok=True)
+
+        events_out = []
+        for i, event in enumerate(self.events):
+            evt = event.to_dict()
+            entry = {
+                "event_id": i + 1,
+                "event_type": evt.get("event_type"),
+                "fan_display": evt.get("angle_name"),
+                "fraction": evt.get("details", {}).get("fraction") if evt.get("details") else None,
+                "timestamp": evt.get("timestamp"),
+                "datetime": evt.get("datetime"),
+                "bar_index": None,
+                "price": evt.get("price"),
+                "mfe": evt.get("mfe_50"),
+                "mae": evt.get("mae_50"),
+                "resolution": resolution,
+                "fan_geometry": evt.get("fan_geometry")
+            }
+            events_out.append(entry)
+
+        data = {
+            "symbol": symbol,
+            "resolution": resolution,
+            "generated_at": datetime.now(dt_timezone.utc).isoformat(),
+            "event_count": len(events_out),
+            "events": events_out
+        }
+
+        with open(path, 'w') as f:
+            json.dump(data, f, indent=2)
+
     def clear(self):
-        """Clear all logged events"""
+        'Clear all logged events'
         self.events = []
         self.indicator_snapshots = []
