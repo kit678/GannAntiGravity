@@ -83,9 +83,9 @@ def get_frontend_parity_data(symbol="^NSEI", resolution="4", data_source="yfinan
     # The user's chosen from_date is always the reference point.
     # Subtract WARMUP_DAYS[resolution] calendar days to get the warmup start.
     if from_date:
-        from_dt = datetime.strptime(from_date, "%Y-%m-%d")
+        from_dt = datetime.strptime(from_date, "%Y-%m-%d").replace(tzinfo=timezone.utc)
         target_from_dt = from_dt
-        from_dt_utc = from_dt.astimezone(timezone.utc)
+        from_dt_utc = from_dt
         ideal_warmup_from_dt = from_dt_utc - timedelta(days=warmup_days)
 
         # Check if YFinance can provide this warmup depth
@@ -442,14 +442,14 @@ def run_simulation(symbol="^NSEI", resolution="4", data_source="yfinance", from_
                     symbol,
                     resolution,
                     from_date,
-                    f"{mfe_5:.4f}"  if mfe_5  else "0",
-                    f"{mae_5:.4f}"  if mae_5  else "0",
-                    f"{mfe_10:.4f}" if mfe_10 else "0",
-                    f"{mae_10:.4f}" if mae_10 else "0",
-                    f"{mfe_20:.4f}" if mfe_20 else "0",
-                    f"{mae_20:.4f}" if mae_20 else "0",
-                    f"{mfe_50:.4f}" if mfe_50 else "0",
-                    f"{mae_50:.4f}" if mae_50 else "0",
+                    f"{mfe_5:.4f}"  if isinstance(mfe_5, (int, float)) and mfe_5 else "",
+                    f"{mae_5:.4f}"  if isinstance(mae_5, (int, float)) and mae_5 else "",
+                    f"{mfe_10:.4f}" if isinstance(mfe_10, (int, float)) and mfe_10 else "",
+                    f"{mae_10:.4f}" if isinstance(mae_10, (int, float)) and mae_10 else "",
+                    f"{mfe_20:.4f}" if isinstance(mfe_20, (int, float)) and mfe_20 else "",
+                    f"{mae_20:.4f}" if isinstance(mae_20, (int, float)) and mae_20 else "",
+                    f"{mfe_50:.4f}" if isinstance(mfe_50, (int, float)) and mfe_50 else "",
+                    f"{mae_50:.4f}" if isinstance(mae_50, (int, float)) and mae_50 else "",
                     int(event['time']),
                     direction,
                     bar_idx,
