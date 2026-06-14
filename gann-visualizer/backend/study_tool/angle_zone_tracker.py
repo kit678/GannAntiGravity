@@ -35,9 +35,7 @@ class ZoneSnapshot:
 # Human-readable labels for fraction values
 FRACTION_LABELS = {
     0.25:  '1/4',
-    0.375: '3/8',
     0.5:   '1/2',
-    0.625: '5/8',
     0.75:  '3/4',
     0.875: '7/8',
     1.0:   '1/1',
