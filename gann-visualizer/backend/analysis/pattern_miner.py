@@ -14,12 +14,17 @@ def compute_pattern_stats(events_df: pd.DataFrame, mask: pd.Series) -> dict:
     """
     Compute statistics for events matching a boolean mask.
 
-    Returns dict with: sample_count, mean_mfe_10, mean_mae_10, win_rate, composite
+    Returns dict with: sample_count, mean_mfe_10, mean_mae_10, win_rate, composite,
+                       p25_mfe_10, p50_mfe_10, p75_mfe_10
     """
     subset = events_df[mask].dropna(subset=["fwd_mfe_10", "fwd_mae_10"])
     n = len(subset)
     if n < 1:
-        return {"sample_count": 0, "mean_mfe_10": 0, "mean_mae_10": 0, "win_rate": 0, "composite": 0}
+        return {
+            "sample_count": 0, "mean_mfe_10": 0, "mean_mae_10": 0,
+            "win_rate": 0, "composite": 0,
+            "p25_mfe_10": 0, "p50_mfe_10": 0, "p75_mfe_10": 0,
+        }
 
     mean_mfe = subset["fwd_mfe_10"].mean()
     mean_mae = subset["fwd_mae_10"].mean()
@@ -27,12 +32,20 @@ def compute_pattern_stats(events_df: pd.DataFrame, mask: pd.Series) -> dict:
 
     composite = mean_mfe * np.sqrt(n) if mean_mfe > 0 else 0
 
+    mfe_vals = subset["fwd_mfe_10"].values
+    p25 = np.percentile(mfe_vals, 25)
+    p50 = np.percentile(mfe_vals, 50)
+    p75 = np.percentile(mfe_vals, 75)
+
     return {
         "sample_count": n,
         "mean_mfe_10": round(mean_mfe, 4),
         "mean_mae_10": round(mean_mae, 4),
         "win_rate": round(win_rate, 4),
         "composite": round(composite, 4),
+        "p25_mfe_10": round(p25, 4),
+        "p50_mfe_10": round(p50, 4),
+        "p75_mfe_10": round(p75, 4),
     }
 
 
