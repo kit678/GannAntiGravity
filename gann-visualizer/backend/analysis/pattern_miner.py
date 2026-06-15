@@ -203,3 +203,63 @@ def run_tier2(events_df: pd.DataFrame, tier1_candidates: pd.DataFrame, fan_line_
     results_df = pd.DataFrame(results)
     results_df = results_df.sort_values("composite", ascending=False).head(20)
     return results_df
+
+
+def grade_patterns(tier1_df: pd.DataFrame, tier2_df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Grade Tier 1 candidates into A/B/C tiers using H1 stats + H2 line-reach.
+
+    Grading rules:
+      A: H1 passes, H2 line_reach_rate_10 > 50%  -> Best: MFE edge + hits the line
+      B: H1 passes, H2 line_reach_rate_10 <= 50% -> Good MFE, don't target the line
+      C: H1 passes weakly (win_rate 50-55%)       -> Marginal, needs more data
+      Discard: H1 fails (excluded from output)
+
+    Args:
+        tier1_df: DataFrame from run_tier1() with columns: pattern, win_rate, mean_mfe_10, composite
+        tier2_df: DataFrame from run_tier2() with columns: pattern, line_reach_rate_10, line_reach_rate_20
+
+    Returns:
+        DataFrame with grade column added, sorted by grade (A first) then composite desc.
+        Only includes graded (non-discard) patterns.
+    """
+    # Merge Tier 1 and Tier 2 on pattern name
+    merged = tier1_df.copy()
+
+    if not tier2_df.empty:
+        t2_cols = ["pattern", "line_reach_rate_10", "line_reach_rate_20"]
+        existing = [c for c in t2_cols if c in tier2_df.columns]
+        merged = merged.merge(tier2_df[existing], on="pattern", how="left")
+
+    if "line_reach_rate_10" not in merged.columns:
+        merged["line_reach_rate_10"] = 0.0
+
+    merged["line_reach_rate_10"] = merged["line_reach_rate_10"].fillna(0.0)
+
+    def assign_grade(row):
+        win_rate = row.get("win_rate", 0)
+        reach = row.get("line_reach_rate_10", 0)
+
+        # H1 must pass: win_rate > 50% (already filtered by run_tier1, but guard anyway)
+        if win_rate <= 0.50:
+            return "DISCARD"
+
+        if win_rate > 0.55 and reach > 0.50:
+            return "A"
+        elif win_rate > 0.55 and reach <= 0.50:
+            return "B"
+        else:
+            return "C"
+
+    merged["grade"] = merged.apply(assign_grade, axis=1)
+
+    # Filter discards
+    merged = merged[merged["grade"] != "DISCARD"].copy()
+
+    # Sort: A first, then B, then C; within each grade, composite desc
+    grade_order = {"A": 0, "B": 1, "C": 2}
+    merged["_grade_sort"] = merged["grade"].map(grade_order)
+    merged = merged.sort_values(["_grade_sort", "composite"], ascending=[True, False])
+    merged = merged.drop(columns=["_grade_sort"]).reset_index(drop=True)
+
+    return merged
