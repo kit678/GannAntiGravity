@@ -3,7 +3,7 @@ Trace Miner — Parses simulation_trace.log into a structured event DataFrame.
 
 Usage:
     from analysis.trace_miner import parse_trace
-    events_df, candles_df, line_prices = parse_trace("logs/backend/simulation_trace.log")
+    events_df, candles_df, fan_line_catalog = parse_trace("logs/backend/simulation_trace.log")
 """
 import re
 import pandas as pd
@@ -167,7 +167,7 @@ def parse_trace(trace_path: str):
     Returns:
         events_df: DataFrame of deduplicated events
         candles_df: DataFrame of all bars with OHLC
-        line_prices: dict of {(bar_index, fan_id): [(line_fraction, line_price), ...]}
+        fan_line_catalog: dict of {fan_id: {bar_index: [(fraction, price), ...]}}
     """
     trace_path = Path(trace_path)
     if not trace_path.exists():
@@ -176,7 +176,7 @@ def parse_trace(trace_path: str):
     all_rows = []
     candles_rows = []
     seen_bars = set()
-    line_prices = {}  # (bar_index, fan_id) -> [(fraction, price)]
+    fan_line_catalog = {}  # fan_id -> {bar_index: [(fraction, price), ...]}
 
     with open(trace_path, "r", encoding="utf-8") as f:
         for line in f:
@@ -197,16 +197,21 @@ def parse_trace(trace_path: str):
                 })
 
             if parsed["type"] == "no_event":
-                # Collect line prices from active lines
+                # Populate fan_line_catalog from no_event lines (all fans at this bar)
+                bar_idx = parsed["bar_index"]
                 for ln in parsed.get("active_lines", []):
-                    key = (parsed["bar_index"], ln["fan_id"])
-                    if key not in line_prices:
-                        line_prices[key] = []
-                    line_prices[key].append((ln["line_fraction"], ln["line_price"], ln.get("distance")))
+                    fan_id = ln["fan_id"]
+                    if fan_id not in fan_line_catalog:
+                        fan_line_catalog[fan_id] = {}
+                    if bar_idx not in fan_line_catalog[fan_id]:
+                        fan_line_catalog[fan_id][bar_idx] = []
+                    fan_line_catalog[fan_id][bar_idx].append(
+                        (float(ln["line_fraction"]) if ln["line_fraction"] != "horizontal" else 0.0,
+                         ln["line_price"])
+                    )
                 continue
 
             if parsed["type"] == "state":
-                # State lines are skipped for now; they can be joined later if needed
                 continue
 
             # It's an event
@@ -229,6 +234,26 @@ def parse_trace(trace_path: str):
             }
             all_rows.append(row)
 
+            # Populate fan_line_catalog from event lines (single fan at this bar)
+            fan_id = parsed.get("fan_id", "")
+            if fan_id:
+                bar_idx = parsed["bar_index"]
+                if fan_id not in fan_line_catalog:
+                    fan_line_catalog[fan_id] = {}
+                if bar_idx not in fan_line_catalog[fan_id]:
+                    fan_line_catalog[fan_id][bar_idx] = []
+                frac_val = float(parsed["line_fraction"]) if parsed.get("line_fraction") != "horizontal" else 0.0
+                price_val = parsed.get("line_price", 0.0)
+                # Only add if not already present (avoid duplicates from no_event + event at same bar)
+                existing = fan_line_catalog[fan_id][bar_idx]
+                if not any(abs(f - frac_val) < 0.001 and abs(p - price_val) < 0.01 for f, p in existing):
+                    fan_line_catalog[fan_id][bar_idx].append((frac_val, price_val))
+
+    # Sort line fractions ascending within each bar for each fan
+    for fan_id in fan_line_catalog:
+        for bar_idx in fan_line_catalog[fan_id]:
+            fan_line_catalog[fan_id][bar_idx].sort(key=lambda x: x[0])
+
     if not all_rows:
         raise ValueError("No events found in trace log")
 
@@ -242,14 +267,14 @@ def parse_trace(trace_path: str):
         events_df["line_fraction"].astype(str) + "|" +
         events_df["event_type"]
     )
-    events_df["_sort"] = events_df["is_retro"].astype(int)  # 0 = non-RETRO (preferred), 1 = RETRO
+    events_df["_sort"] = events_df["is_retro"].astype(int)
     events_df = events_df.sort_values("_sort").drop_duplicates(subset="_key", keep="first")
     events_df = events_df.drop(columns=["_key", "_sort"])
     events_df = events_df.sort_values("bar_index").reset_index(drop=True)
 
     candles_df = pd.DataFrame(candles_rows).sort_values("bar_index").reset_index(drop=True)
 
-    return events_df, candles_df, line_prices
+    return events_df, candles_df, fan_line_catalog
 
 
 def build_sequences(events_df: pd.DataFrame) -> dict:

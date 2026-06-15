@@ -4,7 +4,7 @@ Pattern Miner — Brute-force tests patterns against enriched event data.
 Usage:
     from analysis.pattern_miner import run_tier1, run_tier2
     tier1_results = run_tier1(events_df)
-    tier2_results = run_tier2(events_df, tier1_results.head(20), line_prices)
+    tier2_results = run_tier2(events_df, tier1_results.head(20), fan_line_catalog)
 """
 import numpy as np
 import pandas as pd
@@ -110,11 +110,11 @@ def run_tier1(events_df: pd.DataFrame) -> pd.DataFrame:
     return results_df
 
 
-def compute_line_reach(events_df: pd.DataFrame, mask: pd.Series, line_prices: dict) -> dict:
+def compute_line_reach(events_df: pd.DataFrame, mask: pd.Series, fan_line_catalog: dict) -> dict:
     """
     For events matching mask, compute how often price reaches the next angle line.
 
-    Uses line_prices dict from trace_miner to find next line in event's direction.
+    Uses fan_line_catalog dict from trace_miner to find next line in event's direction.
     """
     from analysis.trace_miner import get_event_direction
 
@@ -135,16 +135,11 @@ def compute_line_reach(events_df: pd.DataFrame, mask: pd.Series, line_prices: di
         fan_id = row["fan_id"]
         current_frac = row["line_fraction"]
 
-        # Look up line prices at this bar for this fan
-        key = (bar_idx, fan_id)
-        fan_lines = line_prices.get(key, [])
+        # Look up fan lines at this bar
+        fan_lines = fan_line_catalog.get(fan_id, {}).get(bar_idx, [])
 
         next_line_price = None
-        for frac_str, price, dist in fan_lines:
-            try:
-                frac_val = float(frac_str) if frac_str != "horizontal" else 0.0
-            except (ValueError, TypeError):
-                continue
+        for frac_val, price in fan_lines:
             try:
                 current_frac_val = float(current_frac) if current_frac != "horizontal" else 0.0
             except (ValueError, TypeError):
@@ -178,7 +173,7 @@ def compute_line_reach(events_df: pd.DataFrame, mask: pd.Series, line_prices: di
     }
 
 
-def run_tier2(events_df: pd.DataFrame, tier1_candidates: pd.DataFrame, line_prices: dict) -> pd.DataFrame:
+def run_tier2(events_df: pd.DataFrame, tier1_candidates: pd.DataFrame, fan_line_catalog: dict) -> pd.DataFrame:
     """
     Run Tier 2 line-reach validation on Tier 1 survivors.
 
@@ -199,7 +194,7 @@ def run_tier2(events_df: pd.DataFrame, tier1_candidates: pd.DataFrame, line_pric
         if cp and cp != "any":
             mask = mask & (non_retro["candle_pattern"] == cp)
 
-        reach = compute_line_reach(non_retro, mask, line_prices)
+        reach = compute_line_reach(non_retro, mask, fan_line_catalog)
 
         row = candidate.to_dict()
         row.update(reach)
