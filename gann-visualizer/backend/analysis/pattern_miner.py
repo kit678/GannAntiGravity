@@ -263,3 +263,175 @@ def grade_patterns(tier1_df: pd.DataFrame, tier2_df: pd.DataFrame) -> pd.DataFra
     merged = merged.drop(columns=["_grade_sort"]).reset_index(drop=True)
 
     return merged
+
+
+def simulate_trailing_exit(events_df: pd.DataFrame, candles_df: pd.DataFrame,
+                           pattern_mask: pd.Series, trail_pct: float = 1.0,
+                           max_bars: int = 20) -> dict:
+    """
+    Simulate trailing-stop exit for events matching a pattern mask.
+
+    Entry:
+      - Long at event close for UP-direction events
+      - Short at event close for DOWN-direction events
+
+    Exit:
+      - Trailing stop from high-water mark (longs) or low-water mark (shorts).
+      - Trail amount = entry_price * trail_pct / 100.
+      - Each bar after entry (max max_bars): update water mark.
+        If price reverses beyond trail, exit at the stop price.
+      - If not stopped by max_bars, exit at bar close.
+
+    Args:
+        events_df: Enriched events DataFrame
+        candles_df: OHLC candles DataFrame
+        pattern_mask: Boolean mask selecting events for this pattern
+        trail_pct: Trail percentage of entry price (default 1.0)
+        max_bars: Maximum bars to hold before forced exit (default 20)
+
+    Returns:
+        dict with:
+          - trades: int — number of simulated trades
+          - win_pct: float — win percentage
+          - avg_pnl_pct: float — average PnL per trade (%)
+          - avg_mfe_captured_pct: float — avg % of MFE captured
+          - max_drawdown_pct: float — max trade drawdown (%)
+          - trade_log: list of per-trade dicts (entry_price, mfe_price, mfe_pct,
+                        exit_price, exit_bar, pnl_pct, result)
+    """
+    from analysis.trace_miner import get_event_direction
+
+    subset = events_df[pattern_mask].copy()
+    n = len(subset)
+    if n == 0:
+        return {
+            "trades": 0, "win_pct": 0, "avg_pnl_pct": 0,
+            "avg_mfe_captured_pct": 0, "max_drawdown_pct": 0, "trade_log": []
+        }
+
+    candles = candles_df.set_index("bar_index")
+    max_bar_idx = candles.index.max()
+
+    trade_log = []
+    wins = 0
+
+    for idx, row in subset.iterrows():
+        bar_idx = row["bar_index"]
+        direction = get_event_direction(row)
+        if direction == "NEUTRAL":
+            continue
+
+        entry_price = row["close"]
+        trail_amount = entry_price * trail_pct / 100.0
+
+        if direction == "UP":
+            is_long = True
+            water_mark = entry_price
+        else:  # DOWN
+            is_long = False
+            water_mark = entry_price
+
+        exit_price = None
+        exit_bar = None
+        mfe_price = entry_price
+
+        for step in range(1, max_bars + 1):
+            lookup_bar = bar_idx + step
+            if lookup_bar > max_bar_idx:
+                # End of data, exit at last available close
+                last_rows = candles_df[candles_df["bar_index"] <= max_bar_idx]
+                exit_price = last_rows.iloc[-1]["close"] if len(last_rows) > 0 else entry_price
+                exit_bar = max_bar_idx
+                break
+
+            if lookup_bar not in candles.index:
+                continue
+
+            candle = candles.loc[lookup_bar]
+            # Handle case where .loc returns a DataFrame for duplicate indices
+            if isinstance(candle, pd.DataFrame):
+                candle = candle.iloc[0]
+
+            bar_high = candle["high"]
+            bar_low = candle["low"]
+            bar_close = candle["close"]
+
+            if is_long:
+                # Update water mark (highest high seen)
+                water_mark = max(water_mark, bar_high)
+                stop_price = water_mark - trail_amount
+                mfe_price = max(mfe_price, bar_high)
+
+                if bar_low <= stop_price:
+                    exit_price = stop_price
+                    exit_bar = lookup_bar
+                    break
+            else:
+                # Update water mark (lowest low seen)
+                water_mark = min(water_mark, bar_low)
+                stop_price = water_mark + trail_amount
+                mfe_price = min(mfe_price, bar_low)
+
+                if bar_high >= stop_price:
+                    exit_price = stop_price
+                    exit_bar = lookup_bar
+                    break
+
+            # Check if this is the last bar in the window
+            if step == max_bars:
+                exit_price = bar_close
+                exit_bar = lookup_bar
+
+        if exit_price is None:
+            exit_price = entry_price
+            exit_bar = bar_idx
+
+        if is_long:
+            pnl_pct = (exit_price - entry_price) / entry_price * 100
+            mfe_pct = (mfe_price - entry_price) / entry_price * 100
+        else:
+            pnl_pct = (entry_price - exit_price) / entry_price * 100
+            mfe_pct = (entry_price - mfe_price) / entry_price * 100
+
+        result = "WIN" if pnl_pct > 0 else "LOSS"
+        if pnl_pct > 0:
+            wins += 1
+
+        mfe_captured = (pnl_pct / mfe_pct * 100) if mfe_pct > 0 else 0
+
+        trade_log.append({
+            "bar_index": bar_idx,
+            "direction": direction,
+            "entry_price": round(entry_price, 2),
+            "mfe_price": round(mfe_price, 2),
+            "mfe_pct": round(mfe_pct, 4),
+            "exit_price": round(exit_price, 2),
+            "exit_bar": exit_bar,
+            "pnl_pct": round(pnl_pct, 4),
+            "mfe_captured_pct": round(mfe_captured, 1),
+            "result": result,
+        })
+
+    n_trades = len(trade_log)
+    win_pct = round(wins / n_trades * 100, 1) if n_trades > 0 else 0
+    avg_pnl = round(sum(t["pnl_pct"] for t in trade_log) / n_trades, 4) if n_trades > 0 else 0
+    avg_mfe_captured = round(sum(t["mfe_captured_pct"] for t in trade_log) / n_trades, 1) if n_trades > 0 else 0
+
+    # Max drawdown: worst cumulative PnL
+    cumulative = 0
+    max_cumulative = 0
+    max_dd = 0
+    for t in trade_log:
+        cumulative += t["pnl_pct"]
+        max_cumulative = max(max_cumulative, cumulative)
+        dd = max_cumulative - cumulative
+        max_dd = max(max_dd, dd)
+
+    return {
+        "trades": n_trades,
+        "win_pct": win_pct,
+        "avg_pnl_pct": avg_pnl,
+        "avg_mfe_captured_pct": avg_mfe_captured,
+        "max_drawdown_pct": round(max_dd, 4),
+        "trade_log": trade_log,
+    }
