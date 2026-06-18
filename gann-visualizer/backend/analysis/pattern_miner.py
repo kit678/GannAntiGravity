@@ -480,3 +480,53 @@ def extract_sequence_pairs(fan_sequences: dict, max_gap: int = 10) -> pd.DataFra
         ])
 
     return pd.DataFrame(pairs)
+
+
+def run_sequence_tier1(events_df: pd.DataFrame, pair_df: pd.DataFrame,
+                       min_sample: int = 5, min_win_rate: float = 0.50) -> pd.DataFrame:
+    """
+    Tier 1 screening for 2-event sequence patterns.
+
+    For each unique (event_type_1, event_type_2) combo, compute forward-return
+    stats using the 2nd event as the entry point. Reuses compute_pattern_stats().
+
+    Args:
+        events_df: Enriched events DataFrame
+        pair_df: DataFrame from extract_sequence_pairs()
+        min_sample: Minimum occurrences for a combo to be considered
+        min_win_rate: Minimum forward win rate
+
+    Returns:
+        DataFrame sorted by composite score, columns: pattern, event_type_1,
+        event_type_2, sample_count, mean_mfe_10, mean_mae_10, win_rate, composite,
+        p25_mfe_10, p50_mfe_10, p75_mfe_10
+    """
+    if pair_df.empty:
+        return pd.DataFrame()
+
+    results = []
+
+    combos = pair_df.groupby(["event_type_1", "event_type_2"])
+
+    for (et1, et2), group in combos:
+        # Use bar_index of the 2nd event to look up forward returns
+        bar_indices = group["bar_index_2"].tolist()
+        mask = events_df["bar_index"].isin(bar_indices) & (~events_df["is_retro"])
+        stats = compute_pattern_stats(events_df, mask)
+
+        pattern_name = f"{et1}→{et2}"
+        if stats["sample_count"] >= min_sample and stats["win_rate"] >= min_win_rate:
+            results.append({
+                "pattern": pattern_name,
+                "event_type_1": et1,
+                "event_type_2": et2,
+                "sequence_type": "pair",
+                **stats,
+            })
+
+    if not results:
+        return pd.DataFrame()
+
+    results_df = pd.DataFrame(results)
+    results_df = results_df.sort_values("composite", ascending=False).reset_index(drop=True)
+    return results_df
