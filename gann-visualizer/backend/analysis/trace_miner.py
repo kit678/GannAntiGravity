@@ -293,6 +293,31 @@ def build_sequences(events_df: pd.DataFrame) -> dict:
     return sequences
 
 
+def build_fan_sequences(events_df: pd.DataFrame) -> dict:
+    """
+    Group events by fan_id only into ordered sequences with full event data.
+
+    Unlike build_sequences() which groups by (fan_id, line_fraction), this groups
+    by fan_id alone — so events at different line fractions on the same fan are
+    part of the same sequence. Used for cross-line 2-event sequence mining.
+
+    Returns:
+        dict of {fan_id: [list of event dicts sorted by bar_index]}
+        Each event dict has: bar_index, event_type, line_fraction, candle_pattern,
+                              is_retro, open, high, low, close
+    """
+    non_retro = events_df[~events_df["is_retro"]]
+    sequences = {}
+
+    for fan_id, group in non_retro.groupby("fan_id"):
+        group = group.sort_values("bar_index")
+        seq = group[["bar_index", "event_type", "line_fraction", "candle_pattern",
+                      "is_retro", "open", "high", "low", "close"]].to_dict("records")
+        sequences[fan_id] = seq
+
+    return sequences
+
+
 def verify_parser(events_df: pd.DataFrame, candles_df: pd.DataFrame, trace_path: str) -> dict:
     """
     Run verification checks on parsed data.
