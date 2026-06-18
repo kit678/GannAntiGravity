@@ -435,3 +435,48 @@ def simulate_trailing_exit(events_df: pd.DataFrame, candles_df: pd.DataFrame,
         "max_drawdown_pct": round(max_dd, 4),
         "trade_log": trade_log,
     }
+
+
+def extract_sequence_pairs(fan_sequences: dict, max_gap: int = 10) -> pd.DataFrame:
+    """
+    Extract consecutive 2-event pairs from fan-based sequences.
+
+    For each fan's event sequence, takes every consecutive pair of events,
+    filters by bar gap <= max_gap, and returns a DataFrame of unique
+    (event_type_1, event_type_2) combos with metadata.
+
+    Args:
+        fan_sequences: dict from build_fan_sequences() — {fan_id: [event dicts]}
+        max_gap: Max bar_index gap between consecutive events (default 10)
+
+    Returns:
+        DataFrame with columns:
+          fan_id, event_type_1, event_type_2, line_frac_1, line_frac_2,
+          bar_index_1, bar_index_2, bar_gap
+    """
+    pairs = []
+    for fan_id, seq in fan_sequences.items():
+        for i in range(len(seq) - 1):
+            evt_a = seq[i]
+            evt_b = seq[i + 1]
+            bar_gap = evt_b["bar_index"] - evt_a["bar_index"]
+            if bar_gap < 1 or bar_gap > max_gap:
+                continue
+            pairs.append({
+                "fan_id": fan_id,
+                "event_type_1": evt_a["event_type"],
+                "event_type_2": evt_b["event_type"],
+                "line_frac_1": evt_a["line_fraction"],
+                "line_frac_2": evt_b["line_fraction"],
+                "bar_index_1": evt_a["bar_index"],
+                "bar_index_2": evt_b["bar_index"],
+                "bar_gap": bar_gap,
+            })
+
+    if not pairs:
+        return pd.DataFrame(columns=[
+            "fan_id", "event_type_1", "event_type_2", "line_frac_1", "line_frac_2",
+            "bar_index_1", "bar_index_2", "bar_gap"
+        ])
+
+    return pd.DataFrame(pairs)
