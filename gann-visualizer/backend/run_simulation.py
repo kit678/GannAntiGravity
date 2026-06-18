@@ -181,7 +181,7 @@ def get_frontend_parity_data(symbol="^NSEI", resolution="4", data_source="yfinan
         
     return candles, target_from_dt, actual_start_dt
 
-def run_simulation(symbol="^NSEI", resolution="4", data_source="yfinance", from_date=None, to_date=None, lookback_bars=5000, left_bars=5, right_bars=5, warmup_days=0, timezone="UTC"):
+def run_simulation(symbol="^NSEI", resolution="4", data_source="yfinance", from_date=None, to_date=None, lookback_bars=5000, left_bars=5, right_bars=5, warmup_days=0, timezone="UTC", scale_ratio=None):
     log_file = setup_logging()
     logging.info(f"Starting simulation run for {symbol} at {resolution}m resolution")
     
@@ -200,15 +200,18 @@ def run_simulation(symbol="^NSEI", resolution="4", data_source="yfinance", from_
         logging.error("No data available to run simulation.")
         return
         
-    # Get dynamic scale ratio just like the frontend
-    try:
-        # The frontend passes "NIFTY 50" to get_dynamic_scale_ratio even if the YFinance symbol is "^NSEI"
-        config_symbol = "NIFTY 50" if symbol == "^NSEI" else symbol
-        scale_ratio = get_dynamic_scale_ratio(config_symbol, resolution)
-        logging.info(f"Dynamically resolved scale_ratio for {config_symbol} at {resolution}m: {scale_ratio}")
-    except Exception as e:
-        logging.warning(f"Failed to get dynamic scale ratio: {e}. Falling back to 3.6603")
-        scale_ratio = 3.6603
+    # Get dynamic scale ratio just like the frontend (or use override)
+    if scale_ratio is not None:
+        logging.info(f"Using override scale_ratio: {scale_ratio}")
+    else:
+        try:
+            # The frontend passes "NIFTY 50" to get_dynamic_scale_ratio even if the YFinance symbol is "^NSEI"
+            config_symbol = "NIFTY 50" if symbol == "^NSEI" else symbol
+            scale_ratio = get_dynamic_scale_ratio(config_symbol, resolution)
+            logging.info(f"Dynamically resolved scale_ratio for {config_symbol} at {resolution}m: {scale_ratio}")
+        except Exception as e:
+            logging.warning(f"Failed to get dynamic scale ratio: {e}. Falling back to 3.6603")
+            scale_ratio = 3.6603
         
     study = AngularPriceCoverageStudy(config={
         'symbol': symbol,
@@ -526,6 +529,7 @@ if __name__ == "__main__":
     parser.add_argument("--right-bars", type=int, default=5, help="Number of bars to the right for pivot confirmation (default: 5)")
     parser.add_argument("--warmup-days", type=int, default=0, help="Days of history to fetch before from-date for macro fans. Defaults to 0.")
     parser.add_argument("--timezone", type=str, default="UTC", help="Timezone for output timestamps (default: UTC). Use 'Asia/Kolkata' for IST.")
+    parser.add_argument("--scale-ratio", type=float, default=None, help="Override scale_ratio from ticker_config.json")
     
     args = parser.parse_args()
     
@@ -539,5 +543,6 @@ if __name__ == "__main__":
         left_bars=args.left_bars,
         right_bars=args.right_bars,
         warmup_days=args.warmup_days,
-        timezone=args.timezone
+        timezone=args.timezone,
+        scale_ratio=args.scale_ratio,
     )
