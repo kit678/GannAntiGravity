@@ -530,3 +530,44 @@ def run_sequence_tier1(events_df: pd.DataFrame, pair_df: pd.DataFrame,
     results_df = pd.DataFrame(results)
     results_df = results_df.sort_values("composite", ascending=False).reset_index(drop=True)
     return results_df
+
+
+def run_sequence_tier2(events_df: pd.DataFrame, tier1_df: pd.DataFrame,
+                       pair_df: pd.DataFrame, fan_line_catalog: dict) -> pd.DataFrame:
+    """
+    Tier 2 line-reach validation for 2-event sequence patterns.
+
+    Uses the 2nd event of each pair as the entry point for line-reach computation.
+
+    Args:
+        events_df: Enriched events DataFrame
+        tier1_df: DataFrame from run_sequence_tier1()
+        pair_df: DataFrame from extract_sequence_pairs()
+        fan_line_catalog: Catalog from parse_trace()
+
+    Returns:
+        tier1_df with line_reach_rate columns appended, sorted by composite, top 20.
+    """
+    if tier1_df.empty or pair_df.empty:
+        return pd.DataFrame()
+
+    results = []
+
+    for _, candidate in tier1_df.iterrows():
+        et1 = candidate["event_type_1"]
+        et2 = candidate["event_type_2"]
+
+        # Find all 2nd-event bar indices for this combo
+        combo_pairs = pair_df[(pair_df["event_type_1"] == et1) & (pair_df["event_type_2"] == et2)]
+        bar_indices = combo_pairs["bar_index_2"].tolist()
+
+        mask = events_df["bar_index"].isin(bar_indices) & (~events_df["is_retro"])
+        reach = compute_line_reach(events_df, mask, fan_line_catalog)
+
+        row = candidate.to_dict()
+        row.update(reach)
+        results.append(row)
+
+    results_df = pd.DataFrame(results)
+    results_df = results_df.sort_values("composite", ascending=False).head(20)
+    return results_df
