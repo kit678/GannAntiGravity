@@ -205,6 +205,104 @@ def run_tier2(events_df: pd.DataFrame, tier1_candidates: pd.DataFrame, fan_line_
     return results_df
 
 
+def grade_sequences(tier1_df: pd.DataFrame, tier2_df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Grade 2-event sequence patterns into A/B/C tiers.
+
+    Reuses the same grading logic as grade_patterns() for single events.
+    See grade_patterns() docstring for grading rules.
+
+    Returns:
+        DataFrame with grade column, sorted by grade (A first) then composite desc.
+    """
+    return grade_patterns(tier1_df, tier2_df)
+
+
+def walk_forward_validate(events_df: pd.DataFrame, candles_df: pd.DataFrame,
+                          fan_line_catalog: dict, train_pct: float = 0.7) -> pd.DataFrame:
+    """
+    Walk-forward validation: mine patterns on train set, evaluate on test set.
+
+    Splits events_df chronologically by bar_index (earliest bars = train).
+    Runs full single-event pipeline on train, then evaluates each pattern
+    on the test set using the same mask.
+
+    Args:
+        events_df: Enriched events DataFrame
+        candles_df: OHLC candles DataFrame (for enrichment, not directly used here)
+        fan_line_catalog: Catalog from parse_trace()
+        train_pct: Fraction of bars for training (default 0.7)
+
+    Returns:
+        DataFrame with columns: pattern, grade, train_composite, test_composite,
+        train_win_rate, test_win_rate, train_samples, test_samples, persistent (bool).
+        Sorted by train_composite descending.
+    """
+    non_retro = events_df[~events_df["is_retro"]].copy()
+    non_retro = non_retro.sort_values("bar_index").reset_index(drop=True)
+
+    # Chronological split: first train_pct of bars -> train, rest -> test
+    n = len(non_retro)
+    split_idx = int(n * train_pct)
+    if split_idx < 20 or n - split_idx < 20:
+        raise ValueError(f"Not enough events for split: train={split_idx}, test={n - split_idx}")
+
+    train_events = non_retro.iloc[:split_idx].copy()
+    test_events = non_retro.iloc[split_idx:].copy()
+
+    # Run full pipeline on train
+    tier1_train = run_tier1(train_events)
+    if tier1_train.empty:
+        return pd.DataFrame()
+
+    tier2_train = run_tier2(train_events, tier1_train, fan_line_catalog)
+    graded_train = grade_patterns(tier1_train, tier2_train)
+
+    if graded_train.empty:
+        return pd.DataFrame()
+
+    # Evaluate each train pattern on test set
+    results = []
+    for _, pattern_row in graded_train.iterrows():
+        et = pattern_row["event_type"]
+        frac = pattern_row["line_fraction"]
+        cp = pattern_row.get("candle_pattern", "any")
+
+        mask_train = (train_events["event_type"] == et) & (train_events["line_fraction"] == str(frac))
+        if cp and cp != "any":
+            mask_train = mask_train & (train_events["candle_pattern"] == cp)
+
+        mask_test = (test_events["event_type"] == et) & (test_events["line_fraction"] == str(frac))
+        if cp and cp != "any":
+            mask_test = mask_test & (test_events["candle_pattern"] == cp)
+
+        train_stats = compute_pattern_stats(train_events, mask_train)
+        test_stats = compute_pattern_stats(test_events, mask_test)
+
+        # Persistence: test stats within 80% of train
+        persistent = (
+            test_stats["sample_count"] >= 5
+            and test_stats["win_rate"] >= train_stats["win_rate"] * 0.8
+            and test_stats["composite"] >= train_stats["composite"] * 0.8
+        )
+
+        results.append({
+            "pattern": pattern_row["pattern"],
+            "grade": pattern_row.get("grade", "?"),
+            "train_composite": train_stats["composite"],
+            "test_composite": test_stats["composite"],
+            "train_win_rate": train_stats["win_rate"],
+            "test_win_rate": test_stats["win_rate"],
+            "train_samples": train_stats["sample_count"],
+            "test_samples": test_stats["sample_count"],
+            "persistent": persistent,
+        })
+
+    results_df = pd.DataFrame(results)
+    results_df = results_df.sort_values("train_composite", ascending=False).reset_index(drop=True)
+    return results_df
+
+
 def grade_patterns(tier1_df: pd.DataFrame, tier2_df: pd.DataFrame) -> pd.DataFrame:
     """
     Grade Tier 1 candidates into A/B/C tiers using H1 stats + H2 line-reach.
