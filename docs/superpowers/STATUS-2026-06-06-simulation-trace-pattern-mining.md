@@ -144,8 +144,49 @@ Mining `logs/backend/simulation_trace.log` (71,521 lines, BTCUSDT 1h) for repeat
 7. **Join state machine events to parent events** for sequence enrichment.
 
 ---
+## Future Architecture Direction: Live Multi-Ticker Screener
 
+Once pattern mining validates which setups have a real edge, the goal is a **perpetual screener** that:
+
+- Continuously analyzes Gann fans across multiple tickers simultaneously (crypto, stocks, forex)
+- Detects real-time setups matching validated patterns
+- Routes signals to appropriate brokers (Binance for crypto, Dhan for stocks, others for forex)
+- Places trades concurrently across brokers
+
+**Key principle: The screening mechanism and Gann analysis is a common module** — same engine regardless of data source or broker. The current architecture already supports this:
+
+```
+Multiple Data Sources (Binance / Dhan / YFinance / Forex)
+        │
+        ▼
+Common Gann Analysis Engine (AngularPriceCoverageStudy)
+        │
+        ▼
+Pattern Miner (stateless pure functions on event DataFrames)
+        │
+        ▼
+Signal Router (match detected pattern → broker)
+        │
+        ▼
+Multiple Broker Adapters (Binance / Dhan / others)
+```
+
+**What already exists:**
+- `AngularPriceCoverageStudy` — ticker-agnostic Gann fan analysis
+- `pattern_miner.py` — stateless functions, works on any events_df regardless of source
+- `get_data_client()` factory in `main.py` — already routes by source
+
+**What's needed (separate future project):**
+1. Streaming event buffer per ticker (windowed DataFrame from live study)
+2. Signal router (pattern match → broker dispatch)
+3. Broker abstraction layer (unified interface: place_order, get_positions, get_balance)
+4. Concurrency model for multi-ticker screening
+
+**Do NOT fold into current work** — the research phase must answer "which patterns work?" before investing in live infrastructure.
+
+---
 ## Related Documents
 
 - Design spec: [2026-06-06-simulation-trace-pattern-mining-design.md](file:///c:/Dev/GannTesting/docs/superpowers/specs/2026-06-06-simulation-trace-pattern-mining-design.md)
 - Implementation plan: [2026-06-06-simulation-trace-pattern-mining-plan.md](file:///c:/Dev/GannTesting/docs/superpowers/plans/2026-06-06-simulation-trace-pattern-mining-plan.md)
+- Batch/Sequence/Walk-Forward spec: [2026-06-15-batch-sequence-walkforward-design.md](file:///c:/Dev/GannTesting/docs/superpowers/specs/2026-06-15-batch-sequence-walkforward-design.md)
