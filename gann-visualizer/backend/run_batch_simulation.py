@@ -15,7 +15,9 @@ import time
 TRACE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "logs", "backend")
 
 
-def run_batch(tickers, timeframes, scale_ratio=None, force=False):
+def run_batch(tickers, timeframes, scale_ratio=None, force=False, lookback=None,
+              warmup_days=None, from_date=None, to_date=None, left_bars=None,
+              right_bars=None):
     """Run simulation for each ticker x timeframe combination."""
     total = len(tickers) * len(timeframes)
     completed = 0
@@ -43,6 +45,18 @@ def run_batch(tickers, timeframes, scale_ratio=None, force=False):
             ]
             if scale_ratio is not None:
                 cmd.extend(["--scale-ratio", str(scale_ratio)])
+            if lookback is not None:
+                cmd.extend(["--lookback", str(lookback)])
+            if warmup_days is not None:
+                cmd.extend(["--warmup-days", str(warmup_days)])
+            if from_date is not None:
+                cmd.extend(["--from-date", from_date])
+            if to_date is not None:
+                cmd.extend(["--to-date", to_date])
+            if left_bars is not None:
+                cmd.extend(["--left-bars", str(left_bars)])
+            if right_bars is not None:
+                cmd.extend(["--right-bars", str(right_bars)])
 
             t0 = time.time()
 
@@ -99,6 +113,18 @@ if __name__ == "__main__":
                         help="Comma-separated resolution codes (e.g., 60,240)")
     parser.add_argument("--scale-ratio", type=float, default=None,
                         help="Override scale_ratio for all runs")
+    parser.add_argument("--from-date", type=str, default=None,
+                        help="Start date (YYYY-MM-DD). Defaults to earliest available.")
+    parser.add_argument("--to-date", type=str, default=None,
+                        help="End date (YYYY-MM-DD). Defaults to today.")
+    parser.add_argument("--lookback", type=int, default=None,
+                        help="Number of lookback bars. If set, --from-date/--to-date are ignored.")
+    parser.add_argument("--warmup-days", type=int, default=None,
+                        help="Days of warmup history for macro fans (default: 0)")
+    parser.add_argument("--left-bars", type=int, default=None,
+                        help="Bars left for pivot detection (default: 5)")
+    parser.add_argument("--right-bars", type=int, default=None,
+                        help="Bars right for pivot confirmation (default: 5)")
     parser.add_argument("--force", action="store_true",
                         help="Re-run even if trace log already exists")
     args = parser.parse_args()
@@ -113,5 +139,7 @@ if __name__ == "__main__":
     # Ensure trace directory exists
     os.makedirs(TRACE_DIR, exist_ok=True)
 
-    success = run_batch(tickers, timeframes, args.scale_ratio, args.force)
+    success = run_batch(tickers, timeframes, args.scale_ratio, args.force,
+                        args.lookback, args.warmup_days, args.from_date,
+                        args.to_date, args.left_bars, args.right_bars)
     sys.exit(0 if success else 1)
