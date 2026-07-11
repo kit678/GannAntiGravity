@@ -134,6 +134,18 @@ The key design principle is that the user should be able to answer both:
 
 without reading backend internals.
 
+### 5.5 Navigator Verification Scope
+
+V1 should treat the Hypothesis Navigator as the primary verification surface, but it should not require a full custom RSI pane inside the TradingView chart widget.
+
+Recommended v1 scope:
+
+- keep chart navigation focused on the existing candle chart and trade timing
+- add RSI-specific verification data to the selected-event experience inside the Hypothesis Navigator itself
+- provide a compact RSI verification panel or equivalent selected-event view that shows the local RSI shape, pivot anchors, active line, break point, and trade summary
+
+This keeps frontend scope realistic while still making the RSI geometry visually inspectable where the user already reviews hypotheses.
+
 ## 6. Strategy Rules
 
 ### 6.1 Indicators
@@ -317,6 +329,7 @@ Each signal entry should include, at minimum:
 - `line_value_at_break`
 - `break_bar_index`
 - `breakout_type`
+- `rsi_window` or equivalent compact local RSI series around the signal
 - `entry_price`
 - `entry_side`
 - `stop_price`
@@ -329,6 +342,8 @@ Each signal entry should include, at minimum:
 - `outcome`
 
 If convenient for the frontend, the line may also be emitted as a compact object with endpoint coordinates rather than only flattened columns.
+
+The contract must be rich enough for the frontend to render a selected-event RSI verification panel without needing to re-run indicator calculations in the browser.
 
 ## 11. Error Handling
 
@@ -425,6 +440,8 @@ Specifically:
 - reuse existing actual-trade simulation ideas from the exit optimizer
 - preserve the standard result shape with `in_sample`, `walk_forward`, `groups`, and `detailed_log`
 - keep the Hypothesis Navigator as the main manual verification surface
+
+One explicit compatibility requirement is that the per-hypothesis backend enrichment path must preserve custom `detailed_log` fields for non-fan strategies. The current fan-oriented enrichment path cannot be allowed to discard RSI-specific verification fields such as local RSI series, pivot anchors, and line metadata.
 
 The design should avoid introducing a parallel custom report format unless the frontend truly cannot consume the existing detailed-log pattern.
 
