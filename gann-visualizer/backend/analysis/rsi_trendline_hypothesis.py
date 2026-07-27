@@ -7,6 +7,7 @@ import pandas as pd
 
 from analysis.rsi_line_policy import (
     AdjacentAnchorPolicy,
+    CollinearExtendAnchorPolicy,
     NearestPairAnchorPolicy,
     WalkBackAnchorPolicy,
 )
@@ -17,6 +18,7 @@ from analysis.signal_trade_simulator import CandleSignal, simulate_trade_grid
 from analysis.strategy_analyzer import Hypothesis
 
 POLICIES = {
+    "collinear_extend": CollinearExtendAnchorPolicy,
     "adjacent": AdjacentAnchorPolicy,
     "walk_back": WalkBackAnchorPolicy,
     "nearest_pair": NearestPairAnchorPolicy,
@@ -48,11 +50,11 @@ class RSITrendlineBreakHypothesis(Hypothesis):
         self.set_parameters(
             rsi_period=14,
             sma_period=200,
-            anchor_policy="adjacent",
-            pivot_left_bars=3,
-            pivot_right_bars=3,
-            min_swing=8.0,
-            tolerance=1.5,
+            anchor_policy="collinear_extend",
+            pivot_left_bars=2,
+            pivot_right_bars=2,
+            min_swing=2.0,
+            tolerance=5.0,
             min_line_length=5,
             max_span_bars=150,
             swing_lookback=20,

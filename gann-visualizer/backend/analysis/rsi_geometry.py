@@ -27,6 +27,7 @@ from __future__ import annotations
 from analysis.rsi_line_policy import (
     AdjacentAnchorPolicy,
     AnchorPolicy,
+    CollinearExtendAnchorPolicy,
     NearestPairAnchorPolicy,
     RSILine,
     WalkBackAnchorPolicy,
@@ -50,6 +51,7 @@ from analysis.rsi_sweep import (
 __all__ = [
     "AdjacentAnchorPolicy",
     "AnchorPolicy",
+    "CollinearExtendAnchorPolicy",
     "BreakSignal",
     "GeometryParams",
     "LineSegment",

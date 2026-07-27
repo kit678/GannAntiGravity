@@ -4,6 +4,7 @@ import sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from analysis.rsi_line_policy import (
+    line_between,
     NearestPairAnchorPolicy,
     RSILine,
     WalkBackAnchorPolicy,
@@ -171,3 +172,63 @@ def test_adjacent_policy_never_leaves_an_intermediate_same_kind_pivot():
             if anchor.bar_index < p.bar_index < newest.bar_index and p.kind == newest.kind
         ]
         assert between == [], f"skipped {[p.bar_index for p in between]}"
+
+
+# --- CollinearExtendAnchorPolicy ------------------------------------------
+
+def test_collinear_extend_reaches_back_through_pivots_that_sit_on_the_line():
+    from analysis.rsi_line_policy import CollinearExtendAnchorPolicy
+
+    # 70 / 64 / 62 / 58: bar 20 is 2.0 off the 70->58 line, bar 30 is exact
+    pivots = [high(10, 70.0), high(20, 64.0), high(30, 62.0), high(40, 58.0)]
+    loose = GeometryParams(min_length=8, max_span_bars=150, tolerance=5.0)
+
+    anchor = CollinearExtendAnchorPolicy().anchor(pivots, pivots[-1], loose)
+
+    assert anchor is not None
+    assert anchor.bar_index == 10, "should extend all the way back while collinear"
+
+
+def test_collinear_extend_stops_where_the_structure_leaves_the_line():
+    from analysis.rsi_line_policy import CollinearExtendAnchorPolicy
+
+    # bar 20 sits far BELOW the 70->58 line, so the line must not reach past bar 30
+    pivots = [high(10, 70.0), high(20, 40.0), high(30, 62.0), high(40, 58.0)]
+    loose = GeometryParams(min_length=8, max_span_bars=150, tolerance=5.0)
+
+    anchor = CollinearExtendAnchorPolicy().anchor(pivots, pivots[-1], loose)
+
+    assert anchor is not None
+    assert anchor.bar_index == 30, "must stop at the last collinear pivot"
+
+
+def test_collinear_extend_never_leaves_a_pivot_off_the_line():
+    """The property that makes it safe: same zero-skip guarantee as adjacency."""
+    from analysis.rsi_line_policy import CollinearExtendAnchorPolicy
+
+    pivots = [high(0, 90.0), high(12, 84.0), high(24, 61.0), high(36, 70.0), high(48, 61.0)]
+    loose = GeometryParams(min_length=8, max_span_bars=150, tolerance=5.0)
+    policy = CollinearExtendAnchorPolicy()
+
+    for idx in range(1, len(pivots)):
+        newest = pivots[idx]
+        anchor = policy.anchor(pivots[: idx + 1], newest, loose)
+        if anchor is None:
+            continue
+        line = line_between(anchor, newest)
+        for m in pivots[: idx + 1]:
+            if anchor.bar_index < m.bar_index < newest.bar_index:
+                assert abs(m.rsi_value - line.value_at(m.bar_index)) <= loose.tolerance, (
+                    f"pivot at bar {m.bar_index} was skipped"
+                )
+
+
+def test_collinear_extend_degenerates_to_adjacency_at_tight_tolerance():
+    """Explains why tolerance 1.5 hid the multi-touch structure entirely."""
+    from analysis.rsi_line_policy import AdjacentAnchorPolicy, CollinearExtendAnchorPolicy
+
+    pivots = [high(10, 70.0), high(20, 64.0), high(30, 62.0), high(40, 58.0)]
+    tight = GeometryParams(min_length=8, max_span_bars=150, tolerance=0.5)
+
+    assert (CollinearExtendAnchorPolicy().anchor(pivots, pivots[-1], tight).bar_index
+            == AdjacentAnchorPolicy().anchor(pivots, pivots[-1], tight).bar_index)
