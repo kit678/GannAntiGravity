@@ -5,172 +5,177 @@ from typing import Any, Dict, List
 
 import pandas as pd
 
-from analysis.rsi_geometry import (
-    DeterministicPivotLineBuilder,
-    RSIBreakSignal,
-    compute_rsi_series,
-    detect_rsi_line_breaks,
-    detect_rsi_pivots,
-)
+from analysis.rsi_line_policy import NearestPairAnchorPolicy, WalkBackAnchorPolicy
+from analysis.rsi_pivots import compute_rsi_series
+from analysis.rsi_pivots import GeometryParams
+from analysis.rsi_sweep import run_causal_sweep
 from analysis.signal_trade_simulator import CandleSignal, simulate_trade_grid
 from analysis.strategy_analyzer import Hypothesis
+
+POLICIES = {
+    "walk_back": WalkBackAnchorPolicy,
+    "nearest_pair": NearestPairAnchorPolicy,
+}
+
+
+def swing_stop_price(
+    candles: pd.DataFrame, bar_index: int, side: str, lookback: int, buffer: float
+) -> float:
+    """Stop at the nearest price swing extreme, per the strategy guide.
+
+    Deliberately NOT the breakout candle's own low/high: entering at a candle's
+    close with a stop at that same candle's extreme gives a stop ~0.2% of price
+    away, which noise removes before the thesis resolves.
+    """
+    start = max(0, bar_index - lookback)
+    window = candles.iloc[start : bar_index + 1]
+    if side == "LONG":
+        return float(window["low"].min()) * (1.0 - buffer)
+    return float(window["high"].max()) * (1.0 + buffer)
 
 
 class RSITrendlineBreakHypothesis(Hypothesis):
     def __init__(self):
         super().__init__(
             name="RSI Trendline Break Strategy",
-            description="Trade-scored RSI trendline breaks filtered by price vs SMA(200).",
+            description="Causal RSI trendline breaks filtered by price vs SMA(200).",
         )
         self.set_parameters(
             rsi_period=14,
             sma_period=200,
-            pivot_left_bars=2,
-            pivot_right_bars=2,
-            min_swing=3.0,
-            structural_tolerance=3.0,
+            anchor_policy="walk_back",
+            pivot_left_bars=3,
+            pivot_right_bars=3,
+            min_swing=8.0,
+            tolerance=1.5,
             min_line_length=8,
-            max_slope=1.0,
-            rsi_window_bars=40,
+            max_span_bars=150,
+            swing_lookback=20,
+            stop_buffer=0.0005,
             r_values=[1.0, 1.5, 2.0, 2.5, 3.0],
-            max_hold_bars=10,
+            max_hold_bars=40,
         )
+
+    # ------------------------------------------------------------------ #
 
     def evaluate(self, df: pd.DataFrame, candles_df: pd.DataFrame = None) -> Dict[str, Any]:
         if candles_df is None or candles_df.empty:
             return self._empty_result()
 
-        candles = self._prepare_candles(candles_df)
-        candles["rsi"] = compute_rsi_series(candles["close"], period=int(self.parameters["rsi_period"]))
-        candles["sma"] = candles["close"].rolling(
-            window=int(self.parameters["sma_period"]),
-            min_periods=int(self.parameters["sma_period"]),
-        ).mean()
+        candles = candles_df.copy().reset_index(drop=True)
+        if "bar_index" not in candles.columns:
+            candles["bar_index"] = candles.index
 
-        pivots = detect_rsi_pivots(
-            candles["rsi"],
+        period = int(self.parameters["rsi_period"])
+        sma_period = int(self.parameters["sma_period"])
+        candles["rsi"] = compute_rsi_series(candles["close"], period=period)
+        candles["sma"] = candles["close"].rolling(sma_period, min_periods=sma_period).mean()
+
+        params = GeometryParams(
             left_bars=int(self.parameters["pivot_left_bars"]),
             right_bars=int(self.parameters["pivot_right_bars"]),
             min_swing=float(self.parameters["min_swing"]),
-        )
-        builder = DeterministicPivotLineBuilder()
-        # Build pivot-to-pivot lines (used for break detection of event
-        # lines) — these define the *event* line geometry: any pivot
-        # pair that passes the structural checks is a candidate line
-        # that the RSI curve could break through.
-        lines = builder.build_lines(
-            pivots,
-            rsi=candles["rsi"],
-            structural_tolerance=float(self.parameters["structural_tolerance"]),
+            tolerance=float(self.parameters["tolerance"]),
             min_length=int(self.parameters["min_line_length"]),
-            max_slope=float(self.parameters["max_slope"]),
+            max_span_bars=int(self.parameters["max_span_bars"]),
         )
-        # OLS best-fit lines via RANSAC — these are the *display* lines
-        # (3 per direction max) that the user sees on the chart.  Break
-        # detection now runs against these so the trade signal fires
-        # when RSI crosses the same line the user sees.
-        display_max_slope = min(0.5, float(self.parameters["max_slope"]))
-        best_fit_lines = builder.build_best_fit_lines(
-            pivots,
-            rsi=candles["rsi"],
-            structural_tolerance=float(self.parameters["structural_tolerance"]),
-            min_length=int(self.parameters["min_line_length"]),
-            max_slope=display_max_slope,
-        )
-        # Use the best-fit lines for break detection — combine with
-        # original pivot-to-pivot lines so we don't miss any.
-        combined_lines = list(best_fit_lines) + list(lines)
-        breaks = detect_rsi_line_breaks(
-            candles=candles,
-            rsi=candles["rsi"],
-            lines=combined_lines,
-            window_bars=int(self.parameters["rsi_window_bars"]),
-        )
+        policy = POLICIES[str(self.parameters["anchor_policy"])]()
+        sweep = run_causal_sweep(candles["rsi"], policy, params)
 
-        line_lookup = {
-            (line.start_bar_index, line.end_bar_index, line.direction): line for line in lines
+        segments_by_id = {segment.segment_id: segment for segment in sweep.segments}
+        last_bar = int(candles["bar_index"].max())
+
+        skipped = {
+            "trend_filter": 0,
+            "warmup": 0,
+            "invalid_risk": 0,
+            "last_bar": 0,
+            "missing_candle": 0,
         }
-        pivot_lookup = {pivot.bar_index: pivot for pivot in pivots}
+        candidates: List[Dict[str, Any]] = []
 
-        candidate_payloads: List[Dict[str, Any]] = []
-        last_bar_index = int(candles["bar_index"].max())
-
-        for signal in breaks:
-            candle = candles.loc[candles["bar_index"] == signal.bar_index]
-            if candle.empty:
+        for signal in sweep.signals:
+            match = candles.loc[candles["bar_index"] == signal.bar_index]
+            if match.empty:
+                skipped["missing_candle"] += 1
                 continue
 
-            row = candle.iloc[0]
-            close_price = float(row["close"])
+            row = match.iloc[0]
+            if signal.bar_index >= last_bar:
+                skipped["last_bar"] += 1
+                continue
+
             sma_value = row["sma"]
-            trend_filter_passed = self._passes_trend_filter(
-                direction=signal.direction,
-                close_price=close_price,
-                sma_value=sma_value,
+            if pd.isna(sma_value):
+                skipped["warmup"] += 1
+                continue
+
+            close_price = float(row["close"])
+            if signal.side == "LONG" and not close_price > float(sma_value):
+                skipped["trend_filter"] += 1
+                continue
+            if signal.side == "SHORT" and not close_price < float(sma_value):
+                skipped["trend_filter"] += 1
+                continue
+
+            stop_price = swing_stop_price(
+                candles,
+                bar_index=int(signal.bar_index),
+                side=signal.side,
+                lookback=int(self.parameters["swing_lookback"]),
+                buffer=float(self.parameters["stop_buffer"]),
             )
-
-            if not trend_filter_passed:
+            if signal.side == "LONG" and stop_price >= close_price:
+                skipped["invalid_risk"] += 1
                 continue
-            if int(signal.bar_index) >= last_bar_index:
-                continue
-
-            stop_price = float(row["low"]) if signal.direction == "LONG" else float(row["high"])
-            if stop_price == close_price:
+            if signal.side == "SHORT" and stop_price <= close_price:
+                skipped["invalid_risk"] += 1
                 continue
 
-            line = line_lookup.get(
-                (signal.line.start_bar_index, signal.line.end_bar_index, signal.line.direction),
-                signal.line,
-            )
-            pivot_a = pivot_lookup.get(line.start_bar_index)
-            pivot_b = pivot_lookup.get(line.end_bar_index)
-
-            candidate_payloads.append(
+            candidates.append(
                 {
                     "signal": CandleSignal(
                         bar_index=int(signal.bar_index),
-                        side=signal.direction,
+                        side=signal.side,
                         entry_price=close_price,
                         stop_price=stop_price,
-                        signal_time=row["time"] if "time" in row.index else int(signal.bar_index),
+                        signal_time=self._time_string(row.get("time")),
                     ),
-                    "detail": self._build_detail_record(
+                    "detail": self._detail_record(
                         row=row,
                         signal=signal,
-                        line=line,
-                        pivot_a=pivot_a,
-                        pivot_b=pivot_b,
-                        trend_filter_passed=trend_filter_passed,
+                        segment=segments_by_id[signal.segment_id],
                         stop_price=stop_price,
                         candles=candles,
                     ),
                 }
             )
 
-        if not candidate_payloads:
-            return self._empty_result()
+        rsi_series = self._rsi_series_payload(candles)
+        line_timeline = self._timeline_payload(sweep.segments, candles)
+
+        if not candidates:
+            return self._empty_result(
+                rsi_series=rsi_series, line_timeline=line_timeline, skipped=skipped
+            )
 
         exit_optimization = simulate_trade_grid(
             candles=candles,
-            signals=[payload["signal"] for payload in candidate_payloads],
+            signals=[c["signal"] for c in candidates],
             r_values=self.parameters["r_values"],
             max_hold_bars=int(self.parameters["max_hold_bars"]),
         )
-
-        best = exit_optimization.get("best")
-        best_r = best.get("r_value") if best else None
+        best = exit_optimization.get("best") or {}
+        best_r = best.get("r_value")
         per_signal = exit_optimization.get("per_signal", {})
 
         detailed_log: List[Dict[str, Any]] = []
-        for signal_index, payload in enumerate(candidate_payloads):
-            signal = payload["signal"]
-            detail = dict(payload["detail"])
-            signal_key = f"{signal.bar_index}:{signal_index}"
-            trade = per_signal.get(signal_key)
+        for index, candidate in enumerate(candidates):
+            trade = per_signal.get(f"{candidate['signal'].bar_index}:{index}")
             if trade is None:
                 continue
-
-            detail.update(
+            entry = dict(candidate["detail"])
+            entry.update(
                 {
                     "best_r": best_r,
                     "target_price": float(trade["target_price"]),
@@ -186,218 +191,149 @@ class RSITrendlineBreakHypothesis(Hypothesis):
                     "outcome": trade["outcome"],
                 }
             )
-            detailed_log.append(detail)
+            detailed_log.append(entry)
 
-        # Build full RSI series for all candles (for price-pane overlay)
-        def _bar_time(bar_index: int) -> str:
-            if "time" not in candles.columns:
-                return None
-            match = candles.loc[candles["bar_index"] == bar_index, "time"]
-            if match.empty:
-                return None
-            tv = match.iloc[0]
-            if tv is None or pd.isna(tv):
-                return None
-            if isinstance(tv, pd.Timestamp):
-                return tv.strftime("%Y-%m-%dT%H:%M:%S")
-            return str(tv)
+        return self._summarize(
+            detailed_log=detailed_log,
+            exit_optimization=exit_optimization,
+            rsi_series=rsi_series,
+            line_timeline=line_timeline,
+            skipped=skipped,
+        )
 
-        rsi_series_raw = []
-        if "time" in candles.columns:
-            for _, crow in candles.iterrows():
-                rsi_val = crow.get("rsi")
-                if pd.isna(rsi_val):
-                    continue
-                bar_idx = int(crow["bar_index"])
-                tv = crow["time"]
-                if isinstance(tv, pd.Timestamp):
-                    time_str = tv.strftime("%Y-%m-%dT%H:%M:%S")
-                else:
-                    time_str = str(tv)
-                rsi_series_raw.append({
-                    "bar_index": bar_idx,
-                    "time": time_str,
-                    "rsi": float(rsi_val),
-                })
-
-        # Build all active RSI lines with pivot data and timestamps
-        # Combine event lines + best-fit cluster lines (the latter use a
-        # marker so the frontend can distinguish them, but they share the
-        # same display format)
-        all_rsi_lines = []
-        seen_keys: set = set()
-
-        # Best-fit lines first so they win display priority by score
-        for l in best_fit_lines:
-            key = ("bestfit", int(l.start_bar_index), int(l.end_bar_index), l.direction)
-            if key in seen_keys:
-                continue
-            seen_keys.add(key)
-            a_bar = int(l.start_bar_index)
-            b_bar = int(l.end_bar_index)
-            all_rsi_lines.append({
-                "start_bar_index": a_bar,
-                "end_bar_index": b_bar,
-                "start_rsi": float(l.start_rsi),
-                "end_rsi": float(l.end_rsi),
-                "direction": l.direction,
-                "score": float(l.score),
-                "kind": "best_fit",
-                "pivot_a": {
-                    "bar_index": a_bar,
-                    "rsi": float(l.start_rsi),
-                    "kind": "high" if l.direction == "down" else "low",
-                    "time": _bar_time(a_bar),
-                },
-                "pivot_b": {
-                    "bar_index": b_bar,
-                    "rsi": float(l.end_rsi),
-                    "kind": "high" if l.direction == "down" else "low",
-                    "time": _bar_time(b_bar),
-                },
-            })
-
-        for l in lines:
-            p_a = pivot_lookup.get(l.start_bar_index)
-            p_b = pivot_lookup.get(l.end_bar_index)
-            a_bar = int(p_a.bar_index) if p_a else int(l.start_bar_index)
-            b_bar = int(p_b.bar_index) if p_b else int(l.end_bar_index)
-            key = ("event", a_bar, b_bar, l.direction)
-            if key in seen_keys:
-                continue
-            seen_keys.add(key)
-            all_rsi_lines.append({
-                "start_bar_index": int(l.start_bar_index),
-                "end_bar_index": int(l.end_bar_index),
-                "start_rsi": float(l.start_rsi),
-                "end_rsi": float(l.end_rsi),
-                "direction": l.direction,
-                "score": float(l.score),
-                "pivot_a": {
-                    "bar_index": a_bar,
-                    "rsi": float(p_a.rsi_value) if p_a else float(l.start_rsi),
-                    "kind": p_a.kind if p_a else ("high" if l.direction == "down" else "low"),
-                    "time": _bar_time(a_bar),
-                },
-                "pivot_b": {
-                    "bar_index": b_bar,
-                    "rsi": float(p_b.rsi_value) if p_b else float(l.end_rsi),
-                    "kind": p_b.kind if p_b else ("high" if l.direction == "down" else "low"),
-                    "time": _bar_time(b_bar),
-                },
-            })
-
-        return self._summarize_result(detailed_log, exit_optimization, rsi_series_raw, all_rsi_lines)
+    # ------------------------------------------------------------------ #
 
     @staticmethod
-    def _prepare_candles(candles_df: pd.DataFrame) -> pd.DataFrame:
-        candles = candles_df.copy().reset_index(drop=True)
-        if "bar_index" not in candles.columns:
-            candles["bar_index"] = candles.index
-        return candles
+    def _time_string(value: Any) -> str | None:
+        if value is None or (not isinstance(value, pd.Timestamp) and pd.isna(value)):
+            return None
+        if isinstance(value, pd.Timestamp):
+            return value.strftime("%Y-%m-%dT%H:%M:%S")
+        return str(value)
 
-    @staticmethod
-    def _passes_trend_filter(direction: str, close_price: float, sma_value: Any) -> bool:
-        if pd.isna(sma_value):
-            return False
-        if direction == "LONG":
-            return close_price > float(sma_value)
-        return close_price < float(sma_value)
+    def _bar_time(self, candles: pd.DataFrame, bar_index: int) -> str | None:
+        if "time" not in candles.columns:
+            return None
+        match = candles.loc[candles["bar_index"] == bar_index, "time"]
+        if match.empty:
+            return None
+        return self._time_string(match.iloc[0])
 
     @staticmethod
     def _event_time_fields(time_value: Any, fallback_bar_index: int) -> Dict[str, Any]:
         timestamp = fallback_bar_index
-
-        if time_value is not None and not pd.isna(time_value):
+        if time_value is not None and not (
+            not isinstance(time_value, pd.Timestamp) and pd.isna(time_value)
+        ):
             if isinstance(time_value, pd.Timestamp):
-                timestamp = int(time_value.timestamp())
-            elif hasattr(time_value, "timestamp") and not isinstance(time_value, (int, float, str)):
                 timestamp = int(time_value.timestamp())
             elif isinstance(time_value, str):
                 timestamp = int(pd.Timestamp(time_value).timestamp())
             else:
                 timestamp = int(time_value)
-
         return {
-            "time": datetime.fromtimestamp(timestamp, tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%S"),
+            "time": datetime.fromtimestamp(timestamp, tz=timezone.utc).strftime(
+                "%Y-%m-%dT%H:%M:%S"
+            ),
             "timestamp": timestamp,
         }
 
-    def _build_detail_record(
-        self,
-        row: pd.Series,
-        signal: RSIBreakSignal,
-        line,
-        pivot_a,
-        pivot_b,
-        trend_filter_passed: bool,
-        stop_price: float,
-        candles: pd.DataFrame = None,
-    ) -> Dict[str, Any]:
-        direction = str(signal.direction).upper()
+    def _anchor_payload(self, pivot, candles: pd.DataFrame) -> Dict[str, Any]:
+        return {
+            "bar_index": int(pivot.bar_index),
+            "rsi": float(pivot.rsi_value),
+            "kind": pivot.kind,
+            "time": self._bar_time(candles, int(pivot.bar_index)),
+        }
+
+    def _detail_record(self, row, signal, segment, stop_price, candles) -> Dict[str, Any]:
         event_time = self._event_time_fields(
-            time_value=row["time"] if "time" in row.index else None,
-            fallback_bar_index=int(signal.bar_index),
+            row["time"] if "time" in row.index else None, int(signal.bar_index)
         )
-
-        def _pivot_time(bar_index: int) -> str:
-            if candles is None or "time" not in candles.columns:
-                return None
-            match = candles.loc[candles["bar_index"] == bar_index, "time"]
-            if match.empty:
-                return None
-            tv = match.iloc[0]
-            if tv is None or pd.isna(tv):
-                return None
-            if isinstance(tv, pd.Timestamp):
-                return tv.strftime("%Y-%m-%dT%H:%M:%S")
-            return str(tv)
-
         return {
             "time": event_time["time"],
             "timestamp": event_time["timestamp"],
-            "type": f"RSI_TRENDLINE_BREAK_{direction}",
+            "type": f"RSI_TRENDLINE_BREAK_{signal.side}",
             "bar_index": int(signal.bar_index),
-            "direction": direction,
+            "direction": signal.side,
+            "entry_side": signal.side,
             "entry_price": float(row["close"]),
             "price": float(row["close"]),
             "stop_price": float(stop_price),
+            "stop_rule": "swing_extreme",
+            "swing_lookback": int(self.parameters["swing_lookback"]),
             "is_retro": False,
-            "trend_filter_passed": trend_filter_passed,
+            "trend_filter_passed": True,
             "sma_period": int(self.parameters["sma_period"]),
             "sma_value": float(row["sma"]),
             "rsi_period": int(self.parameters["rsi_period"]),
             "rsi_value": float(signal.rsi_value),
-            "rsi_window": signal.rsi_window,
-            "line_direction": line.direction,
-            "line_start_bar_index": int(line.start_bar_index),
-            "line_end_bar_index": int(line.end_bar_index),
-            "line_start_rsi": float(line.start_rsi),
-            "line_end_rsi": float(line.end_rsi),
+            "segment_id": int(segment.segment_id),
+            "line_direction": segment.line.direction,
+            "line_start_bar_index": int(segment.line.start_bar_index),
+            "line_end_bar_index": int(segment.line.end_bar_index),
+            "line_start_rsi": float(segment.line.start_rsi),
+            "line_end_rsi": float(segment.line.end_rsi),
+            "line_slope": float(segment.line.slope),
             "line_value_at_break": float(signal.line_value_at_break),
-            "pivot_a_bar_index": int(pivot_a.bar_index) if pivot_a is not None else int(line.start_bar_index),
-            "pivot_a_rsi": float(pivot_a.rsi_value) if pivot_a is not None else float(line.start_rsi),
-            "pivot_a_kind": pivot_a.kind if pivot_a is not None else ("high" if line.direction == "down" else "low"),
-            "pivot_a_time": _pivot_time(int(pivot_a.bar_index)) if pivot_a is not None else _pivot_time(int(line.start_bar_index)),
-            "pivot_b_bar_index": int(pivot_b.bar_index) if pivot_b is not None else int(line.end_bar_index),
-            "pivot_b_rsi": float(pivot_b.rsi_value) if pivot_b is not None else float(line.end_rsi),
-            "pivot_b_kind": pivot_b.kind if pivot_b is not None else ("high" if line.direction == "down" else "low"),
-            "pivot_b_time": _pivot_time(int(pivot_b.bar_index)) if pivot_b is not None else _pivot_time(int(line.end_bar_index)),
+            "touch_count": int(segment.touch_count),
+            "pivot_a_bar_index": int(segment.anchor_a.bar_index),
+            "pivot_a_rsi": float(segment.anchor_a.rsi_value),
+            "pivot_a_kind": segment.anchor_a.kind,
+            "pivot_a_time": self._bar_time(candles, int(segment.anchor_a.bar_index)),
+            "pivot_b_bar_index": int(segment.anchor_b.bar_index),
+            "pivot_b_rsi": float(segment.anchor_b.rsi_value),
+            "pivot_b_kind": segment.anchor_b.kind,
+            "pivot_b_time": self._bar_time(candles, int(segment.anchor_b.bar_index)),
         }
 
+    def _rsi_series_payload(self, candles: pd.DataFrame) -> List[Dict[str, Any]]:
+        if "time" not in candles.columns:
+            return []
+        payload = []
+        for _, row in candles.iterrows():
+            value = row.get("rsi")
+            if pd.isna(value):
+                continue
+            payload.append(
+                {
+                    "bar_index": int(row["bar_index"]),
+                    "time": self._time_string(row["time"]),
+                    "rsi": float(value),
+                }
+            )
+        return payload
+
+    def _timeline_payload(self, segments, candles: pd.DataFrame) -> List[Dict[str, Any]]:
+        payload = []
+        for segment in segments:
+            payload.append(
+                {
+                    "segment_id": int(segment.segment_id),
+                    "direction": segment.line.direction,
+                    "valid_from_bar": int(segment.valid_from_bar),
+                    "valid_to_bar": int(segment.valid_to_bar),
+                    "valid_from_time": self._bar_time(candles, int(segment.valid_from_bar)),
+                    "valid_to_time": self._bar_time(candles, int(segment.valid_to_bar)),
+                    "end_reason": segment.end_reason,
+                    "slope": float(segment.line.slope),
+                    "touch_count": int(segment.touch_count),
+                    "anchor_a": self._anchor_payload(segment.anchor_a, candles),
+                    "anchor_b": self._anchor_payload(segment.anchor_b, candles),
+                }
+            )
+        return payload
+
     @staticmethod
-    def _summarize_result(
-        detailed_log: List[Dict[str, Any]],
-        exit_optimization: Dict[str, Any],
-        rsi_series: list = None,
-        all_rsi_lines: list = None,
+    def _summarize(
+        detailed_log, exit_optimization, rsi_series, line_timeline, skipped
     ) -> Dict[str, Any]:
         n = len(detailed_log)
         wins = sum(1 for entry in detailed_log if entry.get("outcome") == "WIN")
-        total_net_pnl = round(sum(float(entry.get("net_pnl", 0.0)) for entry in detailed_log), 6)
-        avg_net_pnl = round(total_net_pnl / n, 6) if n else 0.0
+        total = round(sum(float(e.get("net_pnl", 0.0)) for e in detailed_log), 6)
+        average = round(total / n, 6) if n else 0.0
 
-        result = {
+        return {
             "sample_size": n,
             "win_rate": round(wins / n, 4) if n else 0.0,
             "live_sample_size": n,
@@ -406,22 +342,27 @@ class RSITrendlineBreakHypothesis(Hypothesis):
             "retro_win_rate": 0.0,
             "avg_mfe_10": 0.0,
             "avg_mae_10": 0.0,
-            "avg_net_pnl": avg_net_pnl,
-            "net_pnl_total": total_net_pnl,
-            "composite": avg_net_pnl * (n ** 0.5) if n else 0.0,
+            "avg_net_pnl": average,
+            "net_pnl_total": total,
+            "composite": average * (n ** 0.5) if n else 0.0,
             "groups": {},
             "detailed_log": detailed_log,
             "exit_optimization": exit_optimization,
             "trade_scored": True,
+            "rsi_series": rsi_series,
+            "line_timeline": line_timeline,
+            "skipped": skipped,
         }
-        if rsi_series:
-            result["rsi_series"] = rsi_series
-        if all_rsi_lines:
-            result["all_rsi_lines"] = all_rsi_lines
-        return result
 
-    def _empty_result(self) -> Dict[str, Any]:
-        return self._summarize_result(
+    def _empty_result(self, rsi_series=None, line_timeline=None, skipped=None) -> Dict[str, Any]:
+        return self._summarize(
             detailed_log=[],
             exit_optimization={"best": None, "all_r_results": [], "per_signal": {}},
+            rsi_series=rsi_series or [],
+            line_timeline=line_timeline or [],
+            skipped=skipped
+            or {
+                "trend_filter": 0, "warmup": 0, "invalid_risk": 0,
+                "last_bar": 0, "missing_candle": 0,
+            },
         )
