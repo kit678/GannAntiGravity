@@ -5,7 +5,11 @@ from typing import Any, Dict, List
 
 import pandas as pd
 
-from analysis.rsi_line_policy import NearestPairAnchorPolicy, WalkBackAnchorPolicy
+from analysis.rsi_line_policy import (
+    AdjacentAnchorPolicy,
+    NearestPairAnchorPolicy,
+    WalkBackAnchorPolicy,
+)
 from analysis.rsi_pivots import compute_rsi_series
 from analysis.rsi_pivots import GeometryParams
 from analysis.rsi_sweep import run_causal_sweep
@@ -13,6 +17,7 @@ from analysis.signal_trade_simulator import CandleSignal, simulate_trade_grid
 from analysis.strategy_analyzer import Hypothesis
 
 POLICIES = {
+    "adjacent": AdjacentAnchorPolicy,
     "walk_back": WalkBackAnchorPolicy,
     "nearest_pair": NearestPairAnchorPolicy,
 }
@@ -43,12 +48,12 @@ class RSITrendlineBreakHypothesis(Hypothesis):
         self.set_parameters(
             rsi_period=14,
             sma_period=200,
-            anchor_policy="walk_back",
+            anchor_policy="adjacent",
             pivot_left_bars=3,
             pivot_right_bars=3,
             min_swing=8.0,
             tolerance=1.5,
-            min_line_length=8,
+            min_line_length=5,
             max_span_bars=150,
             swing_lookback=20,
             stop_buffer=0.0005,

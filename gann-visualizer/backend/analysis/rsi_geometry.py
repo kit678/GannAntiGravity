@@ -25,6 +25,7 @@ event.  This strategy needs a line that is touched, then broken.
 from __future__ import annotations
 
 from analysis.rsi_line_policy import (
+    AdjacentAnchorPolicy,
     AnchorPolicy,
     NearestPairAnchorPolicy,
     RSILine,
@@ -47,6 +48,7 @@ from analysis.rsi_sweep import (
 )
 
 __all__ = [
+    "AdjacentAnchorPolicy",
     "AnchorPolicy",
     "BreakSignal",
     "GeometryParams",

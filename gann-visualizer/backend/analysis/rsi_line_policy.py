@@ -112,6 +112,45 @@ class WalkBackAnchorPolicy:
         return None
 
 
+class AdjacentAnchorPolicy:
+    """Connect the immediately preceding same-kind pivot. Never skips.
+
+    Default policy. Walk-back's poke-through test is one-sided -- it rejects an
+    anchor only when a pivot rises ABOVE the line, and never when the line
+    floats above the structure. A steep line dropping from a tall peak clears
+    everything beneath it, so it scores zero violations while touching nothing.
+    Measured on BTCUSDT 15m, walk-back lines sat a mean 10.87 RSI points above
+    the highs they passed over (max 37.7), and 73.6% touched only their own two
+    anchors.
+
+    Raising the touch requirement does not repair that: RSI pivots are rarely
+    collinear, so the median touch count stays at 2 under every float cap and
+    pivot density tested. Adjacency instead makes skipping impossible by
+    construction -- there is no pivot between adjacent pivots.
+
+    It declines rather than reaching further back. Refusing to draw a line is
+    the correct answer when the adjacent pivot does not qualify; reaching past
+    it is what produced the floating lines.
+    """
+
+    name = "adjacent"
+
+    def anchor(
+        self, same_kind: list[RSIPivot], newest: RSIPivot, params: GeometryParams
+    ) -> RSIPivot | None:
+        earlier = [p for p in same_kind if p.bar_index < newest.bar_index]
+        if not earlier:
+            return None
+
+        candidate = earlier[-1]
+        span = newest.bar_index - candidate.bar_index
+        if span < params.min_length or span > params.max_span_bars:
+            return None
+        if not _slope_sense_ok(candidate, newest):
+            return None
+        return candidate
+
+
 class NearestPairAnchorPolicy:
     """A/B rival standing in for today's all-pairs builder.
 

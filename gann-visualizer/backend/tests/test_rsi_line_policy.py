@@ -111,3 +111,63 @@ def test_count_touches_ignores_pivots_outside_the_line_span():
     line = RSILine(start_bar_index=10, end_bar_index=40, start_rsi=70.0, end_rsi=58.0, direction="down")
 
     assert count_touches(line, pivots, tolerance=1.5) == 2  # only the two anchors
+
+
+# --- AdjacentAnchorPolicy -------------------------------------------------
+#
+# Walk-back's poke-through rule is one-sided: it rejects anchors that something
+# rises ABOVE, but never rejects a line that floats far above the structure.
+# Measured on BTCUSDT 15m, walk-back lines sit a mean 10.87 RSI points above the
+# highs they pass over (max 37.7) and 73.6% touch nothing but their two anchors.
+# Adjacency makes skipping structurally impossible instead of merely discouraged.
+
+def test_adjacent_policy_takes_the_immediately_preceding_pivot():
+    from analysis.rsi_line_policy import AdjacentAnchorPolicy
+
+    pivots = [high(10, 70.0), high(20, 64.0), high(30, 62.0), high(40, 58.0)]
+
+    anchor = AdjacentAnchorPolicy().anchor(pivots, pivots[-1], PARAMS)
+
+    assert anchor is not None
+    assert anchor.bar_index == 30, "must use the adjacent high, not reach back to 10"
+
+
+def test_adjacent_policy_refuses_to_skip_when_the_adjacent_pivot_fails():
+    """The defining property: it declines rather than reaching further back.
+
+    Walk-back would skip bar 30 here and anchor at bar 20, producing a line that
+    passes over bar 30. Adjacency emits no line at all.
+    """
+    from analysis.rsi_line_policy import AdjacentAnchorPolicy
+
+    # bar 30 is HIGHER than the newest, so it fails the lower-high test
+    pivots = [high(10, 70.0), high(20, 64.0), high(30, 45.0), high(40, 58.0)]
+
+    assert AdjacentAnchorPolicy().anchor(pivots, pivots[-1], PARAMS) is None
+
+
+def test_adjacent_policy_declines_when_the_adjacent_pivot_is_too_close():
+    from analysis.rsi_line_policy import AdjacentAnchorPolicy
+
+    pivots = [high(10, 70.0), high(37, 58.0), high(40, 55.0)]  # span 3 < min_length
+
+    assert AdjacentAnchorPolicy().anchor(pivots, pivots[-1], PARAMS) is None
+
+
+def test_adjacent_policy_never_leaves_an_intermediate_same_kind_pivot():
+    """Zero-skip, stated as the property rather than as an example."""
+    from analysis.rsi_line_policy import AdjacentAnchorPolicy
+
+    pivots = [high(0, 90.0), high(12, 80.0), high(24, 74.0), high(36, 70.0), high(48, 61.0)]
+    policy = AdjacentAnchorPolicy()
+
+    for idx in range(1, len(pivots)):
+        newest = pivots[idx]
+        anchor = policy.anchor(pivots[: idx + 1], newest, PARAMS)
+        if anchor is None:
+            continue
+        between = [
+            p for p in pivots
+            if anchor.bar_index < p.bar_index < newest.bar_index and p.kind == newest.kind
+        ]
+        assert between == [], f"skipped {[p.bar_index for p in between]}"
