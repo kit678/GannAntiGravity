@@ -21,7 +21,7 @@ import pandas as pd
 
 from analysis.rsi_trendline_hypothesis import RSITrendlineBreakHypothesis
 
-POLICIES = ("adjacent", "walk_back")
+POLICIES = ("collinear_extend", "walk_back")
 MIN_BARS = 300
 REQUIRED = {"open", "high", "low", "close"}
 
