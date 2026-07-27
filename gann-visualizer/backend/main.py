@@ -2328,7 +2328,7 @@ def _transform_per_hypothesis_payload(payload: dict, run_dir: str = None) -> dic
 
     # Pass through metadata
     for key in ("hypothesis_name", "description", "in_sample", "walk_forward", "groups",
-                "rsi_series", "all_rsi_lines"):
+                "rsi_series", "line_timeline", "skipped"):
         if key in payload:
             transformed[key] = payload[key]
 
