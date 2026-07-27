@@ -1309,8 +1309,21 @@ class HypothesisRunner:
                 "groups": in_sample.get("groups", {}),
                 "detailed_log": in_sample.get("detailed_log", []),
                 "rsi_series": in_sample.get("rsi_series", []),
-                "all_rsi_lines": in_sample.get("all_rsi_lines", []),
+                "line_timeline": in_sample.get("line_timeline", []),
+                "skipped": in_sample.get("skipped", {}),
             }
+            # net_pnl_total is what trade-scored hypotheses are judged on, so it
+            # must survive into the persisted report rather than being recomputed
+            # from detailed_log by every consumer.
+            if in_sample.get("trade_scored"):
+                result["trade_scored"] = True
+                result["in_sample"]["net_pnl_total"] = in_sample.get("net_pnl_total", 0.0)
+                result["in_sample"]["avg_net_pnl"] = in_sample.get("avg_net_pnl", 0.0)
+                # The runner skips its own ExitOptimizer for trade-scored
+                # hypotheses (below), so the hypothesis's own per-R grid is the
+                # only one there is. Spec section 13 requires preserving it.
+                if "exit_optimization" in in_sample:
+                    result["exit_optimization"] = in_sample["exit_optimization"]
 
             # Auto-compute per-angle breakdown from detailed_log if not already present
             self._add_angle_breakdown(result)
