@@ -35,6 +35,10 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
 
     // Track RSI/SMA study entities and shapes for cleanup when navigating away
     const rsiStudyRef = useRef({ studies: [], shapes: [] });
+    // Counts retries while waiting for the datafeed to populate customData.
+    // The RSI overlay maps RSI onto the price pane, so it cannot be positioned
+    // until candle prices exist. Reset per selected event.
+    const rsiOverlayRetryRef = useRef(0);
 
     // Track current clean symbol for fallback when chart.symbol() is unavailable
     const currentCleanSymbolRef = useRef(symbol);
@@ -550,6 +554,30 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
                 const ovChart = widgetRef.current.activeChart();
                 if (!ovChart) return;
 
+                // The RSI curve is drawn ON the price pane, so RSI values are
+                // mapped into a price band derived from the candles' high/low
+                // range. Without candles there is no band and nothing can be
+                // positioned.
+                //
+                // This runs on a timeout after setVisibleRange, so the datafeed
+                // may not have populated customData yet. Previously the code
+                // read `for (const candle of candles)` with candles undefined,
+                // which threw and killed the whole overlay - curve, trendlines
+                // and break marker alike - intermittently depending on load
+                // timing. Wait for the data instead of failing silently.
+                const candleData = datafeedRef.current?.customData;
+                if (!Array.isArray(candleData) || candleData.length === 0) {
+                    if (rsiOverlayRetryRef.current < 15) {
+                        rsiOverlayRetryRef.current += 1;
+                        setTimeout(drawRsiOverlay, 200);
+                    } else {
+                        console.warn(
+                            '[TVChart] RSI overlay skipped: datafeed produced no candles after 15 retries (~3s)'
+                        );
+                    }
+                    return;
+                }
+
                 // Helper: parse backend time values (numeric string = Unix seconds, date string, or number)
                 const toTimeSec = (val) => {
                     if (val == null) return null;
@@ -660,7 +688,7 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
                     hypothesisMarkerRef.current.push(labelId);
                 }
 
-                const candles = datafeedRef.current?.customData;
+                const candles = candleData;  // validated non-empty above
                 const overlayModel = buildHypothesisRsiOverlayModel(event, candles);
 
                 // If we have the full RSI series from the report, use that for the curve
@@ -933,6 +961,9 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
 
                 rsiStudyRef.current.shapes = shapes;
             };
+
+            // Fresh retry budget for each selected event
+            rsiOverlayRetryRef.current = 0;
 
             chart.setVisibleRange({ from: newFrom, to: newTo }).then(() => {
                 if (isRsiEvent) {
