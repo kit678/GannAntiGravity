@@ -1182,6 +1182,83 @@ def _sanitize_json(obj):
     return obj
 
 
+def rescore_from_realized_trades(result: dict) -> dict:
+    """Replace MFE/MAE headline metrics with realized futures-trade results.
+
+    18 of 19 hypotheses originally reported win rates from MFE/MAE labels --
+    "did price move favourably at some point within the horizon" -- which never
+    has to survive a stop. Bounce Follow-Through V5 reported 0.721 that way
+    while its realized trades won 0.176 and lost ~30,000.
+
+    ExitOptimizer already simulates the real trades and writes entry/exit/net_pnl
+    into detailed_log; only the headline numbers still came from MFE. This folds
+    those realized results into in_sample and walk_forward, and demotes the MFE
+    figures to clearly-named diagnostics (``label_win_rate``, ``avg_mfe_10``).
+
+    Only entries carrying ``trade_matched`` are counted. Entries the optimizer
+    could not match to a candle keep an MFE-derived outcome, and counting those
+    would silently re-mix the two scoring bases.
+
+    Idempotent: safe to call on a hypothesis that already scores on trades.
+    """
+    in_sample = result.get("in_sample") or {}
+    log = result.get("detailed_log") or []
+
+    trades = [e for e in log if e.get("trade_matched") and e.get("outcome") in ("WIN", "LOSS", "BREAKEVEN")]
+    if not trades:
+        result.setdefault("scoring_basis", "mfe_label")
+        return result
+
+    def _wr(entries):
+        if not entries:
+            return 0.0
+        return round(sum(1 for e in entries if e.get("outcome") == "WIN") / len(entries), 4)
+
+    def _net(entries):
+        return round(sum(float(e.get("net_pnl") or 0.0) for e in entries), 6)
+
+    # Preserve the MFE numbers once, before the first overwrite.
+    if "label_win_rate" not in in_sample:
+        in_sample["label_win_rate"] = in_sample.get("win_rate", 0.0)
+        in_sample["label_sample_size"] = in_sample.get("sample_size", 0)
+
+    live = [e for e in trades if not e.get("is_retro")]
+    retro = [e for e in trades if e.get("is_retro")]
+    total_net = _net(trades)
+
+    in_sample["sample_size"] = len(trades)
+    in_sample["win_rate"] = _wr(trades)
+    in_sample["live_sample_size"] = len(live)
+    in_sample["live_win_rate"] = _wr(live)
+    in_sample["retro_sample_size"] = len(retro)
+    in_sample["retro_win_rate"] = _wr(retro)
+    in_sample["net_pnl_total"] = total_net
+    in_sample["avg_net_pnl"] = round(total_net / len(trades), 6)
+
+    # Walk-forward on the same chronological 70/30 split, realized outcomes.
+    ordered = sorted(trades, key=lambda e: str(e.get("time", "")))
+    split = int(len(ordered) * 0.7)
+    train, test = ordered[:split], ordered[split:]
+    train_wr, test_wr = _wr(train), _wr(test)
+    result["walk_forward"] = {
+        "train_sample_size": len(train),
+        "train_win_rate": train_wr,
+        "train_net_pnl": _net(train),
+        "test_sample_size": len(test),
+        "test_win_rate": test_wr,
+        "test_net_pnl": _net(test),
+        # Persistent only if the edge survives out of sample AND is above a
+        # coin flip. An MFE-based "persistent" flag meant neither.
+        "persistent": bool(test and test_wr >= 0.5 and test_wr >= train_wr * 0.9),
+        "basis": "realized_trades",
+    }
+
+    result["in_sample"] = in_sample
+    result["trade_scored"] = True
+    result["scoring_basis"] = "realized_trades"
+    return result
+
+
 class HypothesisRunner:
     """Runs all 16 hypotheses + walk-forward validation. Writes unified output."""
 
@@ -1382,7 +1459,11 @@ class HypothesisRunner:
                                     evt["bars_held"] = trade["bars_held"]
                                     evt["entry_side"] = trade.get("entry_side", "")
                                     evt["outcome"] = "WIN" if trade["net_pnl"] > 0 else "LOSS"
-                        print(f"  [ExitOptimizer] Optimization complete for {hypothesis.name}")
+                                    evt["trade_matched"] = True
+                        rescore_from_realized_trades(result)
+                        print(f"  [ExitOptimizer] Optimization complete for {hypothesis.name} "
+                              f"(realized WR={result['in_sample'].get('win_rate')}, "
+                              f"net={result['in_sample'].get('net_pnl_total')})")
                     else:
                         n = len(qualified) if qualified is not None else 0
                         result["exit_optimization"] = {"error": f"Insufficient qualified events ({n})"}
@@ -1390,6 +1471,11 @@ class HypothesisRunner:
                 print(f"  [ExitOptimizer] ERROR for {hypothesis.name}: {e}")
                 import traceback; traceback.print_exc()
                 result["exit_optimization"] = {"error": str(e)}
+
+            # Every hypothesis is scored on realized futures trades, including
+            # those that scored themselves -- this makes walk_forward realized
+            # too, which the generic label-based path did not. Idempotent.
+            rescore_from_realized_trades(result)
 
             # Exclude stats for QuarterReversal
             if "excluded_stats" in in_sample:

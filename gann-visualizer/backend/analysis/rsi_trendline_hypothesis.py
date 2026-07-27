@@ -196,6 +196,7 @@ class RSITrendlineBreakHypothesis(Hypothesis):
                     "fees": float(trade["fees"]),
                     "bars_held": int(trade["exit_bar_index"] - trade["bar_index"]),
                     "outcome": trade["outcome"],
+                    "trade_matched": True,
                 }
             )
             detailed_log.append(entry)
