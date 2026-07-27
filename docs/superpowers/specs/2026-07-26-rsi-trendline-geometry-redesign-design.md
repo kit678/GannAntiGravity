@@ -227,6 +227,19 @@ A broken line is never reused; it is no longer a valid trendline in the strategy
 own terms, and re-firing off a stale line would produce correlated trades that
 inflate sample size without adding information.
 
+**Handoff boundary.** The two end reasons close their window differently, and the
+distinction is load-bearing:
+
+- `broken` → `valid_to_bar = break_bar` (**inclusive**). The line was genuinely
+  live at the moment it broke, and the chart must show it there.
+- `re_anchored` → `valid_to_bar = successor.valid_from_bar − 1`. The successor
+  owns the handoff bar.
+
+Closing both at the same bar would leave two live lines in one direction at every
+handoff — reintroducing the duplicate-line defect this redesign exists to remove.
+A segment whose window would invert is dropped rather than emitted. Validity
+windows are compared **inclusively** at both ends by every consumer.
+
 ### 5.5 Break detection
 
 A break at bar `b` requires the cross to complete between `b-1` and `b`:
