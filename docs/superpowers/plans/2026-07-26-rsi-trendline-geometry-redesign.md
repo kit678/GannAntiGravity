@@ -15,13 +15,18 @@
 ## Conventions used throughout
 
 - All `pytest` commands run **from the repo root** `c:\Dev\GannTesting`.
-- Backend test files start with this exact preamble (matching every existing test in `gann-visualizer/backend/tests/`):
+- Backend test files start with this exact preamble:
   ```python
   import os
   import sys
 
-  sys.path.append(os.path.abspath('C:/Dev/GannTesting/gann-visualizer/backend'))
+  sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
   ```
+  Existing tests in this repo hardcode `os.path.abspath('C:/Dev/GannTesting/gann-visualizer/backend')`.
+  **Do not copy that.** This work runs in a git worktree, where the hardcoded path
+  resolves to the *main* checkout — tests would import unmodified modules and pass
+  against the wrong code. The relative form resolves to the backend directory of
+  whichever tree the test file itself lives in.
 - Frontend tests are plain Node scripts run with `node <path>`, ending in `console.log('<filename>: ok');`.
 - There is **no** `conftest.py` or `pytest.ini` in this repo. Do not add one.
 
@@ -92,7 +97,7 @@ Create `gann-visualizer/backend/tests/test_rsi_pivots.py`:
 import os
 import sys
 
-sys.path.append(os.path.abspath('C:/Dev/GannTesting/gann-visualizer/backend'))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 import pandas as pd
 
@@ -377,7 +382,7 @@ Create `gann-visualizer/backend/tests/test_rsi_line_policy.py`:
 import os
 import sys
 
-sys.path.append(os.path.abspath('C:/Dev/GannTesting/gann-visualizer/backend'))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from analysis.rsi_line_policy import (
     NearestPairAnchorPolicy,
@@ -669,7 +674,7 @@ Create `gann-visualizer/backend/tests/test_rsi_sweep.py`:
 import os
 import sys
 
-sys.path.append(os.path.abspath('C:/Dev/GannTesting/gann-visualizer/backend'))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 import pandas as pd
 
@@ -1036,7 +1041,7 @@ a pivot superseded at bar 150 rewrites what was anchored at bar 100.
 import os
 import sys
 
-sys.path.append(os.path.abspath('C:/Dev/GannTesting/gann-visualizer/backend'))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 import pandas as pd
 import pytest
@@ -1173,7 +1178,7 @@ fixtures used pivot spans below the min_length=8 default.
 import os
 import sys
 
-sys.path.append(os.path.abspath('C:/Dev/GannTesting/gann-visualizer/backend'))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 import pandas as pd
 import pytest
@@ -1333,7 +1338,7 @@ Overwrite `gann-visualizer/backend/tests/test_rsi_trendline_hypothesis.py`:
 import os
 import sys
 
-sys.path.append(os.path.abspath('C:/Dev/GannTesting/gann-visualizer/backend'))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 import pandas as pd
 
@@ -1852,7 +1857,7 @@ Create `gann-visualizer/backend/tests/test_rsi_payload_passthrough.py`:
 import os
 import sys
 
-sys.path.append(os.path.abspath('C:/Dev/GannTesting/gann-visualizer/backend'))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from main import _transform_per_hypothesis_payload
 
@@ -2188,7 +2193,7 @@ import os
 import statistics
 import sys
 
-sys.path.append(os.path.abspath('C:/Dev/GannTesting/gann-visualizer/backend'))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 import pandas as pd
 
