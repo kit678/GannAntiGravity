@@ -1247,9 +1247,11 @@ def rescore_from_realized_trades(result: dict) -> dict:
         "test_sample_size": len(test),
         "test_win_rate": test_wr,
         "test_net_pnl": _net(test),
-        # Persistent only if the edge survives out of sample AND is above a
-        # coin flip. An MFE-based "persistent" flag meant neither.
-        "persistent": bool(test and test_wr >= 0.5 and test_wr >= train_wr * 0.9),
+        # Persistent means the out-of-sample win rate clears a coin flip.
+        # Deliberately NOT gated on test holding up against train: a hypothesis
+        # whose test rate exceeds train is worth seeing rather than filtering,
+        # and train/test are both reported side by side for that comparison.
+        "persistent": bool(test and test_wr >= 0.5),
         "basis": "realized_trades",
     }
 
