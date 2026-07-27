@@ -120,3 +120,22 @@ export function buildRsiVerificationModel(event) {
     isMinimal: false,
   };
 }
+
+/**
+ * Segments whose validity window contains `barIndex`.
+ *
+ * The backend guarantees at most one active line per direction at any bar, so
+ * this returns at most two segments. Filtering by a recorded validity window is
+ * what stops the display and the trade signal from diverging - the frontend no
+ * longer infers which line was live.
+ */
+export function selectLiveSegments(timeline, barIndex) {
+  if (!Array.isArray(timeline) || !Number.isFinite(Number(barIndex))) return [];
+  const bar = Number(barIndex);
+  return timeline.filter((segment) => {
+    const from = Number(segment?.valid_from_bar);
+    const to = Number(segment?.valid_to_bar);
+    if (!Number.isFinite(from) || !Number.isFinite(to)) return false;
+    return from <= bar && bar <= to;
+  });
+}

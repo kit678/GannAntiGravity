@@ -3,6 +3,7 @@ import createChartDatafeed from './chart/ChartDatafeed';
 import { processStudyResponse, clearAllStudyDrawings } from './study_tool/StudyDrawingUtils';
 import { normalizeHypothesisRunCandle } from './hypothesisRunContext.js';
 import { buildHypothesisRsiOverlayModel } from './hypothesisRsiOverlay.js';
+import { selectLiveSegments } from './hypothesisRsiVerification.js';
 import { buildHypothesisVisibleRange, shouldApplyRunCandleVisibleRange, shouldDeferHypothesisNavigation, shouldLoadHypothesisRunCandles } from './hypothesisChartNavigation.js';
 
 export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, interval = '60', onTradeLogged, dataSource = 'dhan', cycleType = '24_hour', sessionDuration = 'standard', onSymbolChange, onPlayingStateChange, selectedInteraction, showPatternLegend = false, showPatternDots = false, onStrategyMeta, ...props }, ref) => {
@@ -749,20 +750,15 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
                             }
                         }
 
-                        // --- Draw RSI trendlines (multiple, color-coded by direction) ---
-                        // Identify the event's broken trendline for highlighting
-                        const evtLineStart = Number(event.line_start_bar_index);
-                        const evtLineEnd = Number(event.line_end_bar_index);
-                        const evtLineDir = String(event.line_direction || event.direction || '');
-                        const allLines = props.allRsiLines;
+                        // --- Draw the RSI trendlines that were LIVE at this bar ---
+                        // At most one down-line and one up-line. No display cap,
+                        // no score boost, no event-line matching heuristic - all
+                        // three existed to manage a line cloud that no longer exists.
+                        const timeline = props.lineTimeline;
+                        const eventBar = Number(event.bar_index ?? event.break_bar_index);
+                        const liveSegments = selectLiveSegments(timeline, eventBar);
 
-                        const isEventLine = (l) =>
-                            l.start_bar_index === evtLineStart &&
-                            l.end_bar_index === evtLineEnd &&
-                            String(l.direction) === evtLineDir;
-
-                        if (allLines && Array.isArray(allLines) && allLines.length > 0) {
-                            // Build bar_index → time lookup from curveSource for extension
+                        if (liveSegments.length > 0) {
                             const barTimeMap = new Map();
                             for (const pt of curveSource) {
                                 if (Number.isFinite(pt.barIndex) && Number.isFinite(pt.time)) {
@@ -770,108 +766,60 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
                                 }
                             }
 
-                            const MAX_VISIBLE_LINES = 6;
+                            const brokenSegmentId = Number(event.segment_id);
 
-                        // First pass: collect visible lines with their drawing params
-                        // Prefer best_fit lines (RANSAC) — only fall back to event lines if no best_fit exists for the direction
-                        const drawList = [];
-                        let eventLineEntry = null;
+                            for (const segment of liveSegments) {
+                                const pa = segment.pivot_a || segment.anchor_a;
+                                const pb = segment.pivot_b || segment.anchor_b;
+                                if (!pa || !pb) continue;
 
-                        for (const line of allLines) {
-                            const pa = line.pivot_a, pb = line.pivot_b;
-                            if (!pa || !pb) continue;
-                            const ta = toTimeSec(pa.time);
-                            const tb = toTimeSec(pb.time);
-                            const ra = Number(pa.rsi), rb = Number(pb.rsi);
-                            if (!ta || !tb || !Number.isFinite(ta) || !Number.isFinite(tb)
-                                || !Number.isFinite(ra) || !Number.isFinite(rb)) continue;
+                                const ta = toTimeSec(pa.time) ?? barTimeMap.get(Number(pa.bar_index));
+                                const tb = toTimeSec(pb.time) ?? barTimeMap.get(Number(pb.bar_index));
+                                const ra = Number(pa.rsi);
+                                const rb = Number(pb.rsi);
+                                if (!Number.isFinite(ta) || !Number.isFinite(tb)
+                                    || !Number.isFinite(ra) || !Number.isFinite(rb)) continue;
 
-                            // Skip lines entirely outside visible range
-                            if (tb < visFrom || ta > visTo) continue;
+                                const isBroken = Number(segment.segment_id) === brokenSegmentId;
+                                const baseColor = segment.direction === 'up' ? '#42A5F5' : '#FFB300';
 
-                            const tlP1 = { time: ta, price: rsiToPrice(ra) };
-                            const tlP2 = { time: tb, price: rsiToPrice(rb) };
-                            if (!Number.isFinite(tlP1.price) || !Number.isFinite(tlP2.price)) continue;
+                                const segId = ovChart.createMultipointShape(
+                                    [{ time: ta, price: rsiToPrice(ra) },
+                                     { time: tb, price: rsiToPrice(rb) }],
+                                    {
+                                        shape: 'trend_line',
+                                        lock: true,
+                                        disableUndo: true,
+                                        overrides: {
+                                            linecolor: isBroken ? '#FFD700' : baseColor,
+                                            linewidth: isBroken ? 3 : 2,
+                                            linestyle: 0,
+                                        },
+                                        zOrder: 'top',
+                                    }
+                                );
+                                if (segId) { shapes.push(segId); hypothesisMarkerRef.current.push(segId); }
 
-                            const isMatch = isEventLine(line);
-                            // Boost best_fit lines so they always outrank event lines
-                            const baseScore = Number(line.score) || 0;
-                            const isBestFit = line.kind === "best_fit";
-                            const boostedScore = isBestFit ? baseScore + 1e9 : baseScore;
-                            const entry = {
-                                line, tlP1, tlP2, isMatch,
-                                score: boostedScore,
-                                isBestFit,
-                            };
-                            if (isMatch) {
-                                eventLineEntry = entry;
-                            } else {
-                                drawList.push(entry);
-                            }
-                        }
-
-                        // Sort by score descending, cap to MAX_VISIBLE_LINES
-                        drawList.sort((a, b) => b.score - a.score);
-                        const capped = drawList.slice(0, MAX_VISIBLE_LINES);
-
-                        // Always include the event's own line (if present, prepend it)
-                        const toDraw = eventLineEntry
-                            ? [eventLineEntry, ...capped]
-                            : capped;
-
-                        for (const entry of toDraw) {
-                            const { line, tlP1, tlP2, isMatch } = entry;
-
-                            // Color: up = cool blue, down = warm gold; event line = bright
-                            const lineDir = String(line.direction);
-                            const baseColor = lineDir === 'up' ? '#42A5F5' : '#FFB300';
-                            const segColor = isMatch ? '#FFD700' : baseColor;
-                            const segWidth = isMatch ? 3 : 1;
-                            const segStyle = isMatch ? 0 : 2; // solid for event, dashed for others
-
-                            const segId = ovChart.createMultipointShape([tlP1, tlP2], {
-                                shape: 'trend_line',
-                                lock: true,
-                                disableUndo: true,
-                                overrides: {
-                                    linecolor: segColor,
-                                    linewidth: segWidth,
-                                    linestyle: segStyle,
-                                },
-                                zOrder: 'top',
-                            });
-                            if (segId) {
-                                shapes.push(segId);
-                                hypothesisMarkerRef.current.push(segId);
-                            }
-
-                            // For the event's line: extend from pivot B to break bar (dashed)
-                            if (isMatch) {
-                                const breakBarIdx = Number(event.bar_index ?? event.break_bar_index);
-                                const breakTime = barTimeMap.get(breakBarIdx);
-                                const lineAtBreak = Number(event.line_value_at_break);
-                                if (breakTime && Number.isFinite(lineAtBreak)) {
-                                    const breakP = { time: breakTime, price: rsiToPrice(lineAtBreak) };
-                                    if (Number.isFinite(breakP.price)) {
-                                        const extId = ovChart.createMultipointShape([tlP2, breakP], {
-                                            shape: 'trend_line',
-                                            lock: true,
-                                            disableUndo: true,
-                                            overrides: {
-                                                linecolor: '#FFD700',
-                                                linewidth: 2,
-                                                linestyle: 2, // dashed extension
-                                            },
-                                            zOrder: 'top',
-                                        });
-                                        if (extId) {
-                                            shapes.push(extId);
-                                            hypothesisMarkerRef.current.push(extId);
-                                        }
+                                // Extend the broken line from its last anchor to the break bar
+                                if (isBroken) {
+                                    const breakTime = barTimeMap.get(eventBar);
+                                    const lineAtBreak = Number(event.line_value_at_break);
+                                    if (Number.isFinite(breakTime) && Number.isFinite(lineAtBreak)) {
+                                        const extId = ovChart.createMultipointShape(
+                                            [{ time: tb, price: rsiToPrice(rb) },
+                                             { time: breakTime, price: rsiToPrice(lineAtBreak) }],
+                                            {
+                                                shape: 'trend_line',
+                                                lock: true,
+                                                disableUndo: true,
+                                                overrides: { linecolor: '#FFD700', linewidth: 2, linestyle: 2 },
+                                                zOrder: 'top',
+                                            }
+                                        );
+                                        if (extId) { shapes.push(extId); hypothesisMarkerRef.current.push(extId); }
                                     }
                                 }
                             }
-                        }
                         } else if (overlayModel && overlayModel.trendlinePoints.length >= 2) {
                             // Fallback to single trendline from overlayModel
                             const linePoints = overlayModel.trendlinePoints

@@ -105,7 +105,7 @@ function App() {
     const [hypothesisEvents, setHypothesisEvents] = useState([]);
     const [selectedHypothesisEvent, setSelectedHypothesisEvent] = useState(null);
     const [rsiSeriesData, setRsiSeriesData] = useState(null);
-    const [allRsiLinesData, setAllRsiLinesData] = useState(null);
+    const [lineTimelineData, setLineTimelineData] = useState(null);
     const [hypothesisFilter, setHypothesisFilter] = useState('all'); // 'all' | 'win' | 'miss'
     const selectedRsiModel = useMemo(
         () => buildRsiVerificationModel(selectedHypothesisEvent),
@@ -686,7 +686,7 @@ function App() {
                         interval={chartMountInterval}
                         hypothesisRunPath={selectedSymbolRes && selectedRun ? `${selectedSymbolRes}/${selectedRun}` : ''}
                         rsiSeries={rsiSeriesData}
-                        allRsiLines={allRsiLinesData}
+                        lineTimeline={lineTimelineData}
                         visibleFanLabels={visibleFanLabels}
                         showPatternLegend={strategy === 'angular_coverage'}
                         showPatternDots={showPatternDots}
@@ -1059,7 +1059,7 @@ function App() {
                                                     const events = normalizeHypothesisEvents(raw);
                                                     setHypothesisEvents(events);
                                                     setRsiSeriesData(data.rsi_series || null);
-                                                    setAllRsiLinesData(data.all_rsi_lines || null);
+                                                    setLineTimelineData(data.line_timeline || null);
                                                     // Auto-switch the chart's data source to match the run (Binance for crypto)
                                                     const [runSym, runRes] = (selectedSymbolRes || '').split('/');
                                                     const isCrypto = /^[A-Z0-9]{2,12}USDT$/.test(runSym || '');
