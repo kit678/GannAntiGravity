@@ -1,6 +1,10 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import './App.css'
 import { TVChartContainer } from './TVChartContainer'
+import { buildRsiVerificationModel } from './hypothesisRsiVerification.js'
+import { buildLoadedHypothesisReportInfo } from './hypothesisRunContext.js'
+import { normalizeHypothesisEvents } from './hypothesisEventFormatting.js'
+import { getReportOptions, getTimestampOptions, resolveSelectedReportPath } from './hypothesisReportOptions.js'
 
 // Constants and utility functions
 const TODAY = new Date();
@@ -100,7 +104,13 @@ function App() {
     const [selectedReport, setSelectedReport] = useState('');
     const [hypothesisEvents, setHypothesisEvents] = useState([]);
     const [selectedHypothesisEvent, setSelectedHypothesisEvent] = useState(null);
+    const [rsiSeriesData, setRsiSeriesData] = useState(null);
+    const [allRsiLinesData, setAllRsiLinesData] = useState(null);
     const [hypothesisFilter, setHypothesisFilter] = useState('all'); // 'all' | 'win' | 'miss'
+    const selectedRsiModel = useMemo(
+        () => buildRsiVerificationModel(selectedHypothesisEvent),
+        [selectedHypothesisEvent]
+    );
 
     const [strategyTrades, setStrategyTrades] = useState(null);
     const [strategyTradesMode, setStrategyTradesMode] = useState('retest_baseline');
@@ -128,28 +138,18 @@ function App() {
     }, [hypothesisReports, selectedSymbolRes]);
 
     const timestampOptions = useMemo(() => {
-        if (!selectedSymbolRes || !selectedRun) return [];
-        const [sym, res] = selectedSymbolRes.split('/');
-        const seen = new Set();
-        return hypothesisReports
-            .filter(r => r.symbol === sym && r.resolution === res && r.run_id === selectedRun)
-            .filter(r => {
-                // Extract timestamp from path: .../hypothesis_reports/HHMMSS_all/...
-                const parts = r.path.split('/');
-                const ts = parts.find(p => p.match(/^\d{6}(_all)?$/));
-                if (!ts) return false;
-                if (seen.has(ts)) return false;
-                seen.add(ts);
-                return true;
-            });
+        return getTimestampOptions(hypothesisReports, selectedSymbolRes, selectedRun);
     }, [hypothesisReports, selectedSymbolRes, selectedRun]);
 
     const reportOptions = useMemo(() => {
-        if (!selectedSymbolRes || !selectedRun || !selectedTimestamp) return [];
-        const [sym, res] = selectedSymbolRes.split('/');
-        return hypothesisReports
-            .filter(r => r.symbol === sym && r.resolution === res && r.run_id === selectedRun && r.path.includes(selectedTimestamp));
+        return getReportOptions(hypothesisReports, selectedSymbolRes, selectedRun, selectedTimestamp);
     }, [hypothesisReports, selectedSymbolRes, selectedRun, selectedTimestamp]);
+
+    const loadedReportInfo = useMemo(() => {
+        if (!selectedReport) return null;
+        const report = hypothesisReports.find((entry) => entry.path === selectedReport);
+        return buildLoadedHypothesisReportInfo(report);
+    }, [hypothesisReports, selectedReport]);
 
     // Fetch available hypothesis reports on mount
     useEffect(() => {
@@ -158,6 +158,19 @@ function App() {
             .then(data => setHypothesisReports(data.reports || []))
             .catch(() => {});
     }, []);
+
+    useEffect(() => {
+        if (!selectedSymbolRes || !selectedRun) return;
+        const resolvedPath = resolveSelectedReportPath(
+            hypothesisReports,
+            selectedSymbolRes,
+            selectedRun,
+            selectedTimestamp,
+            selectedReport,
+        );
+        if (!resolvedPath || selectedReport === resolvedPath) return;
+        setSelectedReport(resolvedPath);
+    }, [hypothesisReports, selectedSymbolRes, selectedRun, selectedTimestamp, selectedReport]);
 
     // Reset selected interaction when filter changes
     useEffect(() => {
@@ -207,6 +220,12 @@ function App() {
         // We store it as is for now, the backend handles cleaning.
         activeSymbolRef.current = newSymbol;
         console.log("Active Symbol Updated:", activeSymbolRef.current);
+        // If the new symbol matches a loaded run, push the run candles into the chart
+        if (selectedSymbolRes && selectedRun && selectedRun.startsWith(newSymbol + '/')) {
+            if (chartRef.current?.loadRunCandles) {
+                chartRef.current.loadRunCandles(selectedSymbolRes + '/' + selectedRun.split('/').slice(1).join('/'));
+            }
+        }
     }, []);
 
     // Handle Data Source Switch
@@ -665,6 +684,9 @@ function App() {
                         onSymbolChange={handleSymbolChange}
                         instrumentType={instrumentType}
                         interval={chartMountInterval}
+                        hypothesisRunPath={selectedSymbolRes && selectedRun ? `${selectedSymbolRes}/${selectedRun}` : ''}
+                        rsiSeries={rsiSeriesData}
+                        allRsiLines={allRsiLinesData}
                         visibleFanLabels={visibleFanLabels}
                         showPatternLegend={strategy === 'angular_coverage'}
                         showPatternDots={showPatternDots}
@@ -934,19 +956,36 @@ function App() {
                                     <select
                                         value={selectedSymbolRes}
                                         onChange={(e) => {
-                                            const val = e.target.value;
-                                            setSelectedSymbolRes(val);
-                                            setSelectedRun('');
-                                            setSelectedTimestamp('');
-                                            setSelectedReport('');
-                                            setHypothesisEvents([]);
-                                            setSelectedHypothesisEvent(null);
-                                            // Load the symbol at the selected resolution on the chart
-                                            if (val && chartRef.current?.loadSymbolResolution) {
-                                                const [sym, res] = val.split('/');
-                                                chartRef.current.loadSymbolResolution(sym, res);
-                                            }
-                                        }}
+                                                    const val = e.target.value;
+                                                    setSelectedSymbolRes(val);
+                                                    setSelectedRun('');
+                                                    setSelectedTimestamp('');
+                                                    setSelectedReport('');
+                                                    setHypothesisEvents([]);
+                                                    setSelectedHypothesisEvent(null);
+                                                    if (val) {
+                                                        const [sym, res] = val.split('/');
+                                                        const isCrypto = /^[A-Z0-9]{2,12}USDT$/.test(sym || '');
+                                                        // For crypto, switch data source AND chart symbol so widget remounts correctly
+                                                        if (isCrypto) {
+                                                            if (dataSource !== 'binance') {
+                                                                setDataSource('binance');
+                                                            }
+                                                            setChartMountSymbol(sym);
+                                                        } else {
+                                                            if (dataSource === 'binance') {
+                                                                setDataSource('dhan');
+                                                            }
+                                                            setChartMountSymbol(sym);
+                                                        }
+                                                        // After widget remount with correct source+symbol, load resolution
+                                                        setTimeout(() => {
+                                                            if (chartRef.current?.loadSymbolResolution) {
+                                                                chartRef.current.loadSymbolResolution(sym, res);
+                                                            }
+                                                        }, 300);
+                                                    }
+                                                }}
                                         style={{ padding: '2px 5px', fontSize: '11px', maxWidth: '120px' }}
                                     >
                                         <option value="">Symbol / TF</option>
@@ -1017,30 +1056,21 @@ function App() {
                                                     } else if (data.events) {
                                                         raw = data.events;
                                                     }
-                                                    const events = raw.map((evt, i) => {
-                                                        const timeStr = evt.time || evt.datetime || '';
-                                                        let timestamp = null;
-                                                        if (timeStr && typeof timeStr === 'string') {
-                                                            // pandas format: "4/29/2026, 1:35:00 PM" — strip commas for reliable parsing
-                                                            const clean = timeStr.replace(/,/g, '');
-                                                            const ts = new Date(clean).getTime();
-                                                            if (!isNaN(ts)) timestamp = Math.floor(ts / 1000);
-                                                        }
-                                                        return {
-                                                            ...evt,
-                                                            event_id: i + 1,
-                                                            event_type: evt.event_type || evt.type || '-',
-                                                            datetime: timeStr || '-',
-                                                            timestamp: timestamp,  // numeric unix seconds
-                                                            fan_display: evt.fan_display || evt.fan || evt.fan_identity || 'Unknown',
-                                                            price: evt.price != null ? evt.price : (evt.target_price != null ? evt.target_price : null),
-                                                            mfe: evt.mfe != null ? evt.mfe : (evt.mfe_10 != null ? evt.mfe_10 : null),
-                                                            mae: evt.mae != null ? evt.mae : (evt.mae_10 != null ? evt.mae_10 : null),
-                                                            outcome: evt.outcome || evt.status || null,
-                                                            fan_geometry: evt.fan_geometry || null,
-                                                        };
-                                                    });
+                                                    const events = normalizeHypothesisEvents(raw);
                                                     setHypothesisEvents(events);
+                                                    setRsiSeriesData(data.rsi_series || null);
+                                                    setAllRsiLinesData(data.all_rsi_lines || null);
+                                                    // Auto-switch the chart's data source to match the run (Binance for crypto)
+                                                    const [runSym, runRes] = (selectedSymbolRes || '').split('/');
+                                                    const isCrypto = /^[A-Z0-9]{2,12}USDT$/.test(runSym || '');
+                                                    const neededSource = isCrypto ? 'binance' : 'dhan';
+                                                    if (dataSource !== neededSource) {
+                                                        setDataSource(neededSource);
+                                                    }
+                                                    // Load the run's candle data into the chart
+                                                    if (selectedSymbolRes && selectedRun && chartRef.current?.loadRunCandles) {
+                                                        chartRef.current.loadRunCandles(`${selectedSymbolRes}/${selectedRun}`);
+                                                    }
                                                 })
                                                 .catch(err => {
                                                     console.error("[Hypothesis] Failed to load report:", err);
@@ -1055,6 +1085,11 @@ function App() {
                                             <option key={r.path} value={r.path}>{r.report_name}</option>
                                         ))}
                                     </select>
+                                    {loadedReportInfo && (
+                                        <div style={{ fontSize: '11px', color: '#bbb' }}>
+                                            File: {loadedReportInfo.fileName} | Generated: {loadedReportInfo.generatedAtLabel}
+                                        </div>
+                                    )}
                                     <select
                                         value={hypothesisFilter}
                                         onChange={(e) => setHypothesisFilter(e.target.value)}
@@ -1069,7 +1104,7 @@ function App() {
                                     </span>
                                     {selectedHypothesisEvent && (
                                         <span style={{ fontSize: '11px', color: '#FFEB3B' }}>
-                                            Selected: {selectedHypothesisEvent.datetime} | {selectedHypothesisEvent.fan_display} | {selectedHypothesisEvent.event_type}
+                                            Selected: {selectedHypothesisEvent.datetime} | {selectedHypothesisEvent.direction || selectedHypothesisEvent.fan_display} | {selectedHypothesisEvent.event_type || selectedHypothesisEvent.type}
                                         </span>
                                     )}
                                 </div>
@@ -1083,14 +1118,33 @@ function App() {
                                                     <th>#</th>
                                                     <th>Type</th>
                                                     <th>DateTime</th>
-                                                    <th>Fan</th>
-                                                    <th>Frac</th>
-                                                    <th>Target</th>
-                                                    <th>Price</th>
-                                                    <th>Breach</th>
-                                                    <th>Outcome</th>
-                                                    <th>MFE</th>
-                                                    <th>MAE</th>
+                                                    {(filteredHypothesisEvents[0]?.rsi_value != null || filteredHypothesisEvents[0]?.best_r != null) ? (
+                                                        <>
+                                                            <th>Dir</th>
+                                                            <th>Entry</th>
+                                                            <th>Stop</th>
+                                                            <th>R</th>
+                                                            <th>Net PnL</th>
+                                                            <th>RSI</th>
+                                                            <th>SMA</th>
+                                                            <th>Trend Filter</th>
+                                                            <th>Pivots</th>
+                                                            <th>Outcome</th>
+                                                            <th>Exit</th>
+                                                            <th>Bars</th>
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <th>Fan</th>
+                                                            <th>Frac</th>
+                                                            <th>Target</th>
+                                                            <th>Price</th>
+                                                            <th>Breach</th>
+                                                            <th>Outcome</th>
+                                                            <th>MFE</th>
+                                                            <th>MAE</th>
+                                                        </>
+                                                    )}
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -1111,22 +1165,102 @@ function App() {
                                                             {evt.is_retro ? 'RETRO' : 'LIVE'}
                                                         </td>
                                                         <td style={{ fontSize: '10px' }}>{evt.datetime}</td>
-                                                        <td style={{ color: '#90CAF9', fontSize: '10px' }}>{evt.fan_display}</td>
-                                                        <td style={{ color: '#FFEB3B' }}>{evt.fraction != null ? evt.fraction : '-'}</td>
-                                                        <td style={{ color: '#FFEB3B' }}>{evt.next_angle != null ? evt.next_angle : '-'}</td>
-                                                        <td>{evt.price != null ? Number(evt.price).toFixed(2) : '-'}</td>
-                                                        <td style={{ fontSize: '9px' }}>
-                                                            {evt.breach_time ? `${evt.breach_time} ${(evt.breach_direction||'').toUpperCase()}${evt.breach_fraction ? ' @'+evt.breach_fraction : ''}${evt.breach_price ? ' '+Number(evt.breach_price).toFixed(2) : ''}` : '-'}
-                                                        </td>
-                                                        <td style={{ color: evt.outcome === 'WIN' || evt.status === 'ACCEPTED' ? '#4CAF50' : evt.outcome === 'MISS' || evt.status === 'REJECTED' || evt.status === 'NO_PULLBACK_FOUND' ? '#F44336' : '#888', fontWeight: 600 }}>
-                                                            {evt.outcome || (evt.status ? evt.status.replace(/_/g, ' ') : '-')}
-                                                        </td>
-                                                        <td>{evt.mfe != null ? Number(evt.mfe).toFixed(2) : '-'}</td>
-                                                        <td>{evt.mae != null ? Number(evt.mae).toFixed(2) : '-'}</td>
+                                                        {(evt.rsi_value != null || evt.best_r != null) ? (
+                                                            <>
+                                                                <td style={{ color: evt.direction === 'SHORT' ? '#F44336' : '#4CAF50', fontWeight: 600, fontSize: '10px' }}>
+                                                                    {evt.direction || '-'}
+                                                                </td>
+                                                                <td style={{ fontSize: '10px' }}>{evt.entry_price != null ? Number(evt.entry_price).toFixed(2) : '-'}</td>
+                                                                <td style={{ fontSize: '10px' }}>{evt.stop_price != null ? Number(evt.stop_price).toFixed(2) : '-'}</td>
+                                                                <td style={{ color: '#FFEB3B', fontSize: '10px' }}>{evt.best_r != null ? Number(evt.best_r).toFixed(1) + 'R' : '-'}</td>
+                                                                <td style={{ color: evt.net_pnl >= 0 ? '#4CAF50' : '#F44336', fontSize: '10px' }}>
+                                                                    {evt.net_pnl != null ? Number(evt.net_pnl).toFixed(2) : '-'}
+                                                                </td>
+                                                                <td style={{ fontSize: '10px' }}>{evt.rsi_value != null ? Number(evt.rsi_value).toFixed(1) : '-'}</td>
+                                                                <td style={{ fontSize: '10px' }}>{evt.sma_value != null ? Number(evt.sma_value).toFixed(2) : '-'}</td>
+                                                                <td style={{ fontSize: '10px', color: evt.trend_filter_passed ? '#4CAF50' : '#F44336' }}>
+                                                                    {evt.trend_filter_passed ? 'YES' : 'NO'}
+                                                                </td>
+                                                                <td style={{ fontSize: '9px' }}>
+                                                                    {evt.pivot_a_time != null ? (
+                                                                        <>{evt.pivot_a_kind === 'high' ? 'H' : 'L'} {String(evt.pivot_a_time).replace('T', ' ').slice(5, 16)} @{Number(evt.pivot_a_rsi).toFixed(1)}<br/></>
+                                                                    ) : null}
+                                                                    {evt.pivot_b_time != null ? (
+                                                                        <>{evt.pivot_b_kind === 'high' ? 'H' : 'L'} {String(evt.pivot_b_time).replace('T', ' ').slice(5, 16)} @{Number(evt.pivot_b_rsi).toFixed(1)}</>
+                                                                    ) : null}
+                                                                    {evt.pivot_a_time == null && evt.pivot_b_time == null ? '-' : null}
+                                                                </td>
+                                                                <td style={{ color: evt.outcome === 'WIN' ? '#4CAF50' : evt.outcome === 'LOSS' ? '#F44336' : '#888', fontWeight: 600, fontSize: '10px' }}>
+                                                                    {evt.outcome || '-'}
+                                                                </td>
+                                                                <td style={{ fontSize: '10px' }}>{evt.exit_reason || '-'}</td>
+                                                                <td style={{ fontSize: '10px' }}>{evt.bars_held != null ? evt.bars_held : '-'}</td>
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <td style={{ color: '#90CAF9', fontSize: '10px' }}>{evt.fan_display}</td>
+                                                                <td style={{ color: '#FFEB3B' }}>{evt.fraction != null ? evt.fraction : '-'}</td>
+                                                                <td style={{ color: '#FFEB3B' }}>{evt.next_angle != null ? evt.next_angle : '-'}</td>
+                                                                <td>{evt.price != null ? Number(evt.price).toFixed(2) : '-'}</td>
+                                                                <td style={{ fontSize: '9px' }}>
+                                                                    {evt.breach_time ? `${evt.breach_time} ${(evt.breach_direction||'').toUpperCase()}${evt.breach_fraction ? ' @'+evt.breach_fraction : ''}${evt.breach_price ? ' '+Number(evt.breach_price).toFixed(2) : ''}` : '-'}
+                                                                </td>
+                                                                <td style={{ color: evt.outcome === 'WIN' || evt.status === 'ACCEPTED' ? '#4CAF50' : evt.outcome === 'MISS' || evt.status === 'REJECTED' || evt.status === 'NO_PULLBACK_FOUND' ? '#F44336' : '#888', fontWeight: 600 }}>
+                                                                    {evt.outcome || (evt.status ? evt.status.replace(/_/g, ' ') : '-')}
+                                                                </td>
+                                                                <td>{evt.mfe != null ? Number(evt.mfe).toFixed(2) : '-'}</td>
+                                                                <td>{evt.mae != null ? Number(evt.mae).toFixed(2) : '-'}</td>
+                                                            </>
+                                                        )}
                                                     </tr>
                                                 ))}
                                             </tbody>
                                         </table>
+                                    </div>
+                                )}
+                                {selectedHypothesisEvent && selectedRsiModel && (
+                                    <div style={{ marginTop: '12px', padding: '12px', backgroundColor: '#111827', border: '1px solid #1f2937', borderRadius: '6px' }}>
+                                        <div style={{ fontSize: '12px', fontWeight: 600, color: '#E5E7EB', marginBottom: '10px' }}>
+                                            RSI Verification
+                                        </div>
+                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '8px', fontSize: '11px', marginBottom: '10px' }}>
+                                            <div><strong>Side:</strong> {selectedRsiModel.summary.side}</div>
+                                            <div><strong>Outcome:</strong> {selectedRsiModel.summary.tradeResult}</div>
+                                            <div><strong>Trend Filter:</strong> {selectedRsiModel.summary.trendFilter}</div>
+                                            <div><strong>Best R:</strong> {selectedRsiModel.summary.bestRLabel}</div>
+                                            <div><strong>Stop Price:</strong> {selectedRsiModel.summary.stopPrice != null ? selectedRsiModel.summary.stopPrice.toFixed(2) : '-'}</div>
+                                            <div><strong>SMA 200:</strong> {selectedHypothesisEvent.sma_200 != null ? selectedHypothesisEvent.sma_200.toFixed(2) : '-'}</div>
+                                            <div><strong>Pivot A Bar:</strong> {selectedHypothesisEvent.pivot_a_bar_index ?? '-'}</div>
+                                            <div><strong>Pivot B Bar:</strong> {selectedHypothesisEvent.pivot_b_bar_index ?? '-'}</div>
+                                            <div><strong>Line Start Bar:</strong> {selectedRsiModel.line.startBarIndex ?? '-'}</div>
+                                            <div><strong>Line End Bar:</strong> {selectedRsiModel.line.endBarIndex ?? '-'}</div>
+                                            <div><strong>Line Start RSI:</strong> {selectedRsiModel.line.startRsi != null ? selectedRsiModel.line.startRsi.toFixed(2) : '-'}</div>
+                                            <div><strong>Line End RSI:</strong> {selectedRsiModel.line.endRsi != null ? selectedRsiModel.line.endRsi.toFixed(2) : '-'}</div>
+                                            <div><strong>Break Bar:</strong> {selectedRsiModel.breakPoint.barIndex ?? '-'}</div>
+                                            <div><strong>Break RSI:</strong> {selectedRsiModel.breakPoint.rsi != null ? selectedRsiModel.breakPoint.rsi.toFixed(2) : '-'}</div>
+                                            <div><strong>Line @ Break:</strong> {selectedRsiModel.breakPoint.lineValue != null ? selectedRsiModel.breakPoint.lineValue.toFixed(2) : '-'}</div>
+                                            <div><strong>Window Points:</strong> {selectedRsiModel.windowPoints.length}</div>
+                                        </div>
+                                        {selectedRsiModel.windowPoints.length > 0 ? (
+                                            <div className="table-container" style={{ overflowX: 'auto' }}>
+                                                <table className="interactions-table" style={{ whiteSpace: 'nowrap', fontSize: '10px' }}>
+                                                    <thead>
+                                                        <tr><th>Bar</th><th>RSI</th><th>Line</th></tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        {selectedRsiModel.windowPoints.map((point, idx) => (
+                                                            <tr key={`${point.barIndex}-${idx}`}>
+                                                                <td>{point.barIndex ?? '-'}</td>
+                                                                <td>{point.rsi != null ? point.rsi.toFixed(2) : '-'}</td>
+                                                                <td>{point.lineValue != null ? point.lineValue.toFixed(2) : '-'}</td>
+                                                            </tr>
+                                                        ))}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        ) : (
+                                            <p style={{ fontSize: '11px', color: '#888' }}>RSI window data not available for this event.</p>
+                                        )}
                                     </div>
                                 )}
                             </div>

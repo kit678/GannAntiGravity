@@ -1,6 +1,9 @@
 import React, { useEffect, useRef, useState, useImperativeHandle, forwardRef } from 'react';
 import createChartDatafeed from './chart/ChartDatafeed';
 import { processStudyResponse, clearAllStudyDrawings } from './study_tool/StudyDrawingUtils';
+import { normalizeHypothesisRunCandle } from './hypothesisRunContext.js';
+import { buildHypothesisRsiOverlayModel } from './hypothesisRsiOverlay.js';
+import { buildHypothesisVisibleRange, shouldApplyRunCandleVisibleRange, shouldDeferHypothesisNavigation, shouldLoadHypothesisRunCandles } from './hypothesisChartNavigation.js';
 
 export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, interval = '60', onTradeLogged, dataSource = 'dhan', cycleType = '24_hour', sessionDuration = 'standard', onSymbolChange, onPlayingStateChange, selectedInteraction, showPatternLegend = false, showPatternDots = false, onStrategyMeta, ...props }, ref) => {
     const chartContainerRef = useRef(null);
@@ -28,6 +31,9 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
 
     // Track indicator line series (EMA, etc.) for cleanup
     const indicatorLinesRef = useRef({});
+
+    // Track RSI/SMA study entities and shapes for cleanup when navigating away
+    const rsiStudyRef = useRef({ studies: [], shapes: [] });
 
     // Track current clean symbol for fallback when chart.symbol() is unavailable
     const currentCleanSymbolRef = useRef(symbol);
@@ -419,6 +425,616 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
     // Track last navigated event key to skip re-render for same fan
     const lastNavigatedEventKeyRef = useRef(null);
     const navigationGenerationRef = useRef(0);
+    const selectedHypothesisEventRef = useRef(null);
+    const pendingHypothesisEventRef = useRef(null);
+    const isLoadingRunCandlesRef = useRef(false);
+    const loadedHypothesisRunPathRef = useRef(null);
+
+    const executeHypothesisNavigation = (event) => {
+        if (!widgetRef.current) return;
+        const chart = widgetRef.current.activeChart();
+        if (!chart) return;
+
+        const eventKey = event.event_id != null ? String(event.event_id) : ((event.fan_display || '') + '|' + (event.datetime || event.time || ''));
+        if (lastNavigatedEventKeyRef.current === eventKey) return;
+        lastNavigatedEventKeyRef.current = eventKey;
+        selectedHypothesisEventRef.current = eventKey;
+
+        const gen = ++navigationGenerationRef.current;
+
+        hypothesisMarkerRef.current.forEach(m => {
+            try {
+                if (m && typeof m.then === 'function') {
+                    m.then(id => { if (id) chart.removeEntity(id); }).catch(() => {});
+                } else if (m) {
+                    chart.removeEntity(m);
+                }
+            } catch (_) {}
+        });
+        hypothesisMarkerRef.current = [];
+
+        clearAllStudyDrawings(chart, studyShapesRef.current);
+        studyShapesRef.current = {};
+
+        Object.values(indicatorLinesRef.current).forEach(ids => {
+            const idList = Array.isArray(ids) ? ids : [ids];
+            idList.forEach(id => {
+                try { chart.removeEntity(id); } catch (e) { /* ignore */ }
+            });
+        });
+        indicatorLinesRef.current = {};
+
+        rsiStudyRef.current.studies.forEach(id => {
+            try { chart.removeEntity(id); } catch (e) { /* ignore */ }
+        });
+        rsiStudyRef.current.shapes.forEach(id => {
+            try { chart.removeEntity(id); } catch (e) { /* ignore */ }
+        });
+        rsiStudyRef.current = { studies: [], shapes: [] };
+
+        let visibleRange = null;
+        try {
+            visibleRange = chart.getVisibleRange();
+        } catch (_) {}
+        const {
+            from: newFrom,
+            to: newTo,
+            centerTimeSec,
+        } = buildHypothesisVisibleRange({ event, visibleRange });
+        const eventTimeSec = event?.timestamp != null
+            ? (event.timestamp < 2000000000 ? event.timestamp : Math.floor(event.timestamp / 1000))
+            : centerTimeSec;
+
+        function drawMarkerAndFan() {
+            if (gen !== navigationGenerationRef.current) return;
+            if (event.price != null) {
+                const iconId = chart.createShape(
+                    { time: eventTimeSec, price: event.price },
+                    {
+                        shape: 'icon',
+                        lock: true,
+                        disableSelection: true,
+                        disableSave: true,
+                        overrides: { color: '#FFFFFF', size: 10 },
+                        icon: 0xf0ab,
+                    }
+                );
+                if (iconId) hypothesisMarkerRef.current.push(iconId);
+                const lineId = chart.createShape(
+                    { time: eventTimeSec, price: event.price },
+                    {
+                        shape: 'vertical_line',
+                        lock: true,
+                        disableSelection: true,
+                        disableSave: true,
+                        overrides: { color: '#FFFFFF', linestyle: 2, linewidth: 1, showLabel: false },
+                    }
+                );
+                if (lineId) hypothesisMarkerRef.current.push(lineId);
+            }
+
+            if (event.fan_geometry && event.fan_geometry.rays && event.fan_geometry.rays.length > 0) {
+                const studyData = {
+                    drawings: event.fan_geometry.rays.map(ray => ({
+                        id: ray.id,
+                        type: 'trend_line',
+                        points: ray.points,
+                        options: {
+                            linecolor: ray.color,
+                            linewidth: ray.width,
+                            linestyle: 0,
+                            extendRight: true,
+                            fanIdentity: event.fan_display,
+                            fanLabel: event.fan_display
+                        }
+                    })),
+                    pivot_markers: (() => {
+                        const m = [];
+                        const g = event.fan_geometry;
+                        if (g.origin && g.origin.time) m.push({ type: g.origin.label === 'high' ? 'pivot_high' : 'pivot_low', time: g.origin.time, price: g.origin.price, text: event.fan_display || (g.origin.label||'').toUpperCase() });
+                        if (g.anchor && g.anchor.time) m.push({ type: g.anchor.label === 'high' ? 'pivot_high' : 'pivot_low', time: g.anchor.time, price: g.anchor.price });
+                        return m;
+                    })()
+                };
+                studyShapesRef.current = processStudyResponse(chart, studyData, studyShapesRef.current);
+            }
+        }
+
+        const isRsiEvent = event.rsi_value != null
+                || (event.event_type && String(event.event_type).startsWith('RSI_TRENDLINE_BREAK_'))
+                || (Array.isArray(event.rsi_window) && event.rsi_window.length > 0);
+
+            const drawRsiOverlay = () => {
+                if (!widgetRef.current) return;
+                const ovChart = widgetRef.current.activeChart();
+                if (!ovChart) return;
+
+                // Helper: parse backend time values (numeric string = Unix seconds, date string, or number)
+                const toTimeSec = (val) => {
+                    if (val == null) return null;
+                    if (typeof val === 'number') return val > 1000000000 ? val : null;
+                    const num = Number(val);
+                    if (Number.isFinite(num) && num > 1000000000) return num;
+                    const d = new Date(val);
+                    return Number.isFinite(d.getTime()) ? d.getTime() / 1000 : null;
+                };
+
+                const shapes = [];
+
+                try {
+                    ovChart.createStudy('Relative Strength Index', false, false, {length: 14})
+                        .then(id => {
+                            if (id) {
+                                console.log('[TVChart] Added RSI(14) study:', id);
+                                rsiStudyRef.current.studies.push(id);
+                            }
+                        })
+                        .catch(e => console.warn('[TVChart] RSI study resolve failed:', e));
+                } catch (e) {
+                    console.warn('[TVChart] createStudy RSI failed:', e);
+                }
+
+                try {
+                    ovChart.createStudy('Moving Average', true, false, {length: 200}, {
+                        'plot.color': '#FF9800',
+                        'plot.linewidth': 2,
+                    })
+                        .then(id => {
+                            if (id) {
+                                console.log('[TVChart] Added SMA(200) study:', id);
+                                rsiStudyRef.current.studies.push(id);
+                            }
+                        })
+                        .catch(e => console.warn('[TVChart] SMA study resolve failed:', e));
+                } catch (e) {
+                    console.warn('[TVChart] createStudy SMA failed:', e);
+                }
+
+                if (event.entry_price != null) {
+                    const side = (event.entry_side || event.direction || '').toUpperCase();
+                    const entryColor = side === 'SHORT' ? '#EF5350' : '#4CAF50';
+                    const entryLineId = ovChart.createShape(
+                        { time: eventTimeSec, price: event.entry_price },
+                        {
+                            shape: 'horizontal_line',
+                            lock: true,
+                            disableUndo: true,
+                            overrides: {
+                                color: entryColor,
+                                linestyle: 2,
+                                linewidth: 2,
+                                showLabel: true,
+                                text: `ENTRY ${side} @ ${event.entry_price.toFixed(2)}`,
+                            },
+                        }
+                    );
+                    if (entryLineId) {
+                        shapes.push(entryLineId);
+                        hypothesisMarkerRef.current.push(entryLineId);
+                    }
+                }
+
+                if (event.stop_price != null) {
+                    const stopLineId = ovChart.createShape(
+                        { time: eventTimeSec, price: event.stop_price },
+                        {
+                            shape: 'horizontal_line',
+                            lock: true,
+                            disableUndo: true,
+                            overrides: {
+                                color: '#F44336',
+                                linestyle: 2,
+                                linewidth: 1,
+                                showLabel: true,
+                                text: `STOP @ ${event.stop_price.toFixed(2)}`,
+                            },
+                        }
+                    );
+                    if (stopLineId) {
+                        shapes.push(stopLineId);
+                        hypothesisMarkerRef.current.push(stopLineId);
+                    }
+                }
+
+                const labelText = event.rsi_value != null
+                    ? `RSI: ${event.rsi_value.toFixed(1)} | Line: ${event.line_value_at_break != null ? event.line_value_at_break.toFixed(1) : '-'}`
+                    : 'RSI Break';
+                const labelId = ovChart.createShape(
+                    { time: eventTimeSec, price: event.price || event.entry_price || 0 },
+                    {
+                        shape: 'label_down',
+                        lock: true,
+                        disableUndo: true,
+                        overrides: {
+                            color: '#FFFFFF',
+                            backgroundColor: event.entry_side === 'SHORT' ? '#EF5350' : '#4CAF50',
+                            fontsize: 12,
+                            text: labelText,
+                        },
+                        text: labelText,
+                    }
+                );
+                if (labelId) {
+                    shapes.push(labelId);
+                    hypothesisMarkerRef.current.push(labelId);
+                }
+
+                const candles = datafeedRef.current?.customData;
+                const overlayModel = buildHypothesisRsiOverlayModel(event, candles);
+
+                // If we have the full RSI series from the report, use that for the curve
+                const rsiSeries = props.rsiSeries;
+                const hasFullRsiSeries = rsiSeries && Array.isArray(rsiSeries) && rsiSeries.length > 0;
+
+                if (hasFullRsiSeries || (overlayModel && overlayModel.windowPoints.length > 0 && candles && candles.length > 0)) {
+                    let rsiMin = Infinity, rsiMax = -Infinity;
+                    let priceMin = Infinity, priceMax = -Infinity;
+
+                    // Build RSI curve points — use full series when available
+                    const curveSource = hasFullRsiSeries
+                        ? rsiSeries.map(p => ({
+                            time: toTimeSec(p.time),
+                            rsi: Number(p.rsi),
+                            barIndex: Number(p.bar_index),
+                        })).filter(p => Number.isFinite(p.time) && p.time > 0 && Number.isFinite(p.rsi))
+                        : (() => {
+                            const pts = [];
+                            for (const pt of overlayModel.windowPoints) {
+                                const rsi = pt.rsi;
+                                if (rsi == null || !Number.isFinite(rsi)) continue;
+                                const timeSec = pt.time;
+                                if (!Number.isFinite(timeSec) || timeSec <= 0) continue;
+                                pts.push({ time: timeSec, rsi, barIndex: pt.barIndex });
+                            }
+                            return pts;
+                        })();
+
+                    // --- Draw RSI curve & trendlines on price pane ---
+                        // Determine visible time window for RSI range matching (like RSI panel)
+                        let visFrom = -Infinity, visTo = Infinity;
+                        try {
+                            const vr = ovChart.getVisibleRange();
+                            if (vr && vr.from && vr.to) { visFrom = vr.from; visTo = vr.to; }
+                        } catch (_) {}
+                        if (!Number.isFinite(visFrom) && curveSource.length > 0) {
+                            visFrom = curveSource[0].time;
+                            visTo = curveSource[curveSource.length - 1].time;
+                        }
+
+                    for (const p of curveSource) {
+                        if (p.rsi < rsiMin) rsiMin = p.rsi;
+                        if (p.rsi > rsiMax) rsiMax = p.rsi;
+                    }
+
+                    for (const candle of candles) {
+                        if (!Number.isFinite(candle?.low) || !Number.isFinite(candle?.high)) continue;
+                        if (candle.low < priceMin) priceMin = candle.low;
+                        if (candle.high > priceMax) priceMax = candle.high;
+                    }
+
+                    if (curveSource.length >= 2 && Number.isFinite(rsiMin) && Number.isFinite(priceMin)) {
+                        const rsiRange = rsiMax - rsiMin || 1;
+                        const priceRange = priceMax - priceMin || 1;
+                        // RSI band: 25% of chart height, positioned near the top (75%–100% of chart)
+                        // Keeps RSI curve clearly separated from the candlestick price action
+                        const bandTop = priceMin + priceRange * 1.00;
+                        const bandHeight = priceRange * 0.25;
+                        const rsiToPrice = (rsi) => bandTop - bandHeight + ((rsi - rsiMin) / rsiRange) * bandHeight;
+
+                        const rsiLinePoints = curveSource.map(p => ({
+                            time: p.time,
+                            price: rsiToPrice(p.rsi),
+                        }));
+
+                        for (let i = 0; i < rsiLinePoints.length - 1; i++) {
+                            const p1 = rsiLinePoints[i], p2 = rsiLinePoints[i + 1];
+                            if (!p1 || !p2 || !Number.isFinite(p1.time) || !Number.isFinite(p1.price)
+                                || !Number.isFinite(p2.time) || !Number.isFinite(p2.price)) continue;
+                            // Skip segments entirely outside visible range
+                            if (p2.time < visFrom || p1.time > visTo) continue;
+                            const segId = ovChart.createMultipointShape([p1, p2], {
+                                shape: 'trend_line',
+                                lock: true,
+                                disableUndo: true,
+                                overrides: {
+                                    linecolor: hasFullRsiSeries ? '#00BCD4' : '#00BCD4',
+                                    linewidth: 1,
+                                    linestyle: 0,
+                                },
+                                zOrder: 'top',
+                            });
+                            if (segId) {
+                                shapes.push(segId);
+                                hypothesisMarkerRef.current.push(segId);
+                            }
+                        }
+
+                        // --- Draw RSI trendlines (multiple, color-coded by direction) ---
+                        // Identify the event's broken trendline for highlighting
+                        const evtLineStart = Number(event.line_start_bar_index);
+                        const evtLineEnd = Number(event.line_end_bar_index);
+                        const evtLineDir = String(event.line_direction || event.direction || '');
+                        const allLines = props.allRsiLines;
+
+                        const isEventLine = (l) =>
+                            l.start_bar_index === evtLineStart &&
+                            l.end_bar_index === evtLineEnd &&
+                            String(l.direction) === evtLineDir;
+
+                        if (allLines && Array.isArray(allLines) && allLines.length > 0) {
+                            // Build bar_index → time lookup from curveSource for extension
+                            const barTimeMap = new Map();
+                            for (const pt of curveSource) {
+                                if (Number.isFinite(pt.barIndex) && Number.isFinite(pt.time)) {
+                                    barTimeMap.set(pt.barIndex, pt.time);
+                                }
+                            }
+
+                            const MAX_VISIBLE_LINES = 6;
+
+                        // First pass: collect visible lines with their drawing params
+                        // Prefer best_fit lines (RANSAC) — only fall back to event lines if no best_fit exists for the direction
+                        const drawList = [];
+                        let eventLineEntry = null;
+
+                        for (const line of allLines) {
+                            const pa = line.pivot_a, pb = line.pivot_b;
+                            if (!pa || !pb) continue;
+                            const ta = toTimeSec(pa.time);
+                            const tb = toTimeSec(pb.time);
+                            const ra = Number(pa.rsi), rb = Number(pb.rsi);
+                            if (!ta || !tb || !Number.isFinite(ta) || !Number.isFinite(tb)
+                                || !Number.isFinite(ra) || !Number.isFinite(rb)) continue;
+
+                            // Skip lines entirely outside visible range
+                            if (tb < visFrom || ta > visTo) continue;
+
+                            const tlP1 = { time: ta, price: rsiToPrice(ra) };
+                            const tlP2 = { time: tb, price: rsiToPrice(rb) };
+                            if (!Number.isFinite(tlP1.price) || !Number.isFinite(tlP2.price)) continue;
+
+                            const isMatch = isEventLine(line);
+                            // Boost best_fit lines so they always outrank event lines
+                            const baseScore = Number(line.score) || 0;
+                            const isBestFit = line.kind === "best_fit";
+                            const boostedScore = isBestFit ? baseScore + 1e9 : baseScore;
+                            const entry = {
+                                line, tlP1, tlP2, isMatch,
+                                score: boostedScore,
+                                isBestFit,
+                            };
+                            if (isMatch) {
+                                eventLineEntry = entry;
+                            } else {
+                                drawList.push(entry);
+                            }
+                        }
+
+                        // Sort by score descending, cap to MAX_VISIBLE_LINES
+                        drawList.sort((a, b) => b.score - a.score);
+                        const capped = drawList.slice(0, MAX_VISIBLE_LINES);
+
+                        // Always include the event's own line (if present, prepend it)
+                        const toDraw = eventLineEntry
+                            ? [eventLineEntry, ...capped]
+                            : capped;
+
+                        for (const entry of toDraw) {
+                            const { line, tlP1, tlP2, isMatch } = entry;
+
+                            // Color: up = cool blue, down = warm gold; event line = bright
+                            const lineDir = String(line.direction);
+                            const baseColor = lineDir === 'up' ? '#42A5F5' : '#FFB300';
+                            const segColor = isMatch ? '#FFD700' : baseColor;
+                            const segWidth = isMatch ? 3 : 1;
+                            const segStyle = isMatch ? 0 : 2; // solid for event, dashed for others
+
+                            const segId = ovChart.createMultipointShape([tlP1, tlP2], {
+                                shape: 'trend_line',
+                                lock: true,
+                                disableUndo: true,
+                                overrides: {
+                                    linecolor: segColor,
+                                    linewidth: segWidth,
+                                    linestyle: segStyle,
+                                },
+                                zOrder: 'top',
+                            });
+                            if (segId) {
+                                shapes.push(segId);
+                                hypothesisMarkerRef.current.push(segId);
+                            }
+
+                            // For the event's line: extend from pivot B to break bar (dashed)
+                            if (isMatch) {
+                                const breakBarIdx = Number(event.bar_index ?? event.break_bar_index);
+                                const breakTime = barTimeMap.get(breakBarIdx);
+                                const lineAtBreak = Number(event.line_value_at_break);
+                                if (breakTime && Number.isFinite(lineAtBreak)) {
+                                    const breakP = { time: breakTime, price: rsiToPrice(lineAtBreak) };
+                                    if (Number.isFinite(breakP.price)) {
+                                        const extId = ovChart.createMultipointShape([tlP2, breakP], {
+                                            shape: 'trend_line',
+                                            lock: true,
+                                            disableUndo: true,
+                                            overrides: {
+                                                linecolor: '#FFD700',
+                                                linewidth: 2,
+                                                linestyle: 2, // dashed extension
+                                            },
+                                            zOrder: 'top',
+                                        });
+                                        if (extId) {
+                                            shapes.push(extId);
+                                            hypothesisMarkerRef.current.push(extId);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        } else if (overlayModel && overlayModel.trendlinePoints.length >= 2) {
+                            // Fallback to single trendline from overlayModel
+                            const linePoints = overlayModel.trendlinePoints
+                                .filter((pt) => Number.isFinite(pt?.lineValue) && Number.isFinite(pt?.time))
+                                .map((pt) => ({
+                                    time: pt.time,
+                                    price: rsiToPrice(pt.lineValue),
+                                    lineValue: pt.lineValue,
+                                }));
+
+                            for (let i = 0; i < linePoints.length - 1; i++) {
+                                const p1 = linePoints[i], p2 = linePoints[i + 1];
+                                if (!p1 || !p2 || !Number.isFinite(p1.time) || !Number.isFinite(p1.price)
+                                    || !Number.isFinite(p2.time) || !Number.isFinite(p2.price)) continue;
+                                const segId = ovChart.createMultipointShape([p1, p2], {
+                                    shape: 'trend_line',
+                                    lock: true,
+                                    disableUndo: true,
+                                    overrides: {
+                                        linecolor: '#FFD700',
+                                        linewidth: 2,
+                                        linestyle: 0,
+                                    },
+                                    zOrder: 'top',
+                                });
+                                if (segId) {
+                                    shapes.push(segId);
+                                    hypothesisMarkerRef.current.push(segId);
+                                }
+                            }
+
+                            const startPt = linePoints[0];
+                            const startRsi = linePoints[0].lineValue;
+                            const startLabelId = ovChart.createShape(
+                                { time: startPt.time, price: startPt.price },
+                                {
+                                    shape: 'label_down',
+                                    lock: true, disableUndo: true,
+                                    overrides: {
+                                        color: '#FFD700',
+                                        backgroundColor: 'rgba(0,0,0,0.7)',
+                                        fontsize: 10,
+                                        text: `TL:${startRsi.toFixed(1)}`,
+                                    },
+                                    text: `TL:${startRsi.toFixed(1)}`,
+                                }
+                            );
+                            if (startLabelId) { shapes.push(startLabelId); hypothesisMarkerRef.current.push(startLabelId); }
+
+                            const endPt = linePoints[linePoints.length - 1];
+                            const endRsi = linePoints[linePoints.length - 1].lineValue;
+                            const endLabelId = ovChart.createShape(
+                                { time: endPt.time, price: endPt.price },
+                                {
+                                    shape: 'label_down',
+                                    lock: true, disableUndo: true,
+                                    overrides: {
+                                        color: '#FFD700',
+                                        backgroundColor: 'rgba(0,0,0,0.7)',
+                                        fontsize: 10,
+                                        text: `TL:${endRsi.toFixed(1)}`,
+                                    },
+                                    text: `TL:${endRsi.toFixed(1)}`,
+                                }
+                            );
+                            if (endLabelId) { shapes.push(endLabelId); hypothesisMarkerRef.current.push(endLabelId); }
+                        }
+
+                        const breakPoint = overlayModel?.breakPoint;
+                        if (breakPoint && Number.isFinite(breakPoint.rsi)) {
+                            const breakTime = breakPoint.time;
+                            const breakPrice = rsiToPrice(breakPoint.rsi);
+                            const breakText = `BREAK RSI:${breakPoint.rsi.toFixed(1)} L:${Number.isFinite(breakPoint.lineValue) ? breakPoint.lineValue.toFixed(1) : '?'}`;
+
+                            const breakMarkerId = ovChart.createShape(
+                                { time: breakTime, price: breakPrice },
+                                {
+                                    shape: 'arrow_down',
+                                    lock: true, disableUndo: true,
+                                    overrides: {
+                                        color: '#FF1744',
+                                        backgroundColor: '#FF1744',
+                                        size: 6,
+                                        text: breakText,
+                                    },
+                                    text: breakText,
+                                }
+                            );
+                            if (breakMarkerId) { shapes.push(breakMarkerId); hypothesisMarkerRef.current.push(breakMarkerId); }
+
+                            const breakLabelId = ovChart.createShape(
+                                { time: breakTime, price: breakPrice },
+                                {
+                                    shape: 'label_up',
+                                    lock: true, disableUndo: true,
+                                    overrides: {
+                                        color: '#FFFFFF',
+                                        backgroundColor: '#FF1744',
+                                        fontsize: 10,
+                                        text: breakText,
+                                    },
+                                    text: breakText,
+                                }
+                            );
+                            if (breakLabelId) { shapes.push(breakLabelId); hypothesisMarkerRef.current.push(breakLabelId); }
+                        }
+                    }
+                } else {
+                    console.log('[TVChart] RSI trendline: no rsi_window data or candles available');
+                }
+
+                rsiStudyRef.current.shapes = shapes;
+            };
+
+            chart.setVisibleRange({ from: newFrom, to: newTo }).then(() => {
+                if (isRsiEvent) {
+                    setTimeout(() => drawRsiOverlay(), 200);
+                }
+                setTimeout(() => drawMarkerAndFan(), 400);
+            }).catch(() => {
+                if (isRsiEvent) {
+                    drawRsiOverlay();
+                }
+                drawMarkerAndFan();
+            });
+    };
+
+    const loadHypothesisRunCandles = async (runPath) => {
+        if (!datafeedRef.current || !widgetRef.current) return;
+        isLoadingRunCandlesRef.current = true;
+        try {
+            const resp = await fetch(`http://localhost:8005/api/hypothesis-runs/${runPath}/candles`);
+            if (!resp.ok) { console.warn(`[TVChart] Failed to load run candles: ${resp.status}`); return; }
+            const data = await resp.json();
+            if (!data.candles || data.candles.length === 0) { console.warn('[TVChart] No candles in run'); return; }
+            const resolution = String(data.resolution || '15');
+            const normalized = data.candles.map(normalizeHypothesisRunCandle);
+            console.log(`[TVChart] Loading ${normalized.length} run candles @ ${resolution}m into chart`);
+            datafeedRef.current.setBacktestData(normalized, resolution, () => {
+                isLoadingRunCandlesRef.current = false;
+                loadedHypothesisRunPathRef.current = runPath;
+                console.log('[TVChart] Run candles loaded into chart');
+                try {
+                    const chart = widgetRef.current && widgetRef.current.activeChart();
+                    if (chart && shouldApplyRunCandleVisibleRange({ hasSelectedEvent: Boolean(selectedHypothesisEventRef.current) })) {
+                        const firstTime = normalized[0].time / 1000;
+                        const lastTime = normalized[normalized.length - 1].time / 1000;
+                        chart.setVisibleRange({ from: firstTime, to: lastTime + 1800 });
+                    }
+                } catch (e) { console.warn('[TVChart] Failed to set visible range:', e); }
+                if (pendingHypothesisEventRef.current) {
+                    const pendingEvent = pendingHypothesisEventRef.current;
+                    pendingHypothesisEventRef.current = null;
+                    setTimeout(() => {
+                        executeHypothesisNavigation(pendingEvent);
+                    }, 0);
+                }
+            });
+        } catch (e) {
+            isLoadingRunCandlesRef.current = false;
+            console.warn('[TVChart] Error loading run candles:', e);
+        }
+    };
 
     // Re-draw selected interaction
     useEffect(() => {
@@ -1191,145 +1807,31 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
 
         // Navigate to a hypothesis event: pan chart, draw arrow marker, render fan geometry
         navigateToHypothesisEvent: (event) => {
+            const requestedRunPath = props.hypothesisRunPath || null;
+            const hasCustomData = Boolean(datafeedRef.current?.customData?.length);
+            const isCustomMode = Boolean(datafeedRef.current?.isCustomMode);
+            if (shouldLoadHypothesisRunCandles({
+                requestedRunPath,
+                loadedRunPath: loadedHypothesisRunPathRef.current,
+                hasCustomData,
+                isCustomMode,
+                isLoadingRunCandles: isLoadingRunCandlesRef.current,
+            })) {
+                pendingHypothesisEventRef.current = event;
+                if (requestedRunPath) {
+                    loadHypothesisRunCandles(requestedRunPath);
+                }
+                return;
+            }
             if (!widgetRef.current) return;
-            const chart = widgetRef.current.activeChart();
-            if (!chart) return;
-
-            // Skip if clicking the same event again (use event_id for uniqueness).
-            const eventKey = event.event_id != null ? String(event.event_id) : ((event.fan_display || '') + '|' + (event.datetime || event.time || ''));
-            if (lastNavigatedEventKeyRef.current === eventKey) return;
-            lastNavigatedEventKeyRef.current = eventKey;
-
-            // Bump generation so any pending draw from a previous rapid click is discarded
-            const gen = ++navigationGenerationRef.current;
-
-            // Clear previous hypothesis markers (handle both direct IDs and Promises)
-            hypothesisMarkerRef.current.forEach(m => {
-                try {
-                    if (m && typeof m.then === 'function') {
-                        m.then(id => { if (id) chart.removeEntity(id); }).catch(() => {});
-                    } else if (m) {
-                        chart.removeEntity(m);
-                    }
-                } catch (_) {}
-            });
-            hypothesisMarkerRef.current = [];
-
-            // Clear existing study shapes (fans from previous selection), including Promise-based IDs
-            clearAllStudyDrawings(chart, studyShapesRef.current);
-            studyShapesRef.current = {};
-
-            // Clear existing indicator lines
-            Object.values(indicatorLinesRef.current).forEach(ids => {
-                const idList = Array.isArray(ids) ? ids : [ids];
-                idList.forEach(id => {
-                    try { chart.removeEntity(id); } catch (e) { /* ignore */ }
-                });
-            });
-            indicatorLinesRef.current = {};
-
-            // Timestamp: prefer numeric event.timestamp (set during normalization),
-            // fall back to parsing event.time string (strip commas from pandas format).
-            let eventTimeSec;
-            if (typeof event.timestamp === 'number' && !isNaN(event.timestamp)) {
-                eventTimeSec = event.timestamp < 2000000000 ? event.timestamp : Math.floor(event.timestamp / 1000);
-            } else if (event.time && typeof event.time === 'string') {
-                const clean = event.time.replace(/,/g, '');
-                const ts = new Date(clean).getTime();
-                eventTimeSec = !isNaN(ts) ? Math.floor(ts / 1000) : Math.floor(Date.now() / 1000);
-            } else {
-                eventTimeSec = Math.floor(Date.now() / 1000);
+            if (shouldDeferHypothesisNavigation({
+                hasCustomData,
+                isLoadingRunCandles: isLoadingRunCandlesRef.current,
+            })) {
+                pendingHypothesisEventRef.current = event;
+                return;
             }
-
-            // Center on the fan's origin pivot so the fan label is immediately visible.
-            let originTime = event.fan_geometry?.origin?.time;
-            if ((originTime == null || originTime <= 0) && event.fan_geometry?.rays?.[0]?.points?.[0]?.time) {
-                originTime = event.fan_geometry.rays[0].points[0].time;
-            }
-            const centerTimeSec = (typeof originTime === 'number' && originTime > 0)
-                ? originTime
-                : eventTimeSec;
-
-            // Keep the chart at its current resolution and visible range.
-            let rangeWidth = 240 * 60; // default 4 hours in seconds
-            try {
-                const visibleRange = chart.getVisibleRange();
-                if (visibleRange && visibleRange.to - visibleRange.from > 0) {
-                    rangeWidth = visibleRange.to - visibleRange.from;
-                }
-            } catch (_) {}
-
-            const newFrom = centerTimeSec - rangeWidth / 2;
-            const newTo = centerTimeSec + rangeWidth / 2;
-
-            function drawMarkerAndFan() {
-                // Discard if a newer navigation has started since this was scheduled
-                if (gen !== navigationGenerationRef.current) return;
-                if (event.price != null) {
-                    // White icon marker above the candle
-                    const iconId = chart.createShape(
-                        { time: eventTimeSec, price: event.price },
-                        {
-                            shape: 'icon',
-                            lock: true,
-                            disableSelection: true,
-                            disableSave: true,
-                            overrides: { color: '#FFFFFF', size: 10 },
-                            icon: 0xf0ab,
-                        }
-                    );
-                    if (iconId) hypothesisMarkerRef.current.push(iconId);
-                    // White dashed vertical line through the candle
-                    const lineId = chart.createShape(
-                        { time: eventTimeSec, price: event.price },
-                        {
-                            shape: 'vertical_line',
-                            lock: true,
-                            disableSelection: true,
-                            disableSave: true,
-                            overrides: { color: '#FFFFFF', linestyle: 2, linewidth: 1, showLabel: false },
-                        }
-                    );
-                    if (lineId) hypothesisMarkerRef.current.push(lineId);
-                }
-
-                if (event.fan_geometry && event.fan_geometry.rays && event.fan_geometry.rays.length > 0) {
-                    const studyData = {
-                        drawings: event.fan_geometry.rays.map(ray => ({
-                            id: ray.id,
-                            type: 'trend_line',
-                            points: ray.points,
-                            options: {
-                                linecolor: ray.color,
-                                linewidth: ray.width,
-                                linestyle: 0,
-                                extendRight: true,
-                                fanIdentity: event.fan_display,
-                                fanLabel: event.fan_display
-                            }
-                        })),
-                        pivot_markers: (() => {
-                            const m = [];
-                            const g = event.fan_geometry;
-                            if (g.origin && g.origin.time) m.push({ type: g.origin.label === 'high' ? 'pivot_high' : 'pivot_low', time: g.origin.time, price: g.origin.price, text: event.fan_display || (g.origin.label||'').toUpperCase() });
-                            if (g.anchor && g.anchor.time) m.push({ type: g.anchor.label === 'high' ? 'pivot_high' : 'pivot_low', time: g.anchor.time, price: g.anchor.price });
-                            return m;
-                        })()
-                    };
-                    studyShapesRef.current = processStudyResponse(chart, studyData, studyShapesRef.current);
-                }
-            }
-
-            // Pan chart to center on the origin pivot, then draw after a short
-            // settle delay. Avoid dataReady — it can fire for the OLD range's
-            // cached data before the new range has rendered, which would place
-            // shapes at coordinates outside the current viewport.
-            chart.setVisibleRange({ from: newFrom, to: newTo }).then(() => {
-                setTimeout(() => drawMarkerAndFan(), 400);
-            }).catch(() => {
-                // setVisibleRange failed — draw anyway at current position
-                drawMarkerAndFan();
-            });
+            executeHypothesisNavigation(event);
         },
 
         navigateToTrade: (trade) => {
@@ -2245,7 +2747,10 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
                 fixedSymbol = '^' + fixedSymbol.slice(1);
             }
             currentCleanSymbolRef.current = fixedSymbol;
-            const ticker = fixedSymbol.includes(':YF') ? fixedSymbol : fixedSymbol + ':YF';
+            // Pick the right data source: Binance for crypto, YFinance for indices
+            const isCrypto = /^[A-Z0-9]{2,12}USDT$/.test(fixedSymbol);
+            const suffix = isCrypto ? ':BN' : (fixedSymbol.includes(':YF') ? '' : ':YF');
+            const ticker = fixedSymbol + suffix;
             chart.setSymbol(ticker, () => {
                 chart.setResolution(String(resolution), () => {
                     console.log(`[TVChart] Loaded ${ticker} @ ${resolution}m`);
@@ -2257,6 +2762,12 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
         resetNavigationState: () => {
             lastNavigatedEventKeyRef.current = null;
             navigationGenerationRef.current = 0;
+            selectedHypothesisEventRef.current = null;
+        },
+
+        // Load candles from a hypothesis run into the chart
+        loadRunCandles: async (runPath) => {
+            await loadHypothesisRunCandles(runPath);
         },
     }));
 

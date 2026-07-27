@@ -1,22 +1,29 @@
 from fastapi import FastAPI, HTTPException, Query, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel
 from typing import Optional, Dict, Any
+import glob as _glob
+import json as _json
+import os as _os
 import uvicorn
 import pandas as pd
 from dhan_client import DhanClient
 from yfinance_client import YFinanceClient
+from binance_client import BinanceClient
 from gann_logic import GannStrategyEngine  # Keep for backward compatibility
 from strategies import get_strategy, STRATEGY_REGISTRY  # New strategy system
 from backtest_engine import BacktestEngine  # New backtesting engine
 import time
+import re
 from datetime import datetime, timedelta, timezone
 import pytz
 import logging
 import sys
 import os
 import json
+from scripts.run_paths import build_run_dir
+from hypothesis_report_transform import enrich_detailed_log
 
 # --- LOGGING CONFIGURATION ---
 LOG_DIR = os.path.join(
@@ -96,7 +103,7 @@ WARMUP_DAYS = {
     "5":  75,    # 5-minute
     "15": 120,   # 15-minute
     "30": 120,   # 30-minute
-    "60": 250,   # 60-minute / 1-hour
+    "60": 90,    # 60-minute / 1-hour
     "240": 250,  # 4-hour
     "1D": 365,   # Daily
     "D":  365,
@@ -228,6 +235,8 @@ def get_data_client(data_source: str = "dhan"):
     """Factory function to get appropriate data client."""
     if data_source == "yfinance":
         return YFinanceClient()
+    if data_source == "binance":
+        return BinanceClient(use_testnet=False)
     return DhanClient()
 
 class EvaluateStrategyRequest(BaseModel):
@@ -302,6 +311,24 @@ def api_scale_ratio(symbol: str, resolution: str, cycle_type: str = "24_hour", s
         # Return 404 so the frontend knows it failed and can handle it gracefully
         raise HTTPException(status_code=404, detail=str(e))
 
+@app.get("/api/binance-strategy-trades")
+def api_binance_strategy_trades(symbol: str = "BTCUSDT", interval: str = "1h"):
+    pattern = f"strategy_trades_{symbol}_{interval}*.json"
+    matches = _glob.glob(pattern)
+    if not matches:
+        matches = _glob.glob("strategy_trades_*.json")
+    if not matches:
+        raise HTTPException(status_code=404, detail="No strategy trades file found. Run replay first with: python run_binance_live.py BTCUSDT 1h 500 --target-progression")
+    matches.sort(key=lambda f: _os.path.getmtime(f), reverse=True)
+    latest_file = matches[0]
+    mtime = _os.path.getmtime(latest_file)
+    with open(latest_file, 'r') as f:
+        data = _json.load(f)
+    data['file_name'] = _os.path.basename(latest_file)
+    data['file_mtime'] = mtime
+    data['file_mtime_iso'] = datetime.fromtimestamp(mtime).isoformat()
+    return JSONResponse(content=data)
+
 # --- UDF (Universal Data Feed) Endpoints for TradingView Advanced Charts ---
 
 @app.get("/config")
@@ -317,6 +344,7 @@ def udf_config():
         ],
         "symbols_types": [
             {"name": "All types", "value": ""},
+            {"name": "Crypto", "value": "crypto"},
             {"name": "Index", "value": "index"},
             {"name": "Stock", "value": "stock"},
             {"name": "Options", "value": "options"},
@@ -340,6 +368,68 @@ def udf_search(query: str, type: str, exchange: str, limit: int, data_source: st
                 "ticker": f"{r['symbol']}:YF",
                 "type": r["type"]
             })
+        return results
+
+    # Route to Binance search if selected
+    if data_source == "binance":
+        q = query.upper().strip()
+        # Fetch all available USDT pairs from Binance exchange info
+        try:
+            # Use mainnet for exchange info to get the full list of pairs (no auth needed)
+            bc = BinanceClient(use_testnet=False)
+            exchange_info = bc.get_exchange_info()
+            all_symbols = exchange_info.get("symbols", [])
+            # Filter for USDT pairs that are TRADING and have "USDT" as quote asset
+            usdt_pairs = [
+                s["symbol"] for s in all_symbols
+                if s.get("quoteAsset") == "USDT"
+                and s.get("status") == "TRADING"
+                and s.get("contractType") == "PERPETUAL"
+            ]
+            # Sort alphabetically for consistent ordering
+            usdt_pairs.sort()
+            print(f"[Binance Search] Found {len(usdt_pairs)} USDT perpetual pairs from exchange info")
+        except Exception as e:
+            print(f"[Binance Search] Failed to fetch exchange info: {e}, falling back to hardcoded list")
+            usdt_pairs = ["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT", "XRPUSDT", "DOGEUSDT", "ADAUSDT", "AVAXUSDT", "LINKUSDT", "DOTUSDT"]
+
+        for pair in usdt_pairs:
+            if q and q not in pair:
+                continue
+            results.append({
+                "symbol": pair,
+                "full_name": f"Binance:{pair}",
+                "description": f"{pair} Binance Futures",
+                "exchange": "Binance",
+                "ticker": pair,
+                "type": "crypto"
+            })
+        if not results and q:
+            # If no exact match, try a fuzzy guess
+            if len(q) >= 2:
+                guess = f"{q}USDT" if not q.endswith("USDT") else q
+                # Check if the guess exists in the pairs list
+                if guess in usdt_pairs:
+                    results.append({
+                        "symbol": guess,
+                        "full_name": f"Binance:{guess}",
+                        "description": f"{guess} Binance Futures",
+                        "exchange": "Binance",
+                        "ticker": guess,
+                        "type": "crypto"
+                    })
+                else:
+                    # Return closest matches for the query
+                    for pair in usdt_pairs:
+                        if q in pair:
+                            results.append({
+                                "symbol": pair,
+                                "full_name": f"Binance:{pair}",
+                                "description": f"{pair} Binance Futures",
+                                "exchange": "Binance",
+                                "ticker": pair,
+                                "type": "crypto"
+                            })
         return results
     
     # --- DHAN SEARCH ---
@@ -402,15 +492,44 @@ def udf_symbols(symbol: str):
     # Check for YFinance Suffix
     is_yfinance = symbol.endswith(":YF")
     clean_symbol = symbol.replace(":YF", "")
+
+    # Check for Binance Suffix
+    is_binance = symbol.endswith(":BN")
+    clean_symbol = clean_symbol.replace(":BN", "")
+
+    # Auto-detect Binance crypto pairs
+    if not is_yfinance and not is_binance:
+        if re.match(r'^[A-Z0-9]{2,12}USDT$', clean_symbol):
+            is_binance = True
     
     if is_yfinance:
         client = YFinanceClient()
         info = client.get_info(clean_symbol)
         if info:
-            # Ensure the returned symbol/ticker has the suffix so future calls maintain context
-            info['symbol'] = symbol 
+            info['symbol'] = symbol
             info['ticker'] = symbol
             return info
+
+    if is_binance:
+        return {
+            "name": clean_symbol,
+            "exchange-traded": "Binance",
+            "exchange-listed": "Binance",
+            "timezone": "Etc/UTC",
+            "minmov": 1,
+            "minmov2": 0,
+            "pointvalue": 1,
+            "session": "24x7",
+            "has_intraday": True,
+            "intraday_multipliers": ["1", "4", "5", "15", "30", "60", "240"],
+            "has_daily": True,
+            "has_weekly_and_monthly": True,
+            "description": clean_symbol,
+            "type": "crypto",
+            "supported_resolutions": ["1", "4", "5", "15", "30", "60", "240", "D", "W", "M"],
+            "pricescale": 100,
+            "ticker": symbol,
+        }
             
     # Return info based on requested symbol (Default Dhan)
     return {
@@ -444,10 +563,14 @@ def udf_history(symbol: str, resolution: str, from_: int = Query(..., alias="fro
     # Detect Source via Suffix first (explicit :YF marker)
     is_yfinance = symbol.endswith(":YF")
     clean_symbol = symbol.replace(":YF", "")
-    
+
+    # Detect explicit Binance marker
+    is_binance = symbol.endswith(":BN") or data_source == "binance"
+    clean_symbol = clean_symbol.replace(":BN", "")
+
     # Auto-detect Yahoo Finance symbols by pattern if not explicitly marked
     # This handles cases where TradingView strips the :YF suffix
-    if not is_yfinance:
+    if not is_yfinance and not is_binance:
         # Check for Yahoo Finance symbol patterns:
         # - Indices start with ^ (^NSEI, ^GSPC, ^DJI, etc.)
         # - Indian NSE stocks end with .NS
@@ -458,24 +581,34 @@ def udf_history(symbol: str, resolution: str, from_: int = Query(..., alias="fro
             clean_symbol.endswith(".BO")):
             is_yfinance = True
             print(f"[udf_history] Auto-detected Yahoo Finance symbol: {clean_symbol}")
+
+    # Auto-detect Binance crypto pairs (e.g. BTCUSDT, ETHUSDT)
+    if not is_yfinance and not is_binance:
+        if re.match(r'^[A-Z0-9]{2,12}USDT$', clean_symbol):
+            is_binance = True
+            print(f"[udf_history] Auto-detected Binance crypto symbol: {clean_symbol}")
     
     if is_yfinance:
         client = get_data_client("yfinance")
-        symbol = clean_symbol  # Use clean symbol for fetching
-        data_source = "yfinance"  # Update log var
-    else:
-        client = get_data_client(data_source)
+        symbol = clean_symbol
+        data_source = "yfinance"
+    elif is_binance:
+        client = get_data_client("binance")
+        symbol = clean_symbol
+        data_source = "binance"
+        print(f"[udf_history] Using Binance client for {symbol}")
 
     df = pd.DataFrame()
     
-    # Convert timestamps to Date Strings
+    # Convert timestamps to Date Strings.
+    # Binance & YFinance expect UTC; Dhan API expects local time (IST).
+    _tz = timezone.utc if data_source in ("binance", "yfinance") else None
     try:
-        # Handle potential invalid timestamps (negative or too large)
-        from_dt_safe = datetime.fromtimestamp(max(0, from_))
-        to_dt_safe = datetime.fromtimestamp(max(0, to))
+        from_dt_safe = datetime.fromtimestamp(max(0, from_), tz=_tz)
+        to_dt_safe = datetime.fromtimestamp(max(0, to), tz=_tz)
     except (ValueError, OSError):
-        from_dt_safe = datetime.fromtimestamp(0)
-        to_dt_safe = datetime.fromtimestamp(0)
+        from_dt_safe = datetime.fromtimestamp(0, tz=_tz)
+        to_dt_safe = datetime.fromtimestamp(0, tz=_tz)
 
     from_date_str = from_dt_safe.strftime('%Y-%m-%d %H:%M:%S')
     to_date_str = to_dt_safe.strftime('%Y-%m-%d %H:%M:%S')
@@ -518,34 +651,34 @@ def udf_history(symbol: str, resolution: str, from_: int = Query(..., alias="fro
         max_lookback_days = 45
     
     # Limit the from_date ONLY if the requested range is excessively large
-        # This prevents backend timeouts, but allows pagination
-        calculated_from_dt = to_dt - timedelta(days=max_lookback_days)
-        
-        if from_dt < calculated_from_dt:
-            from_dt = calculated_from_dt
-            from_date_str = from_dt.strftime('%Y-%m-%d')
-            print(f"Range limited to {max_lookback_days} days for resolution {resolution}: {from_date_str} to {to_date_str}")
-        
-        # PREVENT INFINITE PAGINATION FOR YFINANCE
-        # If TradingView requests a small chunk, it will paginate infinitely
-        # By expanding the request here, we force a large chunk to be fetched and cached by TV
-        if data_source == "yfinance":
-            if resolution in ["60", "1H"]:
-                # For 1h, YFinance supports up to 730 days. Expand to fetch a large chunk.
-                expanded_from = to_dt_safe - timedelta(days=700)
-                if from_dt_safe > expanded_from:
-                    from_dt_safe = expanded_from
-                    from_date_str = from_dt_safe.strftime('%Y-%m-%d %H:%M:%S')
-                    print(f"[Pagination Fix] Expanded 60m request to {from_date_str} to prevent TV pagination barrage")
-            elif resolution in ["15", "30", "5", "2"]:
-                # For 15m/30m, YFinance supports up to 60 days
-                expanded_from = to_dt_safe - timedelta(days=58)
-                if from_dt_safe > expanded_from:
-                    from_dt_safe = expanded_from
-                    from_date_str = from_dt_safe.strftime('%Y-%m-%d %H:%M:%S')
-                    print(f"[Pagination Fix] Expanded {resolution}m request to {from_date_str} to prevent TV pagination barrage")
+    # This prevents backend timeouts, but allows pagination
+    calculated_from_dt = to_dt - timedelta(days=max_lookback_days)
+    
+    if from_dt < calculated_from_dt:
+        from_dt = calculated_from_dt
+        from_date_str = from_dt.strftime('%Y-%m-%d')
+        print(f"Range limited to {max_lookback_days} days for resolution {resolution}: {from_date_str} to {to_date_str}")
+    
+    # PREVENT INFINITE PAGINATION FOR YFINANCE
+    # If TradingView requests a small chunk, it will paginate infinitely
+    # By expanding the request here, we force a large chunk to be fetched and cached by TV
+    if data_source == "yfinance":
+        if resolution in ["60", "1H"]:
+            # For 1h, YFinance supports up to 730 days. Expand to fetch a large chunk.
+            expanded_from = to_dt_safe - timedelta(days=700)
+            if from_dt_safe > expanded_from:
+                from_dt_safe = expanded_from
+                from_date_str = from_dt_safe.strftime('%Y-%m-%d %H:%M:%S')
+                print(f"[Pagination Fix] Expanded 60m request to {from_date_str} to prevent TV pagination barrage")
+        elif resolution in ["15", "30", "5", "2"]:
+            # For 15m/30m, YFinance supports up to 60 days
+            expanded_from = to_dt_safe - timedelta(days=58)
+            if from_dt_safe > expanded_from:
+                from_dt_safe = expanded_from
+                from_date_str = from_dt_safe.strftime('%Y-%m-%d %H:%M:%S')
+                print(f"[Pagination Fix] Expanded {resolution}m request to {from_date_str} to prevent TV pagination barrage")
 
-        # Use Generic Fetcher which handles NIFTY/OPTIONS/Generic
+    # Use Generic Fetcher which handles NIFTY/OPTIONS/Generic
     # Pass resolution to fetch_data for proper interval handling
     print(f"[UDF_HISTORY] Calling client.fetch_data({symbol}, {from_date_str}, {to_date_str}, interval={resolution})")
     df = client.fetch_data(symbol, from_date_str, to_date_str, interval=resolution)
@@ -837,12 +970,16 @@ async def fetch_candles(req: FetchCandlesRequest):
         
         # Determine warmup window using from_date-anchored strategy.
         # The user's chosen from_date is always the reference point.
-        from_dt = datetime.strptime(req.from_date, '%Y-%m-%d')
-        target_start_ts = int(from_dt.timestamp())  # Used to filter initial markers
-
-        from_dt_utc = from_dt.astimezone(timezone.utc)
-        warmup_days = WARMUP_DAYS.get(req.resolution, 250)
-        ideal_warmup_from_dt = from_dt_utc - timedelta(days=warmup_days)
+        # Treat the date string as UTC (not local) to match simulation & binance replay scripts.
+        from_dt_utc = datetime.strptime(req.from_date, '%Y-%m-%d').replace(tzinfo=timezone.utc)
+        target_start_ts = int(from_dt_utc.timestamp())  # Used to filter initial markers
+        if req.lookback_bars == 0:
+            warmup_from_dt = from_dt_utc
+            warmup_days = 0
+            print(f"[FetchCandles] lookback_bars=0: using from_date directly, no warmup")
+        else:
+            warmup_days = WARMUP_DAYS.get(req.resolution, 250)
+            warmup_from_dt = from_dt_utc - timedelta(days=warmup_days)
 
         # Check if source has enough history for this warmup
         # Sources like Dhan have years; YFinance 1m/4m has ~8 days only
@@ -869,7 +1006,7 @@ async def fetch_candles(req: FetchCandlesRequest):
             print(f"[FetchCandles] WARNING: {req.data_source} {req.resolution}m has ~{source_max_days} days "
                   f"of history (requested {warmup_days} days warmup). Using today-anchored fetch.")
         else:
-            warmup_from_dt = ideal_warmup_from_dt
+            pass  # warmup_from_dt already set above
 
         fetch_from_date = warmup_from_dt.strftime('%Y-%m-%d')
         print(f"[FetchCandles] Fetching {req.resolution}m from {fetch_from_date} to {req.to_date} "
@@ -1857,13 +1994,15 @@ def list_hypothesis_reports():
     for pattern in [
         os.path.join(runs_base, "**", "hypothesis_events.json"),
         os.path.join(runs_base, "**", "hypothesis_reports", "**", "*_report.json"),
+        os.path.join(runs_base, "**", "analysis", "hypotheses", "*.json"),
     ]:
         files.extend(glob.glob(pattern, recursive=True))
     reports = []
     for f in sorted(files, reverse=True):
         rel = os.path.relpath(f, runs_base).replace("\\", "/")
         parts = rel.split("/")
-        is_per_hypothesis = "hypothesis_reports" in parts
+        is_per_hypothesis = "hypothesis_reports" in parts or "analysis" in parts
+        is_run_summary = parts[-1] == "run_summary.json"
         symbol = parts[0] if len(parts) >= 1 else ""
         # Restore ^ prefix sanitized to _ by Windows-safe path encoding
         if symbol.startswith("_") and len(symbol) > 1 and symbol[1].isalpha():
@@ -1873,8 +2012,10 @@ def list_hypothesis_reports():
         filename = parts[-1]
         if filename == "hypothesis_events.json":
             report_name = "All Events"
+        elif is_run_summary:
+            report_name = "Run Summary"
         else:
-            report_name = filename.replace("_report.json", "").replace("_", " ").title()
+            report_name = filename.replace("_report.json", "").replace(".json", "").replace("_", " ").title()
         try:
             mtime = os.path.getmtime(f)
         except OSError:
@@ -1886,9 +2027,463 @@ def list_hypothesis_reports():
             "run_id": run_id,
             "report_name": report_name,
             "is_per_hypothesis": is_per_hypothesis,
+            "is_run_summary": is_run_summary,
             "modified": mtime,
         })
     return {"reports": reports}
+
+
+def _coerce_float(value):
+    try:
+        if value is None or value == "":
+            return None
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _normalize_fraction_value(value):
+    if value is None:
+        return ""
+    text = str(value).strip()
+    if text in {"", "-", "nan", "None"}:
+        return ""
+    return text
+
+
+def _normalize_event_type(value):
+    return str(value or "").strip().upper()
+
+
+def _sanitize_for_json(obj):
+    """Recursively replace NaN/Infinity values (including numpy) with None for JSON compliance."""
+    import math
+
+    if isinstance(obj, dict):
+        return {k: _sanitize_for_json(v) for k, v in obj.items()}
+    if isinstance(obj, (list, tuple)):
+        return [_sanitize_for_json(v) for v in obj]
+
+    # Handle float-like types (standard float AND numpy float64/float32 etc.)
+    try:
+        f = float(obj)
+        if math.isnan(f) or math.isinf(f):
+            return None
+        return f
+    except (TypeError, ValueError):
+        pass
+
+    return obj
+
+
+def _build_hypothesis_event_lookup(run_dir):
+    events_csv_path = os.path.join(run_dir, "events.csv")
+    if not os.path.exists(events_csv_path):
+        return {}
+
+    try:
+        events_df = pd.read_csv(events_csv_path)
+    except Exception:
+        return {}
+
+    lookup = {}
+    for row in events_df.to_dict(orient="records"):
+        timestamp = row.get("Raw_Timestamp")
+        if pd.isna(timestamp) or timestamp in (None, ""):
+            continue
+
+        try:
+            timestamp = int(timestamp)
+        except (TypeError, ValueError):
+            continue
+
+        event_type = _normalize_event_type(row.get("Type"))
+        fraction = _normalize_fraction_value(row.get("Fraction"))
+        price = _coerce_float(row.get("Price"))
+        rounded_price = round(price, 4) if price is not None else None
+
+        keys = [
+            (timestamp, event_type, rounded_price, fraction),
+            (timestamp, event_type, rounded_price, ""),
+            (timestamp, event_type, None, fraction),
+            (timestamp, event_type, None, ""),
+        ]
+        for key in keys:
+            if key not in lookup:
+                lookup[key] = row
+
+    return lookup
+
+
+def _enrich_hypothesis_events_payload(payload, run_dir):
+    """Enrich old run-level hypothesis_events.json with all descriptive fields from events.csv."""
+
+    # Human-readable display names for event types (mirrored from event_logger.py)
+    _EVENT_TYPE_DISPLAY: dict = {
+        "CROSS_UP": "Cross Up (Bullish)",
+        "CROSS_DOWN": "Cross Down (Bearish)",
+        "GAP_CROSS_UP": "Gap Cross Up (Bullish)",
+        "GAP_CROSS_DOWN": "Gap Cross Down (Bearish)",
+        "SUPPORT_TEST": "Support Test",
+        "RESISTANCE_TEST": "Resistance Test",
+        "SUPPORT_BOUNCE": "Support Bounce",
+        "RESISTANCE_REJECTION": "Resistance Rejection",
+        "BREACH_CONFIRMED": "Breach Confirmed",
+        "BREACH_CONFIRMED_NO_ALPHA": "Breach Confirmed (No Alpha)",
+        "REST_ON_ANGLE": "Rest on Angle",
+        "TARGET_HIT": "Target Hit",
+        "TARGET_FAILED": "Target Failed",
+        "FAN_VALIDATED": "Fan Validated (7/8)",
+        "ZONE_CHANGE": "Zone Change",
+        "FAN_DEACTIVATED": "Fan Deactivated",
+        "breach_confirmed": "Breach Confirmed",
+        "target_hit": "Target Hit",
+        "target_failed": "Target Failed",
+        "fan_validated": "Fan Validated (7/8)",
+        "zone_change": "Zone Change",
+    }
+
+    events = payload.get("events")
+    if not isinstance(events, list) or not events:
+        return payload
+
+    lookup = _build_hypothesis_event_lookup(run_dir)
+    if not lookup:
+        return payload
+
+    enriched_events = []
+    for event in events:
+        timestamp = event.get("timestamp")
+        event_type = _normalize_event_type(event.get("event_type") or event.get("type"))
+        fraction = _normalize_fraction_value(event.get("fraction"))
+        price = _coerce_float(event.get("price") if event.get("price") is not None else event.get("target_price"))
+        rounded_price = round(price, 4) if price is not None else None
+
+        row = None
+        for key in [
+            (timestamp, event_type, rounded_price, fraction),
+            (timestamp, event_type, rounded_price, ""),
+            (timestamp, event_type, None, fraction),
+            (timestamp, event_type, None, ""),
+        ]:
+            row = lookup.get(key)
+            if row:
+                break
+
+        if row:
+            # Fan label
+            fan_label = str(row.get("Fan", "") or "").strip()
+            if fan_label:
+                event["fan_display"] = fan_label
+                event["fan_identity"] = fan_label
+
+            # Fraction
+            if event.get("fraction") in (None, "", "-"):
+                csv_fraction = _normalize_fraction_value(row.get("Fraction"))
+                if csv_fraction:
+                    event["fraction"] = csv_fraction
+
+            # Event type display name (already human-readable from CSV)
+            csv_type = str(row.get("Type", "") or "").strip()
+            if csv_type and not event.get("event_type_display"):
+                event["event_type_display"] = csv_type
+
+            # Description / Details
+            csv_details = str(row.get("Details", "") or "").strip()
+            if csv_details and not event.get("description"):
+                event["description"] = csv_details
+
+            # Direction
+            csv_direction = str(row.get("Direction", "") or "").strip()
+            if csv_direction and not event.get("direction"):
+                event["direction"] = csv_direction
+
+            # OHLC
+            for col, key in [("Open", "open"), ("High", "high"), ("Low", "low"), ("Close", "close")]:
+                val = _coerce_float(row.get(col))
+                if val is not None and event.get(key) is None:
+                    event[key] = val
+
+            # Zone and cluster
+            csv_zone = str(row.get("Zone", "") or "").strip()
+            if csv_zone and not event.get("current_zone"):
+                event["current_zone"] = csv_zone
+
+            csv_cluster = row.get("Cluster")
+            if csv_cluster is not None and event.get("cluster_state") is None:
+                event["cluster_state"] = bool(csv_cluster) if not isinstance(csv_cluster, bool) else csv_cluster
+
+            # Next angle line
+            csv_next = str(row.get("Next_Angle_Line", "") or "").strip()
+            if csv_next and not event.get("next_angle_line"):
+                event["next_angle_line"] = csv_next
+
+            # MFE/MAE horizons
+            for col, key in [
+                ("MFE_5", "mfe_5"), ("MAE_5", "mae_5"),
+                ("MFE_10", "mfe_10"), ("MAE_10", "mae_10"),
+                ("MFE_20", "mfe_20"), ("MAE_20", "mae_20"),
+                ("MFE_50", "mfe_50"), ("MAE_50", "mae_50"),
+            ]:
+                val = _coerce_float(row.get(col))
+                if val is not None and event.get(key) is None:
+                    event[key] = abs(val)  # MFE/MAE should be positive
+
+            # Excursions
+            for col, key in [("Exc_Up_10", "exc_up_10"), ("Exc_Down_10", "exc_down_10")]:
+                val = _coerce_float(row.get(col))
+                if val is not None and event.get(key) is None:
+                    event[key] = abs(val)
+
+            # Reversal outcome
+            csv_rev = str(row.get("Reversal_Outcome", "") or "").strip()
+            if csv_rev and not event.get("reversal_outcome"):
+                event["reversal_outcome"] = csv_rev
+
+            # Geometry context
+            for col, key in [
+                ("anchor_bar_index", "anchor_bar_index"),
+                ("scale_ratio", "scale_ratio"),
+                ("anchor_price", "anchor_price"),
+                ("origin_bar_index", "origin_bar_index"),
+                ("origin_price", "origin_price"),
+            ]:
+                if col in ("anchor_price", "origin_price", "scale_ratio"):
+                    val = _coerce_float(row.get(col))
+                else:
+                    val = row.get(col)
+                    try:
+                        val = int(float(val)) if val not in (None, "", "-") else None
+                    except (TypeError, ValueError):
+                        val = None
+                if val is not None and event.get(key) is None:
+                    event[key] = val
+
+            # Instrument
+            csv_instr = str(row.get("Instrument", "") or "").strip()
+            if csv_instr and not event.get("instrument"):
+                event["instrument"] = csv_instr
+
+            # Timeframe
+            csv_tf = str(row.get("Timeframe", "") or "").strip()
+            if csv_tf and not event.get("timeframe"):
+                event["timeframe"] = csv_tf
+
+            # is_retro
+            is_retro_val = row.get("is_retro")
+            if is_retro_val is not None and not event.get("is_retro"):
+                event["is_retro"] = is_retro_val if isinstance(is_retro_val, bool) else str(is_retro_val).strip().lower() == "true"
+
+            # Bar index
+            bar_index_val = row.get("Bar_Index")
+            if bar_index_val is not None and bar_index_val != "" and not event.get("bar_index"):
+                try:
+                    event["bar_index"] = int(float(bar_index_val))
+                except (TypeError, ValueError):
+                    pass
+
+            # Bars in zone
+            biz_val = row.get("Bars_In_Zone")
+            if biz_val is not None and biz_val != "" and not event.get("bars_in_zone"):
+                try:
+                    event["bars_in_zone"] = int(float(biz_val))
+                except (TypeError, ValueError):
+                    pass
+
+            # Is gap cross
+            igc_val = row.get("Is_Gap_Cross")
+            if igc_val is not None and not event.get("is_gap_cross"):
+                event["is_gap_cross"] = igc_val if isinstance(igc_val, bool) else str(igc_val).strip().lower() == "true"
+
+            # Anchor type
+            at_val = str(row.get("Anchor_Type", "") or "").strip()
+            if at_val and not event.get("anchor_type"):
+                event["anchor_type"] = at_val
+
+            # Priority label
+            pl_val = str(row.get("Priority_Label", "") or "").strip()
+            if pl_val and not event.get("priority_label"):
+                event["priority_label"] = pl_val
+
+        # Compute event_type_display from event_type if not present
+        if not event.get("event_type_display"):
+            raw_type = event.get("event_type") or ""
+            event["event_type_display"] = _EVENT_TYPE_DISPLAY.get(raw_type, raw_type)
+
+        enriched_events.append(event)
+
+    return _sanitize_for_json({
+        **payload,
+        "events": enriched_events,
+    })
+
+
+def _transform_per_hypothesis_payload(payload: dict, run_dir: str = None) -> dict:
+    """Transform per-hypothesis JSON into frontend-compatible format.
+
+    Enriches sparse detailed_log events by cross-referencing with hypothesis_events.json
+    to fill in fan_geometry, event_type, direction, zone, and other contextual fields.
+    """
+    transformed = {}
+
+    # Pass through metadata
+    for key in ("hypothesis_name", "description", "in_sample", "walk_forward", "groups",
+                "rsi_series", "all_rsi_lines"):
+        if key in payload:
+            transformed[key] = payload[key]
+
+    # For run_summary.json (no detailed_log, has hypotheses array), pass through as-is
+    if "hypotheses" in payload:
+        transformed["hypotheses"] = payload["hypotheses"]
+
+    # Enrich detailed_log -> events
+    if "detailed_log" in payload and run_dir:
+        transformed["events"] = enrich_detailed_log(payload["detailed_log"], run_dir)
+    elif "detailed_log" in payload:
+        transformed["events"] = payload["detailed_log"]
+
+    return transformed
+
+
+def _extract_fan_identity(fan_label: str) -> str:
+    """Extract fan identity like 'H64-L57' from label like 'P1 (H64-L57)'."""
+    if not fan_label:
+        return ""
+    label = str(fan_label).strip()
+    # Pattern: "P1 (H64-L57)" or just "H64-L57"
+    import re
+    match = re.search(r'([HL]\d+-[HL]\d+)', label)
+    return match.group(1) if match else label
+
+
+def _parse_detailed_log_time(time_str: str) -> int:
+    """Parse detailed_log time string to epoch timestamp (UTC)."""
+    if not time_str:
+        return 0
+    try:
+        from datetime import datetime, timezone
+        # Format: "4/1/2025, 1:32:00 PM" -- these are UTC timestamps
+        clean = str(time_str).replace(',', '')
+        dt = datetime.strptime(clean, '%m/%d/%Y %I:%M:%S %p')
+        dt = dt.replace(tzinfo=timezone.utc)
+        return int(dt.timestamp())
+    except (ValueError, OSError):
+        return 0
+
+
+def _build_hypothesis_lookup(run_dir: str) -> dict:
+    """Build lookup from hypothesis_events.json keyed by (timestamp, fan_identity, fraction_str)."""
+    import os as _os
+    hypo_path = _os.path.join(run_dir, "hypothesis_events.json")
+    if not _os.path.exists(hypo_path):
+        return {}
+
+    with open(hypo_path, "r", encoding="utf-8") as f:
+        hypo_data = json.load(f)
+
+    lookup = {}
+    events = hypo_data.get("events", []) or hypo_data.get("live_events", []) or []
+    for evt in events:
+        ts = evt.get("timestamp", 0)
+        fi = (evt.get("fan_identity") or evt.get("fan_display") or "")
+        frac = str(evt.get("fraction", ""))
+        key = (ts, fi, frac)
+        # Keep first match; prefer earlier bar_index
+        if key not in lookup:
+            lookup[key] = evt
+
+    return lookup
+
+
+def _enrich_detailed_log(detailed_log: list, run_dir: str) -> list:
+    """Enrich detailed_log entries with data from hypothesis_events.json."""
+    lookup = _build_hypothesis_lookup(run_dir)
+    enriched = []
+
+    for i, entry in enumerate(detailed_log):
+        ts = _parse_detailed_log_time(entry.get("time", ""))
+        fan_id = _extract_fan_identity(entry.get("fan", ""))
+        frac = str(entry.get("fraction", ""))
+
+        # Try matching by timestamp+fan+fraction, fallback by fan+fraction only
+        match = lookup.get((ts, fan_id, frac))
+        if not match:
+            # Fallback: match by fan + fraction only (ignore timestamp)
+            for (k_ts, k_fi, k_fr), v in lookup.items():
+                if k_fi == fan_id and k_fr == frac:
+                    match = v
+                    break
+
+        enriched_entry = {
+            "event_id": i + 1,
+            # Fields from detailed_log (keep as primary)
+            "event_type": entry.get("type", ""),  # Use detailed_log type, not matched event_type
+            "time": entry.get("time", ""),
+            "test_time": entry.get("test_time", ""),
+            "fan": entry.get("fan", ""),
+            "fraction": entry.get("fraction", ""),
+            "type": entry.get("type", ""),
+            "price": entry.get("price"),
+            "is_retro": entry.get("is_retro", False),
+            "outcome": entry.get("outcome"),
+            "mfe": entry.get("mfe"),
+            "mae": entry.get("mae"),
+            "anchor_bar_index": entry.get("anchor_bar_index"),
+            "scale_ratio": entry.get("scale_ratio"),
+            "anchor_price": entry.get("anchor_price"),
+            "details": entry.get("details", ""),  # e.g., "Bounced (T+2 bars)"
+            "confirmation_details": entry.get("confirmation_details") or entry.get("details", ""),
+            # Trade simulation fields from exit optimizer
+            "entry_price": entry.get("entry_price"),
+            "entry_time": entry.get("entry_time", ""),
+            "exit_price": entry.get("exit_price"),
+            "exit_time": entry.get("exit_time", ""),
+            "exit_reason": entry.get("exit_reason"),
+            "exit_label": entry.get("exit_label", ""),
+            "net_pnl": entry.get("net_pnl"),
+            "pnl_pct": entry.get("pnl_pct"),
+            "bars_held": entry.get("bars_held"),
+            "entry_side": entry.get("entry_side"),
+        }
+
+        # Enrich from matched hypothesis event — only geometry/context, not type override
+        _TYPE_DISPLAY = {
+            "SUPPORT_BOUNCE": "Support Bounce",
+            "RESISTANCE_REJECTION": "Resistance Rejection",
+            "SUPPORT_TEST": "Support Test",
+            "RESISTANCE_TEST": "Resistance Test",
+            "BREACH_CONFIRMED": "Breach Confirmed",
+            "TARGET_HIT": "Target Hit",
+            "TARGET_FAILED": "Target Failed",
+            "FAN_VALIDATED": "Fan Validated",
+        }
+        enriched_entry["event_type_display"] = _TYPE_DISPLAY.get(entry.get("type", ""), entry.get("type", ""))
+
+        if match:
+            enriched_entry["direction"] = match.get("direction")
+            enriched_entry["fan_geometry"] = match.get("fan_geometry")
+            enriched_entry["fan_identity"] = match.get("fan_identity") or fan_id
+            enriched_entry["fan_display"] = match.get("fan_display") or entry.get("fan", "")
+            enriched_entry["priority_label"] = match.get("priority_label", "")
+            enriched_entry["description"] = match.get("description", "")
+            enriched_entry["current_zone"] = match.get("current_zone")
+            enriched_entry["bars_in_zone"] = match.get("bars_in_zone")
+            enriched_entry["is_gap_cross"] = match.get("is_gap_cross", False)
+            enriched_entry["anchor_type"] = match.get("anchor_type")
+            enriched_entry["bar_index"] = match.get("bar_index")
+            enriched_entry["timestamp"] = match.get("timestamp", ts)
+        else:
+            enriched_entry["timestamp"] = ts
+
+        # Preserve strategy-specific custom fields not in the base whitelist
+        _base_keys = set(enriched_entry.keys())
+        for k, v in entry.items():
+            if k not in _base_keys and v is not None:
+                enriched_entry[k] = v
+
+        enriched.append(enriched_entry)
+
+    return enriched
 
 
 @app.get("/api/hypothesis-reports/{path:path}")
@@ -1898,7 +2493,84 @@ def get_hypothesis_report(path: str):
     file_path = os.path.join(repo_root, "logs", "backend", "runs", path)
     if not os.path.exists(file_path):
         raise HTTPException(status_code=404, detail="Report not found")
-    return FileResponse(file_path, media_type="application/json")
+
+    try:
+        with open(file_path, "r", encoding="utf-8") as handle:
+            payload = json.load(handle)
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Failed to read report: {exc}") from exc
+
+    if "analysis" in path and "hypotheses" in path:
+        # Extract run_dir: path is like "BTCUSDT/4/run_id/analysis/hypotheses/file.json"
+        run_dir = os.path.join(repo_root, "logs", "backend", "runs", *path.split("/")[:3])
+        payload = _transform_per_hypothesis_payload(payload, run_dir)
+    elif os.path.basename(file_path) == "hypothesis_events.json":
+        run_dir = os.path.dirname(file_path)
+        payload = _enrich_hypothesis_events_payload(payload, run_dir)
+
+    # Clean any NaN/Infinity from pandas before serializing
+    payload = _sanitize_for_json(payload)
+    body = json.dumps(payload, indent=2, ensure_ascii=False, allow_nan=False)
+    return Response(content=body, media_type="application/json")
+
+
+def _infer_hypothesis_run_source(run_dir) -> str:
+    log_path = run_dir / "simulation_run.log"
+    if not log_path.exists():
+        return "yfinance"
+
+    try:
+        with log_path.open("r", encoding="utf-8", errors="ignore") as handle:
+            contents = handle.read()
+    except OSError:
+        return "yfinance"
+
+    for pattern in [
+        r"Loaded\s+\d+\s+candles\s+from\s+([a-zA-Z_]+)",
+        r"using\s+([a-zA-Z_]+)\s+with",
+    ]:
+        match = re.search(pattern, contents)
+        if match:
+            return match.group(1).lower()
+    return "yfinance"
+
+
+@app.get("/api/hypothesis-runs/{symbol}/{resolution}/{run_id}/candles")
+def get_hypothesis_run_candles(symbol: str, resolution: str, run_id: str):
+    """Return candles for a specific hypothesis run as JSON for the frontend chart."""
+    repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    runs_base = os.path.join(repo_root, "logs", "backend", "runs")
+    run_dir = build_run_dir(runs_base, symbol, resolution, run_id)
+    candles_path = run_dir / "candles.csv"
+
+    if not candles_path.exists():
+        raise HTTPException(status_code=404, detail="Run candles not found")
+
+    try:
+        candles_df = pd.read_csv(candles_path)
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Failed to read run candles: {exc}") from exc
+
+    candles = []
+    for row in candles_df.to_dict(orient="records"):
+        bar_time = row.get("time", row.get("timestamp"))
+        candles.append({
+            "time": int(bar_time),
+            "open": float(row.get("open", 0.0)),
+            "high": float(row.get("high", 0.0)),
+            "low": float(row.get("low", 0.0)),
+            "close": float(row.get("close", 0.0)),
+            "volume": float(row.get("volume", 0.0)),
+            "bar_index": int(row["bar_index"]) if row.get("bar_index") is not None else None,
+        })
+
+    return {
+        "symbol": symbol,
+        "resolution": resolution,
+        "run_id": run_id,
+        "data_source": _infer_hypothesis_run_source(run_dir),
+        "candles": candles,
+    }
 
 
 if __name__ == "__main__":

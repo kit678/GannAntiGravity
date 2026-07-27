@@ -60,7 +60,8 @@ class ChartDatafeed {
 
         // Ensure Yahoo Finance symbols have the :YF suffix before asking the backend for /symbols
         // This allows backend to set the correct timezone, session (e.g. 0930-1600 EST), and minmov
-        if (this.dataSource === 'yfinance' && !finalSymbol.endsWith(':YF')) {
+        // IMPORTANT: Do NOT append :YF if the symbol already has a :BN (Binance) suffix
+        if (this.dataSource === 'yfinance' && !finalSymbol.endsWith(':YF') && !finalSymbol.includes(':BN')) {
             finalSymbol = finalSymbol + ':YF';
             console.log("[ChartDatafeed] Appended YFinance suffix:", finalSymbol);
         }
