@@ -29,6 +29,11 @@
   whichever tree the test file itself lives in.
 - Frontend tests are plain Node scripts run with `node <path>`, ending in `console.log('<filename>: ok');`.
 - There is **no** `conftest.py` or `pytest.ini` in this repo. Do not add one.
+- **`.gitignore:24` contains `**/tests/`**, so backend test files are ignored by
+  default. The 8 test files currently tracked were force-added. Every commit step
+  below therefore uses `git add -f` for test paths. Without `-f`, `git add` fails
+  with "paths are ignored by one of your .gitignore files" and the tests would be
+  left uncommitted.
 
 ### Pre-existing failures (not caused by this work)
 
@@ -362,7 +367,7 @@ Expected: PASS, `8 passed`
 - [ ] **Step 5: Commit**
 
 ```bash
-git add gann-visualizer/backend/analysis/rsi_pivots.py gann-visualizer/backend/tests/test_rsi_pivots.py
+git add -f gann-visualizer/backend/analysis/rsi_pivots.py gann-visualizer/backend/tests/test_rsi_pivots.py
 git commit -m "feat: add pure RSI pivot layer with incremental dominance"
 ```
 
@@ -654,7 +659,7 @@ Expected: PASS, `10 passed`
 - [ ] **Step 5: Commit**
 
 ```bash
-git add gann-visualizer/backend/analysis/rsi_line_policy.py gann-visualizer/backend/tests/test_rsi_line_policy.py
+git add -f gann-visualizer/backend/analysis/rsi_line_policy.py gann-visualizer/backend/tests/test_rsi_line_policy.py
 git commit -m "feat: add walk-back and nearest-pair anchor policies"
 ```
 
@@ -1015,7 +1020,7 @@ Expected: PASS, `20 passed`
 - [ ] **Step 5: Commit**
 
 ```bash
-git add gann-visualizer/backend/analysis/rsi_sweep.py gann-visualizer/backend/tests/test_rsi_sweep.py
+git add -f gann-visualizer/backend/analysis/rsi_sweep.py gann-visualizer/backend/tests/test_rsi_sweep.py
 git commit -m "feat: add causal RSI trendline sweep"
 ```
 
@@ -1151,7 +1156,7 @@ Then `git checkout gann-visualizer/backend/analysis/rsi_sweep.py` to restore, an
 - [ ] **Step 4: Commit**
 
 ```bash
-git add gann-visualizer/backend/tests/test_rsi_causality.py
+git add -f gann-visualizer/backend/tests/test_rsi_causality.py
 git commit -m "test: add prefix-stability regression test for RSI repaint"
 ```
 
@@ -1316,7 +1321,7 @@ Expected: only `gann-visualizer/backend/analysis/rsi_trendline_hypothesis.py` (f
 - [ ] **Step 6: Commit**
 
 ```bash
-git add gann-visualizer/backend/analysis/rsi_geometry.py gann-visualizer/backend/tests/test_rsi_geometry.py
+git add -f gann-visualizer/backend/analysis/rsi_geometry.py gann-visualizer/backend/tests/test_rsi_geometry.py
 git commit -m "refactor: reduce rsi_geometry to a shim, delete dead builders"
 ```
 
@@ -1835,7 +1840,7 @@ Expected: PASS, `7 passed`
 - [ ] **Step 5: Commit**
 
 ```bash
-git add gann-visualizer/backend/analysis/rsi_trendline_hypothesis.py gann-visualizer/backend/tests/test_rsi_trendline_hypothesis.py
+git add -f gann-visualizer/backend/analysis/rsi_trendline_hypothesis.py gann-visualizer/backend/tests/test_rsi_trendline_hypothesis.py
 git commit -m "feat: causal sweep, swing stop and line timeline in RSI hypothesis"
 ```
 
@@ -1924,7 +1929,7 @@ Expected: PASS, `1 passed`
 - [ ] **Step 5: Commit**
 
 ```bash
-git add gann-visualizer/backend/main.py gann-visualizer/backend/tests/test_rsi_payload_passthrough.py
+git add -f gann-visualizer/backend/main.py gann-visualizer/backend/tests/test_rsi_payload_passthrough.py
 git commit -m "feat: pass line_timeline through the hypothesis API"
 ```
 
