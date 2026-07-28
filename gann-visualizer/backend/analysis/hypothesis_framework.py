@@ -348,10 +348,29 @@ class BounceFollowThroughV2Hypothesis(Hypothesis):
         }
 
     def _parse_t_delay(self, details: str) -> int:
-        """Parse 'Bounced (T+2 bars)' or 'Rejected (T+1 bars)' -> 2 or 1."""
+        """Parse 'Bounced (T+2 bars)' -> 2. Returns -1 for absent or invalid.
+
+        T+N is the number of bars between the test candle and the confirmation
+        candle, so the minimum legitimate value is 1. Zero and negative values
+        are impossible -- they would mean the bounce was confirmed at or before
+        the test that triggered it.
+
+        The regex deliberately accepts a minus sign. The previous pattern
+        ``T\+(\d+)`` could not match one, so upstream events carrying values
+        like 'T+-4 bars' fell through to the ``else`` branch and were returned
+        as 0 -- indistinguishable from a genuine T+0 and silently dropped by any
+        ``min_confirm_bars >= 1`` filter. On the BTCUSDT 15m run that hid 48
+        malformed events (13.2% of all bounces, ranging to T+-140).
+
+        Returning -1 keeps those events rejectable while making the reason
+        explicit to the caller.
+        """
         import re
-        m = re.search(r'T\+(\d+)', str(details))
-        return int(m.group(1)) if m else 0
+        m = re.search(r'T\+(-?\d+)', str(details))
+        if not m:
+            return -1
+        value = int(m.group(1))
+        return value if value >= 1 else -1
 
     def _empty_result(self) -> Dict[str, Any]:
         return {
@@ -688,10 +707,29 @@ class BounceFollowThroughV3Hypothesis(Hypothesis):
         }
 
     def _parse_t_delay(self, details: str) -> int:
-        """Parse 'Bounced (T+2 bars)' or 'Rejected (T+1 bars)' -> 2 or 1."""
+        """Parse 'Bounced (T+2 bars)' -> 2. Returns -1 for absent or invalid.
+
+        T+N is the number of bars between the test candle and the confirmation
+        candle, so the minimum legitimate value is 1. Zero and negative values
+        are impossible -- they would mean the bounce was confirmed at or before
+        the test that triggered it.
+
+        The regex deliberately accepts a minus sign. The previous pattern
+        ``T\+(\d+)`` could not match one, so upstream events carrying values
+        like 'T+-4 bars' fell through to the ``else`` branch and were returned
+        as 0 -- indistinguishable from a genuine T+0 and silently dropped by any
+        ``min_confirm_bars >= 1`` filter. On the BTCUSDT 15m run that hid 48
+        malformed events (13.2% of all bounces, ranging to T+-140).
+
+        Returning -1 keeps those events rejectable while making the reason
+        explicit to the caller.
+        """
         import re
-        m = re.search(r'T\+(\d+)', str(details))
-        return int(m.group(1)) if m else 0
+        m = re.search(r'T\+(-?\d+)', str(details))
+        if not m:
+            return -1
+        value = int(m.group(1))
+        return value if value >= 1 else -1
 
     def _empty_result(self) -> Dict[str, Any]:
         return {
@@ -898,9 +936,17 @@ class _BounceFollowThroughParam(Hypothesis):
         }
 
     def _parse_t_delay(self, details: str) -> int:
+        """Parse 'Bounced (T+2 bars)' -> 2. Returns -1 for absent or invalid.
+
+        See the sibling implementation for why negatives must be matched rather
+        than falling through to 0: upstream emits values like 'T+-4 bars'.
+        """
         import re
-        m = re.search(r'T\+(\d+)', str(details))
-        return int(m.group(1)) if m else 0
+        m = re.search(r'T\+(-?\d+)', str(details))
+        if not m:
+            return -1
+        value = int(m.group(1))
+        return value if value >= 1 else -1
 
     def _empty_result(self) -> Dict[str, Any]:
         return {"sample_size": 0, "win_rate": 0.0, "live_sample_size": 0, "live_win_rate": 0.0,
@@ -1224,19 +1270,26 @@ def rescore_from_realized_trades(result: dict) -> dict:
 
     live = [e for e in trades if not e.get("is_retro")]
     retro = [e for e in trades if e.get("is_retro")]
-    total_net = _net(trades)
 
-    in_sample["sample_size"] = len(trades)
-    in_sample["win_rate"] = _wr(trades)
+    # Headline performance is LIVE ONLY. Retro events are backfilled -- found
+    # after the fact and untradeable in real time -- so counting them inflates
+    # every figure. They were roughly half of every hypothesis's sample.
+    # Retro is retained below purely as a per-run diagnostic.
+    live_net = _net(live)
+    in_sample["sample_size"] = len(live)
+    in_sample["win_rate"] = _wr(live)
+    in_sample["net_pnl_total"] = live_net
+    in_sample["avg_net_pnl"] = round(live_net / len(live), 6) if live else 0.0
     in_sample["live_sample_size"] = len(live)
     in_sample["live_win_rate"] = _wr(live)
+
     in_sample["retro_sample_size"] = len(retro)
     in_sample["retro_win_rate"] = _wr(retro)
-    in_sample["net_pnl_total"] = total_net
-    in_sample["avg_net_pnl"] = round(total_net / len(trades), 6)
+    in_sample["retro_net_pnl"] = _net(retro)
+    in_sample["total_matched_trades"] = len(trades)
 
-    # Walk-forward on the same chronological 70/30 split, realized outcomes.
-    ordered = sorted(trades, key=lambda e: str(e.get("time", "")))
+    # Walk-forward on the same chronological 70/30 split, live trades only.
+    ordered = sorted(live, key=lambda e: str(e.get("time", "")))
     split = int(len(ordered) * 0.7)
     train, test = ordered[:split], ordered[split:]
     train_wr, test_wr = _wr(train), _wr(test)
@@ -1248,16 +1301,13 @@ def rescore_from_realized_trades(result: dict) -> dict:
         "test_win_rate": test_wr,
         "test_net_pnl": _net(test),
         # Persistent means the out-of-sample win rate clears a coin flip.
-        # Deliberately NOT gated on test holding up against train: a hypothesis
-        # whose test rate exceeds train is worth seeing rather than filtering,
-        # and train/test are both reported side by side for that comparison.
         "persistent": bool(test and test_wr >= 0.5),
         "basis": "realized_trades",
     }
 
     result["in_sample"] = in_sample
     result["trade_scored"] = True
-    result["scoring_basis"] = "realized_trades"
+    result["scoring_basis"] = "realized_trades_live_only"
     return result
 
 

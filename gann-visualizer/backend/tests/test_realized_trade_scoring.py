@@ -45,7 +45,7 @@ def test_rescore_replaces_mfe_win_rate_with_realized_win_rate():
     assert result["in_sample"]["sample_size"] == 4
     assert result["in_sample"]["net_pnl_total"] == -25.0
     assert result["trade_scored"] is True
-    assert result["scoring_basis"] == "realized_trades"
+    assert result["scoring_basis"] == "realized_trades_live_only"
 
 
 def test_rescore_preserves_the_mfe_numbers_as_labelled_diagnostics():
@@ -153,3 +153,75 @@ def test_rescore_is_idempotent_for_already_trade_scored_hypotheses():
     rescore_from_realized_trades(result)
 
     assert result["in_sample"] == first
+
+
+# --- Retro exclusion -------------------------------------------------------
+#
+# Retro events are backfilled -- discovered after the fact and untradeable live.
+# They were ~50% of every hypothesis's sample and counted toward the headline
+# win rate and PnL. Headline performance is now LIVE ONLY; retro is retained as
+# a labelled diagnostic so the count per run is still visible.
+
+def test_headline_performance_excludes_retro_entirely():
+    result = {
+        "in_sample": {"sample_size": 4, "win_rate": 0.9},
+        "detailed_log": [
+            _entry("2026-01-01T00:00:00", "LOSS", -10.0, retro=False),
+            _entry("2026-01-01T01:00:00", "LOSS", -10.0, retro=False),
+            _entry("2026-01-01T02:00:00", "WIN", 100.0, retro=True),
+            _entry("2026-01-01T03:00:00", "WIN", 100.0, retro=True),
+        ],
+    }
+
+    rescore_from_realized_trades(result)
+
+    # headline must reflect the two live losers, not the two retro winners
+    assert result["in_sample"]["sample_size"] == 2
+    assert result["in_sample"]["win_rate"] == 0.0
+    assert result["in_sample"]["net_pnl_total"] == -20.0
+
+
+def test_retro_is_still_reported_as_a_diagnostic():
+    result = {
+        "in_sample": {"sample_size": 3, "win_rate": 0.5},
+        "detailed_log": [
+            _entry("2026-01-01T00:00:00", "WIN", 10.0, retro=False),
+            _entry("2026-01-01T01:00:00", "WIN", 50.0, retro=True),
+            _entry("2026-01-01T02:00:00", "LOSS", -20.0, retro=True),
+        ],
+    }
+
+    rescore_from_realized_trades(result)
+
+    assert result["in_sample"]["retro_sample_size"] == 2
+    assert result["in_sample"]["retro_win_rate"] == 0.5
+    assert result["in_sample"]["retro_net_pnl"] == 30.0
+    assert result["in_sample"]["live_sample_size"] == 1
+
+
+def test_walk_forward_is_computed_on_live_trades_only():
+    log = [_entry(f"2026-01-01T{h:02d}:00:00", "WIN", 10.0, retro=True) for h in range(10)]
+    log += [_entry(f"2026-01-02T{h:02d}:00:00", "LOSS", -10.0, retro=False) for h in range(10)]
+    result = {"in_sample": {"sample_size": 20, "win_rate": 0.5}, "detailed_log": log}
+
+    rescore_from_realized_trades(result)
+
+    wf = result["walk_forward"]
+    assert wf["train_sample_size"] + wf["test_sample_size"] == 10, "retro must not enter walk-forward"
+    assert wf["test_win_rate"] == 0.0
+
+
+def test_all_retro_leaves_no_tradeable_sample():
+    result = {
+        "in_sample": {"sample_size": 2, "win_rate": 1.0},
+        "detailed_log": [
+            _entry("2026-01-01T00:00:00", "WIN", 10.0, retro=True),
+            _entry("2026-01-01T01:00:00", "WIN", 10.0, retro=True),
+        ],
+    }
+
+    rescore_from_realized_trades(result)
+
+    assert result["in_sample"]["sample_size"] == 0
+    assert result["in_sample"]["retro_sample_size"] == 2
+    assert result["scoring_basis"] == "realized_trades_live_only"
