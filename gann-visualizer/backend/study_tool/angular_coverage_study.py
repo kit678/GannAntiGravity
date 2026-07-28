@@ -184,6 +184,92 @@ class AngularPriceCoverageStudy:
         if hasattr(self, 'logger'):
             self.logger.info(msg)
 
+    def _derive_anchor_type_for_fan_identity(self, fan_identity: str) -> Optional[str]:
+        if not fan_identity:
+            return None
+        first_label = fan_identity.split("-")[0] if "-" in fan_identity else fan_identity
+        if first_label and first_label[0].upper() == "H":
+            return "HIGH"
+        if first_label and first_label[0].upper() == "L":
+            return "LOW"
+        return None
+
+    def _build_active_angle_prices_snapshot(self, timestamp: int, bar_index: int) -> Dict[str, float]:
+        active_angle_prices: Dict[str, float] = {}
+        for fan_id, fan in self.angle_engine.active_fans.items():
+            if not getattr(fan, "lines", None):
+                continue
+
+            origin_time = fan.lines[0].start_time
+            if timestamp < origin_time:
+                continue
+
+            for line in fan.lines:
+                bar_span = line.end_bar_index - line.start_bar_index
+                if bar_span <= 0:
+                    continue
+
+                bars_from_origin = bar_index - line.start_bar_index
+                slope = (line.end_price - line.start_price) / bar_span
+                price_at_t = line.start_price + bars_from_origin * slope
+
+                if line.fraction is not None:
+                    frac_str = str(line.fraction)
+                elif "htarget" in line.id:
+                    frac_str = "horizontal"
+                else:
+                    frac_str = "main"
+
+                active_angle_prices[f"{fan_id}_{frac_str}"] = round(price_at_t, 2)
+        return active_angle_prices
+
+    def build_candle_context_snapshot(self, current_candle: Dict[str, Any], bar_index: int) -> Dict[str, Any]:
+        """
+        Build per-candle structural context for bar-level mining/export.
+
+        Returns an aggregate snapshot plus per-fan sub-snapshots so candles.csv
+        can carry richer study state without flattening away multi-fan context.
+        """
+        timestamp = int(current_candle.get("time", current_candle.get("Time", 0)))
+        is_cluster = False
+        if hasattr(self, "_historical_clusters") and bar_index < len(self._historical_clusters):
+            is_cluster = bool(self._historical_clusters[bar_index])
+
+        active_angle_prices = self._build_active_angle_prices_snapshot(timestamp, bar_index)
+        fan_snapshots: Dict[str, Dict[str, Any]] = {}
+
+        for fan_id, fan in self.angle_engine.active_fans.items():
+            zone_snapshot = self.zone_tracker.get_zone_at_bar(fan_id, bar_index)
+            if not zone_snapshot:
+                zone_snapshot = self.zone_tracker.get_last_zone(fan_id)
+
+            target_info = self.target_progression.get_target_info(fan_id)
+            fan_identity = fan_id.replace("Fan_", "").replace("_", "-") if fan_id else ""
+            fan_snapshots[fan_id] = {
+                "fan_identity": fan_identity,
+                "priority_label": getattr(fan, "priority_label", None),
+                "anchor_type": self._derive_anchor_type_for_fan_identity(fan_identity),
+                "current_zone": zone_snapshot.zone if zone_snapshot else None,
+                "zone_highest_close": zone_snapshot.zone_highest_close if zone_snapshot else None,
+                "zone_lowest_close": zone_snapshot.zone_lowest_close if zone_snapshot else None,
+                "bars_in_zone": zone_snapshot.bars_in_zone if zone_snapshot else None,
+                "active_angle_prices": dict(zone_snapshot.angle_prices) if zone_snapshot else {},
+                "next_angle_line": target_info.get("next_angle_line"),
+                "current_target": target_info.get("current_target"),
+                "targets_remaining": list(target_info.get("targets_remaining", [])),
+                "is_validated": bool(target_info.get("is_validated", False)),
+                "completed": bool(target_info.get("completed", False)),
+            }
+
+        return {
+            "timestamp": timestamp,
+            "bar_index": bar_index,
+            "cluster": is_cluster,
+            "active_fan_count": len(fan_snapshots),
+            "active_angles": active_angle_prices,
+            "fan_snapshots": fan_snapshots,
+        }
+
     def initialize_history(self, candles: List[Dict[str, Any]]):
         """
         Step 1: Detect all pivots from historical candle data.
@@ -341,6 +427,7 @@ class AngularPriceCoverageStudy:
                         origin_bar_index=origin_bar_index,
                         origin_price=origin_price,
                         fan_geometry=fan_geometry,
+                        bar_index=bar_index,
                         details={
                             'fan_id': fan_id,
                             'new_zone': snapshot.zone,
@@ -387,7 +474,14 @@ class AngularPriceCoverageStudy:
                     
                     if ui_events:
                         for ui_event in ui_events:
-                            ui_event['details'] = f"[Retro] {ui_event['details']}"
+                            # Guard against double-tagging. The other retro
+                            # prepend site (see _persisted_fans sweep below)
+                            # already checks startswith; this one did not, so an
+                            # event reaching both paths came out as
+                            # "[Retro] [Retro] Bounced (T+1 bars)" -- 159 events
+                            # (44%) on the BTCUSDT 15m run.
+                            if not str(ui_event['details']).startswith("[Retro]"):
+                                ui_event['details'] = f"[Retro] {ui_event['details']}"
                             print(f"[RetroSweep] Emitting retroactive event: {ui_event}")
                             
                         if 'intersection_events' not in result:
@@ -508,6 +602,17 @@ class AngularPriceCoverageStudy:
             """Get target progression info for a specific fan."""
             return self.target_progression.get_target_info(fan_id)
 
+        def derive_anchor_type(fan_identity: str) -> Optional[str]:
+            """Derive anchor type from fan identity label (e.g. H1-L1 -> HIGH)."""
+            if not fan_identity:
+                return None
+            first_label = fan_identity.split("-")[0] if "-" in fan_identity else fan_identity
+            if first_label and first_label[0].upper() == "H":
+                return "HIGH"
+            if first_label and first_label[0].upper() == "L":
+                return "LOW"
+            return None
+
         # 1. Fan validation (7/8 interaction check)
         new_validations = self.fan_validator.process_intersections(
             intersection_events, current_candle, bar_index
@@ -562,6 +667,14 @@ class AngularPriceCoverageStudy:
                 origin_bar_index=origin_bar_index,
                 origin_price=origin_price,
                 fan_geometry=fan_geometry,
+                bar_index=bar_index,
+                fan_identity=validation.fan_id.replace("Fan_", "").replace("_", "-"),
+                priority_label=fan_obj.priority_label if fan_obj else validation.fan_id.replace("Fan_", "").replace("_", "-"),
+                bars_in_zone=b_in_zone,
+                is_gap_cross=False,
+                is_retro=is_retro,
+                anchor_type=derive_anchor_type(validation.fan_id.replace("Fan_", "").replace("_", "-")),
+                state_snapshot=self.state_machine.get_state(),
                 details={
                     'fan_id': validation.fan_id,
                     'validation_type': validation.validation_type,
@@ -706,6 +819,16 @@ class AngularPriceCoverageStudy:
                 origin_bar_index=origin_bar_index,
                 origin_price=origin_price,
                 fan_geometry=fan_geometry,
+                bar_index=bar_index,
+                fan_identity=state_event.fan_identity,
+                priority_label=state_event.priority_label,
+                bars_in_zone=b_in_zone,
+                is_gap_cross=state_event.event_type in ("GAP_CROSS_UP", "GAP_CROSS_DOWN"),
+                is_retro=is_retro,
+                anchor_type=derive_anchor_type(state_event.fan_identity),
+                bounce_rejection=getattr(state_event, 'bounce_rejection', None),
+                rest_context=getattr(state_event, 'rest_context', None),
+                state_snapshot=self.state_machine.get_state(),
                 details={
                     'fan_id': state_event.fan_id,
                     'ui_type': state_event.event_type,
@@ -786,6 +909,16 @@ class AngularPriceCoverageStudy:
                     origin_bar_index=origin_bar_index,
                     origin_price=origin_price,
                     fan_geometry=fan_geometry,
+                    bar_index=bar_index,
+                    fan_identity=target_hit.fan_id.replace("Fan_", "").replace("_", "-") if target_hit.fan_id else None,
+                    priority_label=state_event.priority_label,
+                    bars_in_zone=b_in_zone,
+                    is_gap_cross=False,
+                    is_retro=is_retro,
+                    anchor_type=derive_anchor_type(target_hit.fan_id.replace("Fan_", "").replace("_", "-") if target_hit.fan_id else None),
+                    bounce_rejection=getattr(state_event, 'bounce_rejection', None),
+                    rest_context=getattr(state_event, 'rest_context', None),
+                    state_snapshot=self.state_machine.get_state(),
                     details={
                         'fan_id': target_hit.fan_id,
                         'hit_bar': target_hit.hit_bar,
@@ -895,6 +1028,16 @@ class AngularPriceCoverageStudy:
                         origin_bar_index=origin_bar_index,
                         origin_price=origin_price,
                         fan_geometry=fan_geometry,
+                        bar_index=bar_index,
+                        fan_identity=state_event.fan_identity,
+                        priority_label=state_event.priority_label,
+                        bars_in_zone=b_in_zone,
+                        is_gap_cross=state_event.event_type in ("GAP_CROSS_UP", "GAP_CROSS_DOWN"),
+                        is_retro=is_retro,
+                        anchor_type=derive_anchor_type(state_event.fan_identity),
+                        bounce_rejection=getattr(state_event, 'bounce_rejection', None),
+                        rest_context=getattr(state_event, 'rest_context', None),
+                        state_snapshot=self.state_machine.get_state(),
                         details={
                             'fan_id': state_event.fan_id,
                             'fail_bar': bar_index,
@@ -983,6 +1126,14 @@ class AngularPriceCoverageStudy:
                 origin_bar_index=origin_bar_index,
                 origin_price=origin_price,
                 fan_geometry=fan_geometry,
+                bar_index=bar_index,
+                fan_identity=evt.fan_identity,
+                priority_label=evt.priority_label,
+                bars_in_zone=last_zone.bars_in_zone if last_zone else None,
+                is_gap_cross=evt.event_type in ("GAP_CROSS_UP", "GAP_CROSS_DOWN"),
+                is_retro=is_retro,
+                anchor_type=derive_anchor_type(evt.fan_identity),
+                state_snapshot=self.state_machine.get_state(),
                 details={
                     'fan_id': evt.fan_id,
                     'bars_elapsed': evt.details.split('(')[-1].replace(')', '').strip() if 'bars)' in evt.details else evt.details
@@ -1347,6 +1498,14 @@ class AngularPriceCoverageStudy:
                                 origin_bar_index=origin_bar_index,
                                 origin_price=origin_price,
                                 fan_geometry=fan_geometry,
+                                bar_index=current_bar_index,
+                                fan_identity=fan_id.replace("Fan_", "").replace("_", "-") if fan_id else None,
+                                priority_label=fan_priority,
+                                bars_in_zone=None,
+                                is_gap_cross=False,
+                                is_retro=(current_bar_index <= fan_data.get('creation_bar_index', -1)),
+                                anchor_type=("HIGH" if (fan_id or "").replace("Fan_", "").replace("_", "-").startswith("H") else ("LOW" if (fan_id or "").replace("Fan_", "").replace("_", "-").startswith("L") else None)),
+                                state_snapshot=self.state_machine.get_state(),
                                 details={
                                     'fan_id': fan_id,
                                     'fan_label': fan_priority,
@@ -1417,6 +1576,14 @@ class AngularPriceCoverageStudy:
                                 origin_bar_index=origin_bar_index,
                                 origin_price=origin_price,
                                 fan_geometry=fan_geometry,
+                                bar_index=current_bar_index,
+                                fan_identity=fan_id.replace("Fan_", "").replace("_", "-") if fan_id else None,
+                                priority_label=fan_priority,
+                                bars_in_zone=None,
+                                is_gap_cross=False,
+                                is_retro=(current_bar_index <= fan_data.get('creation_bar_index', -1)),
+                                anchor_type=("HIGH" if (fan_id or "").replace("Fan_", "").replace("_", "-").startswith("H") else ("LOW" if (fan_id or "").replace("Fan_", "").replace("_", "-").startswith("L") else None)),
+                                state_snapshot=self.state_machine.get_state(),
                                 details={
                                     'fan_id': fan_id,
                                     'fan_label': fan_priority,
@@ -1493,6 +1660,14 @@ class AngularPriceCoverageStudy:
                                 origin_bar_index=origin_bar_index,
                                 origin_price=origin_price,
                                 fan_geometry=fan_geometry,
+                                bar_index=current_bar_index,
+                                fan_identity=fan_id.replace("Fan_", "").replace("_", "-") if fan_id else None,
+                                priority_label=fan_priority,
+                                bars_in_zone=None,
+                                is_gap_cross=False,
+                                is_retro=(current_bar_index <= fan_data.get('creation_bar_index', -1)),
+                                anchor_type=("HIGH" if (fan_id or "").replace("Fan_", "").replace("_", "-").startswith("H") else ("LOW" if (fan_id or "").replace("Fan_", "").replace("_", "-").startswith("L") else None)),
+                                state_snapshot=self.state_machine.get_state(),
                                 details={
                                     'fan_id': fan_id,
                                     'fan_label': fan_priority,
@@ -1806,6 +1981,14 @@ class AngularPriceCoverageStudy:
             origin_bar_index=origin_bar_index,
             origin_price=origin_price,
             fan_geometry=fan_geometry,
+            bar_index=bar_index,
+            fan_identity=fan_id.replace("Fan_", "").replace("_", "-") if fan_id else None,
+            priority_label=noalpha_fan_obj.priority_label if noalpha_fan_obj else noalpha_fan_data.get('priority_label'),
+            bars_in_zone=last_zone.bars_in_zone if last_zone else None,
+            is_gap_cross=False,
+            is_retro=(bar_index <= noalpha_fan_data.get('creation_bar_index', -1)),
+            anchor_type=("HIGH" if (fan_id or "").replace("Fan_", "").replace("_", "-").startswith("H") else ("LOW" if (fan_id or "").replace("Fan_", "").replace("_", "-").startswith("L") else None)),
+            state_snapshot=self.state_machine.get_state(),
             details={
                 'fan_id': fan_id,
                 'cross_bar': True

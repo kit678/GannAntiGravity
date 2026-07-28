@@ -63,8 +63,8 @@ class UnifiedStateMachine:
                 f.write("or below min(BEC_close, ZEC_low) for DOWN.\n")
                 f.write("- BREACH_CONFIRMED_NO_ALPHA: Intra-bar multi-cross or next-target-hit. ")
                 f.write("No tradeable alpha.\n")
-                f.write("- SUPPORT_BOUNCE: Price bounces up by threshold % after a SUPPORT_TEST\n")
-                f.write("- RESISTANCE_REJECTION: Price rejects down by threshold % after a RESISTANCE_TEST\n")
+                f.write("- SUPPORT_BOUNCE: After SUPPORT_TEST, subsequent close overcomes test candle: if test bullish -> close > test close + 0.1%; if bearish -> close > test open + 0.1%\n")
+                f.write("- RESISTANCE_REJECTION: After RESISTANCE_TEST, subsequent close overcomes test candle: if test bullish -> close < test open - 0.1%; if bearish -> close < test close - 0.1%\n")
                 f.write("- TARGET_HIT: First contact with an angle line in the target progression sequence. ")
                 f.write("Only fires once per line; subsequent contacts are ignored.\n")
                 f.write("=================================================\n\n")
@@ -247,7 +247,248 @@ class UnifiedStateMachine:
 
         prev_close = float(prev_candle.get('close', c_open)) if prev_candle else c_open
 
-        # 1. Process new intersections
+        # 1. Update existing pending tests (Bounce / Rejection)
+        keys_to_remove = []
+        for state_key in sorted(self.pending_tests.keys()):
+            state = self.pending_tests[state_key]
+            fan_id = state['fan_id']
+            if fan_id not in active_fans:
+                keys_to_remove.append(state_key)
+                continue
+
+            bars_elapsed = bar_index - state['test_bar']
+
+            # A confirmation cannot precede or coincide with the test that
+            # triggered it, so bars_elapsed < 1 is impossible, not merely
+            # unusual. Only the upper bound was guarded, which let stale
+            # pending_tests from a retro/backfill pass -- where test_bar ends up
+            # AHEAD of bar_index -- emit events like "Bounced (T+-4 bars)".
+            # On the BTCUSDT 15m run that was 48 events (13.2% of all bounces,
+            # down to T+-140), every one of them retro. Downstream they parsed
+            # as T+0 and were silently discarded.
+            if bars_elapsed < 1:
+                keys_to_remove.append(state_key)
+                evaluations.append(
+                    f"[{fan_id} {state['fraction']}] "
+                    f"Discarded test_bar={state['test_bar']} bar_index={bar_index} "
+                    f"bars_elapsed={bars_elapsed} -> stale state from an earlier pass"
+                )
+                continue
+
+            if bars_elapsed > self.rejection_lookback_bars:
+                keys_to_remove.append(state_key)
+                evaluations.append(
+                    f"[{fan_id} {state['fraction']}] "
+                    f"Removed test_bar={state['test_bar']} line={state['line_price']:.2f} "
+                    f"threshold_pct={self.bounce_threshold_percent} bars_elapsed={bars_elapsed} "
+                    f"lookback_limit={self.rejection_lookback_bars} -> Removed"
+                )
+                continue
+
+            fan_obj = active_fans[fan_id]
+            fan_identity = fan_obj.priority_label.split('(')[-1].rstrip(')').strip() if '(' in fan_obj.priority_label else fan_obj.priority_label
+            frac_name = f"{state['fraction']}" if state['fraction'] is not None else "main"
+
+            line_price = state['line_price']
+
+            if state['test_type'] == 'SUPPORT_TEST':
+                # Cancel if price closes below the test candle's close (support invalidated)
+                if c_close < state['candle_close']:
+                    keys_to_remove.append(state_key)
+                    evaluations.append(f"[{fan_identity} {frac_name}] Pending SUPPORT_TEST: C ({c_close:.2f}) < Test Candle Close ({state['candle_close']:.2f}) -> Cancelled")
+                    continue
+
+                # New confirmation: overcome the test candle, not the line
+                # Bullish test candle: close above test close
+                # Bearish test candle: close above test open
+                if state.get('test_candle_bullish', False):
+                    ref_price = state['candle_close']
+                else:
+                    ref_price = state['candle_open']
+
+                if c_close > ref_price:
+                    results.append(EventOutput(
+                        fan_id=fan_id, fan_identity=fan_identity, priority_label=fan_obj.priority_label,
+                        fraction=frac_name, price=line_price, event_type='SUPPORT_BOUNCE',
+                        details=f"Bounced (T+{bars_elapsed} bars)", direction='up',
+                        bar_index=bar_index
+                    ))
+                    self.emit_pending_test_state(
+                        bar_index=bar_index,
+                        fan_id=fan_id,
+                        fraction=frac_name,
+                        direction='UP',
+                        trigger_close=state['candle_close'],
+                        trigger_bar=state['test_bar']
+                    )
+                    keys_to_remove.append(state_key)
+                    evaluations.append(
+                        f"[{fan_identity} {frac_name}] "
+                        f"test_bar={state['test_bar']} bull={state.get('test_candle_bullish')} "
+                        f"ref={ref_price:.2f} bars_elapsed={bars_elapsed} "
+                        f"close={c_close:.2f} -> SUPPORT_BOUNCE"
+                    )
+            elif state['test_type'] == 'RESISTANCE_TEST':
+                # Cancel if price closes above the test candle's close (resistance invalidated)
+                if c_close > state['candle_close']:
+                    keys_to_remove.append(state_key)
+                    evaluations.append(f"[{fan_identity} {frac_name}] Pending RESISTANCE_TEST: C ({c_close:.2f}) > Test Candle Close ({state['candle_close']:.2f}) -> Cancelled")
+                    continue
+
+                # New confirmation: overcome the test candle, not the line
+                # Bullish test candle: close below test open
+                # Bearish test candle: close below test close
+                if state.get('test_candle_bullish', False):
+                    ref_price = state['candle_open']
+                else:
+                    ref_price = state['candle_close']
+
+                if c_close < ref_price:
+                    results.append(EventOutput(
+                        fan_id=fan_id, fan_identity=fan_identity, priority_label=fan_obj.priority_label,
+                        fraction=frac_name, price=line_price, event_type='RESISTANCE_REJECTION',
+                        details=f"Rejected (T+{bars_elapsed} bars)", direction='down',
+                        bar_index=bar_index
+                    ))
+                    self.emit_pending_test_state(
+                        bar_index=bar_index,
+                        fan_id=fan_id,
+                        fraction=frac_name,
+                        direction='DOWN',
+                        trigger_close=state['candle_close'],
+                        trigger_bar=state['test_bar']
+                    )
+                    keys_to_remove.append(state_key)
+                    evaluations.append(
+                        f"[{fan_identity} {frac_name}] "
+                        f"test_bar={state['test_bar']} bull={state.get('test_candle_bullish')} "
+                        f"ref={ref_price:.2f} bars_elapsed={bars_elapsed} "
+                        f"close={c_close:.2f} -> RESISTANCE_REJECTION"
+                    )
+
+        for key in keys_to_remove:
+            del self.pending_tests[key]
+
+        # If there are active fans but no evaluations were generated, log all active lines
+        # and their prices so the completeness checker can verify no event was missed
+        # 2. Update existing pending breaches
+        keys_to_remove = []
+        for state_key in sorted(self.pending_breaches.keys()):
+            state = self.pending_breaches[state_key]
+            fan_id = state['fan_id']
+            if fan_id not in active_fans:
+                keys_to_remove.append(state_key)
+                continue
+
+            if state['first_breach_bar'] == bar_index:
+                continue
+
+            bars_elapsed = bar_index - state['first_breach_bar']
+
+            fan_obj = active_fans[fan_id]
+            fan_identity = fan_obj.priority_label.split('(')[-1].rstrip(')').strip() if '(' in fan_obj.priority_label else fan_obj.priority_label
+            frac_name = f"{state['fraction']}" if state['fraction'] is not None else "main"
+
+            # Skip if this pending breach will be confirmed via TARGET_HIT (cross-bar Path B)
+            if state.get('skip_section2'):
+                evaluations.append(f"[{fan_identity} {frac_name}] Pending Breach UP: skip_section2=True -> SKIPPED (awaiting TARGET_HIT)")
+                continue
+
+            # Active momentum fake out check: Did price close back across the ORIGINAL breach price?
+            # This prevents steep lines from causing passive fake outs just by sloping past a stationary price
+            if state['direction'] == 'up':
+                bec_close = state.get('bec_close', state['extreme_price'])
+                zec_high = state.get('zec_high', state['extreme_price'])
+                zec_low = state.get('zec_low', state['extreme_price'])
+                # Emit BREACH_CONFIRMED immediately when price confirms the breach.
+                # Only defer if price is still within the zone (hasn't broken out yet).
+                if c_close > max(bec_close, zec_high):
+                    # DO NOT emit EventOutput here — _on_target_hit() needs to find the pending_breaches
+                    # entry to set skip_section2=True before flush. flush_deferred_breaches() will emit
+                    # the correct event type (BREACH_CONFIRMED or BREACH_CONFIRMED_NO_ALPHA).
+                    # Also DO NOT delete from pending_breaches — flush_deferred_breaches handles that.
+                    self.confirmed_this_bar.append((
+                        'up', state_key, fan_id, fan_identity, fan_obj.priority_label,
+                        frac_name, c_close, bars_elapsed, bar_index
+                    ))
+                    self.emit_pending_breach_state(
+                        bar_index=bar_index,
+                        fan_id=fan_id,
+                        fraction=frac_name,
+                        direction='UP',
+                        bec_close=bec_close,
+                        zec_high=zec_high,
+                        zec_low=zec_low,
+                        pending_bar=state['first_breach_bar'],
+                        outcome='BREACH_CONFIRMED'
+                    )
+                    evaluations.append(f"[{fan_identity} {frac_name}] Pending Breach UP: C ({c_close:.2f}) > max(BEC={bec_close:.2f}, ZEC={zec_high:.2f}) -> BREACH_CONFIRMED (confirmed_this_bar, flush after TARGET_HIT)")
+                    # NOTE: do NOT add to keys_to_remove; do NOT append EventOutput to results.
+                    # flush_deferred_breaches() will emit the correct event type.
+                else:
+                    self.emit_pending_breach_state(
+                        bar_index=bar_index,
+                        fan_id=fan_id,
+                        fraction=frac_name,
+                        direction='UP',
+                        bec_close=bec_close,
+                        zec_high=zec_high,
+                        zec_low=zec_low,
+                        pending_bar=bar_index,
+                        outcome='DEFERRED'
+                    )
+                    evaluations.append(f"[{fan_identity} {frac_name}] Pending Breach UP: C ({c_close:.2f}) <= max(BEC={bec_close:.2f}, ZEC={zec_high:.2f}) -> DEFERRED")
+            elif state['direction'] == 'down':
+                # Skip if this pending breach will be confirmed via TARGET_HIT (cross-bar Path B)
+                if state.get('skip_section2'):
+                    evaluations.append(f"[{fan_identity} {frac_name}] Pending Breach DOWN: skip_section2=True -> SKIPPED (awaiting TARGET_HIT)")
+                    continue
+                bec_close = state.get('bec_close', state['extreme_price'])
+                zec_high = state.get('zec_high', state['extreme_price'])
+                zec_low = state.get('zec_low', state['extreme_price'])
+                # Emit BREACH_CONFIRMED immediately when price confirms the breach.
+                # Only defer if price is still within the zone (hasn't broken out yet).
+                if c_close < min(bec_close, zec_low):
+                    # DO NOT emit EventOutput here — _on_target_hit() needs to find the pending_breaches
+                    # entry to set skip_section2=True before flush. flush_deferred_breaches() will emit
+                    # the correct event type (BREACH_CONFIRMED or BREACH_CONFIRMED_NO_ALPHA).
+                    # Also DO NOT delete from pending_breaches — flush_deferred_breaches handles that.
+                    self.confirmed_this_bar.append((
+                        'down', state_key, fan_id, fan_identity, fan_obj.priority_label,
+                        frac_name, c_close, bars_elapsed, bar_index
+                    ))
+                    self.emit_pending_breach_state(
+                        bar_index=bar_index,
+                        fan_id=fan_id,
+                        fraction=frac_name,
+                        direction='DOWN',
+                        bec_close=bec_close,
+                        zec_high=zec_high,
+                        zec_low=zec_low,
+                        pending_bar=state['first_breach_bar'],
+                        outcome='BREACH_CONFIRMED'
+                    )
+                    evaluations.append(f"[{fan_identity} {frac_name}] Pending Breach DOWN: C ({c_close:.2f}) < min(BEC={bec_close:.2f}, ZEC={zec_low:.2f}) -> BREACH_CONFIRMED (confirmed_this_bar, flush after TARGET_HIT)")
+                    # NOTE: do NOT add to keys_to_remove; do NOT append EventOutput to results.
+                    # flush_deferred_breaches() will emit the correct event type.
+                else:
+                    self.emit_pending_breach_state(
+                        bar_index=bar_index,
+                        fan_id=fan_id,
+                        fraction=frac_name,
+                        direction='DOWN',
+                        bec_close=bec_close,
+                        zec_high=zec_high,
+                        zec_low=zec_low,
+                        pending_bar=bar_index,
+                        outcome='DEFERRED'
+                    )
+                    evaluations.append(f"[{fan_identity} {frac_name}] Pending Breach DOWN: C ({c_close:.2f}) >= min(BEC={bec_close:.2f}, ZEC={zec_low:.2f}) -> DEFERRED")
+
+        for key in keys_to_remove:
+            del self.pending_breaches[key]
+
+        # 3. Process new intersections
         # Group events by fan to handle multi-angle crosses correctly
         events_by_fan = {}
         for event in intersection_events:
@@ -422,13 +663,13 @@ class UnifiedStateMachine:
                     hit_type = 'SUPPORT_TEST'
                     details = 'Testing Support'
                     direction = 'up'
-                    self._start_pending_test(state_key, event.fan_id, line_id, 'SUPPORT_TEST', bar_index, line_price, event.fraction, c_close)
+                    self._start_pending_test(state_key, event.fan_id, line_id, 'SUPPORT_TEST', bar_index, line_price, event.fraction, c_close, candle_open=c_open)
                     evaluations.append(f"[{fan_identity} {frac_name} @ {line_price:.2f}] O >= Line & C >= Line & L <= Line -> SUPPORT_TEST (Pending Bounce)")
                 elif is_resistance_test:
                     hit_type = 'RESISTANCE_TEST'
                     details = 'Testing Resistance'
                     direction = 'down'
-                    self._start_pending_test(state_key, event.fan_id, line_id, 'RESISTANCE_TEST', bar_index, line_price, event.fraction, c_close)
+                    self._start_pending_test(state_key, event.fan_id, line_id, 'RESISTANCE_TEST', bar_index, line_price, event.fraction, c_close, candle_open=c_open)
                     evaluations.append(f"[{fan_identity} {frac_name} @ {line_price:.2f}] O <= Line & C <= Line & H >= Line -> RESISTANCE_TEST (Pending Rejection)")
                 else:
                     raise RuntimeError(
@@ -520,213 +761,6 @@ class UnifiedStateMachine:
                         f"close={c_close:.2f} -> BREACH_CONFIRMED_NO_ALPHA"
                     )
 
-        # 2. Update existing pending breaches
-        keys_to_remove = []
-        for state_key in sorted(self.pending_breaches.keys()):
-            state = self.pending_breaches[state_key]
-            fan_id = state['fan_id']
-            if fan_id not in active_fans:
-                keys_to_remove.append(state_key)
-                continue
-
-            if state['first_breach_bar'] == bar_index:
-                continue
-
-            bars_elapsed = bar_index - state['first_breach_bar']
-
-            fan_obj = active_fans[fan_id]
-            fan_identity = fan_obj.priority_label.split('(')[-1].rstrip(')').strip() if '(' in fan_obj.priority_label else fan_obj.priority_label
-            frac_name = f"{state['fraction']}" if state['fraction'] is not None else "main"
-
-            # Skip if this pending breach will be confirmed via TARGET_HIT (cross-bar Path B)
-            if state.get('skip_section2'):
-                evaluations.append(f"[{fan_identity} {frac_name}] Pending Breach UP: skip_section2=True -> SKIPPED (awaiting TARGET_HIT)")
-                continue
-
-            # Active momentum fake out check: Did price close back across the ORIGINAL breach price?
-            # This prevents steep lines from causing passive fake outs just by sloping past a stationary price
-            if state['direction'] == 'up':
-                bec_close = state.get('bec_close', state['extreme_price'])
-                zec_high = state.get('zec_high', state['extreme_price'])
-                zec_low = state.get('zec_low', state['extreme_price'])
-                # Emit BREACH_CONFIRMED immediately when price confirms the breach.
-                # Only defer if price is still within the zone (hasn't broken out yet).
-                if c_close > max(bec_close, zec_high):
-                    # DO NOT emit EventOutput here — _on_target_hit() needs to find the pending_breaches
-                    # entry to set skip_section2=True before flush. flush_deferred_breaches() will emit
-                    # the correct event type (BREACH_CONFIRMED or BREACH_CONFIRMED_NO_ALPHA).
-                    # Also DO NOT delete from pending_breaches — flush_deferred_breaches handles that.
-                    self.confirmed_this_bar.append((
-                        'up', state_key, fan_id, fan_identity, fan_obj.priority_label,
-                        frac_name, c_close, bars_elapsed, bar_index
-                    ))
-                    self.emit_pending_breach_state(
-                        bar_index=bar_index,
-                        fan_id=fan_id,
-                        fraction=frac_name,
-                        direction='UP',
-                        bec_close=bec_close,
-                        zec_high=zec_high,
-                        zec_low=zec_low,
-                        pending_bar=state['first_breach_bar'],
-                        outcome='BREACH_CONFIRMED'
-                    )
-                    evaluations.append(f"[{fan_identity} {frac_name}] Pending Breach UP: C ({c_close:.2f}) > max(BEC={bec_close:.2f}, ZEC={zec_high:.2f}) -> BREACH_CONFIRMED (confirmed_this_bar, flush after TARGET_HIT)")
-                    # NOTE: do NOT add to keys_to_remove; do NOT append EventOutput to results.
-                    # flush_deferred_breaches() will emit the correct event type.
-                else:
-                    self.emit_pending_breach_state(
-                        bar_index=bar_index,
-                        fan_id=fan_id,
-                        fraction=frac_name,
-                        direction='UP',
-                        bec_close=bec_close,
-                        zec_high=zec_high,
-                        zec_low=zec_low,
-                        pending_bar=bar_index,
-                        outcome='DEFERRED'
-                    )
-                    evaluations.append(f"[{fan_identity} {frac_name}] Pending Breach UP: C ({c_close:.2f}) <= max(BEC={bec_close:.2f}, ZEC={zec_high:.2f}) -> DEFERRED")
-            elif state['direction'] == 'down':
-                # Skip if this pending breach will be confirmed via TARGET_HIT (cross-bar Path B)
-                if state.get('skip_section2'):
-                    evaluations.append(f"[{fan_identity} {frac_name}] Pending Breach DOWN: skip_section2=True -> SKIPPED (awaiting TARGET_HIT)")
-                    continue
-                bec_close = state.get('bec_close', state['extreme_price'])
-                zec_high = state.get('zec_high', state['extreme_price'])
-                zec_low = state.get('zec_low', state['extreme_price'])
-                # Emit BREACH_CONFIRMED immediately when price confirms the breach.
-                # Only defer if price is still within the zone (hasn't broken out yet).
-                if c_close < min(bec_close, zec_low):
-                    # DO NOT emit EventOutput here — _on_target_hit() needs to find the pending_breaches
-                    # entry to set skip_section2=True before flush. flush_deferred_breaches() will emit
-                    # the correct event type (BREACH_CONFIRMED or BREACH_CONFIRMED_NO_ALPHA).
-                    # Also DO NOT delete from pending_breaches — flush_deferred_breaches handles that.
-                    self.confirmed_this_bar.append((
-                        'down', state_key, fan_id, fan_identity, fan_obj.priority_label,
-                        frac_name, c_close, bars_elapsed, bar_index
-                    ))
-                    self.emit_pending_breach_state(
-                        bar_index=bar_index,
-                        fan_id=fan_id,
-                        fraction=frac_name,
-                        direction='DOWN',
-                        bec_close=bec_close,
-                        zec_high=zec_high,
-                        zec_low=zec_low,
-                        pending_bar=state['first_breach_bar'],
-                        outcome='BREACH_CONFIRMED'
-                    )
-                    evaluations.append(f"[{fan_identity} {frac_name}] Pending Breach DOWN: C ({c_close:.2f}) < min(BEC={bec_close:.2f}, ZEC={zec_low:.2f}) -> BREACH_CONFIRMED (confirmed_this_bar, flush after TARGET_HIT)")
-                    # NOTE: do NOT add to keys_to_remove; do NOT append EventOutput to results.
-                    # flush_deferred_breaches() will emit the correct event type.
-                else:
-                    self.emit_pending_breach_state(
-                        bar_index=bar_index,
-                        fan_id=fan_id,
-                        fraction=frac_name,
-                        direction='DOWN',
-                        bec_close=bec_close,
-                        zec_high=zec_high,
-                        zec_low=zec_low,
-                        pending_bar=bar_index,
-                        outcome='DEFERRED'
-                    )
-                    evaluations.append(f"[{fan_identity} {frac_name}] Pending Breach DOWN: C ({c_close:.2f}) >= min(BEC={bec_close:.2f}, ZEC={zec_low:.2f}) -> DEFERRED")
-
-        for key in keys_to_remove:
-            del self.pending_breaches[key]
-
-        # 3. Update existing pending tests (Bounce / Rejection)
-        keys_to_remove = []
-        for state_key in sorted(self.pending_tests.keys()):
-            state = self.pending_tests[state_key]
-            fan_id = state['fan_id']
-            if fan_id not in active_fans:
-                keys_to_remove.append(state_key)
-                continue
-
-            bars_elapsed = bar_index - state['test_bar']
-            if bars_elapsed > self.rejection_lookback_bars:
-                keys_to_remove.append(state_key)
-                evaluations.append(
-                    f"[{fan_id} {state['fraction']}] "
-                    f"Removed test_bar={state['test_bar']} line={state['line_price']:.2f} "
-                    f"threshold_pct={self.bounce_threshold_percent} bars_elapsed={bars_elapsed} "
-                    f"lookback_limit={self.rejection_lookback_bars} -> Removed"
-                )
-                continue
-
-            fan_obj = active_fans[fan_id]
-            fan_identity = fan_obj.priority_label.split('(')[-1].rstrip(')').strip() if '(' in fan_obj.priority_label else fan_obj.priority_label
-            frac_name = f"{state['fraction']}" if state['fraction'] is not None else "main"
-
-            line_price = state['line_price']
-            threshold_pct = self.bounce_threshold_percent
-            threshold = line_price * (threshold_pct / 100.0)
-
-            if state['test_type'] == 'SUPPORT_TEST':
-                # Cancel if price closes decisively below the candle that triggered the test
-                if c_close < state['candle_close']:
-                    keys_to_remove.append(state_key)
-                    evaluations.append(f"[{fan_identity} {frac_name}] Pending SUPPORT_TEST: C ({c_close:.2f}) < Test Candle Close ({state['candle_close']:.2f}) -> Cancelled")
-                    continue
-                if c_close >= line_price + threshold:
-                    results.append(EventOutput(
-                        fan_id=fan_id, fan_identity=fan_identity, priority_label=fan_obj.priority_label,
-                        fraction=frac_name, price=line_price, event_type='SUPPORT_BOUNCE',
-                        details=f"Bounced (T+{bars_elapsed} bars)", direction='up',
-                        bar_index=bar_index
-                    ))
-                    self.emit_pending_test_state(
-                        bar_index=bar_index,
-                        fan_id=fan_id,
-                        fraction=frac_name,
-                        direction='UP',
-                        trigger_close=state['candle_close'],
-                        trigger_bar=state['test_bar']
-                    )
-                    keys_to_remove.append(state_key)
-                    evaluations.append(
-                        f"[{fan_identity} {frac_name}] "
-                        f"test_bar={state['test_bar']} line={line_price:.2f} "
-                        f"threshold_pct={threshold_pct} bars_elapsed={bars_elapsed} "
-                        f"close={c_close:.2f} -> SUPPORT_BOUNCE"
-                    )
-            elif state['test_type'] == 'RESISTANCE_TEST':
-                # Cancel if price closes decisively above the candle that triggered the test
-                if c_close > state['candle_close']:
-                    keys_to_remove.append(state_key)
-                    evaluations.append(f"[{fan_identity} {frac_name}] Pending RESISTANCE_TEST: C ({c_close:.2f}) > Test Candle Close ({state['candle_close']:.2f}) -> Cancelled")
-                    continue
-                if c_close <= line_price - threshold:
-                    results.append(EventOutput(
-                        fan_id=fan_id, fan_identity=fan_identity, priority_label=fan_obj.priority_label,
-                        fraction=frac_name, price=line_price, event_type='RESISTANCE_REJECTION',
-                        details=f"Rejected (T+{bars_elapsed} bars)", direction='down',
-                        bar_index=bar_index
-                    ))
-                    self.emit_pending_test_state(
-                        bar_index=bar_index,
-                        fan_id=fan_id,
-                        fraction=frac_name,
-                        direction='DOWN',
-                        trigger_close=state['candle_close'],
-                        trigger_bar=state['test_bar']
-                    )
-                    keys_to_remove.append(state_key)
-                    evaluations.append(
-                        f"[{fan_identity} {frac_name}] "
-                        f"test_bar={state['test_bar']} line={line_price:.2f} "
-                        f"threshold_pct={threshold_pct} bars_elapsed={bars_elapsed} "
-                        f"close={c_close:.2f} -> RESISTANCE_REJECTION"
-                    )
-
-        for key in keys_to_remove:
-            del self.pending_tests[key]
-
-        # If there are active fans but no evaluations were generated, log all active lines
-        # and their prices so the completeness checker can verify no event was missed
         active_lines: List[str] = []
         if active_fans and not evaluations:
             fans_to_log = active_fans
@@ -858,14 +892,16 @@ class UnifiedStateMachine:
             'skip_section2': False,
         }
 
-    def _start_pending_test(self, state_key, fan_id, line_id, test_type, bar_index, line_price, fraction, candle_close):
+    def _start_pending_test(self, state_key, fan_id, line_id, test_type, bar_index, line_price, fraction, candle_close, candle_open=None):
         self.pending_tests[state_key] = {
             'fan_id': fan_id,
             'fraction': fraction,
             'line_price': line_price,
             'test_type': test_type,
             'test_bar': bar_index,
-            'candle_close': candle_close
+            'candle_close': candle_close,
+            'candle_open': candle_open if candle_open is not None else candle_close,
+            'test_candle_bullish': candle_open is not None and candle_close > candle_open,
         }
 
     def _process_rest_event(self, state_key, fan_id, frac_name, line_price, c_close, c_open, c_high, c_low, bar_index, fan_obj, priority_label, fan_identity, results, evaluations):

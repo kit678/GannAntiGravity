@@ -273,7 +273,12 @@ class BounceFollowThroughV2Hypothesis(Hypothesis):
                 "anchor_bar_index": row.get("anchor_bar_index", 0),
                 "scale_ratio": row.get("scale_ratio", 1.0),
                 "anchor_price": row.get("anchor_price", 0.0),
-                "details": f"{'[Retro] ' if is_retro else ''}{details}",
+                # Pass details through unchanged. is_retro is derived from the
+                # "[Retro]" tag ALREADY being present here, so re-prepending it
+                # produced "[Retro] [Retro] Bounced (T+1 bars)" on 159 events
+                # (44%) of the BTCUSDT 15m run. The retro flag travels in the
+                # is_retro field; the tag does not need duplicating into text.
+                "details": details,
             }
             self.detailed_log.append(record)
 
@@ -634,7 +639,12 @@ class BounceFollowThroughV3Hypothesis(Hypothesis):
                 "anchor_bar_index": row.get("anchor_bar_index", 0),
                 "scale_ratio": row.get("scale_ratio", 1.0),
                 "anchor_price": row.get("anchor_price", 0.0),
-                "details": f"{'[Retro] ' if is_retro else ''}{details}",
+                # Pass details through unchanged. is_retro is derived from the
+                # "[Retro]" tag ALREADY being present here, so re-prepending it
+                # produced "[Retro] [Retro] Bounced (T+1 bars)" on 159 events
+                # (44%) of the BTCUSDT 15m run. The retro flag travels in the
+                # is_retro field; the tag does not need duplicating into text.
+                "details": details,
             }
             self.detailed_log.append(record)
 
@@ -879,7 +889,12 @@ class _BounceFollowThroughParam(Hypothesis):
                 "anchor_bar_index": row.get("anchor_bar_index", 0),
                 "scale_ratio": row.get("scale_ratio", 1.0),
                 "anchor_price": row.get("anchor_price", 0.0),
-                "details": f"{'[Retro] ' if is_retro else ''}{details}",
+                # Pass details through unchanged. is_retro is derived from the
+                # "[Retro]" tag ALREADY being present here, so re-prepending it
+                # produced "[Retro] [Retro] Bounced (T+1 bars)" on 159 events
+                # (44%) of the BTCUSDT 15m run. The retro flag travels in the
+                # is_retro field; the tag does not need duplicating into text.
+                "details": details,
                 "confirmation_details": details if details else None,
                 "raw_timestamp": int(float(row.get("Raw_Timestamp", row.get("Timestamp", 0)))),
             }
