@@ -52,3 +52,9 @@ output.txt
 Thumbs.db
 .aider*
 .worktrees/
+
+# Debug/crash artifacts
+*.stackdump
+temp_img*.png
+screenshot_*.png
+nul
