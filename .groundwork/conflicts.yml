@@ -1,0 +1,17 @@
+- practice: P01
+  canonical_path: AGENTS.md
+  conflicting_path: .clinerules/architecture.md
+  resolution: migrate
+  date: 2026-08-06
+  status: closed
+  closed_date: 2026-08-06
+  closed_reason: conflicting file deleted, content fully migrated into AGENTS.md
+
+- practice: P01
+  canonical_path: AGENTS.md
+  conflicting_path: .clinerules/geometry.md
+  resolution: migrate
+  date: 2026-08-06
+  status: closed
+  closed_date: 2026-08-06
+  closed_reason: conflicting file deleted, content fully migrated into AGENTS.md

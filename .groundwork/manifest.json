@@ -1,0 +1,13 @@
+{
+  "groundwork_commit": "94ae19d80e84b261d1d3b05badee191a53c73ecb",
+  "generated": {
+    "AGENTS.md": {
+      "commit": "94ae19d80e84b261d1d3b05badee191a53c73ecb",
+      "sha256": "cf84d6ffd18fdcf195ce6fc402b20436f83ab4151903c228083a3e87fb12a21f"
+    },
+    "CLAUDE.md": {
+      "commit": "94ae19d80e84b261d1d3b05badee191a53c73ecb",
+      "sha256": "5f10f859b07d72e3a398944e5abba8867a3751b836760832e978c7159bb47797"
+    }
+  }
+}
