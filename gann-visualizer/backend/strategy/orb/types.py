@@ -21,6 +21,13 @@ class OrbSignal:
     reason: Optional[str] = None
     diagnostics: Dict[str, Any] = field(default_factory=dict)
 
+    def __post_init__(self) -> None:
+        if (self.signal is not None) == bool(self.reason):
+            raise ValueError(
+                "OrbSignal must set exactly one of signal or reason, got "
+                f"signal={self.signal!r} reason={self.reason!r}"
+            )
+
     @property
     def triggered(self) -> bool:
         return self.signal is not None
