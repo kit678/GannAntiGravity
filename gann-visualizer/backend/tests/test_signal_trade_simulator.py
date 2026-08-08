@@ -237,3 +237,81 @@ def test_trade_grid_rejects_invalid_stop_orientation(signal, message):
 
     with pytest.raises(ValueError, match=message):
         simulate_trade_grid(candles, [signal], r_values=[1.0], max_hold_bars=1)
+
+
+def _flat_candles(n=8, start_bar_index=0):
+    """Candles that drift nowhere, so neither stop nor target is ever hit."""
+    return pd.DataFrame(
+        {
+            "bar_index": list(range(start_bar_index, start_bar_index + n)),
+            "open": [100.0] * n,
+            "high": [100.5] * n,
+            "low": [99.5] * n,
+            "close": [100.0] * n,
+        }
+    )
+
+
+def test_per_signal_max_hold_bars_truncates_the_window():
+    candles = _flat_candles(n=8)
+    signal = CandleSignal(
+        bar_index=0,
+        side="LONG",
+        entry_price=100.0,
+        stop_price=90.0,
+        signal_time="2026-08-07T09:35:00",
+        max_hold_bars=2,
+    )
+
+    result = simulate_trade_grid(
+        candles=candles,
+        signals=[signal],
+        r_values=[2.0],
+        max_hold_bars=7,
+    )
+
+    trade = result["best"]["per_signal"]["0:0"]
+    assert trade["exit_bar_index"] == 2
+    assert trade["exit_reason"] == "max_hold"
+
+
+def test_omitting_max_hold_bars_uses_the_global_limit():
+    candles = _flat_candles(n=8)
+    signal = CandleSignal(
+        bar_index=0,
+        side="LONG",
+        entry_price=100.0,
+        stop_price=90.0,
+        signal_time="2026-08-07T09:35:00",
+    )
+
+    result = simulate_trade_grid(
+        candles=candles,
+        signals=[signal],
+        r_values=[2.0],
+        max_hold_bars=4,
+    )
+
+    trade = result["best"]["per_signal"]["0:0"]
+    assert trade["exit_bar_index"] == 4
+    assert trade["exit_reason"] == "max_hold"
+
+
+def test_non_positive_per_signal_max_hold_bars_is_rejected():
+    candles = _flat_candles(n=8)
+    signal = CandleSignal(
+        bar_index=0,
+        side="LONG",
+        entry_price=100.0,
+        stop_price=90.0,
+        signal_time="2026-08-07T09:35:00",
+        max_hold_bars=0,
+    )
+
+    with pytest.raises(ValueError, match="max_hold_bars"):
+        simulate_trade_grid(
+            candles=candles,
+            signals=[signal],
+            r_values=[2.0],
+            max_hold_bars=7,
+        )

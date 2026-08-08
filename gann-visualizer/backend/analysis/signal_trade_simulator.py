@@ -12,6 +12,7 @@ class CandleSignal:
     entry_price: float
     stop_price: float
     signal_time: Any
+    max_hold_bars: Optional[int] = None
 
 
 def simulate_trade_grid(
@@ -147,7 +148,7 @@ def _validate_signal(
     simulation_window = _future_bar_window(
         candles_by_bar=candles_by_bar,
         signal_bar_index=signal_bar_index,
-        max_hold_bars=max_hold_bars,
+        max_hold_bars=_effective_max_hold(signal, max_hold_bars),
     )
     if simulation_window.empty:
         raise ValueError(f"signal at bar {signal_bar_index} is not simulatable")
@@ -224,10 +225,11 @@ def _simulate_single_trade(
     last_observed_close = None
     last_observed_time = None
 
+    effective_max_hold = _effective_max_hold(signal, max_hold_bars)
     future_bars = _future_bar_window(
         candles_by_bar=candles_by_bar,
         signal_bar_index=signal.bar_index,
-        max_hold_bars=max_hold_bars,
+        max_hold_bars=effective_max_hold,
     )
     for lookup_bar in future_bars:
         candle = candles_by_bar.loc[lookup_bar]
@@ -257,7 +259,7 @@ def _simulate_single_trade(
         exit_bar_index = last_observed_bar_index
         exit_price = last_observed_close
         exit_time = last_observed_time
-        if len(future_bars) == max_hold_bars:
+        if len(future_bars) == effective_max_hold:
             exit_reason = "max_hold"
 
     gross_pnl = _gross_pnl(side, signal.entry_price, exit_price)
@@ -301,6 +303,13 @@ def _simulate_single_trade(
 
 def _signal_key(bar_index: int, signal_index: int) -> str:
     return f"{bar_index}:{signal_index}"
+
+
+def _effective_max_hold(signal: CandleSignal, max_hold_bars: int) -> int:
+    """Per-signal cap overrides the global one when present."""
+    if signal.max_hold_bars is None:
+        return max_hold_bars
+    return signal.max_hold_bars
 
 
 def _future_bar_window(
@@ -363,12 +372,19 @@ def _normalize_signal(signal: CandleSignal) -> CandleSignal:
     if not isinstance(signal, CandleSignal):
         raise ValueError("signals must contain CandleSignal instances")
 
+    max_hold = signal.max_hold_bars
+    if max_hold is not None:
+        max_hold = _coerce_integer_value("max_hold_bars", max_hold)
+        if max_hold <= 0:
+            raise ValueError("max_hold_bars must be positive when set")
+
     return CandleSignal(
         bar_index=_coerce_integer_value("bar_index", signal.bar_index),
         side=signal.side,
         entry_price=_validate_positive_price("entry_price", signal.entry_price),
         stop_price=_validate_positive_price("stop_price", signal.stop_price),
         signal_time=signal.signal_time,
+        max_hold_bars=max_hold,
     )
 
 
