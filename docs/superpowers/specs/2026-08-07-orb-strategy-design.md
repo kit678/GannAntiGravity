@@ -24,7 +24,7 @@ Rationale for staging: if the signal has no edge on the underlying, buying optio
 
 Explicitly out of scope for v1. Every item below is recorded with reasoning in the backlog doc:
 
-- Parameter sweeps or optimisation of any kind
+- Parameter **optimisation** of any kind — no selecting a winning setting after seeing results. (Distinct from the fixed robustness grid defined under "Verdict rule", which is declared in advance and makes the test *harder* to pass, never easier.)
 - Breakout-plus-retest variant
 - Trailing stops, breakeven moves, partial exits
 - Entry filters (volume, gap, trend, day-of-week, expiry-day)
@@ -45,11 +45,11 @@ Two **pre-registered** variants. Both definitions are frozen in this document be
 | Short trigger | First bar after 09:30 that **closes** below ORL |
 | Entry price | Close of the trigger bar |
 | Stop | ORL for longs, ORH for shorts |
-| Target | Entry ± (R × risk), R pre-registered at 2.0 |
+| Target | Entry ± (R × risk), headline R = 2.0 |
 | Forced exit | Flat at 15:15 IST |
 | Trades per day | One — first trigger only |
 
-Three knobs: `or_minutes`, `entry_rule`, `r_target`. Deliberately minimal, so a positive result is hard to manufacture.
+Three knobs: `or_minutes`, `entry_rule`, `r_target`. Deliberately minimal, so a positive result is hard to manufacture. `or_minutes` and `r_target` also carry declared neighbour values — see "Robustness grid".
 
 ### Variant B — Noise-band breakout
 
@@ -59,7 +59,7 @@ Anchored to today's open rather than a fixed box, so it adapts to volatility and
 |---|---|
 | Anchor | `O` = open of the 09:15 bar |
 | Volatility | `ATR14` computed on **daily** bars, through yesterday's close |
-| Band | `O ± (k × ATR14)`, `k = 0.25` |
+| Band | `O ± (k × ATR14)`, headline `k = 0.25` (neighbours declared in "Robustness grid") |
 | Long trigger | First bar after 09:30 that closes above the upper band |
 | Short trigger | First bar after 09:30 that closes below the lower band |
 | Entry price | Close of the trigger bar |
@@ -132,7 +132,9 @@ Frozen before the first run.
 
 **Split:** all available sessions, chronologically, into a first half and a second half. Nothing is fitted on the first half — both halves use identical frozen parameters. The split exists only to check the result is stable over time, not to select settings.
 
-**Headline number:** average net P&L per trade at **R = 2.0**, second half, after base costs. The full R grid `[1.0, 1.5, 2.0, 3.0]` is reported for information and labelled *not the verdict*. Picking the best R after seeing results would be the exact self-deception this design exists to prevent.
+**Headline number:** average net P&L per trade at **R = 2.0**, second half, after base costs.
+
+`R = 1.5` and `R = 3.0` are declared robustness neighbours and are held to the weaker "must stay positive" bar (see "Robustness grid"). `R = 1.0` is reported for information only and is labelled *not the verdict*. In no case is the best-performing R selected after the fact — that would be the exact self-deception this design exists to prevent.
 
 ORB **passes** only if all of these hold on the second half:
 
@@ -144,10 +146,50 @@ ORB **passes** only if all of these hold on the second half:
 
 **Placebo check.** A *matched* placebo: run only on sessions where a real signal fired, keeping that session's stop distance and `max_hold_bars` unchanged, and randomising only two things — the entry bar (uniform over post-09:30 bars in that session) and the direction. Holding stop distance fixed is what makes the comparison fair; it isolates *"was the ORB trigger informative?"* from *"does this exit rule make money on any entry?"*. Run 200 seeds. ORB's average net P&L must exceed the 95th percentile of the placebo distribution. Without this, a positive result could be nothing more than intraday drift plus a favourable exit rule — the pattern `scripts/placebo_test_rsi.py` already established in this repo.
 
-**Cost assumptions** (documented in the report header, not buried in code):
+## Cost model — a stress axis, not an assumption
 
-- `slippage_per_side`: **1.0 index point** base, **2.0** stressed
-- `fee_rate`: **0.0003** base, **0.0006** stressed. The simulator applies this as `(entry_price + exit_price) × fee_rate`, so 0.0003 means roughly 0.03% per side / 0.06% round trip of notional — a conservative stand-in for NSE index-futures brokerage plus STT, exchange charges, stamp duty and GST. Refine against a real Dhan contract note before Stage 2; it is an estimate, and the report must label it as one.
+### Why slippage cannot be dropped
+
+Data quality and slippage are unrelated problems. A perfect tick feed eliminates *bad prints*; it does nothing about the gap between the price you decided at and the price you are filled at. That gap has four sources, none of which a better data vendor touches:
+
+1. **Bid-ask spread.** Bars record last-traded price. You buy at the ask and sell at the bid, on every trade, forever.
+2. **Decision-to-order latency.** The rule is "the bar closed beyond the level", which is only knowable at the instant the bar closes. The order arrives after that.
+3. **Stop orders become market orders.** A stop fills at whatever is available during a fast move against the position — precisely when spreads are widest.
+4. **Gaps through the stop.** Price jumps past the level and fills materially worse.
+
+Breakout systems are the worst case for all four, because they enter and exit during fast directional moves by design.
+
+### Slippage is not tuned
+
+Optimising slippage is meaningless — the best value is always zero. Instead it is swept as a **stress axis**, and the headline output is:
+
+> **Breakeven slippage** — the slippage level, in index points per side, at which average net P&L crosses zero.
+
+Sweep `slippage_per_side` over `[0.0, 0.25, 0.5, 1.0, 1.5, 2.0, 3.0]` and report the crossing point. This replaces an argument about the correct assumption with a fact about the strategy's margin: if ORB survives only below 0.3 points while real NIFTY futures execution costs roughly 0.5–1.0, it is dead, and no assumption debate is needed.
+
+The verdict criteria still reference two fixed points on that sweep — base `1.0` and stressed `2.0` — so there is a crisp pass/fail, but breakeven slippage is the number that actually informs the decision.
+
+### Fees
+
+`fee_rate`: **0.0003** base, **0.0006** stressed. The simulator applies it as `(entry_price + exit_price) × fee_rate`, so 0.0003 is roughly 0.03% per side / 0.06% round trip of notional — a conservative stand-in for NSE index-futures brokerage plus STT, exchange charges, stamp duty and GST. This is an estimate and the report must label it as one; refine it against a real Dhan contract note before Stage 2.
+
+## Robustness grid
+
+Every parameter in this design was, at some point, a guess. Rather than defend the guesses, each carries a small set of neighbouring values, **declared here before any code runs**:
+
+| Parameter | Headline | Declared neighbours |
+|---|---|---|
+| `or_minutes` (Variant A) | 15 | 30 |
+| `k` (Variant B) | 0.25 | 0.15, 0.40 |
+| `r_target` (both) | 2.0 | 1.5, 3.0 |
+
+This is not a sweep and no winner is selected from it. The rule runs in one direction only:
+
+- The **headline cell** must pass all five verdict criteria.
+- Every **other cell** in the grid must additionally show positive `avg_net_pnl` at base costs on the second half.
+- Headline passes but neighbours do not → verdict is **`FRAGILE`**, not `PASS`.
+
+A genuine edge is positive across neighbouring settings; it degrades gracefully. A curve fit works at one setting and collapses on either side. Requiring the whole grid to hold makes this test strictly harder to pass than a single pre-registered cell, which is the point.
 
 ## Error handling
 
@@ -192,6 +234,8 @@ TDD. Tests are written before each module and run on hand-built synthetic bars w
 - A yfinance-sourced run forces `verdict = INCONCLUSIVE`
 - Fewer than 30 second-half trades forces `verdict = INCONCLUSIVE`, never `PASS`
 - Placebo runner keeps stop distance and `max_hold_bars` fixed and varies only entry bar and direction
+- Headline cell passing while a neighbour cell is negative yields `FRAGILE`, never `PASS`
+- Breakeven slippage is found by interpolation across the sweep, and a strategy negative at zero slippage reports breakeven slippage of `0.0`, not a negative number
 - **Sign regression:** a synthetic set constructed to lose money is reported as losing. Guards against a sign error making everything look profitable.
 
 **`test_signal_trade_simulator.py` (addition)**
@@ -200,6 +244,15 @@ TDD. Tests are written before each module and run on hand-built synthetic bars w
 
 ## What a finished run looks like
 
-A single report file per variant per symbol containing: the frozen parameters, the cost assumptions, session accounting, the R grid table, the headline R=2.0 second-half number at base and 2× costs, the placebo percentile, and a one-word verdict — `PASS`, `FAIL`, or `INCONCLUSIVE`.
+A single report file per variant per symbol containing:
+
+- The frozen parameters and the fee assumption, labelled as an estimate
+- Session accounting (available / traded / skipped, with reason breakdown)
+- The R grid table, labelled *not the verdict*
+- The headline cell's second-half average net P&L at base and 2× costs
+- **Breakeven slippage** — the headline number for judging margin
+- The robustness grid, one row per cell, showing which cells stayed positive
+- The placebo percentile
+- A one-word verdict: `PASS`, `FRAGILE`, `FAIL`, or `INCONCLUSIVE`
 
 If both variants fail, ORB is closed out and we take the next item from the backlog. That outcome is a successful use of this design, not a wasted one.
