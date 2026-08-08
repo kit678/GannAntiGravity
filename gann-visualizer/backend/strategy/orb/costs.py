@@ -26,8 +26,9 @@ def breakeven_slippage(pnl_by_slippage: Dict[float, float]) -> float:
 
     Returns:
         The linearly interpolated crossing point. If P&L is already non-positive
-        at the lowest tested level, returns 0.0 rather than a negative number —
-        the strategy loses money even with perfect fills. If P&L is still
+        at the lowest tested level, returns that level (not a negative
+        extrapolation) — the strategy loses money even at the best fills tested.
+        If P&L is still
         positive at the highest tested level, returns that level, which should be
         read as a floor ("survives at least this much"), not a measurement.
     """
@@ -37,7 +38,7 @@ def breakeven_slippage(pnl_by_slippage: Dict[float, float]) -> float:
     levels = sorted(pnl_by_slippage)
 
     if pnl_by_slippage[levels[0]] <= 0:
-        return 0.0
+        return float(levels[0])
 
     for lower, upper in zip(levels, levels[1:]):
         pnl_lower = pnl_by_slippage[lower]

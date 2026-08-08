@@ -37,3 +37,9 @@ def test_exact_zero_at_a_tested_level_reports_that_level():
 def test_empty_input_is_rejected():
     with pytest.raises(ValueError, match="at least one"):
         breakeven_slippage({})
+
+
+def test_result_does_not_depend_on_dict_insertion_order():
+    # Same data as test_interpolates_the_zero_crossing, but keys inserted out of order.
+    pnl = {1.0: -2.0, 0.0: 4.0, 0.5: 2.0}
+    assert breakeven_slippage(pnl) == pytest.approx(0.75)
