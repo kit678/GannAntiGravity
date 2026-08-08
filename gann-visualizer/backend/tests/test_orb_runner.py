@@ -130,3 +130,52 @@ def test_empty_bars_raise_rather_than_reporting_no_trades():
             data_source="synthetic",
             **RUN_KWARGS,
         )
+
+
+def test_report_includes_placebo_percentile_and_attrition_stats():
+    days = [f"2026-08-{d:02d}" for d in (3, 4, 5, 6, 7, 10)]
+    bars = pd.concat([_winning_day(d) for d in days])
+    report = run_orb(bars=bars, daily_bars=None, data_source="synthetic", **RUN_KWARGS)
+
+    assert report["placebo_percentile"] is None or isinstance(report["placebo_percentile"], float)
+    if report["placebo_percentile"] is not None:
+        assert 0.0 <= report["placebo_percentile"] <= 100.0
+    stats = report["placebo_stats"]
+    assert stats["seeds_requested"] == RUN_KWARGS["placebo_seeds"]
+    assert stats["real_signal_count"] == len(days)
+    assert stats["seeds_used"] <= stats["seeds_requested"]
+
+
+def test_variant_b_runs_end_to_end_with_daily_bars():
+    days = [f"2026-08-{d:02d}" for d in range(3, 3 + 20)]
+    bars = pd.concat([_winning_day(d) for d in days])
+
+    daily_rows = []
+    for i, day in enumerate(days):
+        naive = pd.Timestamp(f"{day} 00:00:00")
+        daily_rows.append(
+            {
+                "timestamp": int(IST.localize(naive.to_pydatetime()).timestamp()),
+                "open": 100.0,
+                "high": 116.5,
+                "low": 99.5,
+                "close": 116.0,
+                "volume": 100000,
+            }
+        )
+    daily_bars = pd.DataFrame(daily_rows)
+
+    report = run_orb(
+        symbol="TEST",
+        variant="B",
+        bars=bars,
+        daily_bars=daily_bars,
+        data_source="synthetic",
+        bar_minutes=5,
+        flat_by=time(10, 5),
+        placebo_seeds=5,
+    )
+
+    assert report["variant"] == "B"
+    assert report["verdict"] in {"PASS", "FRAGILE", "FAIL", "INCONCLUSIVE"}
+    assert report["sessions"]["available"] == len(days)

@@ -7,7 +7,7 @@ testable offline. Fetching lives in scripts/run_orb_test.py.
 
 from collections import Counter
 from datetime import date, time
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 import pandas as pd
 
@@ -164,7 +164,7 @@ def run_orb(
         BASE_SLIPPAGE, BASE_FEE_RATE,
     )
 
-    percentile = _run_placebo(
+    percentile, placebo_stats = _run_placebo(
         headline_context=headline_context,
         sessions=sessions,
         candles=candles,
@@ -205,6 +205,7 @@ def run_orb(
         "breakeven_slippage": breakeven_slippage(sweep),
         "placebo_percentile": percentile,
         "placebo_seeds": placebo_seeds,
+        "placebo_stats": placebo_stats,
         "fee_rate_base": BASE_FEE_RATE,
         "fee_rate_stressed": STRESSED_FEE_RATE,
         "verdict": verdict,
@@ -306,12 +307,28 @@ def _run_placebo(
     bar_to_session_date: Dict[int, date],
     real_avg: float,
     seeds: int,
-) -> Optional[float]:
+) -> Tuple[Optional[float], Dict[str, Any]]:
+    """Run the matched-placebo distribution and report attrition alongside it.
+
+    `build_placebo_signals` can legitimately drop signals per-seed (no bars
+    left before flat-by, or a non-positive SHORT stop). Those drops are kept
+    exactly as before — this function only adds visibility into how much of
+    the 200-seed distribution was built from a degraded sample. Silent drops
+    are the failure mode this design exists to prevent (see types.py).
+    """
     fired = headline_context["fired"]
     if not fired:
-        return None
+        return None, {
+            "seeds_requested": seeds,
+            "seeds_used": 0,
+            "real_signal_count": 0,
+            "min_placebo_signals_in_a_seed": None,
+            "full_strength_seeds": 0,
+        }
 
+    real_signal_count = len(fired)
     averages: List[float] = []
+    signal_counts: List[int] = []
     for seed in range(seeds):
         placebo_signals = build_placebo_signals(
             fired, sessions, headline_context["params"], seed=seed
@@ -330,7 +347,22 @@ def _run_placebo(
         for trade, signal in zip(trades, placebo_signals):
             trade["session_date"] = bar_to_session_date.get(signal.bar_index)
         averages.append(_avg(trades, test_dates))
+        signal_counts.append(len(placebo_signals))
 
     if not averages:
-        return None
-    return placebo_percentile(real_avg, averages)
+        return None, {
+            "seeds_requested": seeds,
+            "seeds_used": 0,
+            "real_signal_count": real_signal_count,
+            "min_placebo_signals_in_a_seed": None,
+            "full_strength_seeds": 0,
+        }
+
+    placebo_stats = {
+        "seeds_requested": seeds,
+        "seeds_used": len(averages),
+        "real_signal_count": real_signal_count,
+        "min_placebo_signals_in_a_seed": min(signal_counts),
+        "full_strength_seeds": sum(1 for count in signal_counts if count == real_signal_count),
+    }
+    return placebo_percentile(real_avg, averages), placebo_stats
