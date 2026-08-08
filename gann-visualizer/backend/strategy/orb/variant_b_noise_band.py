@@ -20,6 +20,7 @@ from strategy.orb.session import (
     FLAT_BY,
     SESSION_START,
     bars_until_flat,
+    opening_range_bars,
     post_range_bars,
 )
 from strategy.orb.types import OrbSignal
@@ -60,6 +61,7 @@ def generate_signal(
     """Evaluate one session. ``atr`` must be computed through YESTERDAY's close."""
     settings = {**DEFAULTS, **params}
     warmup_minutes: int = settings["warmup_minutes"]
+    bar_minutes: int = settings["bar_minutes"]
     k: float = settings["k"]
     session_start: time = settings["session_start"]
     flat_by: time = settings["flat_by"]
@@ -69,7 +71,10 @@ def generate_signal(
     if atr is None or not float(atr) > 0 or pd.isna(atr):
         return OrbSignal.skipped(session_date, "no_atr", atr=atr)
 
-    anchor = float(session["open"].iloc[0])
+    anchor_bars = opening_range_bars(session, or_minutes=bar_minutes, session_start=session_start)
+    if anchor_bars.empty:
+        return OrbSignal.skipped(session_date, "no_anchor_bar")
+    anchor = float(anchor_bars["open"].iloc[0])
     half_width = k * float(atr)
     upper = anchor + half_width
     lower = anchor - half_width

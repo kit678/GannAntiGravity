@@ -109,3 +109,21 @@ def test_non_positive_atr_is_skipped():
 
     assert not result.triggered
     assert result.reason == "no_atr"
+
+
+def test_trigger_with_no_bars_left_before_flat_is_skipped():
+    # Breaks out on bar 7 (09:50), which is the flat-by bar - nothing left to hold.
+    session = _session([100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 115.0])
+    result = generate_signal(session, {**PARAMS, "flat_by": time(9, 50)}, atr=40.0)
+
+    assert not result.triggered
+    assert result.reason == "no_bars_before_flat"
+    assert result.diagnostics["trigger_bar"] == 7
+
+
+def test_missing_anchor_bar_is_skipped():
+    session = _session([100.0] * 8).iloc[1:].reset_index(drop=True)
+    result = generate_signal(session, PARAMS, atr=40.0)
+
+    assert not result.triggered
+    assert result.reason == "no_anchor_bar"
