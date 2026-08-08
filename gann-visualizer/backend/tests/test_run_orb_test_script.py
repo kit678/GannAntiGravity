@@ -1,14 +1,15 @@
 import sys
 from pathlib import Path
 
+import pandas as pd
 import pytest
 
 sys.path.append(str(Path(__file__).resolve().parents[1]))
 
-from scripts.run_orb_test import build_parser, render_report
+from scripts.run_orb_test import build_parser, fetch_bars, render_report
 
 
-def _report(verdict="PASS", preliminary=False):
+def _report(verdict="PASS", preliminary=False, placebo_percentile=98.5, placebo_stats=None):
     return {
         "symbol": "^NSEI",
         "variant": "A",
@@ -53,8 +54,9 @@ def _report(verdict="PASS", preliminary=False):
         "info_only_r1_avg_net_pnl_test": 1.2,
         "slippage_sweep": {0.0: 5.5, 1.0: 3.5, 2.0: 1.5, 3.0: -0.5},
         "breakeven_slippage": 2.75,
-        "placebo_percentile": 98.5,
+        "placebo_percentile": placebo_percentile,
         "placebo_seeds": 200,
+        "placebo_stats": placebo_stats,
         "fee_rate_base": 0.0003,
         "fee_rate_stressed": 0.0006,
         "verdict": verdict,
@@ -108,3 +110,71 @@ def test_parser_rejects_an_unknown_variant():
     parser = build_parser()
     with pytest.raises(SystemExit):
         parser.parse_args(["--symbol", "^NSEI", "--variant", "Z"])
+
+
+def test_report_renders_placebo_attrition_stats():
+    stats = {
+        "seeds_requested": 200,
+        "seeds_used": 180,
+        "real_signal_count": 10,
+        "min_placebo_signals_in_a_seed": 3,
+        "full_strength_seeds": 40,
+    }
+    text = render_report(_report(placebo_stats=stats))
+
+    assert "180/200" in text
+    assert "40 full strength" in text
+    assert "Caution" in text  # 40/180 < 0.5, should trigger the warning
+
+
+def test_report_omits_caution_when_most_seeds_are_full_strength():
+    stats = {
+        "seeds_requested": 200,
+        "seeds_used": 200,
+        "real_signal_count": 10,
+        "min_placebo_signals_in_a_seed": 10,
+        "full_strength_seeds": 190,
+    }
+    text = render_report(_report(placebo_stats=stats))
+
+    assert "Caution" not in text
+
+
+def test_report_handles_missing_placebo_percentile_without_crashing():
+    text = render_report(_report(placebo_percentile=None))
+
+    assert "None%" not in text
+    assert "did not run" in text.lower()
+
+
+def test_report_handles_missing_placebo_stats():
+    text = render_report(_report(placebo_stats=None))
+
+    assert "None" not in text.split("## Placebo")[1].split("## Assumptions")[0]
+
+
+def test_fetch_bars_raises_on_empty_intraday_data():
+    from unittest.mock import MagicMock, patch
+
+    with patch("yfinance_client.YFinanceClient") as mock_client_cls:
+        mock_client = MagicMock()
+        mock_client.fetch_data.return_value = pd.DataFrame()
+        mock_client_cls.return_value = mock_client
+
+        with pytest.raises(ValueError, match="no intraday bars"):
+            fetch_bars("^NSEI", "yfinance", "5", "2024-01-01", "2024-02-01")
+
+
+def test_fetch_bars_returns_none_for_empty_daily_data():
+    from unittest.mock import MagicMock, patch
+
+    with patch("yfinance_client.YFinanceClient") as mock_client_cls:
+        mock_client = MagicMock()
+        intraday_df = pd.DataFrame({"timestamp": [1, 2], "close": [100.0, 101.0]})
+        mock_client.fetch_data.side_effect = [intraday_df, pd.DataFrame()]
+        mock_client_cls.return_value = mock_client
+
+        intraday, daily = fetch_bars("^NSEI", "yfinance", "5", "2024-01-01", "2024-02-01")
+
+        assert not intraday.empty
+        assert daily is None

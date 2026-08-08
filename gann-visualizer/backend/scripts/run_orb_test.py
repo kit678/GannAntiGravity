@@ -124,12 +124,36 @@ def render_report(report: Dict[str, Any]) -> str:
 
     lines.append("## Placebo")
     lines.append("")
-    lines.append(
-        f"Real result beat {report['placebo_percentile']}% of {report['placebo_seeds']} "
-        "random-entry runs. Entries were randomised in bar and direction while holding "
-        "stop distance and holding period fixed. The pass bar is 95."
-    )
+    if report["placebo_percentile"] is None:
+        lines.append(
+            "Placebo test did not run — no seed produced a usable comparison run. "
+            "See the verdict reasons above; a missing placebo forces INCONCLUSIVE."
+        )
+    else:
+        lines.append(
+            f"Real result beat {report['placebo_percentile']}% of {report['placebo_seeds']} "
+            "random-entry runs. Entries were randomised in bar and direction while holding "
+            "stop distance and holding period fixed. The pass bar is 95."
+        )
     lines.append("")
+
+    stats = report.get("placebo_stats")
+    if stats and stats.get("seeds_used"):
+        lines.append(
+            f"Used {stats['seeds_used']}/{stats['seeds_requested']} placebo seeds "
+            f"({stats['full_strength_seeds']} full strength, reproducing all "
+            f"{stats['real_signal_count']} real signals; the thinnest seed had only "
+            f"{stats['min_placebo_signals_in_a_seed']})."
+        )
+        if stats["full_strength_seeds"] / stats["seeds_used"] < 0.5:
+            lines.append(
+                "> **Caution:** fewer than half of placebo seeds were full strength — "
+                "the comparison distribution is built from a degraded sample."
+            )
+        lines.append("")
+    elif stats:
+        lines.append("No placebo seed produced a usable run — the percentile above is undefined.")
+        lines.append("")
 
     lines.append("## Assumptions")
     lines.append("")
