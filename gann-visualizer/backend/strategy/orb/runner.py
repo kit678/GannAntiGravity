@@ -12,6 +12,7 @@ from typing import Any, Dict, List, Optional, Tuple
 import pandas as pd
 
 from analysis.signal_trade_simulator import CandleSignal, simulate_trade_grid
+from strategy.crt import swept_level
 from strategy.orb import variant_a_range, variant_b_noise_band
 from strategy.orb.costs import (
     BASE_FEE_RATE,
@@ -46,6 +47,15 @@ ROBUSTNESS_GRID: Dict[str, List[Dict[str, Any]]] = {
         {"label": "k=0.40,r=2.0", "is_headline": False, "params": {"k": 0.40}, "r": 2.0},
         {"label": "k=0.25,r=1.5", "is_headline": False, "params": {"k": 0.25}, "r": 1.5},
         {"label": "k=0.25,r=3.0", "is_headline": False, "params": {"k": 0.25}, "r": 3.0},
+    ],
+    # Variant C is CRT / liquidity sweep — a reversal family, not a breakout one.
+    # It reuses this harness unchanged; only the signal rule differs.
+    "C": [
+        {"label": "n=12,r=2.0", "is_headline": True, "params": {"lookback_bars": 12}, "r": 2.0},
+        {"label": "n=8,r=2.0", "is_headline": False, "params": {"lookback_bars": 8}, "r": 2.0},
+        {"label": "n=20,r=2.0", "is_headline": False, "params": {"lookback_bars": 20}, "r": 2.0},
+        {"label": "n=12,r=1.5", "is_headline": False, "params": {"lookback_bars": 12}, "r": 1.5},
+        {"label": "n=12,r=3.0", "is_headline": False, "params": {"lookback_bars": 12}, "r": 3.0},
     ],
 }
 
@@ -224,6 +234,8 @@ def _generate_all(
         session = sessions[session_date]
         if variant == "A":
             results.append(variant_a_range.generate_signal(session, params))
+        elif variant == "C":
+            results.append(swept_level.generate_signal(session, params))
         else:
             band_params = {**params, "warmup_minutes": params.get("warmup_minutes", 15)}
             results.append(

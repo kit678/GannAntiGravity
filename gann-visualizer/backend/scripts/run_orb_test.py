@@ -23,7 +23,12 @@ from strategy.orb.runner import run_orb
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Run the pre-registered ORB go/no-go test")
     parser.add_argument("--symbol", required=True, help="e.g. ^NSEI or ^NSEBANK")
-    parser.add_argument("--variant", required=True, choices=["A", "B"])
+    parser.add_argument(
+        "--variant",
+        required=True,
+        choices=["A", "B", "C"],
+        help="A/B = ORB breakout variants, C = CRT liquidity sweep (reversal)",
+    )
     parser.add_argument("--source", default="yfinance", choices=["yfinance", "dhan"])
     parser.add_argument("--interval", default="5", help="TradingView-style interval")
     parser.add_argument("--start", default=None, help="YYYY-MM-DD")
