@@ -1,3 +1,4 @@
+import math
 import sys
 from pathlib import Path
 
@@ -100,3 +101,58 @@ def test_missing_placebo_is_inconclusive():
     )
     assert verdict == "INCONCLUSIVE"
     assert any("placebo" in reason for reason in reasons)
+
+
+def test_nan_headline_pnl_is_a_fail_not_a_pass():
+    verdict, reasons = decide_verdict(
+        cells=[_cell(base=math.nan)], placebo_percentile=99.0, data_source="dhan"
+    )
+    assert verdict == "FAIL"
+    assert any("non-finite" in reason for reason in reasons)
+
+
+def test_nan_placebo_percentile_is_a_fail_not_a_pass():
+    verdict, reasons = decide_verdict(
+        cells=[_cell()], placebo_percentile=math.nan, data_source="dhan"
+    )
+    assert verdict == "FAIL"
+    assert any("non-finite" in reason for reason in reasons)
+
+
+def test_nan_neighbour_pnl_counts_as_fragile_not_robust():
+    verdict, reasons = decide_verdict(
+        cells=[_cell(), _neighbour("k=0.15", base=math.nan), _neighbour("k=0.40")],
+        placebo_percentile=99.0,
+        data_source="dhan",
+    )
+    assert verdict == "FRAGILE"
+    assert any("k=0.15" in reason for reason in reasons)
+
+
+def test_boundary_exactly_min_trades_is_not_inconclusive():
+    verdict, _ = decide_verdict(
+        cells=[_cell(n=30)], placebo_percentile=99.0, data_source="dhan"
+    )
+    assert verdict == "PASS"
+
+
+def test_boundary_exactly_zero_pnl_is_a_fail():
+    verdict, _ = decide_verdict(
+        cells=[_cell(base=0.0)], placebo_percentile=99.0, data_source="dhan"
+    )
+    assert verdict == "FAIL"
+
+
+def test_boundary_exactly_min_placebo_percentile_passes():
+    verdict, _ = decide_verdict(
+        cells=[_cell()], placebo_percentile=95.0, data_source="dhan"
+    )
+    assert verdict == "PASS"
+
+
+def test_multiple_simultaneous_fail_reasons_all_accumulate():
+    verdict, reasons = decide_verdict(
+        cells=[_cell(base=-1.0, stressed=-2.0)], placebo_percentile=99.0, data_source="dhan"
+    )
+    assert verdict == "FAIL"
+    assert len(reasons) == 2

@@ -5,6 +5,7 @@ Frozen before the first run. Changing any threshold here after seeing results
 invalidates the test.
 """
 
+import math
 from dataclasses import dataclass
 from typing import List, Optional, Sequence, Tuple
 
@@ -56,6 +57,23 @@ def decide_verdict(
             f"only {headline.n_trades_test} second-half trades, need {min_trades}"
         ]
 
+    non_finite = [
+        name
+        for name, value in (
+            ("avg_net_pnl_test_base", headline.avg_net_pnl_test_base),
+            ("avg_net_pnl_test_stressed", headline.avg_net_pnl_test_stressed),
+            ("avg_net_pnl_train_base", headline.avg_net_pnl_train_base),
+        )
+        if not math.isfinite(value)
+    ]
+    if not math.isfinite(placebo_percentile):
+        non_finite.append("placebo_percentile")
+    if non_finite:
+        return FAIL, [
+            f"non-finite value(s) in headline result: {', '.join(non_finite)} — "
+            "treating corrupt/undefined performance data as a failure, not a pass"
+        ]
+
     if headline.avg_net_pnl_test_base <= 0:
         reasons.append(
             f"headline avg net P&L at base costs is {headline.avg_net_pnl_test_base:.4f}"
@@ -81,7 +99,8 @@ def decide_verdict(
     fragile = [
         cell.label
         for cell in cells
-        if not cell.is_headline and cell.avg_net_pnl_test_base <= 0
+        if not cell.is_headline
+        and (not math.isfinite(cell.avg_net_pnl_test_base) or cell.avg_net_pnl_test_base <= 0)
     ]
     if fragile:
         return FRAGILE, [
