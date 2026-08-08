@@ -73,17 +73,21 @@ class DhanScripMaster:
         return row.iloc[0]
 
 class DhanClient:
-    # Hardcoded Access Token (Replace with env variable or secure storage in prod)
+    # Fallback values (expired). Real credentials are loaded from the environment
+    # (.env, gitignored) via DHAN_ACCESS_TOKEN / DHAN_CLIENT_ID below.
     ACCESS_TOKEN = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJpc3MiOiJkaGFuIiwicGFydG5lcklkIjoiIiwiZXhwIjoxNzY4ODQxMzU2LCJpYXQiOjE3Njg3NTQ5NTYsInRva2VuQ29uc3VtZXJUeXBlIjoiU0VMRiIsIndlYmhvb2tVcmwiOiIiLCJkaGFuQ2xpZW50SWQiOiIxMTA5MzgxMTg5In0.wQevy6ZbkxCxOJVGPr_LZAJyNMyodqy819IgYIsiGwghzDrYucvy22Q9Pt5LSnzxYK-JXKCNeI0yeU4PL5miHQ"
     CLIENT_ID = "1109381189"
 
     def __init__(self):
+        from dotenv import load_dotenv
+        load_dotenv(os.path.join(os.path.dirname(__file__), ".env"))
+
         # Configuration
         self.base_url = "https://api.dhan.co/v2/charts/intraday" # Correct base for chart fetch
-        self.client_id = DhanClient.CLIENT_ID
+        self.client_id = os.environ.get("DHAN_CLIENT_ID", DhanClient.CLIENT_ID)
         self.scrip_master = DhanScripMaster()
-        
-        self.access_token = DhanClient.ACCESS_TOKEN
+
+        self.access_token = os.environ.get("DHAN_ACCESS_TOKEN", DhanClient.ACCESS_TOKEN)
         self.session = requests.Session()
 
         self.headers = {
@@ -594,7 +598,17 @@ class DhanClient:
             
             if rename_dict:
                 df.rename(columns=rename_dict, inplace=True)
-            
+
+            # Dhan's raw response carries inconsistent float precision across
+            # OHLC fields (close vs high/low come back with different numbers
+            # of decimal places), which occasionally leaves close a fraction of
+            # a paisa outside [low, high] and fails downstream validation. NSE
+            # index prices are quoted to 2 decimals, so rounding here removes
+            # the noise without hiding any real price movement.
+            for price_col in ('open', 'high', 'low', 'close'):
+                if price_col in df.columns:
+                    df[price_col] = pd.to_numeric(df[price_col], errors='coerce').round(2)
+
             # Debug: Print column names and sample data
             print(f"DataFrame columns: {list(df.columns)}")
             if not df.empty:
