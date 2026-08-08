@@ -5,13 +5,39 @@
 
 **Context:** Goal is short-term trading on instruments with implied leverage — index/stock/commodity futures, index options (NIFTY/BANKNIFTY via Dhan), crypto perps (Binance). Candidates were sourced from the TradingView public script library on 2026-08-07 (~72 strategies sampled across three pages sorted by popularity, plus the curated Editors' Picks list).
 
-Current active work: [ORB go/no-go design](../specs/2026-08-07-orb-strategy-design.md).
+Current active work: CRT / liquidity sweep (see Level 2).
+
+## ORB — CLOSED OUT (2026-08-07): both variants FAIL
+
+Tested on 4.5 years of real NIFTY 5m data via Dhan (1,146 sessions). Results in
+[orb_nifty_a.md](../../../reports/orb_nifty_a.md) and [orb_nifty_b.md](../../../reports/orb_nifty_b.md).
+
+| | Variant A (classic box) | Variant B (noise band) |
+|---|---|---|
+| Avg net P&L per trade, base costs | −14.97 | −15.29 |
+| Breakeven slippage | 0.0 | 0.0 |
+| Placebo percentile (bar: 95) | 52% | 50% |
+| Robustness grid | 4/4 cells negative | 5/5 cells negative |
+
+Underwater even at *zero* slippage, and statistically indistinguishable from
+random entries. Both halves of the data negative, every parameter neighbour
+negative — not a fragile edge, a consistent loser.
+
+**Root cause (verified, not assumed):** ~48% of trades are forced flat at 15:15
+before reaching either stop or target. Only 12% actually reach the R=2.0 target.
+A 40% win rate needs a true 2:1 payoff to break even; end-of-day flattening
+dilutes the realised payoff to roughly 1:1, so the arithmetic can't work. The
+implementation was independently verified against raw candles before accepting
+this result — the loss is a property of the strategy, not a bug.
+
+**Do not revisit** the Level 1 items below to try to rescue this. A strategy that
+loses at zero slippage and can't beat a coin flip is not a tuning problem.
 
 ---
 
 ## Level 1 — ORB design choices deferred
 
-Skipped to keep the go/no-go test small and hard to overfit. Revisit **only if ORB passes**; adding these to a failing strategy is how a dead edge gets resurrected as a curve fit.
+Skipped to keep the go/no-go test small and hard to overfit. Revisit **only if ORB passes** — it did not, so these are now moot unless someone revives ORB for a different instrument or session structure. Adding these to a failing strategy is how a dead edge gets resurrected as a curve fit.
 
 | Item | Why skipped | What it would take |
 |---|---|---|
