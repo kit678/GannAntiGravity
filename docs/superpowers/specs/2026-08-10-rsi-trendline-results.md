@@ -125,9 +125,28 @@ against captured hashes on real data:
   Expectancy in R says nothing about how that sizes in an account.
 - No live or paper trading has been run.
 
-## 7. Next
+## 7. Paper trading
 
-1. Paper-trade 4h/6h on the Binance testnet before risking anything.
+`run_rsi_paper.py` polls public klines, marks positions bar by bar and logs to
+`logs/backend/paper/<SYMBOL>_<INTERVAL>.json`. It places **no orders** and needs
+no API key. Signals come from `entry_for_break`, the backtest's own function.
+
+`--replay N` drives the same loop over history one bar at a time and reconciles
+it against the backtest trade by trade. It passes on 12 markets across 4h/6h/12h
+— identical signal bars, exit reasons and `net_r` to 1e-9. That is the evidence
+the live path and the measured path are the same path.
+
+Two bugs it caught, both silent:
+
+- the loop marked positions *before* opening new ones, so a position was never
+  exposed to its own entry bar and a gap straight through the stop vanished
+- `net_r` derived from an unrounded net while the backtest rounds to 6dp —
+  invisible on a 2,000-dollar BTC stop, 2e-4 R on a 0.0024-dollar ADA stop
+
+## 8. Next
+
+1. Let the paper log run on 4h/6h and compare realised expectancy against the
+   +0.043R the backtest predicts. No order placement until it has.
 2. Sweep the geometry grid (`--grid geometry`), which has not been touched.
 3. `slippage_per_side` is an absolute price amount, so it is not usable across
    a corpus spanning a 60,000-dollar BTC and a 0.50-dollar XRP. Make it
