@@ -68,12 +68,19 @@ def run_causal_sweep(
 ) -> SweepResult:
     values = rsi.astype(float).reset_index(drop=True)
     bar_count = len(values)
+    # Scalar .iloc costs microseconds each; over 175k bars x several lookups
+    # that dominates the loop. Read the values out once.
+    raw = values.to_numpy(dtype=float)
 
     candidates_at: dict[int, list[RSIPivot]] = defaultdict(list)
     for candidate in detect_fractal_candidates(values, params.left_bars, params.right_bars):
         candidates_at[candidate.confirmation_bar_index].append(candidate)
 
     pivots: list[RSIPivot] = []
+    # Kept in step with `pivots` rather than re-filtered per re-anchor. The
+    # filter was O(pivots) inside a loop that re-anchors O(pivots) times, so
+    # the sweep was quadratic in pivot count -- 164s on 175k bars.
+    by_kind: dict[str, list[RSIPivot]] = {"high": [], "low": []}
     active: dict[str, LineSegment | None] = {"down": None, "up": None}
     segments: list[LineSegment] = []
     signals: list[BreakSignal] = []
@@ -83,14 +90,23 @@ def run_causal_sweep(
         # 1. fold in every pivot that CONFIRMS on this bar
         changed_kinds: list[str] = []
         for candidate in candidates_at.get(bar, []):
+            previous_last = pivots[-1] if pivots else None
             pivots, changed_kind = apply_dominance(pivots, candidate, params.min_swing)
-            if changed_kind is not None and changed_kind not in changed_kinds:
+            if changed_kind is None:
+                continue
+            # Dominance either appends the candidate or replaces the trailing
+            # same-kind pivot; mirror whichever happened into `by_kind`.
+            if previous_last is not None and previous_last.kind == candidate.kind:
+                by_kind[candidate.kind][-1] = candidate
+            else:
+                by_kind[candidate.kind].append(candidate)
+            if changed_kind not in changed_kinds:
                 changed_kinds.append(changed_kind)
 
         # 2. re-anchor the affected directions
         for kind in changed_kinds:
             direction = "down" if kind == "high" else "up"
-            same_kind = [p for p in pivots if p.kind == kind]
+            same_kind = by_kind[kind]
             newest = same_kind[-1]
 
             anchor = policy.anchor(same_kind, newest, params)
@@ -124,6 +140,7 @@ def run_causal_sweep(
             )
             next_segment_id += 1
 
+
         # 3. test the active lines for a break
         for direction in ("down", "up"):
             segment = active[direction]
@@ -133,8 +150,8 @@ def run_causal_sweep(
             line = segment.line
             previous_line = line.value_at(bar - 1)
             current_line = line.value_at(bar)
-            previous_rsi = float(values.iloc[bar - 1])
-            current_rsi = float(values.iloc[bar])
+            previous_rsi = float(raw[bar - 1])
+            current_rsi = float(raw[bar])
 
             if direction == "down":
                 crossed = previous_rsi <= previous_line and current_rsi > current_line

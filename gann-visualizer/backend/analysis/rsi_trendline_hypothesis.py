@@ -59,16 +59,34 @@ class RSITrendlineBreakHypothesis(Hypothesis):
             max_span_bars=150,
             swing_lookback=20,
             stop_buffer=0.0005,
-            r_values=[1.0, 1.5, 2.0, 2.5, 3.0],
+            r_values=[1.0, 1.5, 2.0, 2.5, 3.0, 4.0, 5.0],
             max_hold_bars=40,
+            # --- execution model -------------------------------------- #
+            # The break is only knowable once its bar has closed, so the
+            # earliest honest fill is the NEXT bar's open. Entering at the
+            # signal bar's close is a ~1-bar advantage on every trade.
+            entry_offset=1,
+            # Binance USD-M futures. Fees are not a rounding error here: the
+            # stop sits ~0.7% away and a taker round trip costs 0.08%, so
+            # ~11% of the risk on every trade is fees.
+            fee_rate=0.0004,
+            maker_fee_rate=0.0002,
+            slippage_per_side=0.0,
+            # R must be declared in advance. Left None, the headline becomes
+            # whichever R won in hindsight -- a choice unavailable live.
+            selected_r=3.0,
         )
 
     # ------------------------------------------------------------------ #
 
-    def evaluate(self, df: pd.DataFrame, candles_df: pd.DataFrame = None) -> Dict[str, Any]:
-        if candles_df is None or candles_df.empty:
-            return self._empty_result()
+    def prepare(self, candles_df: pd.DataFrame) -> Dict[str, Any]:
+        """Indicators, geometry sweep, and the bar lookups, with no trade logic.
 
+        Split out of ``evaluate`` so a research harness can take the same
+        prepared state and feed the entry rule a *different* list of breaks --
+        which is what the placebo gate needs -- without reimplementing any of
+        it.
+        """
         candles = candles_df.copy().reset_index(drop=True)
         if "bar_index" not in candles.columns:
             candles["bar_index"] = candles.index
@@ -89,8 +107,31 @@ class RSITrendlineBreakHypothesis(Hypothesis):
         policy = POLICIES[str(self.parameters["anchor_policy"])]()
         sweep = run_causal_sweep(candles["rsi"], policy, params)
 
+        # One pass to build the lookups every payload helper needs, instead of
+        # a full-frame boolean scan per signal and per segment anchor.
+        self._time_by_bar = (
+            {int(b): self._time_string(t)
+             for b, t in zip(candles["bar_index"], candles["time"])}
+            if "time" in candles.columns else {}
+        )
+
+        return {
+            "candles": candles,
+            "sweep": sweep,
+            "row_by_bar": {int(b): i for i, b in enumerate(candles["bar_index"])},
+            "last_bar": int(candles["bar_index"].max()),
+        }
+
+    def evaluate(self, df: pd.DataFrame, candles_df: pd.DataFrame = None) -> Dict[str, Any]:
+        if candles_df is None or candles_df.empty:
+            return self._empty_result()
+
+        prepared = self.prepare(candles_df)
+        candles = prepared["candles"]
+        sweep = prepared["sweep"]
+        row_by_bar = prepared["row_by_bar"]
+        last_bar = prepared["last_bar"]
         segments_by_id = {segment.segment_id: segment for segment in sweep.segments}
-        last_bar = int(candles["bar_index"].max())
 
         skipped = {
             "trend_filter": 0,
@@ -102,57 +143,27 @@ class RSITrendlineBreakHypothesis(Hypothesis):
         candidates: List[Dict[str, Any]] = []
 
         for signal in sweep.signals:
-            match = candles.loc[candles["bar_index"] == signal.bar_index]
-            if match.empty:
-                skipped["missing_candle"] += 1
-                continue
-
-            row = match.iloc[0]
-            if signal.bar_index >= last_bar:
-                skipped["last_bar"] += 1
-                continue
-
-            sma_value = row["sma"]
-            if pd.isna(sma_value):
-                skipped["warmup"] += 1
-                continue
-
-            close_price = float(row["close"])
-            if signal.side == "LONG" and not close_price > float(sma_value):
-                skipped["trend_filter"] += 1
-                continue
-            if signal.side == "SHORT" and not close_price < float(sma_value):
-                skipped["trend_filter"] += 1
-                continue
-
-            stop_price = swing_stop_price(
-                candles,
+            entry, reason = self.entry_for_break(
+                candles=candles,
+                row_by_bar=row_by_bar,
                 bar_index=int(signal.bar_index),
                 side=signal.side,
-                lookback=int(self.parameters["swing_lookback"]),
-                buffer=float(self.parameters["stop_buffer"]),
+                last_bar=last_bar,
             )
-            if signal.side == "LONG" and stop_price >= close_price:
-                skipped["invalid_risk"] += 1
-                continue
-            if signal.side == "SHORT" and stop_price <= close_price:
-                skipped["invalid_risk"] += 1
+            if entry is None:
+                skipped[reason] += 1
                 continue
 
             candidates.append(
                 {
-                    "signal": CandleSignal(
-                        bar_index=int(signal.bar_index),
-                        side=signal.side,
-                        entry_price=close_price,
-                        stop_price=stop_price,
-                        signal_time=self._time_string(row.get("time")),
-                    ),
+                    "signal": entry,
                     "detail": self._detail_record(
-                        row=row,
+                        row=candles.iloc[row_by_bar[int(signal.bar_index)]],
                         signal=signal,
                         segment=segments_by_id[signal.segment_id],
-                        stop_price=stop_price,
+                        stop_price=entry.stop_price,
+                        entry_price=entry.entry_price,
+                        entry_bar_index=entry.entry_bar_index,
                         candles=candles,
                     ),
                 }
@@ -166,11 +177,16 @@ class RSITrendlineBreakHypothesis(Hypothesis):
                 rsi_series=rsi_series, line_timeline=line_timeline, skipped=skipped
             )
 
+        selected_r = self.parameters.get("selected_r")
         exit_optimization = simulate_trade_grid(
             candles=candles,
             signals=[c["signal"] for c in candidates],
             r_values=self.parameters["r_values"],
             max_hold_bars=int(self.parameters["max_hold_bars"]),
+            fee_rate=float(self.parameters["fee_rate"]),
+            maker_fee_rate=float(self.parameters["maker_fee_rate"]),
+            slippage_per_side=float(self.parameters["slippage_per_side"]),
+            select_r=None if selected_r is None else float(selected_r),
         )
         best = exit_optimization.get("best") or {}
         best_r = best.get("r_value")
@@ -193,8 +209,10 @@ class RSITrendlineBreakHypothesis(Hypothesis):
                     "exit_reason": trade["exit_reason"],
                     "gross_pnl": float(trade["gross_pnl"]),
                     "net_pnl": float(trade["net_pnl"]),
+                    "net_r": float(trade["net_r"]),
                     "fees": float(trade["fees"]),
-                    "bars_held": int(trade["exit_bar_index"] - trade["bar_index"]),
+                    "exit_is_maker": bool(trade["exit_is_maker"]),
+                    "bars_held": int(trade["exit_bar_index"] - trade["entry_bar_index"]),
                     "outcome": trade["outcome"],
                     "trade_matched": True,
                 }
@@ -211,6 +229,71 @@ class RSITrendlineBreakHypothesis(Hypothesis):
 
     # ------------------------------------------------------------------ #
 
+    def entry_for_break(
+        self,
+        candles: pd.DataFrame,
+        row_by_bar: Dict[int, int],
+        bar_index: int,
+        side: str,
+        last_bar: int,
+    ):
+        """Turn one RSI break into a tradeable signal, or say why not.
+
+        Public so the placebo harness can feed it *shifted* break bars and
+        still exercise exactly the entry rule that ships. Duplicating this
+        logic in a research script is how the 2026-07-27 placebo ended up
+        testing a configuration the strategy never used.
+
+        Returns ``(CandleSignal, None)`` or ``(None, skip_reason)``.
+        """
+        row_position = row_by_bar.get(int(bar_index))
+        if row_position is None:
+            return None, "missing_candle"
+
+        row = candles.iloc[row_position]
+        entry_offset = int(self.parameters["entry_offset"])
+        entry_bar_index = int(bar_index) + entry_offset
+        if entry_bar_index >= last_bar:
+            return None, "last_bar"
+
+        sma_value = row["sma"]
+        if pd.isna(sma_value):
+            return None, "warmup"
+
+        close_price = float(row["close"])
+        if side == "LONG" and not close_price > float(sma_value):
+            return None, "trend_filter"
+        if side == "SHORT" and not close_price < float(sma_value):
+            return None, "trend_filter"
+
+        entry_price = self._entry_price(candles, int(bar_index), entry_offset)
+        if entry_price is None:
+            return None, "missing_candle"
+
+        # The stop is derived from the signal bar's own lookback window --
+        # what the trader could see when the break printed -- not from the
+        # entry bar, which has not opened yet at decision time.
+        stop_price = swing_stop_price(
+            candles,
+            bar_index=int(bar_index),
+            side=side,
+            lookback=int(self.parameters["swing_lookback"]),
+            buffer=float(self.parameters["stop_buffer"]),
+        )
+        if side == "LONG" and stop_price >= entry_price:
+            return None, "invalid_risk"
+        if side == "SHORT" and stop_price <= entry_price:
+            return None, "invalid_risk"
+
+        return CandleSignal(
+            bar_index=int(bar_index),
+            side=side,
+            entry_price=entry_price,
+            stop_price=stop_price,
+            signal_time=self._time_string(row.get("time")),
+            entry_bar_index=entry_bar_index,
+        ), None
+
     @staticmethod
     def _time_string(value: Any) -> str | None:
         if value is None or (not isinstance(value, pd.Timestamp) and pd.isna(value)):
@@ -220,6 +303,16 @@ class RSITrendlineBreakHypothesis(Hypothesis):
         return str(value)
 
     def _bar_time(self, candles: pd.DataFrame, bar_index: int) -> str | None:
+        """Time for a bar, via the index built in ``evaluate``.
+
+        The obvious ``candles.loc[candles["bar_index"] == bar]`` is a full
+        boolean scan of the frame. It is called once per segment anchor, so on
+        a multi-year series it was the single most expensive thing the
+        hypothesis did -- half its total runtime.
+        """
+        cached = getattr(self, "_time_by_bar", None)
+        if cached is not None:
+            return cached.get(int(bar_index))
         if "time" not in candles.columns:
             return None
         match = candles.loc[candles["bar_index"] == bar_index, "time"]
@@ -254,7 +347,19 @@ class RSITrendlineBreakHypothesis(Hypothesis):
             "time": self._bar_time(candles, int(pivot.bar_index)),
         }
 
-    def _detail_record(self, row, signal, segment, stop_price, candles) -> Dict[str, Any]:
+    @staticmethod
+    def _entry_price(candles: pd.DataFrame, bar_index: int, entry_offset: int):
+        """Signal-bar close at offset 0, otherwise the offset bar's OPEN."""
+        if entry_offset == 0:
+            match = candles.loc[candles["bar_index"] == bar_index, "close"]
+            return float(match.iloc[0]) if not match.empty else None
+        column = "open" if "open" in candles.columns else "close"
+        match = candles.loc[candles["bar_index"] == bar_index + entry_offset, column]
+        return float(match.iloc[0]) if not match.empty else None
+
+    def _detail_record(
+        self, row, signal, segment, stop_price, entry_price, entry_bar_index, candles
+    ) -> Dict[str, Any]:
         event_time = self._event_time_fields(
             row["time"] if "time" in row.index else None, int(signal.bar_index)
         )
@@ -265,8 +370,12 @@ class RSITrendlineBreakHypothesis(Hypothesis):
             "bar_index": int(signal.bar_index),
             "direction": signal.side,
             "entry_side": signal.side,
-            "entry_price": float(row["close"]),
-            "price": float(row["close"]),
+            "entry_price": float(entry_price),
+            "entry_bar_index": int(entry_bar_index),
+            "entry_time": self._bar_time(candles, int(entry_bar_index)),
+            "entry_offset": int(self.parameters["entry_offset"]),
+            "signal_close": float(row["close"]),
+            "price": float(entry_price),
             "stop_price": float(stop_price),
             "stop_rule": "swing_extreme",
             "swing_lookback": int(self.parameters["swing_lookback"]),
@@ -296,21 +405,22 @@ class RSITrendlineBreakHypothesis(Hypothesis):
         }
 
     def _rsi_series_payload(self, candles: pd.DataFrame) -> List[Dict[str, Any]]:
+        """One dict per bar. Zipped columns, not ``iterrows`` -- the latter
+        rebuilds a Series per row and cost a second on its own."""
         if "time" not in candles.columns:
             return []
-        payload = []
-        for _, row in candles.iterrows():
-            value = row.get("rsi")
-            if pd.isna(value):
-                continue
-            payload.append(
-                {
-                    "bar_index": int(row["bar_index"]),
-                    "time": self._time_string(row["time"]),
-                    "rsi": float(value),
-                }
-            )
-        return payload
+        bars = candles["bar_index"].to_numpy()
+        values = candles["rsi"].to_numpy(dtype=float)
+        times = candles["time"].tolist()
+        return [
+            {
+                "bar_index": int(bars[i]),
+                "time": self._time_string(times[i]),
+                "rsi": float(values[i]),
+            }
+            for i in range(len(bars))
+            if not pd.isna(values[i])
+        ]
 
     def _timeline_payload(self, segments, candles: pd.DataFrame) -> List[Dict[str, Any]]:
         payload = []
@@ -341,6 +451,13 @@ class RSITrendlineBreakHypothesis(Hypothesis):
         total = round(sum(float(e.get("net_pnl", 0.0)) for e in detailed_log), 6)
         average = round(total / n, 6) if n else 0.0
 
+        # R-multiples, because price-unit totals cannot be pooled across a
+        # 60,000-dollar BTC and a 24,000-point index.
+        r_values = [float(e.get("net_r", 0.0)) for e in detailed_log]
+        won = [r for r in r_values if r > 0]
+        lost = [-r for r in r_values if r < 0]
+        gross_win, gross_loss = sum(won), sum(lost)
+
         return {
             "sample_size": n,
             "win_rate": round(wins / n, 4) if n else 0.0,
@@ -352,6 +469,13 @@ class RSITrendlineBreakHypothesis(Hypothesis):
             "avg_mae_10": 0.0,
             "avg_net_pnl": average,
             "net_pnl_total": total,
+            "expectancy_r": round(sum(r_values) / n, 6) if n else 0.0,
+            "total_r": round(sum(r_values), 6),
+            "profit_factor": (
+                round(gross_win / gross_loss, 6) if gross_loss else 0.0
+            ),
+            "avg_win_r": round(gross_win / len(won), 6) if won else 0.0,
+            "avg_loss_r": round(gross_loss / len(lost), 6) if lost else 0.0,
             "composite": average * (n ** 0.5) if n else 0.0,
             "groups": {},
             "detailed_log": detailed_log,

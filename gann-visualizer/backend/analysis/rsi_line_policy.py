@@ -51,22 +51,36 @@ def count_touches(line: RSILine, same_kind: list[RSIPivot], tolerance: float) ->
 
     Diagnostic only -- never used for selection.  The walk-back rule already
     maximises it by taking the furthest valid anchor.
+
+    Walks backward and stops at the line's start bar rather than scanning the
+    whole pivot history: ``same_kind`` is bar-ordered, and by the end of a long
+    series it holds tens of thousands of entries of which only the handful
+    inside the line's own span can possibly count.
     """
-    return sum(
-        1
-        for pivot in same_kind
-        if line.start_bar_index <= pivot.bar_index <= line.end_bar_index
-        and abs(pivot.rsi_value - line.value_at(pivot.bar_index)) <= tolerance
-    )
+    count = 0
+    for pivot in reversed(same_kind):
+        if pivot.bar_index < line.start_bar_index:
+            break
+        if pivot.bar_index > line.end_bar_index:
+            continue
+        if abs(pivot.rsi_value - line.value_at(pivot.bar_index)) <= tolerance:
+            count += 1
+    return count
 
 
 def _pokes_through(
     anchor: RSIPivot, newest: RSIPivot, same_kind: list[RSIPivot], tolerance: float
 ) -> bool:
-    """True when a pivot between the anchors sits on the wrong side of the line."""
+    """True when a pivot between the anchors sits on the wrong side of the line.
+
+    Scans backward from the newest anchor and stops at the older one, so the
+    cost is the span rather than the whole pivot history.
+    """
     line = line_between(anchor, newest)
-    for pivot in same_kind:
-        if not (anchor.bar_index < pivot.bar_index < newest.bar_index):
+    for pivot in reversed(same_kind):
+        if pivot.bar_index <= anchor.bar_index:
+            break
+        if pivot.bar_index >= newest.bar_index:
             continue
         value = line.value_at(pivot.bar_index)
         if newest.kind == "high" and pivot.rsi_value > value + tolerance:
@@ -74,6 +88,17 @@ def _pokes_through(
         if newest.kind == "low" and pivot.rsi_value < value - tolerance:
             return True
     return False
+
+
+def _oldest_index_within_span(
+    same_kind: list[RSIPivot], newest: RSIPivot, max_span_bars: int
+) -> int:
+    """First index whose span to ``newest`` is still inside ``max_span_bars``."""
+    cutoff = newest.bar_index - max_span_bars
+    index = len(same_kind) - 1
+    while index > 0 and same_kind[index - 1].bar_index >= cutoff:
+        index -= 1
+    return index
 
 
 def _slope_sense_ok(anchor: RSIPivot, newest: RSIPivot) -> bool:
@@ -98,7 +123,8 @@ class WalkBackAnchorPolicy:
     def anchor(
         self, same_kind: list[RSIPivot], newest: RSIPivot, params: GeometryParams
     ) -> RSIPivot | None:
-        for candidate in same_kind:  # oldest first
+        start = _oldest_index_within_span(same_kind, newest, params.max_span_bars)
+        for candidate in same_kind[start:]:  # oldest still in span, first
             if candidate.bar_index >= newest.bar_index:
                 continue
             span = newest.bar_index - candidate.bar_index
@@ -140,12 +166,18 @@ class CollinearExtendAnchorPolicy:
     def anchor(
         self, same_kind: list[RSIPivot], newest: RSIPivot, params: GeometryParams
     ) -> RSIPivot | None:
-        earlier = [p for p in same_kind if p.bar_index < newest.bar_index]
-        if not earlier:
+        # Index arithmetic rather than list comprehensions: `same_kind` grows
+        # to tens of thousands over a multi-year series, and rebuilding
+        # `earlier` and `between` on every re-anchor made the sweep quadratic.
+        last = len(same_kind) - 1
+        while last >= 0 and same_kind[last].bar_index >= newest.bar_index:
+            last -= 1
+        if last < 0:
             return None
 
         best = None
-        for candidate in reversed(earlier):  # nearest first, then extend outward
+        for i in range(last, -1, -1):  # nearest first, then extend outward
+            candidate = same_kind[i]
             span = newest.bar_index - candidate.bar_index
             if span > params.max_span_bars:
                 break
@@ -155,14 +187,15 @@ class CollinearExtendAnchorPolicy:
                 continue
 
             line = line_between(candidate, newest)
-            between = [
-                m for m in earlier
-                if candidate.bar_index < m.bar_index < newest.bar_index
-            ]
-            if any(
-                abs(m.rsi_value - line.value_at(m.bar_index)) > params.tolerance
-                for m in between
-            ):
+            collinear = True
+            for j in range(i + 1, last + 1):
+                between = same_kind[j]
+                if between.bar_index <= candidate.bar_index:
+                    continue
+                if abs(between.rsi_value - line.value_at(between.bar_index)) > params.tolerance:
+                    collinear = False
+                    break
+            if not collinear:
                 break  # structure stopped being collinear; do not reach past it
             best = candidate
 
@@ -224,7 +257,11 @@ class NearestPairAnchorPolicy:
             if candidate.bar_index >= newest.bar_index:
                 continue
             span = newest.bar_index - candidate.bar_index
-            if span < params.min_length or span > params.max_span_bars:
+            # Spans only grow as we walk back, so once one is too long every
+            # remaining one is too.
+            if span > params.max_span_bars:
+                break
+            if span < params.min_length:
                 continue
             if not _slope_sense_ok(candidate, newest):
                 continue

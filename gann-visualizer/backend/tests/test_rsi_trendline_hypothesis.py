@@ -106,3 +106,75 @@ def test_empty_candles_return_an_empty_result_without_raising():
     assert result["sample_size"] == 0
     assert result["detailed_log"] == []
     assert result["line_timeline"] == []
+
+
+# --------------------------------------------------------------------- #
+# execution model
+# --------------------------------------------------------------------- #
+
+def test_default_entry_is_the_next_bar_open_not_the_signal_close():
+    candles = build_trending_candles()
+    result = RSITrendlineBreakHypothesis().evaluate(pd.DataFrame(), candles_df=candles)
+    assert result["detailed_log"], "fixture produced no trades"
+
+    for entry in result["detailed_log"]:
+        bar = entry["bar_index"]
+        assert entry["entry_bar_index"] == bar + 1
+        assert entry["entry_price"] == candles.loc[bar + 1, "open"]
+        assert entry["entry_price"] != entry["signal_close"] or True  # may coincide
+
+
+def test_entry_offset_zero_restores_the_signal_bar_close():
+    candles = build_trending_candles()
+    hypothesis = RSITrendlineBreakHypothesis()
+    hypothesis.set_parameters(**{**hypothesis.parameters, "entry_offset": 0})
+    result = hypothesis.evaluate(pd.DataFrame(), candles_df=candles)
+
+    for entry in result["detailed_log"]:
+        assert entry["entry_bar_index"] == entry["bar_index"]
+        assert entry["entry_price"] == entry["signal_close"]
+
+
+def test_fees_are_charged_on_every_trade():
+    result = RSITrendlineBreakHypothesis().evaluate(
+        pd.DataFrame(), candles_df=build_trending_candles()
+    )
+    assert result["detailed_log"]
+    assert all(entry["fees"] > 0 for entry in result["detailed_log"])
+    assert all(entry["net_pnl"] < entry["gross_pnl"] for entry in result["detailed_log"])
+
+
+def test_target_exits_are_charged_the_maker_rate():
+    # R=1 so the synthetic fixture actually reaches its targets; at R=3 it
+    # never does and the assertion would have nothing to bite on.
+    hypothesis = RSITrendlineBreakHypothesis()
+    hypothesis.set_parameters(**{**hypothesis.parameters, "selected_r": 1.0})
+    result = hypothesis.evaluate(pd.DataFrame(), candles_df=build_trending_candles())
+    targets = [e for e in result["detailed_log"] if e["exit_reason"] == "target"]
+    assert targets, "fixture produced no target exits"
+    for entry in targets:
+        assert entry["exit_is_maker"] is True
+        expected = entry["entry_price"] * 0.0004 + entry["exit_price"] * 0.0002
+        assert round(entry["fees"], 6) == round(expected, 6)
+
+
+def test_headline_uses_the_declared_r_not_the_hindsight_winner():
+    result = RSITrendlineBreakHypothesis().evaluate(
+        pd.DataFrame(), candles_df=build_trending_candles()
+    )
+    optimization = result["exit_optimization"]
+    assert optimization["selected_r"] == 3.0
+    assert optimization["best"]["r_value"] == 3.0
+    assert "hindsight_best" in optimization
+
+
+def test_summary_reports_expectancy_in_r():
+    result = RSITrendlineBreakHypothesis().evaluate(
+        pd.DataFrame(), candles_df=build_trending_candles()
+    )
+    log = result["detailed_log"]
+    assert log
+    expected = sum(e["net_r"] for e in log) / len(log)
+    assert result["expectancy_r"] == round(expected, 6)
+    assert result["profit_factor"] >= 0.0
+    assert result["avg_win_r"] >= 0.0

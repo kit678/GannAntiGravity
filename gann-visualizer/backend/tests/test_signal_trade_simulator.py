@@ -124,7 +124,9 @@ def test_trade_grid_returns_r_grid_summary_and_best_per_signal_choice():
 
     result = simulate_trade_grid(candles, signals, r_values=[1.0, 2.0], max_hold_bars=1)
 
-    assert set(result.keys()) == {"best", "all_r_results", "per_signal"}
+    assert set(result.keys()) == {
+        "best", "hindsight_best", "selected_r", "all_r_results", "per_signal",
+    }
     assert len(result["all_r_results"]) == 2
     assert [row["r_value"] for row in result["all_r_results"]] == [1.0, 2.0]
     assert result["best"]["r_value"] == 1.0
