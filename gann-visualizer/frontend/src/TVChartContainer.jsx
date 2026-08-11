@@ -578,13 +578,24 @@ export const TVChartContainer = forwardRef(({ symbol = 'NIFTY 50', datafeedUrl, 
                     return;
                 }
 
-                // Helper: parse backend time values (numeric string = Unix seconds, date string, or number)
+                // Helper: parse backend time values (numeric string = Unix seconds, date string, or number).
+                // The backend emits date-time strings with NO timezone suffix
+                // (RSITrendlineBreakHypothesis._time_string: "%Y-%m-%dT%H:%M:%S",
+                // always UTC-based). `new Date(str)` on a zone-less date-TIME
+                // string is parsed as the BROWSER'S LOCAL time per the ECMAScript
+                // Date Time String Format spec, not UTC -- so on any viewer whose
+                // machine isn't UTC, the RSI curve and trendline overlay silently
+                // shift sideways against the candlesticks (which come from raw
+                // epoch ints and are unaffected) by exactly that viewer's UTC
+                // offset. Appending 'Z' to a bare "YYYY-MM-DDTHH:MM:SS" string
+                // forces UTC interpretation instead.
                 const toTimeSec = (val) => {
                     if (val == null) return null;
                     if (typeof val === 'number') return val > 1000000000 ? val : null;
                     const num = Number(val);
                     if (Number.isFinite(num) && num > 1000000000) return num;
-                    const d = new Date(val);
+                    const hasZone = typeof val === 'string' && /(Z|[+-]\d{2}:?\d{2})$/.test(val);
+                    const d = new Date(hasZone ? val : `${val}Z`);
                     return Number.isFinite(d.getTime()) ? d.getTime() / 1000 : null;
                 };
 

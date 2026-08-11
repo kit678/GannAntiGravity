@@ -53,7 +53,17 @@ def main() -> int:
     if args.bars:
         candles = candles.tail(args.bars).reset_index(drop=True)
         candles["bar_index"] = candles.index
-    candles["time"] = pd.to_datetime(candles["timestamp"], unit="s")
+
+    # The hypothesis wants pd.Timestamp in `time` so its own _time_string()
+    # can format pivot/entry times for the report. Every OTHER consumer of
+    # candles.csv -- notably GET /api/hypothesis-runs/.../candles, which the
+    # Navigator's chart calls to load a run's price data -- expects `time` to
+    # be the same raw epoch seconds as `timestamp`, matching every other run
+    # in the repo. Writing a formatted string there 500s that endpoint
+    # (`int("2026-01-23 04:00:00")`) and the failure surfaces in the browser
+    # as an opaque CORS error, not the ValueError it actually is.
+    candles_for_report = candles.copy()
+    candles_for_report["time"] = pd.to_datetime(candles["timestamp"], unit="s")
 
     resolution = RESOLUTION_MINUTES.get(args.interval, args.interval)
     run_id = args.run_id or f"hist_{args.interval}"
@@ -61,12 +71,14 @@ def main() -> int:
     output_dir = os.path.join(run_dir, "analysis", "hypotheses")
     os.makedirs(output_dir, exist_ok=True)
 
-    candles.to_csv(os.path.join(run_dir, "candles.csv"), index=False)
+    candles_for_disk = candles.copy()
+    candles_for_disk["time"] = candles_for_disk["timestamp"]
+    candles_for_disk.to_csv(os.path.join(run_dir, "candles.csv"), index=False)
     with open(os.path.join(run_dir, "events.csv"), "w", encoding="utf-8") as handle:
         handle.write("Type,Time,Price,Bar_Index,Raw_Timestamp\n")
 
     hypothesis = RSITrendlineBreakHypothesis()
-    result = hypothesis.evaluate(pd.DataFrame(), candles_df=candles)
+    result = hypothesis.evaluate(pd.DataFrame(), candles_df=candles_for_report)
 
     report = {
         "hypothesis_name": hypothesis.name,
