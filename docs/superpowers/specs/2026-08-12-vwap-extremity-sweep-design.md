@@ -231,13 +231,18 @@ any fee input.
 |---|---|---|
 | Post-hoc arithmetic | every cost scenario | free |
 | Post-hoc filter on a recorded column | confirmation window (`bars_waited`), extremity rule (`sweep_sigma`), and any future filter such as hour-of-day | free |
-| Changes the simulated path | stop rule, target rule | 4 combinations |
+| Changes the simulated path | stop rule, target rule | 6 combinations |
 | Changes the bands, so changes the scan | VWAP anchor policy | ×2 |
 
 The scan therefore runs at the **loosest** settings — confirmation window 6,
 extremity `≥ 2σ` — records every confirmed setup in the session rather than only
-the first, and simulates all four stop×target paths for each. Total: 2 anchors ×
-4 paths, in one command.
+the first, and simulates every stop×target path for each. Two stop rules
+(confirmation-bar extreme, sweep-bar extreme) × three target rules (VWAP,
+opposite band, fixed 2R) = 6 paths, × 2 anchors, in one command.
+
+The fixed-2R path exists solely to measure the video's "go for a one to two"
+claim against the same entries and stops. It is reported for information and is
+never the verdict.
 
 Recording every setup (not just the first) is what makes the filter tier
 genuinely free. Under a tighter cell the first setup may be excluded, and the
@@ -317,8 +322,10 @@ One JSON file per symbol per scan.
                               "exit_reason": "target", "bars_held": 0,
                               "gross_pnl": 0, "gross_r": 0, "mfe_r": 0, "mae_r": 0 },
         "confirm|opp_band": { "…": "…" },
+        "confirm|r2":       { "…": "…" },
         "sweep|vwap":       { "…": "…" },
-        "sweep|opp_band":   { "…": "…" }
+        "sweep|opp_band":   { "…": "…" },
+        "sweep|r2":         { "…": "…" }
       }
     }
   ]
