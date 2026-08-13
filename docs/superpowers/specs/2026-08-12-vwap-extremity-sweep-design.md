@@ -95,11 +95,27 @@ var_t   = Σ(v_i · (tp_i − VWAP_t)²) / Σ(v_i)
 band_k  = VWAP_t ± k · σ_t
 ```
 
-Computed with running sums of `v`, `tp·v` and `tp²·v`, which is O(1) per bar and
-never revisits earlier bars. The algebraically equivalent
-`var = Σ(tp²·v)/Σv − VWAP²` form is avoided as the primary path because it
-cancels catastrophically when σ is small relative to price — a real risk at BTC's
-price scale. A test asserts the two agree to tolerance on well-conditioned input.
+**Numerics.** The textbook `var = Σ(tp²·v)/Σv − VWAP²` cancels catastrophically
+when σ is small relative to price. At BTC 100,000 with a 50-dollar sigma, that
+subtracts two numbers agreeing to nine significant figures, and float64 has
+about fifteen — most of the answer is rounding error.
+
+Fixed by shifting the origin to `K`, the first typical price of the anchor
+period, before accumulating. `d_i = tp_i − K` is intraday-range sized rather than
+price-level sized, so nothing cancels:
+
+```
+Sv     = cumsum(v)          Sdv = cumsum(d·v)          Sd2v = cumsum(d²·v)
+mean_d = Sdv / Sv
+VWAP   = K + mean_d
+σ      = sqrt(max(Sd2v / Sv − mean_d², 0))
+```
+
+Still one vectorised pass per anchor period, still uses only bars up to and
+including *t*. The `max(·, 0)` clamps the residual float error that can make a
+near-zero variance come out marginally negative. A test asserts this agrees with
+the naive form on well-conditioned synthetic input, where the naive form is
+still trustworthy.
 
 **Anchor policies.** Declared as a range because the video does not specify:
 
