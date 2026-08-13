@@ -464,19 +464,33 @@ Existing envelope — `{ metadata, live_events, retro_events }` — plus `column
 
 ### Columns
 
-**Setup:** `session_date`, `asian_high`, `asian_low`, `asian_range_width`,
-`swept_level` (`asian_high` / `asian_low`), `sweep_bar_index`, `sweep_time`,
-`sweep_penetration`, `sweep_penetration_pct_range`, `sweep_sigma`,
-`bars_waited`, `failed_sweeps_before_entry`.
+**Identity and bars.** The envelope's `time` / `timestamp` / `bar_index` refer to
+the **entry** bar, matching how `navigateToHypothesisEvent` jumps the chart.
+Every other bar in the setup is named explicitly, because a three-bar setup that
+only reports one bar index cannot be verified against the chart:
+`setup_id`, `session_date`, `sweep_bar_index`, `sweep_time`,
+`confirm_bar_index`, `confirm_time`, `entry_bar_index`, `bars_waited`.
 
-**Context at entry:** `vwap_at_confirm`, `sigma_at_confirm`, `band_2`, `band_3`,
-`entry_sigma`, `planned_rr`, `hour_utc`, `anchor_policy`, `stop_rule`,
-`target_rule`, `half` (`train` / `test`), `cost_scenario`.
+**Setup:** `asian_high`, `asian_low`, `asian_range_width`, `asian_range_pct`,
+`swept_level` (`asian_high` / `asian_low`), `sweep_penetration`,
+`sweep_penetration_pct_range`, `sweep_sigma`, `failed_sweeps_before_entry`.
+
+**Context at entry:** `vwap_at_confirm`, `sigma_at_confirm`,
+`sigma_pct_at_confirm`, `band_2`, `band_3`, `entry_sigma`, `planned_rr`,
+`target_distance_bps`, `entry_slip_vs_confirm_close`, `hour_utc`, `day_of_week`,
+`anchor_policy`, `stop_rule`, `target_rule`, `half` (`train` / `test`),
+`cost_scenario`.
 
 **Outcome:** `direction`, `entry_price`, `stop_price`, `target_price`,
 `risk_per_unit`, `exit_bar_index`, `exit_time`, `exit_price`, `exit_reason`,
 `bars_held`, `gross_pnl`, `fees`, `net_pnl`, `net_r`, `mfe_r`, `mae_r`,
 `outcome`.
+
+**Recorded but never filtered on:** `sweep_volume_ratio`, `day_of_week`,
+`hour_utc`, `sigma_pct_at_confirm`, `asian_range_pct`. These exist so a failure
+can be understood and so a *future* pre-registered test can be designed from
+evidence. Selecting a grid cell by any of them after seeing results would break
+the pre-registration this design exists to enforce, and is a non-goal.
 
 Derived columns, defined once here so scoring and the Navigator cannot disagree
 (all evaluated at the **confirmation** bar unless stated):
@@ -489,6 +503,25 @@ Derived columns, defined once here so scoring and the Navigator cannot disagree
 | `entry_sigma` | `(entry_price − VWAP) / σ` |
 | `planned_rr` | `abs(target_price − entry_price) / abs(stop_price − entry_price)` |
 | `bars_waited` | `confirm_bar_index − sweep_bar_index`, always ≥ 1 |
+| `asian_range_pct` | `asian_range_width / asian_high` |
+| `sigma_pct_at_confirm` | `σ / VWAP` |
+| `target_distance_bps` | `10000 · abs(target_price − entry_price) / entry_price` |
+| `entry_slip_vs_confirm_close` | `confirm_bar.close − entry_price` (positive = the honest fill was worse than the video's claimed fill) |
+| `sweep_volume_ratio` | `sweep_bar.volume / mean(volume)` over the session's closed bars up to the sweep |
+
+Four of these earn their place specifically:
+
+- **`entry_slip_vs_confirm_close`** measures, per trade, exactly what the
+  next-bar-open fill costs against the confirmation-close fill the video claims.
+  If the strategy is only profitable at the claimed fill, this column says so in
+  one number rather than requiring a second run.
+- **`target_distance_bps`** answers whether the target even clears the round
+  trip. At 8 bps round trip, a target 15 bps away cannot survive a 50% hit rate.
+  Prior work in this repo landed on a fee-drag conclusion; this makes that
+  visible per trade instead of only in the aggregate.
+- **`sigma_pct_at_confirm`** and **`asian_range_pct`** are price-neutral. Absolute
+  sigma in dollars is not comparable between BTC at 46,000 and BTC at 100,000, so
+  the absolute columns alone cannot be sliced across the window.
 
 `sweep_sigma` and `bars_waited` are the two filter columns, so the Navigator can
 reproduce any cell's selection by eye. `planned_rr` tests the video's headline
