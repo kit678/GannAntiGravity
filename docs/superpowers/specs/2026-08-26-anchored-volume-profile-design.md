@@ -58,7 +58,10 @@ Both are in `calculate_value_area`. Both get a regression test.
    "no such bucket / edge of profile", steering the expansion the wrong way.
    Empty buckets are common in a fine-grained crypto profile. Fix: compare with
    `is None`.
-2. **Crash at the profile edges.** When `min_idx` is already `0` and `max_idx`
+2. **Off-by-one expansion.** The loop condition is `while trial_vol <= target_vol`,
+   so when the accumulated volume lands exactly on the target it expands one
+   bucket too far. Fix: `while trial_vol < target_vol`.
+3. **Crash at the profile edges.** When `min_idx` is already `0` and `max_idx`
    is already `len-1`, both neighbours clip to themselves, so both
    `low_volume` and `high_volume` are `None`. The first branch then evaluates
    `trial_vol += None` and raises `TypeError`. The `else: break` is unreachable
@@ -160,7 +163,14 @@ Each resolver returns a single epoch-seconds-UTC timestamp. Nothing else.
 |---|---|
 | `manual(ts)` | identity; the bar the user clicked |
 | `session_start(bars, session, tz)` | first bar at or after the session open of the most recent session in `bars` |
-| `pivot(bars, direction, lookback)` | timestamp of the most recent swing high/low, delegating to `study_tool/pivot_detector.py` |
+| `pivot(bars, direction, left_bars, right_bars)` | timestamp of the most recent confirmed swing high/low |
+
+`pivot` does **not** call `study_tool/pivot_detector.py`. That class is stateful
+and writes to a module-level pivot registry shared with the fan study; calling
+it here would pollute that state as a side effect of drawing an indicator. The
+resolver instead runs its own pure left/right-bars swing scan — about fifteen
+lines, no shared state, and it uses the same `left_bars`/`right_bars`
+convention so results agree with the fan study.
 
 `session_start` is the only place a non-UTC timezone appears, and it converts
 back to UTC before returning. Adding a fourth resolver later is one function in
@@ -196,6 +206,13 @@ shows Binance and yfinance are already UTC while Dhan is IST; the IST
 conversion happens inside the data-fetch layer only, never in the indicator,
 never in the request or response. This is the same class of defect as the
 timezone-shifted RSI Navigator overlay and is being closed by construction.
+
+**Unit rule.** `binance_client._parse_klines` emits `time` in epoch
+*milliseconds*, and the frontend candle objects carry milliseconds too, while
+TradingView shape points take *seconds*. The indicator works in seconds
+throughout. A `normalize_time_seconds` helper in `binning.py` detects
+millisecond input (values above 1e11) and divides, so a caller passing raw
+Binance bars cannot silently produce an empty profile.
 
 Validation: `bins` in `[4, 50]`, `value_area_pct` in `(0.0, 1.0)`, `anchor.ts`
 within `[from_ts, to_ts]`. Out-of-range values return HTTP 422 rather than
