@@ -34,7 +34,7 @@
 **Working directory for all backend commands:** `C:/Dev/GannTesting/gann-visualizer/backend`
 **Working directory for all frontend commands:** `C:/Dev/GannTesting/gann-visualizer/frontend`
 
-There is no pytest config file in this repo. Tests are run by explicit path, and they add the backend directory to `sys.path` themselves — copy that preamble into every new test file exactly as shown.
+There is no pytest config file in this repo. All commands below assume `pytest` is invoked with cwd `gann-visualizer/backend` — `python -m pytest` from that directory already puts it on `sys.path`, so test files import backend modules directly (`from indicators.volume_profile... import ...`), matching the existing pattern in `tests/test_target_progression.py`. Do **not** add a `sys.path.append` hack to any new test file — a worktree-relative absolute path breaks the moment the branch merges or a different machine runs it.
 
 ---
 
@@ -119,12 +119,7 @@ Each test in TestUpstreamBugs fails against the unmodified upstream
 implementation. They are the reason this code is vendored rather than
 installed from PyPI.
 """
-import os
-import sys
-
 import pytest
-
-sys.path.append(os.path.abspath('C:/Dev/GannTesting/gann-visualizer/backend'))
 
 from indicators.volume_profile.vendor.market_profile_core import (
     calculate_value_area,
@@ -326,14 +321,9 @@ Create `gann-visualizer/backend/tests/test_volume_profile_binning.py`:
 
 ```python
 """Tests for volume profile bucketing and volume distribution."""
-import os
-import sys
-
 import numpy as np
 import pandas as pd
 import pytest
-
-sys.path.append(os.path.abspath('C:/Dev/GannTesting/gann-visualizer/backend'))
 
 from indicators.volume_profile.binning import (
     build_bin_edges,
@@ -606,13 +596,8 @@ Create `gann-visualizer/backend/tests/test_volume_profile.py`:
 
 ```python
 """End-to-end tests for compute_anchored_profile."""
-import os
-import sys
-
 import pandas as pd
 import pytest
-
-sys.path.append(os.path.abspath('C:/Dev/GannTesting/gann-visualizer/backend'))
 
 from indicators.volume_profile.profile import (
     VolumeProfileResult,
@@ -993,13 +978,8 @@ Create `gann-visualizer/backend/tests/test_volume_profile_anchors.py`:
 
 ```python
 """Tests for volume profile anchor resolution."""
-import os
-import sys
-
 import pandas as pd
 import pytest
-
-sys.path.append(os.path.abspath('C:/Dev/GannTesting/gann-visualizer/backend'))
 
 from indicators.volume_profile.anchors import (
     resolve_anchor,
