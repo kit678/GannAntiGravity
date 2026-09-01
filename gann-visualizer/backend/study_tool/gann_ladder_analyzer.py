@@ -9,7 +9,7 @@ applies is a DEFAULT sitting on top of raw measurements that are all retained,
 so Phase 3 can recompute the outcome under any other threshold.
 """
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 from study_tool.event_logger import Event, EventType
 
@@ -28,12 +28,31 @@ class GannLadderAnalyzer:
         self.timeframe = config.get("timeframe")
         self.price_scale = config.get("price_scale", 1)
 
-        # level_price -> pending cross state
-        self.pending: Dict[float, Dict[str, Any]] = {}
+        # level key ("source|square") -> pending cross state
+        self.pending: Dict[str, Dict[str, Any]] = {}
         # breach_id -> open breach state
         self.open_breaches: Dict[str, Dict[str, Any]] = {}
+        # level key -> breach_id of its currently open breach, if any. Lets a
+        # level with an unresolved breach be skipped in the main loop instead
+        # of starting a second, independent cycle on top of the one already
+        # being tracked via open_breaches.
+        self.open_by_level: Dict[str, str] = {}
+
+        # Bars must be fed in strictly increasing bar_index order. -1 means
+        # none processed yet.
+        self._last_bar_index = -1
 
     # -- helpers ---------------------------------------------------------
+
+    def _level_key(self, level: Dict) -> str:
+        """
+        Stable identity for a level.
+
+        Price alone is not enough: two different crosses (e.g. Sun and Moon)
+        can land on the same price, most notably at a conjunction, and must
+        not be tracked as the same pending cross.
+        """
+        return f"{level.get('source')}|{level.get('square')}"
 
     def _sub_gap(self, level: Dict) -> float:
         """Price distance between adjacent sub-levels of a level's segment."""
@@ -80,6 +99,51 @@ class GannLadderAnalyzer:
             level.get("source"), level.get("square"), bar_index,
         ))
 
+    def _crossed(self, price: float, open_price: Optional[float],
+                 high: float, low: float, close: float,
+                 direction_hint: Optional[str] = None) -> Tuple[bool, Optional[str]]:
+        """
+        Whether this bar counts as crossing the level, and in which direction.
+
+        In 'close' mode a cross requires the bar to have travelled through the
+        level - opened on one side, closed on the other - not merely rested
+        on one side, or wicked it without closing past it.
+
+        In 'wick' mode any bar whose range clears the level counts, even if
+        it closes back on the side it came from.
+
+        direction_hint, when given, checks only whether the bar still counts
+        as crossed in that specific direction - used once a cross is already
+        pending, so a bar wicking or resting the wrong way doesn't reset or
+        confuse the count.
+        """
+        if self.breach_mode == "wick":
+            wicked_up = high > price
+            wicked_down = low < price
+            if direction_hint == "up":
+                return wicked_up, "up"
+            if direction_hint == "down":
+                return wicked_down, "down"
+            if wicked_up:
+                return True, "up"
+            if wicked_down:
+                return True, "down"
+            return False, None
+
+        beyond_up = close > price
+        beyond_down = close < price
+        if direction_hint == "up":
+            return beyond_up, "up"
+        if direction_hint == "down":
+            return beyond_down, "down"
+        straddled_up = open_price is not None and open_price <= price and beyond_up
+        straddled_down = open_price is not None and open_price >= price and beyond_down
+        if straddled_up:
+            return True, "up"
+        if straddled_down:
+            return True, "down"
+        return False, None
+
     # -- main loop -------------------------------------------------------
 
     def process_bar(self, bar: Dict, bar_index: int,
@@ -88,67 +152,74 @@ class GannLadderAnalyzer:
         Feed one bar. Returns the events it produced.
 
         Pure with respect to its inputs: the same bar plus the same state in
-        gives the same events out.
+        gives the same events out. bar_index must be strictly increasing
+        across calls (including after restore_state) - a long walk that
+        replays or skips backward would silently corrupt the close/retest
+        counters, so this is enforced rather than left to the caller.
         """
+        if bar_index <= self._last_bar_index:
+            raise ValueError(
+                f"process_bar called with bar_index={bar_index}, which is "
+                f"not after the last processed bar_index={self._last_bar_index}. "
+                "Bars must be fed in strictly increasing order."
+            )
+        self._last_bar_index = bar_index
+
         events: List[Event] = []
         high, low, close = bar["high"], bar["low"], bar["close"]
+        open_price = bar.get("open")
 
         for level in levels:
+            key = self._level_key(level)
+
+            # An already-open, unresolved breach on this exact level is
+            # tracked purely via _track_open_breaches (retest/resolution).
+            # Starting a new touch/cross cycle for it here would double-count
+            # the same price action as both a retest of the open breach and
+            # the trigger of a second, independent one.
+            if key in self.open_by_level:
+                continue
+
             price = level["price"]
             gap = self._sub_gap(level)
             tolerance = gap * self.touch_tolerance
-
             reached = (low - tolerance) <= price <= (high + tolerance)
-            beyond_up = close > price
-            beyond_down = close < price
 
-            state = self.pending.get(price)
+            state = self.pending.get(key)
 
             if state is None:
                 if not reached:
                     continue
-                # Wick mode confirms as soon as the range clears the level.
-                crossed = high > price or low < price
-                if self.breach_mode == "wick" and crossed:
-                    direction = "up" if high > price else "down"
-                    if self.confirmation_closes <= 1:
-                        events.append(self._confirm(bar, bar_index, level, direction))
-                        continue
-                # A genuine cross needs the bar to have travelled through the
-                # level (open on one side, close on the other) — not merely
-                # closed on the far side of a level it was already past, or
-                # rested on one side while a wick tagged it exactly.
-                open_price = bar.get("open")
-                straddled_up = open_price is not None and open_price <= price and beyond_up
-                straddled_down = open_price is not None and open_price >= price and beyond_down
-                if (self.breach_mode == "close" and (straddled_up or straddled_down)):
-                    direction = "up" if straddled_up else "down"
-                    self.pending[price] = {
-                        "direction": direction,
-                        "closes": 1,
-                        "first_bar": bar_index,
-                    }
-                    events.append(self._make_event(
-                        EventType.LADDER_CROSS, bar, bar_index, level,
-                        direction=direction,
-                    ))
-                    if self.confirmation_closes <= 1:
-                        events.append(self._confirm(bar, bar_index, level, direction))
-                        self.pending.pop(price, None)
-                else:
+                crossed_now, direction = self._crossed(price, open_price, high, low, close)
+                if not crossed_now:
                     events.append(self._make_event(
                         EventType.LADDER_TOUCH, bar, bar_index, level,
                     ))
+                    continue
+                self.pending[key] = {
+                    "direction": direction,
+                    "closes": 1,
+                    "first_bar": bar_index,
+                }
+                events.append(self._make_event(
+                    EventType.LADDER_CROSS, bar, bar_index, level,
+                    direction=direction,
+                ))
+                if self.confirmation_closes <= 1:
+                    events.append(self._confirm(bar, bar_index, level, direction, key))
+                    self.pending.pop(key, None)
                 continue
 
-            # A cross is pending on this level.
+            # A cross is pending on this level - still crossed the same way?
             direction = state["direction"]
-            still_beyond = beyond_up if direction == "up" else beyond_down
-            if still_beyond:
+            still_crossed, _ = self._crossed(
+                price, open_price, high, low, close, direction_hint=direction,
+            )
+            if still_crossed:
                 state["closes"] += 1
                 if state["closes"] >= self.confirmation_closes:
-                    events.append(self._confirm(bar, bar_index, level, direction))
-                    self.pending.pop(price, None)
+                    events.append(self._confirm(bar, bar_index, level, direction, key))
+                    self.pending.pop(key, None)
             else:
                 events.append(self._make_event(
                     EventType.LADDER_BREACH_REJECTED, bar, bar_index, level,
@@ -159,12 +230,12 @@ class GannLadderAnalyzer:
                     direction=direction,
                     details={"outcome": "NEVER_CONFIRMED", "truncated": False},
                 ))
-                self.pending.pop(price, None)
+                self.pending.pop(key, None)
 
         events.extend(self._track_open_breaches(bar, bar_index))
         return events
 
-    def _confirm(self, bar, bar_index, level, direction) -> Event:
+    def _confirm(self, bar, bar_index, level, direction, key) -> Event:
         breach_id = self._breach_id(level, bar_index)
         self.open_breaches[breach_id] = {
             "level": level,
@@ -174,6 +245,7 @@ class GannLadderAnalyzer:
             "retested": False,
             "closes_back": 0,
         }
+        self.open_by_level[key] = breach_id
         return self._make_event(
             EventType.LADDER_BREACH_CONFIRMED, bar, bar_index, level,
             direction=direction, breach_id=breach_id,
@@ -234,6 +306,9 @@ class GannLadderAnalyzer:
     def _resolve(self, bar, bar_index, breach_id) -> Event:
         state = self.open_breaches.pop(breach_id)
         level = state["level"]
+        key = self._level_key(level)
+        if self.open_by_level.get(key) == breach_id:
+            del self.open_by_level[key]
 
         if not state["retested"]:
             outcome = "NEVER_RETESTED"
@@ -259,26 +334,22 @@ class GannLadderAnalyzer:
         Close out breaches still open at the end of the data.
 
         Emitted with outcome None rather than dropped: truncation is a fact
-        about the dataset, not a reason to discard a sample.
+        about the dataset, not a reason to discard a sample. Routed through
+        _make_event (with an empty stand-in bar) so the resolved event
+        carries the same full level identity - including sub-level index,
+        halfway flag, and segment bounds - as every other event in that
+        breach's lineage, for consistent joining by breach_id.
         """
         events: List[Event] = []
         for breach_id in list(self.open_breaches):
             state = self.open_breaches.pop(breach_id)
             level = state["level"]
-            events.append(Event(
-                timestamp=0,
-                event_type=EventType.LADDER_BREACH_RESOLVED,
+            key = self._level_key(level)
+            if self.open_by_level.get(key) == breach_id:
+                del self.open_by_level[key]
+            events.append(self._make_event(
+                EventType.LADDER_BREACH_RESOLVED, {}, state["bar"], level,
                 direction=state["direction"],
-                bar_index=state["bar"],
-                instrument=self.instrument,
-                timeframe=self.timeframe,
-                level_source=level.get("source"),
-                level_price=level.get("price"),
-                level_square=level.get("square"),
-                level_kind=level.get("kind"),
-                level_degree=level.get("degree"),
-                level_ring=level.get("ring"),
-                price_scale=self.price_scale,
                 parent_breach_id=breach_id,
                 details={
                     "outcome": None,
@@ -292,10 +363,14 @@ class GannLadderAnalyzer:
 
     def get_state(self) -> Dict[str, Any]:
         return {
-            "pending": {str(k): v for k, v in self.pending.items()},
+            "pending": self.pending,
             "open_breaches": self.open_breaches,
+            "open_by_level": self.open_by_level,
+            "last_bar_index": self._last_bar_index,
         }
 
     def restore_state(self, state: Dict[str, Any]) -> None:
-        self.pending = {float(k): v for k, v in state.get("pending", {}).items()}
+        self.pending = state.get("pending", {})
         self.open_breaches = state.get("open_breaches", {})
+        self.open_by_level = state.get("open_by_level", {})
+        self._last_bar_index = state.get("last_bar_index", -1)

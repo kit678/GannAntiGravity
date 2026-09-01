@@ -214,3 +214,77 @@ def test_state_round_trips_without_changing_output():
         out.extend(resumed.process_bar(bars[index], index, LEVELS))
 
     assert types_of(out) == types_of(straight)
+
+
+# -- Regression tests from the post-Task-6 code review -----------------------
+#
+# These four cover real defects found by tracing the state machine across
+# multiple bars and multiple levels, rather than single isolated branches:
+# same-price levels from different crosses colliding, a confirmed breach
+# spawning a second independent cycle while still open, replayed bar_index
+# silently corrupting counters, and wick mode never accumulating past 1.
+
+
+def test_same_price_different_sources_do_not_cross_contaminate():
+    # A Sun/Moon conjunction: two distinct levels happen to share a price.
+    # Each must be tracked independently - one must not "confirm" using
+    # closes accumulated by the other.
+    an = analyzer()
+    sun_level = level(105.0, source="sun")
+    moon_level = level(105.0, source="moon")
+    events = run(an, [bar(104.0, 106.0, 103.5, 105.5)], levels=[sun_level, moon_level])
+
+    assert [e for e in events if e.event_type == EventType.LADDER_BREACH_CONFIRMED] == []
+    crosses = [e for e in events if e.event_type == EventType.LADDER_CROSS]
+    assert len(crosses) == 2
+    assert {e.level_source for e in crosses} == {"sun", "moon"}
+
+
+def test_confirmed_breach_does_not_spawn_a_second_cycle_while_open():
+    an = analyzer()
+    events = run(an, [
+        bar(104.0, 106.0, 103.5, 105.5),
+        bar(105.5, 107.0, 105.2, 106.5),   # confirmed here
+        bar(106.5, 106.8, 105.0, 105.6),   # retest bar, not a fresh cycle
+    ])
+    confirmed = [e for e in events if e.event_type == EventType.LADDER_BREACH_CONFIRMED]
+    assert len(confirmed) == 1
+
+    after_confirm = [e for e in events if e.bar_index is not None and e.bar_index >= 2]
+    spurious = [e for e in after_confirm
+                if e.event_type in (EventType.LADDER_CROSS, EventType.LADDER_TOUCH)]
+    assert spurious == []
+
+
+def test_process_bar_rejects_a_replayed_or_out_of_order_bar_index():
+    an = analyzer()
+    an.process_bar(bar(104.0, 106.0, 103.5, 105.5), 0, LEVELS)
+    an.process_bar(bar(105.5, 107.0, 105.2, 106.5), 1, LEVELS)
+    try:
+        an.process_bar(bar(105.5, 107.0, 105.2, 106.5), 1, LEVELS)
+        assert False, "expected a ValueError for a repeated bar_index"
+    except ValueError:
+        pass
+
+
+def test_wick_mode_accumulates_closes_across_bars():
+    an = analyzer(breach_mode="wick", confirmation_closes=2)
+    events = run(an, [
+        bar(104.0, 106.0, 103.5, 104.2),   # wicks through 105 once
+        bar(104.2, 106.0, 103.5, 104.3),   # wicks through again, same direction
+    ])
+    confirmed = [e for e in events if e.event_type == EventType.LADDER_BREACH_CONFIRMED]
+    assert len(confirmed) == 1
+
+
+def test_finalize_carries_full_level_identity():
+    an = analyzer()
+    run(an, [
+        bar(104.0, 106.0, 103.5, 105.5),
+        bar(105.5, 107.0, 105.2, 106.5),
+    ])
+    resolved = an.finalize()[0]
+    assert resolved.level_segment_start == LEVELS[0]["segment_start"]
+    assert resolved.level_segment_end == LEVELS[0]["segment_end"]
+    assert resolved.level_sub_index == LEVELS[0]["sub_index"]
+    assert resolved.level_is_halfway == LEVELS[0]["is_halfway"]
