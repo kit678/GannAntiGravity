@@ -894,8 +894,11 @@ Expected: PASS, 40 tests
 
 - [ ] **Step 5: Confirm the port matches the JavaScript original**
 
-Run: `cd C:/Dev/GannSq9 && npx jest utils/__tests__/gannLevels.test.js -q`
+Run: `cd C:/Dev/GannSq9 && npx jest utils/__tests__/gannLevels.test.js`
 Expected: PASS, 38 tests
+
+(Note: `-q` is not a valid flag for this project's Jest CLI and will error with
+"Unrecognized option \"q\"" — omit it.)
 
 Both suites assert the same worked example — majors `25, 28, 31, 34, 37, 40, 43, 46, 49`, sub-levels `25.375 … 27.625`, ring boundaries, and the price-on-major case. If the Python suite passes and the JS one does not, or the two disagree on any of those values, stop and report it: the port has diverged.
 
