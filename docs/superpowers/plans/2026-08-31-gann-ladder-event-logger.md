@@ -1359,8 +1359,17 @@ class GannLadderAnalyzer:
                     if self.confirmation_closes <= 1:
                         events.append(self._confirm(bar, bar_index, level, direction))
                         continue
-                if (self.breach_mode == "close" and (beyond_up or beyond_down)):
-                    direction = "up" if beyond_up else "down"
+                open_price = bar.get("open")
+                # A cross requires the bar to have STRADDLED the level - opened
+                # on one side, closed on the other. beyond_up/beyond_down alone
+                # (close > price / close < price) are true for almost any bar
+                # resting on one side, so without this a bar that merely
+                # touches a level and closes back on the side it came from
+                # gets wrongly filed as a cross instead of a touch.
+                straddled_up = open_price is not None and open_price <= price and beyond_up
+                straddled_down = open_price is not None and open_price >= price and beyond_down
+                if (self.breach_mode == "close" and (straddled_up or straddled_down)):
+                    direction = "up" if straddled_up else "down"
                     self.pending[price] = {
                         "direction": direction,
                         "closes": 1,
