@@ -105,7 +105,7 @@ def build_gann_square(target: int, body: int) -> Dict:
 
     Returns:
         dict with position_sequence, centre, target_position, body_position,
-        target_found, body_found, too_large
+        target_found, body_found, too_large, dimension
     """
     rings = max(_rings_for(max(target, body)), 4)
     dimension = 2 * rings + 1
