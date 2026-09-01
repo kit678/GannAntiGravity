@@ -205,3 +205,135 @@ def test_subdivide_returns_eight_points_ending_at_the_upper_bound():
 
 def test_subdivide_honours_a_custom_part_count():
     assert subdivide(0, 4, 4) == [1, 2, 3, 4]
+
+
+from study_tool.gann_ladder import build_ladder
+
+
+def centre_ladder(target=27, scale=1, count=8):
+    grid = build_gann_square(target, 1)
+    return build_ladder(
+        grid=grid,
+        cross_centre=grid["body_position"],
+        source="center",
+        scale=scale,
+        count=count,
+    )
+
+
+def test_ladder_includes_the_worked_example_majors():
+    majors = [lv["square"] for lv in centre_ladder() if lv["kind"] == "major"]
+    for square in (11, 13, 25, 28, 31, 49):
+        assert square in majors
+
+
+def test_ladder_subdivides_the_straddling_segment():
+    # 27 sits between 25 and 28. Sorted descending, so highest first.
+    subs = [
+        lv["square"]
+        for lv in centre_ladder()
+        if lv["kind"] == "sub" and lv["segment_start"] == 25 and lv["segment_end"] == 28
+    ]
+    assert subs == [27.625, 27.25, 26.875, 26.5, 26.125, 25.75, 25.375]
+
+
+def test_straddling_segment_has_levels_both_sides_of_the_price():
+    subs = [lv for lv in centre_ladder() if lv["segment_start"] == 25]
+    assert any(lv["direction"] == "up" for lv in subs)
+    assert any(lv["direction"] == "down" for lv in subs)
+
+
+def test_ladder_emits_sub_indices_one_to_seven_only():
+    ladder = centre_ladder()
+    indices = {lv["sub_index"] for lv in ladder if lv["kind"] == "sub"}
+    assert sorted(indices) == [1, 2, 3, 4, 5, 6, 7]
+
+
+def test_ladder_has_no_duplicate_squares():
+    squares = [lv["square"] for lv in centre_ladder()]
+    assert len(set(squares)) == len(squares)
+
+
+def test_ladder_flags_the_halfway_sub_level():
+    halfway = [lv for lv in centre_ladder() if lv["is_halfway"]]
+    assert all(lv["sub_index"] == 4 for lv in halfway)
+    straddling = next(lv for lv in halfway if lv["segment_start"] == 25)
+    assert straddling["square"] == 26.5
+
+
+def test_ladder_labels_majors_with_their_own_arm_angle():
+    by_square = {
+        lv["square"]: lv["degree"] for lv in centre_ladder() if lv["kind"] == "major"
+    }
+    assert by_square[25] == 0
+    assert by_square[28] == 45
+    assert by_square[49] == 0
+
+
+def test_sub_levels_inherit_the_angle_of_their_segment():
+    subs = [lv for lv in centre_ladder() if lv["segment_start"] == 25]
+    assert all(lv["degree"] == 0 for lv in subs)
+
+
+def test_sub_levels_take_the_ring_of_their_segment_start():
+    # 49 opens ring 4. A sub-level just below it belongs to a segment starting
+    # in ring 3, so it must be tagged ring 3.
+    ladder = centre_ladder(target=48)
+    just_below = next(
+        lv for lv in ladder
+        if lv["kind"] == "sub" and lv["segment_end"] == 49 and lv["sub_index"] == 7
+    )
+    assert just_below["square"] > 48
+    assert just_below["ring"] == 3
+
+
+def test_a_price_exactly_on_a_major_is_listed_as_a_major():
+    # 28 sits on the centre cross's 45 degree arm.
+    ladder = centre_ladder(target=28)
+    major = next(lv for lv in ladder if lv["square"] == 28)
+    assert major["kind"] == "major"
+    assert major["degree"] == 45
+    starts = {lv["segment_start"] for lv in ladder if lv["kind"] == "sub"}
+    assert 25 in starts
+    assert 28 in starts
+
+
+def test_scale_changes_price_but_not_square():
+    plain = centre_ladder(scale=1)
+    scaled = centre_ladder(scale=10)
+    assert scaled[0]["square"] == plain[0]["square"]
+    assert abs(scaled[0]["price"] - plain[0]["square"] / 10) < 1e-9
+
+
+def test_fractional_sub_levels_survive_scaling():
+    level = next(
+        lv for lv in centre_ladder(scale=10)
+        if lv["kind"] == "sub" and lv["square"] == 26.5
+    )
+    assert abs(level["price"] - 2.65) < 1e-9
+
+
+def test_ladder_is_sorted_by_square_descending():
+    squares = [lv["square"] for lv in centre_ladder()]
+    assert squares == sorted(squares, reverse=True)
+
+
+def test_ladder_tags_every_level_with_its_source():
+    grid = build_gann_square(27, 1)
+    ladder = build_ladder(
+        grid=grid, cross_centre=grid["body_position"], source="moon", scale=1, count=8
+    )
+    assert all(lv["source"] == "moon" for lv in ladder)
+
+
+def test_empty_ladder_when_the_target_is_missing():
+    grid = build_gann_square(27, 1)
+    ladder = build_ladder(
+        grid=grid,
+        cross_centre=grid["body_position"],
+        source="center",
+        scale=1,
+        count=8,
+        target_position=(-1, -1),
+    )
+    assert ladder == []

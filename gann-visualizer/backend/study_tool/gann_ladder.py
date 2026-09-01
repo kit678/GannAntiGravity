@@ -236,3 +236,117 @@ def subdivide(low: float, high: float, parts: int = 8) -> List[float]:
     """
     step = (high - low) / parts
     return [low + step * (i + 1) for i in range(parts)]
+
+
+# Sub-levels emitted per segment. The 8th is the next major mark.
+SUBS_PER_SEGMENT = 7
+
+# The sub-index that lands on the midpoint of a segment.
+HALFWAY_SUB_INDEX = 4
+
+
+def build_ladder(
+    grid: Dict,
+    cross_centre: Tuple[int, int],
+    source: str,
+    scale: float = 1,
+    count: int = 8,
+    target_position: Optional[Tuple[int, int]] = None,
+) -> List[Dict]:
+    """
+    Build the full labeled level ladder for one cross.
+
+    Marks are merged into a single ascending list before subdividing, so the
+    segment straddling the price is treated like any other. That segment is
+    the one price is actually trading inside, so it must not be skipped.
+
+    Args:
+        grid: from build_gann_square
+        cross_centre: (row, col) the cross passes through
+        source: 'center', 'sun' or 'moon'
+        scale: price multiplier used to reach the grid (1 or 10)
+        count: major marks per direction
+        target_position: defaults to the grid's own target
+
+    Returns:
+        list of level dicts, sorted by square descending
+    """
+    if target_position is None:
+        target_position = grid["target_position"]
+    if target_position is None:
+        return []
+
+    marks = cross_marks(grid, cross_centre, target_position, count)
+    if not marks["up"] and not marks["down"]:
+        return []
+
+    target_square = None
+    for cell in grid["position_sequence"]:
+        if (cell["row"], cell["col"]) == tuple(target_position):
+            target_square = cell["value"]
+            break
+    if target_square is None:
+        return []
+
+    def direction_of(square: float) -> str:
+        return "up" if square > target_square else "down"
+
+    # If the price's own square sits on the cross, it is itself a major mark.
+    # cross_marks only walks strictly outward, so it never tests that cell -
+    # splice it in, or the segments either side would wrongly merge.
+    target_cell = {
+        "row": target_position[0],
+        "col": target_position[1],
+        "value": target_square,
+    }
+    target_is_major = arm_degree(tuple(target_position), cross_centre) is not None
+
+    ascending: List[Dict] = list(reversed(marks["down"]))
+    if target_is_major:
+        ascending.append(target_cell)
+    ascending.extend(marks["up"])
+
+    levels: List[Dict] = []
+
+    for cell in ascending:
+        levels.append({
+            "price": cell["value"] / scale,
+            "square": cell["value"],
+            "source": source,
+            "kind": "major",
+            "degree": arm_degree((cell["row"], cell["col"]), cross_centre),
+            "segment_start": None,
+            "segment_end": None,
+            "sub_index": None,
+            "is_halfway": False,
+            "ring": ring_of(cell["value"]),
+            "direction": direction_of(cell["value"]),
+        })
+
+    for index in range(len(ascending) - 1):
+        low = ascending[index]
+        high = ascending[index + 1]
+        points = subdivide(low["value"], high["value"])
+        # Angle and ring come from the mark that opens the segment, so a
+        # sub-level near a ring boundary is not misattributed.
+        segment_degree = arm_degree((low["row"], low["col"]), cross_centre)
+        segment_ring = ring_of(low["value"])
+
+        for offset in range(SUBS_PER_SEGMENT):
+            square = points[offset]
+            levels.append({
+                "price": square / scale,
+                "square": square,
+                "source": source,
+                "kind": "sub",
+                "degree": segment_degree,
+                "segment_start": low["value"],
+                "segment_end": high["value"],
+                "sub_index": offset + 1,
+                "is_halfway": offset + 1 == HALFWAY_SUB_INDEX,
+                "ring": segment_ring,
+                "direction": direction_of(square),
+            })
+
+    levels.sort(key=lambda lv: lv["square"], reverse=True)
+    return levels
