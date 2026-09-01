@@ -38,6 +38,52 @@ class EventType(Enum):
     RESISTANCE_REJECTION = "RESISTANCE_REJECTION"  # Price successfully rejected from resistance
     FAN_DEACTIVATED = "FAN_DEACTIVATED"  # Fan deactivated/completed (not invalidated)
 
+    # Pipeline Event Types
+    GAP_CROSS_UP = "GAP_CROSS_UP"
+    GAP_CROSS_DOWN = "GAP_CROSS_DOWN"
+    REST_ON_ANGLE = "REST_ON_ANGLE"
+
+    # Gann Ladder Event Types (Phase 2)
+    LADDER_TOUCH = "LADDER_TOUCH"                          # bar's range reached a level
+    LADDER_CROSS = "LADDER_CROSS"                          # moved through, unconfirmed
+    LADDER_BREACH_CONFIRMED = "LADDER_BREACH_CONFIRMED"    # N successive closes beyond
+    LADDER_BREACH_REJECTED = "LADDER_BREACH_REJECTED"      # crossed, failed to confirm
+    LADDER_RETEST = "LADDER_RETEST"                        # returned to a breached level
+    LADDER_BREACH_RESOLVED = "LADDER_BREACH_RESOLVED"      # terminal outcome assigned
+
+
+# Human-readable display names for each event type
+EVENT_TYPE_DISPLAY_NAMES: dict = {
+    "CROSS_UP": "Cross Up (Bullish)",
+    "CROSS_DOWN": "Cross Down (Bearish)",
+    "GAP_CROSS_UP": "Gap Cross Up (Bullish)",
+    "GAP_CROSS_DOWN": "Gap Cross Down (Bearish)",
+    "SUPPORT_TEST": "Support Test",
+    "RESISTANCE_TEST": "Resistance Test",
+    "SUPPORT_BOUNCE": "Support Bounce",
+    "RESISTANCE_REJECTION": "Resistance Rejection",
+    "BREACH_CONFIRMED": "Breach Confirmed",
+    "BREACH_CONFIRMED_NO_ALPHA": "Breach Confirmed (No Alpha)",
+    "REST_ON_ANGLE": "Rest on Angle",
+    "TARGET_HIT": "Target Hit",
+    "TARGET_FAILED": "Target Failed",
+    "FAN_VALIDATED": "Fan Validated (7/8)",
+    "ZONE_CHANGE": "Zone Change",
+    "FAN_DEACTIVATED": "Fan Deactivated",
+    "breach_confirmed": "Breach Confirmed",
+    "target_hit": "Target Hit",
+    "target_failed": "Target Failed",
+    "fan_validated": "Fan Validated (7/8)",
+    "zone_change": "Zone Change",
+    "LADDER_TOUCH": "Ladder Touch",
+    "LADDER_CROSS": "Ladder Cross",
+    "LADDER_BREACH_CONFIRMED": "Ladder Breach Confirmed",
+    "LADDER_BREACH_REJECTED": "Ladder Breach Rejected",
+    "LADDER_RETEST": "Ladder Retest",
+    "LADDER_BREACH_RESOLVED": "Ladder Breach Resolved",
+}
+"""Human-readable display names for each event type value string."""
+
 
 @dataclass
 class Event:
@@ -48,6 +94,13 @@ class Event:
     price: Optional[float] = None
     direction: Optional[str] = None  # "up", "down"
     details: Optional[Dict] = None
+
+    # Bar identity
+    bar_index: Optional[int] = None
+
+    # Fan identity (H1-L1 style label, e.g. from state_event.fan_identity)
+    fan_identity: Optional[str] = None
+    priority_label: Optional[str] = None
 
     # OHLC data for the bar where the event occurred
     open_price: Optional[float] = None
@@ -63,9 +116,25 @@ class Event:
     current_zone: Optional[str] = None
     zone_highest_close: Optional[float] = None
     zone_lowest_close: Optional[float] = None
+    bars_in_zone: Optional[int] = None
 
     # Target Progression Info
     next_angle_line: Optional[str] = None
+
+    # Event classification flags
+    is_gap_cross: bool = False
+    is_retro: bool = False
+    anchor_type: Optional[str] = None  # "HIGH" or "LOW"
+
+    # Bounce / Rejection context (from BounceRejectionTracker)
+    bounce_rejection: Optional[Dict] = None  # {direction, strength, bars_to_confirm, line_price}
+    rest_context: Optional[Dict] = None      # {rest_type, bars_resting}
+
+    # State machine snapshot at time of event
+    state_snapshot: Optional[Dict] = None    # {pending_breaches, pending_tests, active_targets, ...}
+
+    # Human-readable display name for event type
+    event_type_display_name: Optional[str] = None
 
     # Identity (for multi-instrument / multi-timeframe corpora)
     instrument: Optional[str] = None
@@ -83,6 +152,7 @@ class Event:
     exc_up_10: Optional[float] = None
     exc_down_10: Optional[float] = None
     reversal_outcome: Optional[str] = None  # "WIN", "LOSS", or None for first-break detection
+    body_break: Optional[bool] = None  # Next bar close broke test candle's body
 
     # Fan geometry context (for true angular fan ray reconstruction)
     anchor_bar_index: Optional[int] = None
@@ -92,14 +162,46 @@ class Event:
     origin_price: Optional[float] = None     # Price at the fan's temporal origin
     fan_geometry: Optional[Dict] = None      # Captured fan ray geometry for hypothesis navigator
 
+    # Gann ladder level identity (Phase 2)
+    level_source: Optional[str] = None        # 'center' | 'sun' | 'moon'
+    level_price: Optional[float] = None
+    level_square: Optional[float] = None      # fractional for sub-levels
+    level_kind: Optional[str] = None          # 'major' | 'sub'
+    level_degree: Optional[int] = None        # 0/45/.../315 - the arm
+    level_ring: Optional[int] = None          # band between odd squares
+    level_sub_index: Optional[int] = None     # 1..7, None for majors
+    level_is_halfway: Optional[bool] = None
+    level_segment_start: Optional[float] = None
+    level_segment_end: Optional[float] = None
+
+    # Instrument scaling in use for this walk
+    price_scale: Optional[int] = None         # 1 or 10
+
+    # Celestial body position at the time of the event
+    body_degree: Optional[float] = None       # raw ecliptic longitude
+    body_square: Optional[int] = None         # the square it mapped to
+
+    # Breach linkage. Without this, "of the breaches that confirmed, how many
+    # were retested and held?" cannot be answered from the corpus.
+    breach_id: Optional[str] = None           # set on a confirmed breach
+    parent_breach_id: Optional[str] = None    # set on its retests and resolution
+
     def to_dict(self) -> Dict:
+        # Resolve human-readable display name
+        evt_type_val = self.event_type.value
+        display_name = self.event_type_display_name or EVENT_TYPE_DISPLAY_NAMES.get(evt_type_val, evt_type_val)
+
         return {
             "timestamp": self.timestamp,
             "datetime": datetime.fromtimestamp(self.timestamp).isoformat() if self.timestamp else None,
             "event_type": self.event_type.value,
+            "event_type_display_name": display_name,
             "angle_name": self.angle_name,
             "price": self.price,
             "direction": self.direction,
+            "bar_index": self.bar_index,
+            "fan_identity": self.fan_identity,
+            "priority_label": self.priority_label,
             "open": self.open_price,
             "high": self.high_price,
             "low": self.low_price,
@@ -109,7 +211,14 @@ class Event:
             "current_zone": self.current_zone,
             "zone_highest_close": self.zone_highest_close,
             "zone_lowest_close": self.zone_lowest_close,
+            "bars_in_zone": self.bars_in_zone,
             "next_angle_line": self.next_angle_line,
+            "is_gap_cross": self.is_gap_cross,
+            "is_retro": self.is_retro,
+            "anchor_type": self.anchor_type,
+            "bounce_rejection": self.bounce_rejection,
+            "rest_context": self.rest_context,
+            "state_snapshot": self.state_snapshot,
             "instrument": self.instrument,
             "timeframe": self.timeframe,
             "mfe_5": self.mfe_5,
@@ -123,6 +232,7 @@ class Event:
             "exc_up_10": self.exc_up_10,
             "exc_down_10": self.exc_down_10,
             "reversal_outcome": self.reversal_outcome,
+            "body_break": self.body_break,
             "details": self.details or {},
             # Fan geometry context
             "anchor_bar_index": self.anchor_bar_index,
@@ -149,6 +259,9 @@ class Event:
         event.angle_name = data.get("angle_name")
         event.price = data.get("price")
         event.direction = data.get("direction")
+        event.bar_index = data.get("bar_index")
+        event.fan_identity = data.get("fan_identity")
+        event.priority_label = data.get("priority_label")
         event.open_price = data.get("open")
         event.high_price = data.get("high")
         event.low_price = data.get("low")
@@ -158,7 +271,15 @@ class Event:
         event.current_zone = data.get("current_zone")
         event.zone_highest_close = data.get("zone_highest_close")
         event.zone_lowest_close = data.get("zone_lowest_close")
+        event.bars_in_zone = data.get("bars_in_zone")
         event.next_angle_line = data.get("next_angle_line")
+        event.is_gap_cross = data.get("is_gap_cross", False)
+        event.is_retro = data.get("is_retro", False)
+        event.anchor_type = data.get("anchor_type")
+        event.bounce_rejection = data.get("bounce_rejection")
+        event.rest_context = data.get("rest_context")
+        event.state_snapshot = data.get("state_snapshot")
+        event.event_type_display_name = data.get("event_type_display_name")
         event.instrument = data.get("instrument")
         event.timeframe = data.get("timeframe")
         event.mfe_5 = data.get("mfe_5")
@@ -172,6 +293,7 @@ class Event:
         event.exc_up_10 = data.get("exc_up_10")
         event.exc_down_10 = data.get("exc_down_10")
         event.reversal_outcome = data.get("reversal_outcome")
+        event.body_break = data.get("body_break")
         event.details = data.get("details", {})
         # Fan geometry context
         event.anchor_bar_index = data.get("anchor_bar_index")
@@ -212,6 +334,9 @@ class EventLogger:
         price: Optional[float] = None,
         direction: Optional[str] = None,
         details: Optional[Dict] = None,
+        bar_index: Optional[int] = None,
+        fan_identity: Optional[str] = None,
+        priority_label: Optional[str] = None,
         open_price: Optional[float] = None,
         high_price: Optional[float] = None,
         low_price: Optional[float] = None,
@@ -221,7 +346,14 @@ class EventLogger:
         current_zone: Optional[str] = None,
         zone_highest_close: Optional[float] = None,
         zone_lowest_close: Optional[float] = None,
+        bars_in_zone: Optional[int] = None,
         next_angle_line: Optional[str] = None,
+        is_gap_cross: bool = False,
+        is_retro: bool = False,
+        anchor_type: Optional[str] = None,
+        bounce_rejection: Optional[Dict] = None,
+        rest_context: Optional[Dict] = None,
+        state_snapshot: Optional[Dict] = None,
         anchor_bar_index: Optional[int] = None,
         scale_ratio: Optional[float] = None,
         anchor_price: Optional[float] = None,
@@ -239,6 +371,9 @@ class EventLogger:
             price: Price at event
             direction: Direction of movement
             details: Additional details
+            bar_index: Bar index in the simulation
+            fan_identity: Fan identity label (e.g. H1-L1)
+            priority_label: Fan priority label
             open_price: Candle Open
             high_price: Candle High
             low_price: Candle Low
@@ -248,7 +383,20 @@ class EventLogger:
             current_zone: The zone the price is in
             zone_highest_close: Highest close price within the zone
             zone_lowest_close: Lowest close price within the zone
+            bars_in_zone: Number of bars price has been in this zone
             next_angle_line: Last angle line touched/crossed
+            is_gap_cross: Whether this is a gap cross event
+            is_retro: Whether this event was retroactively generated
+            anchor_type: Type of anchor pivot ("HIGH" or "LOW")
+            bounce_rejection: Bounce/rejection context {direction, strength, bars_to_confirm, line_price}
+            rest_context: Rest context {rest_type, bars_resting}
+            state_snapshot: State machine snapshot at time of event
+            anchor_bar_index: Bar index of the fan's anchor pivot
+            scale_ratio: Scale ratio for the fan
+            anchor_price: Price at the fan's anchor pivot
+            origin_bar_index: Bar index of the fan's origin pivot
+            origin_price: Price at the fan's origin pivot
+            fan_geometry: Full fan ray geometry dict
 
         Returns:
             The logged Event object
@@ -260,6 +408,9 @@ class EventLogger:
             price=price,
             direction=direction,
             details=details,
+            bar_index=bar_index,
+            fan_identity=fan_identity,
+            priority_label=priority_label,
             open_price=open_price,
             high_price=high_price,
             low_price=low_price,
@@ -269,7 +420,14 @@ class EventLogger:
             current_zone=current_zone,
             zone_highest_close=zone_highest_close,
             zone_lowest_close=zone_lowest_close,
+            bars_in_zone=bars_in_zone,
             next_angle_line=next_angle_line,
+            is_gap_cross=is_gap_cross,
+            is_retro=is_retro,
+            anchor_type=anchor_type,
+            bounce_rejection=bounce_rejection,
+            rest_context=rest_context,
+            state_snapshot=state_snapshot,
             anchor_bar_index=anchor_bar_index,
             scale_ratio=scale_ratio,
             anchor_price=anchor_price,
@@ -547,9 +705,9 @@ class EventLogger:
             event.mfe_50, event.mae_50, _, _ = calc_excursions(50)
 
             # First-break reversal detection: did price reverse at the line?
-            if (event.event_type in (EventType.SUPPORT_TEST, EventType.RESISTANCE_TEST,
-                                     EventType.TARGET_HIT)
-                    and event.angle_name == '0.25'
+            # Applies to ALL angle division lines (not just 0.25)
+            # Only SUPPORT_TEST and RESISTANCE_TEST — NOT TARGET_HIT
+            if (event.event_type in (EventType.SUPPORT_TEST, EventType.RESISTANCE_TEST)
                     and event.high_price is not None
                     and event.low_price is not None
                     and event.timestamp in timestamp_to_idx):
@@ -559,13 +717,7 @@ class EventLogger:
                 elif event.event_type == EventType.RESISTANCE_TEST:
                     expected_dir = 'down'
                 else:
-                    fan_id = (event.details or {}).get('fan_id', '')
-                    if '(H' in fan_id:
-                        expected_dir = 'up'
-                    elif '(L' in fan_id:
-                        expected_dir = 'down'
-                    else:
-                        expected_dir = None
+                    expected_dir = None
 
                 if expected_dir:
                     event_high = event.high_price
@@ -589,6 +741,19 @@ class EventLogger:
                             if bar_close > event_high:
                                 event.reversal_outcome = "LOSS"
                                 break
+
+                # Body break: did next bar's close break the test candle's body?
+                if (event.event_type in (EventType.SUPPORT_TEST, EventType.RESISTANCE_TEST)
+                        and event.close_price is not None
+                        and event.timestamp in timestamp_to_idx):
+                    bar_idx = timestamp_to_idx[event.timestamp]
+                    if bar_idx + 1 < len(candles):
+                        next_close = candles[bar_idx + 1].get('close', 0)
+                        if event.event_type == EventType.SUPPORT_TEST:
+                            event.body_break = next_close > event.close_price
+                        else:
+                            event.body_break = next_close < event.close_price
+                    # else: last bar, body_break stays None
 
     def export_csv(self, filepath: str):
         'Export events to CSV file, aligned with frontend UI columns and enriched data.'
@@ -626,7 +791,7 @@ class EventLogger:
             row = {
                 "#": len(rows) + 1,
                 "Time": dt_str,
-                "Fan": fan_id,
+                "Fan": event.fan_identity or fan_id,
                 "Fraction": event.angle_name or "",
                 "Price": round(event.price, 2) if event.price else "",
                 "Type": display_type,
@@ -640,7 +805,13 @@ class EventLogger:
                 "Zone": event.current_zone or "",
                 "Zone_Highest_Close": round(event.zone_highest_close, 2) if event.zone_highest_close is not None else "",
                 "Zone_Lowest_Close": round(event.zone_lowest_close, 2) if event.zone_lowest_close is not None else "",
+                "Bars_In_Zone": event.bars_in_zone if event.bars_in_zone is not None else "",
                 "Next_Angle_Line": event.next_angle_line or "",
+                "Bar_Index": event.bar_index if event.bar_index is not None else "",
+                "Priority_Label": event.priority_label or "",
+                "Is_Gap_Cross": event.is_gap_cross,
+                "Is_Retro": event.is_retro,
+                "Anchor_Type": event.anchor_type or "",
                 "Instrument": event.instrument or "",
                 "Timeframe": event.timeframe or "",
                 # Keep these for analysis but place them after main columns
@@ -657,6 +828,7 @@ class EventLogger:
                 "Exc_Up_10": round(event.exc_up_10, 4) if event.exc_up_10 is not None else "",
                 "Exc_Down_10": round(event.exc_down_10, 4) if event.exc_down_10 is not None else "",
                 "Reversal_Outcome": event.reversal_outcome or "",
+                "Body_Break": event.body_break if event.body_break is not None else "",
                 # Fan geometry context
                 "anchor_bar_index": event.anchor_bar_index if event.anchor_bar_index is not None else "",
                 "scale_ratio": round(event.scale_ratio, 4) if event.scale_ratio is not None else "",
@@ -672,13 +844,15 @@ class EventLogger:
             fieldnames = ["#", "Time", "Fan", "Fraction", "Price", "Type", "Details",
                           "Open", "High", "Low", "Close", "Active_Angles",
                           "Cluster", "Zone", "Zone_Highest_Close", "Zone_Lowest_Close",
-                          "Next_Angle_Line",
+                          "Bars_In_Zone", "Next_Angle_Line",
+                          "Bar_Index", "Priority_Label", "Is_Gap_Cross", "Is_Retro", "Anchor_Type",
                           "Instrument", "Timeframe",
                           "MFE_5", "MAE_5", "MFE_10", "MAE_10",
                           "MFE_20", "MAE_20", "MFE_50", "MAE_50",
                           "Raw_Timestamp", "Direction",
                           "Exc_Up_10", "Exc_Down_10",
                           "Reversal_Outcome",
+                          "Body_Break",
                           "anchor_bar_index", "scale_ratio", "anchor_price", "origin_bar_index", "origin_price"]
             
             with open(path, 'w', newline='') as f:
@@ -703,7 +877,7 @@ class EventLogger:
             json.dump(data, f, indent=2)
 
     def export_hypothesis_json(self, filepath: str, symbol: str = "", resolution: str = ""):
-        'Export events with fan geometry for the Hypothesis Navigator frontend.'
+        'Export events with ALL available descriptive fields for robust Hypothesis Navigator testing.'
         from datetime import datetime, timezone as dt_timezone
 
         path = Path(filepath)
@@ -712,19 +886,114 @@ class EventLogger:
         events_out = []
         for i, event in enumerate(self.events):
             evt = event.to_dict()
+            details = evt.get("details") or {}
+            fan_id = details.get("fan_id") if details else None
+
+            # Fan identity: prefer explicit fan_identity, then from state_event (details['fan_id'])
+            resolved_fan_identity = evt.get("fan_identity") or fan_id
+            if not resolved_fan_identity:
+                # Try to derive from fan_geometry ray IDs
+                fan_geom = evt.get("fan_geometry")
+                if fan_geom and fan_geom.get("rays"):
+                    for ray in fan_geom["rays"]:
+                        rid = ray.get("id", "")
+                        if rid.startswith("Fan_"):
+                            resolved_fan_identity = rid[4:].replace("_", "-").rsplit("-", 1)[0] if ray.get("fraction") else rid[4:].replace("_", "-")
+                            break
+
+            # Event type display name: prefer the new event_type_display_name, then map from enum value
+            display_type = evt.get("event_type_display_name") or EVENT_TYPE_DISPLAY_NAMES.get(
+                evt.get("event_type", ""), evt.get("event_type", "-")
+            )
+
+            # Descriptive details string from CSV export logic
+            description = ""
+            if details:
+                if "ui_details" in details:
+                    description = str(details["ui_details"]).replace(",", ";")
+                elif "details" in details:
+                    description = str(details["details"]).replace(",", ";")
+
             entry = {
+                # Identity
                 "event_id": i + 1,
                 "event_type": evt.get("event_type"),
-                "fan_display": evt.get("angle_name"),
-                "fraction": evt.get("details", {}).get("fraction") if evt.get("details") else None,
+                "event_type_display": display_type,
+
+                # Fan identification
+                "fan_display": resolved_fan_identity or evt.get("angle_name"),
+                "fan_identity": resolved_fan_identity,
+                "priority_label": evt.get("priority_label"),
+                "fraction": evt.get("angle_name") or (details.get("fraction") if details else None),
+
+                # Timing
                 "timestamp": evt.get("timestamp"),
                 "datetime": evt.get("datetime"),
-                "bar_index": None,
-                "price": evt.get("price"),
-                "mfe": evt.get("mfe_50"),
-                "mae": evt.get("mae_50"),
+                "bar_index": evt.get("bar_index"),
                 "resolution": resolution,
-                "fan_geometry": evt.get("fan_geometry")
+
+                # Price context
+                "price": evt.get("price"),
+                "direction": evt.get("direction"),
+                "open": evt.get("open"),
+                "high": evt.get("high"),
+                "low": evt.get("low"),
+                "close": evt.get("close"),
+
+                # Angle context at this bar
+                "active_angle_prices": evt.get("active_angle_prices", {}),
+                "next_angle_line": evt.get("next_angle_line"),
+
+                # Structural context
+                "cluster_state": evt.get("cluster_state"),
+                "current_zone": evt.get("current_zone"),
+                "zone_highest_close": evt.get("zone_highest_close"),
+                "zone_lowest_close": evt.get("zone_lowest_close"),
+                "bars_in_zone": evt.get("bars_in_zone"),
+
+                # Event classification
+                "is_gap_cross": evt.get("is_gap_cross"),
+                "is_retro": evt.get("is_retro"),
+                "anchor_type": evt.get("anchor_type"),
+
+                # Bounce / Rejection / Rest context
+                "bounce_rejection": evt.get("bounce_rejection"),
+                "rest_context": evt.get("rest_context"),
+
+                # State machine snapshot at time of event
+                "state_snapshot": evt.get("state_snapshot"),
+
+                # Descriptive
+                "description": description,
+
+                # Forward-looking outcomes (all horizons)
+                "mfe_5": evt.get("mfe_5"),
+                "mae_5": evt.get("mae_5"),
+                "mfe_10": evt.get("mfe_10"),
+                "mae_10": evt.get("mae_10"),
+                "mfe_20": evt.get("mfe_20"),
+                "mae_20": evt.get("mae_20"),
+                "mfe_50": evt.get("mfe_50"),
+                "mae_50": evt.get("mae_50"),
+                "exc_up_10": evt.get("exc_up_10"),
+                "exc_down_10": evt.get("exc_down_10"),
+                "reversal_outcome": evt.get("reversal_outcome"),
+                "body_break": evt.get("body_break"),
+
+                # Instrument identity
+                "instrument": evt.get("instrument"),
+                "timeframe": evt.get("timeframe"),
+
+                # Raw details (for debugging)
+                "details": details,
+
+                # Fan geometry context (for chart rendering)
+                "fan_geometry": evt.get("fan_geometry"),
+                "anchor_bar_index": evt.get("anchor_bar_index"),
+                "scale_ratio": evt.get("scale_ratio"),
+                "anchor_price": evt.get("anchor_price"),
+                "origin_bar_index": evt.get("origin_bar_index"),
+                "origin_price": evt.get("origin_price"),
             }
             events_out.append(entry)
 
