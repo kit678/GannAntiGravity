@@ -41,6 +41,10 @@ class GannLadderAnalyzer:
         # Bars must be fed in strictly increasing bar_index order. -1 means
         # none processed yet.
         self._last_bar_index = -1
+        # The most recent real bar dict, so finalize() can stamp its
+        # truncation events with an actual timestamp instead of a bare
+        # bar_index integer masquerading as one.
+        self._last_bar: Dict = {}
 
     # -- helpers ---------------------------------------------------------
 
@@ -164,6 +168,7 @@ class GannLadderAnalyzer:
                 "Bars must be fed in strictly increasing order."
             )
         self._last_bar_index = bar_index
+        self._last_bar = bar
 
         events: List[Event] = []
         high, low, close = bar["high"], bar["low"], bar["close"]
@@ -384,7 +389,7 @@ class GannLadderAnalyzer:
             if self.open_by_level.get(key) == breach_id:
                 del self.open_by_level[key]
             events.append(self._make_event(
-                EventType.LADDER_BREACH_RESOLVED, {}, state["bar"], level,
+                EventType.LADDER_BREACH_RESOLVED, self._last_bar, state["bar"], level,
                 direction=state["direction"],
                 parent_breach_id=breach_id,
                 details={
@@ -397,7 +402,8 @@ class GannLadderAnalyzer:
             state = self.pending.pop(key)
             level = state.get("level", {})
             events.append(self._make_event(
-                EventType.LADDER_BREACH_RESOLVED, {}, state.get("first_bar", -1), level,
+                EventType.LADDER_BREACH_RESOLVED, self._last_bar,
+                state.get("first_bar", self._last_bar_index), level,
                 direction=state.get("direction"),
                 details={
                     "outcome": None,
@@ -415,6 +421,7 @@ class GannLadderAnalyzer:
             "open_breaches": self.open_breaches,
             "open_by_level": self.open_by_level,
             "last_bar_index": self._last_bar_index,
+            "last_bar": self._last_bar,
         }
 
     def restore_state(self, state: Dict[str, Any]) -> None:
@@ -422,3 +429,4 @@ class GannLadderAnalyzer:
         self.open_breaches = state.get("open_breaches", {})
         self.open_by_level = state.get("open_by_level", {})
         self._last_bar_index = state.get("last_bar_index", -1)
+        self._last_bar = state.get("last_bar", {})

@@ -317,6 +317,22 @@ def test_finalize_resolves_a_pending_cross_left_open_at_the_end():
     assert an.pending == {}
 
 
+def test_finalize_stamps_the_true_last_bars_timestamp_not_a_bare_index():
+    # Previously finalize() passed an empty bar dict into _make_event, so
+    # the resolved event's timestamp fell back to the raw bar_index integer
+    # - e.g. bar_index=1 read back as an epoch timestamp near 1970, not the
+    # bar's actual timestamp.
+    an = analyzer()
+    run(an, [
+        bar(104.0, 106.0, 103.5, 105.5, timestamp=1_700_000_000),
+        bar(105.5, 107.0, 105.2, 106.5, timestamp=1_700_000_300),
+    ])
+    resolved = an.finalize()
+    assert resolved
+    for event in resolved:
+        assert event.timestamp == 1_700_000_300
+
+
 def test_finalize_carries_full_level_identity():
     an = analyzer()
     run(an, [
