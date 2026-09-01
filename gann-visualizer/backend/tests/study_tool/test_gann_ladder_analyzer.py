@@ -277,6 +277,46 @@ def test_wick_mode_accumulates_closes_across_bars():
     assert len(confirmed) == 1
 
 
+def test_pending_cross_expires_when_level_leaves_the_ladder():
+    # The level crosses but hasn't confirmed yet. The next bar's ladder no
+    # longer contains it (e.g. the Moon moved to a different square) - the
+    # pending cross must get a terminal event now, not linger forever.
+    an = analyzer()
+    events = list(an.process_bar(bar(104.0, 106.0, 103.5, 105.5), 0, LEVELS))
+    events.extend(an.process_bar(bar(105.5, 105.8, 104.0, 105.6), 1, []))
+    resolved = [e for e in events if e.event_type == EventType.LADDER_BREACH_RESOLVED]
+    assert len(resolved) == 1
+    assert resolved[0].details["outcome"] is None
+    assert resolved[0].details["truncated"] is True
+    assert resolved[0].details["reason"] == "level_left_ladder"
+    assert an.pending == {}
+
+
+def test_a_key_reused_after_expiry_starts_a_fresh_cycle():
+    # Once a pending cross expires because its level left the ladder, a
+    # later level reusing the same (source, square) key must not inherit
+    # the old accumulated close count.
+    an = analyzer()
+    an.process_bar(bar(104.0, 106.0, 103.5, 105.5), 0, LEVELS)   # crosses, pending
+    an.process_bar(bar(105.5, 105.8, 104.0, 105.6), 1, [])       # level dropped, expires
+    events = list(an.process_bar(bar(104.0, 106.0, 103.5, 105.5), 2, LEVELS))
+    kinds = types_of(events)
+    assert EventType.LADDER_CROSS in kinds
+    assert EventType.LADDER_BREACH_CONFIRMED not in kinds
+
+
+def test_finalize_resolves_a_pending_cross_left_open_at_the_end():
+    an = analyzer()
+    run(an, [bar(104.0, 106.0, 103.5, 105.5)])   # crosses, never confirms
+    events = an.finalize()
+    resolved = [e for e in events if e.event_type == EventType.LADDER_BREACH_RESOLVED]
+    assert len(resolved) == 1
+    assert resolved[0].details["outcome"] is None
+    assert resolved[0].details["truncated"] is True
+    assert resolved[0].details["reason"] == "end_of_data"
+    assert an.pending == {}
+
+
 def test_finalize_carries_full_level_identity():
     an = analyzer()
     run(an, [

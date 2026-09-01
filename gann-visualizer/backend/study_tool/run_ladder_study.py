@@ -55,7 +55,7 @@ def build_all_ladders(price: float, price_scale: int,
         count=count,
     ))
 
-    for source, square in (("sun", sun_square), ("moon", moon_square)):
+    for source, square in zip(MOVING_BODIES, (sun_square, moon_square)):
         if square is None:
             continue
         grid = build_gann_square(target, square)
@@ -129,6 +129,21 @@ def run_study(
         events.extend(analyzer.process_bar(bar, index, levels))
 
     events.extend(analyzer.finalize())
+
+    # Stamp each Sun/Moon event with the body's actual degree at the bar it
+    # fired on - process_bar only ever sees the level's grid square, never
+    # the raw longitude, so this can't be filled in any earlier.
+    for event in events:
+        source_index = event.bar_index
+        if event.level_source not in ("sun", "moon") or source_index is None:
+            continue
+        if not (0 <= source_index < len(bars)):
+            continue
+        degrees = sun_degrees if event.level_source == "sun" else moon_degrees
+        degree = degrees[source_index]
+        event.body_degree = degree
+        event.body_square = degree_to_square(degree)
+
     return events
 
 

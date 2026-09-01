@@ -169,6 +169,9 @@ class GannLadderAnalyzer:
         high, low, close = bar["high"], bar["low"], bar["close"]
         open_price = bar.get("open")
 
+        current_keys = {self._level_key(level) for level in levels}
+        events.extend(self._expire_pending_not_in(current_keys, bar, bar_index))
+
         for level in levels:
             key = self._level_key(level)
 
@@ -200,6 +203,7 @@ class GannLadderAnalyzer:
                     "direction": direction,
                     "closes": 1,
                     "first_bar": bar_index,
+                    "level": level,
                 }
                 events.append(self._make_event(
                     EventType.LADDER_CROSS, bar, bar_index, level,
@@ -233,6 +237,37 @@ class GannLadderAnalyzer:
                 self.pending.pop(key, None)
 
         events.extend(self._track_open_breaches(bar, bar_index))
+        return events
+
+    def _expire_pending_not_in(self, current_keys, bar: Dict,
+                                bar_index: int) -> List[Event]:
+        """
+        Resolve any pending cross whose level has dropped out of the current
+        ladder (e.g. the Moon moved to a different square, so its old level
+        no longer appears in `levels`).
+
+        Without this, a stale pending entry sits forgotten under its
+        (source, square) key until - possibly much later - an unrelated
+        level happens to reuse that same key, and would wrongly inherit its
+        accumulated close count. Expiring it here instead gives it a
+        terminal event immediately and guarantees a fresh start for any
+        future reuse of the key.
+        """
+        events: List[Event] = []
+        for key in list(self.pending):
+            if key in current_keys:
+                continue
+            state = self.pending.pop(key)
+            level = state.get("level", {})
+            events.append(self._make_event(
+                EventType.LADDER_BREACH_RESOLVED, bar, bar_index, level,
+                direction=state.get("direction"),
+                details={
+                    "outcome": None,
+                    "truncated": True,
+                    "reason": "level_left_ladder",
+                },
+            ))
         return events
 
     def _confirm(self, bar, bar_index, level, direction, key) -> Event:
@@ -331,7 +366,8 @@ class GannLadderAnalyzer:
 
     def finalize(self) -> List[Event]:
         """
-        Close out breaches still open at the end of the data.
+        Close out breaches and pending crosses still open at the end of the
+        data.
 
         Emitted with outcome None rather than dropped: truncation is a fact
         about the dataset, not a reason to discard a sample. Routed through
@@ -355,6 +391,18 @@ class GannLadderAnalyzer:
                     "outcome": None,
                     "truncated": True,
                     "retested": state["retested"],
+                },
+            ))
+        for key in list(self.pending):
+            state = self.pending.pop(key)
+            level = state.get("level", {})
+            events.append(self._make_event(
+                EventType.LADDER_BREACH_RESOLVED, {}, state.get("first_bar", -1), level,
+                direction=state.get("direction"),
+                details={
+                    "outcome": None,
+                    "truncated": True,
+                    "reason": "end_of_data",
                 },
             ))
         return events
