@@ -240,7 +240,23 @@ class Event:
             "anchor_price": self.anchor_price,
             "origin_bar_index": self.origin_bar_index,
             "origin_price": self.origin_price,
-            "fan_geometry": self.fan_geometry
+            "fan_geometry": self.fan_geometry,
+            # Gann ladder level identity (Phase 2)
+            "level_source": self.level_source,
+            "level_price": self.level_price,
+            "level_square": self.level_square,
+            "level_kind": self.level_kind,
+            "level_degree": self.level_degree,
+            "level_ring": self.level_ring,
+            "level_sub_index": self.level_sub_index,
+            "level_is_halfway": self.level_is_halfway,
+            "level_segment_start": self.level_segment_start,
+            "level_segment_end": self.level_segment_end,
+            "price_scale": self.price_scale,
+            "body_degree": self.body_degree,
+            "body_square": self.body_square,
+            "breach_id": self.breach_id,
+            "parent_breach_id": self.parent_breach_id,
         }
 
     @classmethod
@@ -302,6 +318,22 @@ class Event:
         event.origin_bar_index = data.get("origin_bar_index")
         event.origin_price = data.get("origin_price")
         event.fan_geometry = data.get("fan_geometry")
+        # Gann ladder level identity (Phase 2)
+        event.level_source = data.get("level_source")
+        event.level_price = data.get("level_price")
+        event.level_square = data.get("level_square")
+        event.level_kind = data.get("level_kind")
+        event.level_degree = data.get("level_degree")
+        event.level_ring = data.get("level_ring")
+        event.level_sub_index = data.get("level_sub_index")
+        event.level_is_halfway = data.get("level_is_halfway")
+        event.level_segment_start = data.get("level_segment_start")
+        event.level_segment_end = data.get("level_segment_end")
+        event.price_scale = data.get("price_scale")
+        event.body_degree = data.get("body_degree")
+        event.body_square = data.get("body_square")
+        event.breach_id = data.get("breach_id")
+        event.parent_breach_id = data.get("parent_breach_id")
         return event
 
 
@@ -834,7 +866,23 @@ class EventLogger:
                 "scale_ratio": round(event.scale_ratio, 4) if event.scale_ratio is not None else "",
                 "anchor_price": round(event.anchor_price, 2) if event.anchor_price is not None else "",
                 "origin_bar_index": event.origin_bar_index if event.origin_bar_index is not None else "",
-                "origin_price": round(event.origin_price, 2) if event.origin_price is not None else ""
+                "origin_price": round(event.origin_price, 2) if event.origin_price is not None else "",
+                # Gann ladder level identity
+                "Level_Source": event.level_source or "",
+                "Level_Price": round(event.level_price, 4) if event.level_price is not None else "",
+                "Level_Square": round(event.level_square, 4) if event.level_square is not None else "",
+                "Level_Kind": event.level_kind or "",
+                "Level_Degree": event.level_degree if event.level_degree is not None else "",
+                "Level_Ring": event.level_ring if event.level_ring is not None else "",
+                "Level_Sub_Index": event.level_sub_index if event.level_sub_index is not None else "",
+                "Level_Is_Halfway": event.level_is_halfway if event.level_is_halfway is not None else "",
+                "Level_Segment_Start": round(event.level_segment_start, 4) if event.level_segment_start is not None else "",
+                "Level_Segment_End": round(event.level_segment_end, 4) if event.level_segment_end is not None else "",
+                "Price_Scale": event.price_scale if event.price_scale is not None else "",
+                "Body_Degree": round(event.body_degree, 4) if event.body_degree is not None else "",
+                "Body_Square": event.body_square if event.body_square is not None else "",
+                "Breach_Id": event.breach_id or "",
+                "Parent_Breach_Id": event.parent_breach_id or "",
             }
 
             rows.append(row)
@@ -853,7 +901,11 @@ class EventLogger:
                           "Exc_Up_10", "Exc_Down_10",
                           "Reversal_Outcome",
                           "Body_Break",
-                          "anchor_bar_index", "scale_ratio", "anchor_price", "origin_bar_index", "origin_price"]
+                          "anchor_bar_index", "scale_ratio", "anchor_price", "origin_bar_index", "origin_price",
+                          "Level_Source", "Level_Price", "Level_Square", "Level_Kind", "Level_Degree",
+                          "Level_Ring", "Level_Sub_Index", "Level_Is_Halfway", "Level_Segment_Start",
+                          "Level_Segment_End", "Price_Scale", "Body_Degree", "Body_Square",
+                          "Breach_Id", "Parent_Breach_Id"]
             
             with open(path, 'w', newline='') as f:
                 writer = csv.DictWriter(f, fieldnames=fieldnames)
@@ -994,6 +1046,23 @@ class EventLogger:
                 "anchor_price": evt.get("anchor_price"),
                 "origin_bar_index": evt.get("origin_bar_index"),
                 "origin_price": evt.get("origin_price"),
+
+                # Gann ladder level identity (Phase 2)
+                "level_source": evt.get("level_source"),
+                "level_price": evt.get("level_price"),
+                "level_square": evt.get("level_square"),
+                "level_kind": evt.get("level_kind"),
+                "level_degree": evt.get("level_degree"),
+                "level_ring": evt.get("level_ring"),
+                "level_sub_index": evt.get("level_sub_index"),
+                "level_is_halfway": evt.get("level_is_halfway"),
+                "level_segment_start": evt.get("level_segment_start"),
+                "level_segment_end": evt.get("level_segment_end"),
+                "price_scale": evt.get("price_scale"),
+                "body_degree": evt.get("body_degree"),
+                "body_square": evt.get("body_square"),
+                "breach_id": evt.get("breach_id"),
+                "parent_breach_id": evt.get("parent_breach_id"),
             }
             events_out.append(entry)
 
