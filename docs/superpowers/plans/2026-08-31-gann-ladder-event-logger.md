@@ -1548,15 +1548,46 @@ class GannLadderAnalyzer:
         self.open_breaches = state.get("open_breaches", {})
 ```
 
+> **Superseded by commit `0948476`.** A post-implementation code review traced
+> this state machine across multiple bars and multiple levels (not just the
+> branches the tests above exercise in isolation) and found four real defects,
+> two of them critical:
+>
+> 1. `self.pending` keyed by raw `price` alone let two different levels
+>    sharing a price - a Sun/Moon conjunction, which the ladder engine was
+>    explicitly built to support - cross-contaminate each other's close
+>    counts.
+> 2. A level with an already-open, unresolved breach could spawn a second,
+>    independent breach cycle on the same price while the first was still
+>    open, double-counting the same price action.
+> 3. Nothing enforced `bar_index` increasing monotonically across calls,
+>    despite `get_state`/`restore_state` existing to checkpoint a long walk -
+>    a replayed bar silently corrupted the close/retest counters.
+> 4. `breach_mode="wick"` had no accumulation path for `confirmation_closes
+>    > 1` - every bar just emitted a touch forever, with no signal the
+>    setting was being ignored.
+>
+> The fix keys `pending` on `(source, square)` instead of price, tracks which
+> level keys have an open breach and skips them in the main loop until
+> resolved, raises `ValueError` on a non-increasing `bar_index`, and unifies
+> close/wick crossing detection into one `_crossed()` helper so both modes
+> accumulate the same way. `finalize()` was also routed through `_make_event`
+> so its resolved event carries the same full level identity (sub-index,
+> halfway flag, segment bounds) as every other event in that breach's
+> lineage. Five regression tests were added, one per defect. See the actual
+> file, `study_tool/gann_ladder_analyzer.py`, and commit `0948476` for the
+> corrected, authoritative implementation - the code block above is kept for
+> historical context, not as the final version.
+
 - [ ] **Step 4: Run test to verify it passes**
 
 Run: `python -m pytest tests/study_tool/test_gann_ladder_analyzer.py -q`
-Expected: PASS, 13 tests
+Expected: PASS, 18 tests (13 original + 5 regression tests added by the fix above)
 
 - [ ] **Step 5: Run the whole study_tool suite for regressions**
 
 Run: `python -m pytest tests/study_tool/ -q`
-Expected: PASS — the 4 pre-existing tests, Task 1–4's 40, and these 13
+Expected: PASS — the 4 pre-existing tests, Task 1–4's 40, and these 18 (62 total)
 
 - [ ] **Step 6: Commit**
 
