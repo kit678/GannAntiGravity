@@ -80,3 +80,96 @@ def ring_of(square: float) -> int:
         ring index, at least 1
     """
     return max(1, math.floor((math.sqrt(max(square, 0)) + 1) / 2))
+
+
+# Grids larger than this are refused rather than built. A million cells is
+# already far beyond any real price, and building more wastes minutes.
+MAX_CELLS = 4_000_000
+
+
+def _rings_for(value: float) -> int:
+    """Rings needed to contain a value, plus headroom."""
+    return max(math.ceil(math.sqrt(max(value, 1)) / 2) + 3, 4)
+
+
+def build_gann_square(target: int, body: int) -> Dict:
+    """
+    Build the Square-of-9 spiral containing both the target and the body.
+
+    Passing body=1 returns a grid whose body_position is the grid centre,
+    which is how the centre cross is obtained without a special case.
+
+    Args:
+        target: the price-derived square to centre the analysis on
+        body: a celestial degree, used as a square number
+
+    Returns:
+        dict with position_sequence, centre, target_position, body_position,
+        target_found, body_found, too_large
+    """
+    rings = max(_rings_for(max(target, body)), 4)
+    dimension = 2 * rings + 1
+
+    empty = {
+        "position_sequence": [],
+        "centre": (0, 0),
+        "target_position": None,
+        "body_position": None,
+        "target_found": False,
+        "body_found": False,
+        "too_large": True,
+        "dimension": 0,
+    }
+    if dimension * dimension > MAX_CELLS:
+        return empty
+
+    centre_index = rings
+    row = col = centre_index
+    centre = (centre_index, centre_index)
+
+    position_sequence = [{"row": row, "col": col, "value": 1}]
+    target_position = centre if target == 1 else None
+    body_position = centre if body == 1 else None
+
+    current = 2
+    limit = dimension * dimension
+
+    def step(direction: str, count: int) -> None:
+        nonlocal row, col, current, target_position, body_position
+        for _ in range(count):
+            if current > limit:
+                return
+            if direction == "left":
+                col -= 1
+            elif direction == "up":
+                row -= 1
+            elif direction == "right":
+                col += 1
+            else:
+                row += 1
+            position_sequence.append({"row": row, "col": col, "value": current})
+            if current == target:
+                target_position = (row, col)
+            if current == body:
+                body_position = (row, col)
+            current += 1
+
+    ring = 1
+    while current <= limit and ring <= rings:
+        step("left", 1)
+        step("up", 2 * ring - 1)
+        step("right", 2 * ring)
+        step("down", 2 * ring)
+        step("left", 2 * ring)
+        ring += 1
+
+    return {
+        "position_sequence": position_sequence,
+        "centre": centre,
+        "target_position": target_position,
+        "body_position": body_position,
+        "target_found": target_position is not None,
+        "body_found": body_position is not None,
+        "too_large": False,
+        "dimension": dimension,
+    }

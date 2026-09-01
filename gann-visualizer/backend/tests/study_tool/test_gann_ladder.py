@@ -80,3 +80,54 @@ def test_ring_of_odd_square_opens_a_ring():
 def test_ring_of_never_below_one():
     assert ring_of(1) == 1
     assert ring_of(0) == 1
+
+
+from study_tool.gann_ladder import build_gann_square
+
+
+def test_spiral_places_the_first_ring_correctly():
+    grid = build_gann_square(27, 1)
+    centre = grid["centre"]
+    by_value = {c["value"]: (c["row"], c["col"]) for c in grid["position_sequence"]}
+    # 2 is left of centre, 3 above that, and 9 closes ring 1 down-left.
+    assert by_value[1] == centre
+    assert by_value[2] == (centre[0], centre[1] - 1)
+    assert by_value[9] == (centre[0] + 1, centre[1] - 1)
+
+
+def test_odd_squares_lie_on_one_diagonal():
+    grid = build_gann_square(400, 1)
+    centre = grid["centre"]
+    by_value = {c["value"]: (c["row"], c["col"]) for c in grid["position_sequence"]}
+    # (2m+1)^2 sits at offset (m, -m).
+    for m, square in enumerate([1, 9, 25, 49, 81, 121, 169, 225, 289, 361]):
+        row, col = by_value[square]
+        assert (row - centre[0], col - centre[1]) == (m, -m)
+
+
+def test_body_one_resolves_to_the_grid_centre():
+    grid = build_gann_square(27, 1)
+    assert grid["body_position"] == grid["centre"]
+    assert grid["body_found"] is True
+
+
+def test_target_and_body_positions_are_found():
+    grid = build_gann_square(27, 155)
+    assert grid["target_found"] is True
+    assert grid["body_found"] is True
+    by_value = {c["value"]: (c["row"], c["col"]) for c in grid["position_sequence"]}
+    assert grid["target_position"] == by_value[27]
+    assert grid["body_position"] == by_value[155]
+
+
+def test_grid_expands_to_contain_both_target_and_body():
+    # A small target with a large body still needs a grid holding the body.
+    grid = build_gann_square(27, 360)
+    assert grid["target_found"] is True
+    assert grid["body_found"] is True
+
+
+def test_too_large_a_grid_is_refused_rather_than_built():
+    grid = build_gann_square(50_000_000, 1)
+    assert grid["too_large"] is True
+    assert grid["position_sequence"] == []
