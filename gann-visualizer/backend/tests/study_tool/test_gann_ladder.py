@@ -131,3 +131,77 @@ def test_too_large_a_grid_is_refused_rather_than_built():
     grid = build_gann_square(50_000_000, 1)
     assert grid["too_large"] is True
     assert grid["position_sequence"] == []
+
+
+from study_tool.gann_ladder import cross_marks, subdivide
+
+
+def test_cross_marks_reproduces_the_worked_example():
+    grid = build_gann_square(27, 1)
+    marks = cross_marks(grid, grid["body_position"], grid["target_position"], 8)
+    assert [c["value"] for c in marks["up"]] == [28, 31, 34, 37, 40, 43, 46, 49]
+    assert [c["value"] for c in marks["down"]] == [25, 23, 21, 19, 17, 15, 13, 11]
+
+
+def test_cross_marks_inward_walk_steps_by_the_inner_ring_width():
+    # Ring 2 spans 9..24 with a 45 degree step of 2.
+    grid = build_gann_square(27, 1)
+    marks = cross_marks(grid, grid["body_position"], grid["target_position"], 8)
+    values = [c["value"] for c in marks["down"]]
+    gaps = [values[i] - values[i + 1] for i in range(len(values) - 1)]
+    assert gaps == [2, 2, 2, 2, 2, 2, 2]
+
+
+def test_cross_marks_honours_the_requested_count():
+    grid = build_gann_square(27, 1)
+    marks = cross_marks(grid, grid["body_position"], grid["target_position"], 3)
+    assert len(marks["up"]) == 3
+    assert len(marks["down"]) == 3
+
+
+def test_cross_marks_returns_fewer_near_the_edge_rather_than_raising():
+    grid = build_gann_square(27, 1)
+    marks = cross_marks(grid, grid["body_position"], grid["target_position"], 500)
+    assert 0 < len(marks["up"]) < 500
+
+
+def test_cross_marks_empty_when_the_target_is_missing():
+    grid = build_gann_square(27, 1)
+    marks = cross_marks(grid, grid["body_position"], (-1, -1), 8)
+    assert marks["up"] == []
+    assert marks["down"] == []
+
+
+def test_cross_marks_arm_angles_advance_in_order_and_wrap_after_eight():
+    grid = build_gann_square(3197, 155)
+    marks = cross_marks(grid, grid["body_position"], grid["target_position"], 9)
+    degrees = [
+        arm_degree((c["row"], c["col"]), grid["body_position"])
+        for c in marks["up"]
+    ]
+    assert len(set(degrees[:8])) == 8
+    assert degrees[8] == degrees[0]
+
+
+def test_cross_marks_off_centre_spacing_is_uneven():
+    grid = build_gann_square(3197, 155)
+    marks = cross_marks(grid, grid["body_position"], grid["target_position"], 8)
+    values = [c["value"] for c in marks["up"]]
+    gaps = {values[i + 1] - values[i] for i in range(len(values) - 1)}
+    assert len(gaps) > 1
+
+
+def test_subdivide_reproduces_the_worked_example():
+    assert subdivide(25, 28) == [
+        25.375, 25.75, 26.125, 26.5, 26.875, 27.25, 27.625, 28,
+    ]
+
+
+def test_subdivide_returns_eight_points_ending_at_the_upper_bound():
+    points = subdivide(49, 81)
+    assert len(points) == 8
+    assert points[-1] == 81
+
+
+def test_subdivide_honours_a_custom_part_count():
+    assert subdivide(0, 4, 4) == [1, 2, 3, 4]

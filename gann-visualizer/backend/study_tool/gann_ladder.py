@@ -173,3 +173,66 @@ def build_gann_square(target: int, body: int) -> Dict:
         "too_large": False,
         "dimension": dimension,
     }
+
+
+def cross_marks(
+    grid: Dict,
+    cross_centre: Tuple[int, int],
+    target_position: Tuple[int, int],
+    count: int = 8,
+) -> Dict[str, List[Dict]]:
+    """
+    Collect the squares lying on a cross, walking the spiral out from and back
+    from the price's square.
+
+    The cross's own centre cell is excluded, since arm_degree returns None for
+    it and it therefore has no arm to be labelled with.
+
+    Args:
+        grid: from build_gann_square
+        cross_centre: (row, col) the cross passes through
+        target_position: (row, col) of the price's square
+        count: marks to collect in each direction
+
+    Returns:
+        {"up": [...], "down": [...]} of cells, in walk order
+    """
+    sequence = grid["position_sequence"]
+    up: List[Dict] = []
+    down: List[Dict] = []
+
+    target_index = None
+    for index, cell in enumerate(sequence):
+        if (cell["row"], cell["col"]) == tuple(target_position):
+            target_index = index
+            break
+    if target_index is None:
+        return {"up": up, "down": down}
+
+    def on_cross(cell: Dict) -> bool:
+        return arm_degree((cell["row"], cell["col"]), cross_centre) is not None
+
+    for index in range(target_index + 1, len(sequence)):
+        if len(up) >= count:
+            break
+        if on_cross(sequence[index]):
+            up.append(sequence[index])
+
+    for index in range(target_index - 1, -1, -1):
+        if len(down) >= count:
+            break
+        if on_cross(sequence[index]):
+            down.append(sequence[index])
+
+    return {"up": up, "down": down}
+
+
+def subdivide(low: float, high: float, parts: int = 8) -> List[float]:
+    """
+    Split a gap into equal parts, returning the division points.
+
+    The final element equals `high`. build_ladder drops it, because it is the
+    next major mark and is already in the ladder under its own entry.
+    """
+    step = (high - low) / parts
+    return [low + step * (i + 1) for i in range(parts)]
