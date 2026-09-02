@@ -84,6 +84,28 @@ would land the shadow back on top of the real levels and dilute the contrast.
 Default 50 shadow runs, configurable. That gives a distribution to place the
 real value against, not a single fake to beat.
 
+### Shadows are derived, never rebuilt
+
+This is a performance requirement, not an optimisation, and it is stated here
+because the obvious implementation is 20× slower.
+
+Measured on this machine: one `build_all_ladders` call costs 6.3 ms at ×1 and
+**27.2 ms at ×10** (the grid runs to square ~13,000). Because the rebuild key
+contains the price square, ×10 on 1-minute bars rebuilds on nearly every bar.
+
+| Approach | ×10 / 1-min corpus, 175k bars, 51 passes |
+|---|---|
+| Rebuild the ladder on every pass | ~67 hours |
+| Build once, derive 50 shadows by adding δ | ~3 hours |
+
+A shadow is the real ladder with a constant added to each `price`. It contains
+no new geometry, so it must never trigger a grid build. The corpus runner builds
+the real ladder once per key and produces all `N` shadows by arithmetic on that
+result.
+
+The analyzer itself is not the bottleneck: 0.65 ms/bar over 363 levels, or ~1.6
+hours for all 51 passes of the large corpus. The grid construction is.
+
 ### Exploration is unconstrained. Confirmation is not.
 
 An earlier draft of this spec asked for hypotheses to be declared in advance.
@@ -213,7 +235,7 @@ The corpus loader defaults to `slice == 'explore'` and requires an explicit
 `slice='holdout'` argument to return the holdout. Getting at it should take a
 deliberate act, not a forgotten default.
 
-### 3. `ladders` — new
+### 3. `ladder_keys` — the ladder, stored as its inputs
 
 **Gap identified during review.** The events record the level that was
 interacted with. They do not record what the *rest of the ladder* looked like
@@ -221,13 +243,49 @@ at that moment. Hypothesis (1) asks "did price reach the next level", and
 hypothesis (2) asks about levels price skipped. Neither is answerable from the
 events alone.
 
-The ladder is rebuilt only when `(price square, sun square, moon square)`
-changes, so snapshotting on rebuild is far cheaper than per-bar. One row per
-level per rebuild, keyed by `(rebuild_bar_index, source)`, joinable to events.
+An earlier draft stored a full ladder snapshot on every rebuild, on the reasoning
+that rebuilds are rare. **That reasoning was wrong.** The rebuild key is
+`(round(close × scale), sun_square, moon_square)`. At ×10 a 1-minute bar spans
+~7.8 squares, so the price term changes on very nearly every bar. Snapshots
+would be roughly 363 levels × 175,000 bars ≈ 63 million rows, not a small table.
 
-## Known defects to fix in this phase
+Store the three inputs instead, one row per bar:
 
-Both found by reading the code during design review.
+```
+bar_index, price_square, sun_square, moon_square
+```
+
+`build_all_ladders` is a pure function of exactly these, so any ladder can be
+reconstructed on demand during analysis. Three integers per bar replaces 63
+million rows, and nothing is lost — the reconstruction is bit-identical because
+the function is deterministic.
+
+Reconstruction is memoised on the key during analysis, since ranging price
+revisits the same squares often.
+
+## Known defects
+
+All found by reading the code during design review.
+
+### Sub-level gap measured in squares, not price — FIXED (`fcb8e5a`)
+
+`_sub_gap` divided the segment by 8 and stopped, but `segment_start`/`_end` are
+grid squares while a level's price is `square / price_scale`.
+
+At ×10 on a real RELIANCE ladder, adjacent sub-levels sit ₹0.725 apart while
+`_sub_gap` reported 7.25. Touch tolerance is a tenth of that, so tolerance was
+₹0.725 — a full level wide. Every bar would have registered a touch on
+something, and every retest distance and `depth_in_sublevels` would have been
+wrong. **The entire ×10 corpus would have been quietly useless rather than
+visibly broken.**
+
+Invisible because every pre-existing test runs at scale 1, where squares and
+prices are numerically identical, and the synthetic level fixture sets
+`square = price`.
+
+Fixed, with tests at scale 10 that take their expected value from
+`build_all_ladders` rather than a fixture. This is why the ×10 corpus must not
+be built from any commit before `fcb8e5a`.
 
 ### Forward returns are never populated for ladder events
 
@@ -295,8 +353,10 @@ Each gets its own spec.
 - How many events does 2 years actually produce? The corpus runner reports
   counts before any metric is locked. If confirmed-breach-with-retest is rare,
   the hypotheses that depend on it need a longer window or more instruments.
-- Is 50 shadow runs enough resolution at the corrected thresholds, given the
-  ×10/1-minute corpus is ~175,000 bars and 51 passes over it is the dominant
-  compute cost?
+- Is 50 shadow runs enough resolution at the corrected thresholds? Compute is no
+  longer the constraint now that shadows are derived rather than rebuilt
+  (~3 hours for the large corpus), so this is a statistics question, not a
+  budget one. 50 gives a 2% granularity on a percentile, which is coarse near a
+  98th-percentile threshold; 200 may be warranted for the final evaluation.
 - Do the two resolutions (×1/5-min and ×10/1-min) agree? Disagreement is itself
   a finding about whether the structure is scale-invariant.
