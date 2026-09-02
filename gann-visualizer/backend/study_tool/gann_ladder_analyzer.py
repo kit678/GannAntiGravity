@@ -59,12 +59,22 @@ class GannLadderAnalyzer:
         return f"{level.get('source')}|{level.get('square')}"
 
     def _sub_gap(self, level: Dict) -> float:
-        """Price distance between adjacent sub-levels of a level's segment."""
+        """
+        Price distance between adjacent sub-levels of a level's segment.
+
+        segment_start and segment_end are grid squares, and a level's price is
+        square / price_scale, so the eighth has to be divided by the scale to
+        become a price. At scale 1 the two are the same number, which is why
+        omitting this stayed invisible; at scale 10 every touch tolerance and
+        retest distance came out ten times too wide - wider than the gap
+        between levels, so every bar registered a touch on something.
+        """
         start = level.get("segment_start")
         end = level.get("segment_end")
         if start is None or end is None or end == start:
             return 1.0
-        return abs(end - start) / 8.0
+        scale = self.price_scale or 1
+        return abs(end - start) / 8.0 / scale
 
     def _make_event(self, event_type, bar, bar_index, level,
                     direction=None, details=None, breach_id=None,
