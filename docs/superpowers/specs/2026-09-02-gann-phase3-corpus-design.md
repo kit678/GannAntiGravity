@@ -23,7 +23,11 @@ All three use **identical arm labels** — 0, 45, 90, 135, 180, 225, 270, 315.
 That was a deliberate choice in Phase 1, and it is the thing that makes
 cross-to-cross questions askable at all.
 
-The hypotheses, restated so they are testable:
+The hypotheses below are a **starting point, not a limit**. They are the ones
+held going in, written down so the corpus is rich enough to answer them. Mining
+is expected to produce hypotheses nobody has thought of yet, and those are worth
+more than this list. Its job is to set a floor on what must be collectable — not
+a ceiling on what may be asked.
 
 1. **Progression.** After a confirmed breach of a level, price reaches the next
    level in sequence. Within a segment the step tends to double
@@ -80,13 +84,61 @@ would land the shadow back on top of the real levels and dilute the contrast.
 Default 50 shadow runs, configurable. That gives a distribution to place the
 real value against, not a single fake to beat.
 
-### Multiple comparisons
+### Exploration is unconstrained. Confirmation is not.
 
-Every hypothesis tested against the shadow spread is one more chance to find
-noise. Where a family of related tests is run (e.g. one per cross, one per arm),
-the threshold is corrected for the size of that family, and the family is
-declared before looking. Exploratory numbers are reported as exploratory and
-never promoted to findings without a fresh pre-registered test.
+An earlier draft of this spec asked for hypotheses to be declared in advance.
+**That was wrong and is withdrawn.** Discovering hypotheses we have not thought
+of is the point of mining, and a rule that caps the search defeats it.
+
+Search anything. Search everything. No threshold applies to exploration,
+because exploration does not conclude — it proposes.
+
+What needs protecting is the step after: deciding something found by searching
+is real.
+
+Search enough patterns and some will look excellent by luck alone. Check a
+thousand coins for ten flips each and one lands nine heads; that coin is not
+special, the search was just wide. The remedy is not a narrower search. It is to
+flip that one coin again.
+
+### The holdout
+
+The corpus is split by time, once, before any mining begins:
+
+| Slice | Span | Use |
+|---|---|---|
+| **Explore** | first 75% | unlimited searching, feature engineering, model fitting |
+| **Holdout** | final 25% | untouched until a shortlist is ready |
+
+Mining, plotting, feature selection and model selection all happen on the
+explore slice only. The holdout is not loaded by any exploratory notebook or
+script.
+
+**The holdout is consumable.** Each look at it, followed by a change, converts
+it into training data — the same overfitting it exists to catch, one step
+removed. So it is spent in batches: assemble a shortlist of candidates from the
+explore slice, evaluate them against the holdout together, and record the result
+whichever way it falls. Iterating one idea at a time against the holdout burns
+it for nothing.
+
+If the holdout is exhausted, the honest options are more instruments or more
+years, not another pass over the same data.
+
+### Shadow and holdout answer different questions
+
+They are not redundant and neither replaces the other.
+
+| | Question it answers |
+|---|---|
+| **Shadow** | Would this pattern appear if the levels carried no information? |
+| **Holdout** | Does this pattern persist in data the search never saw? |
+
+A finding should clear both. Shadow rules out the shape of the grid producing
+the effect on its own; the holdout rules out the search having found noise.
+
+Where a family of related tests is run on the holdout (e.g. one per cross, one
+per arm), the threshold is corrected for the size of that family. This applies
+to the holdout evaluation only — never to exploration.
 
 ## Instrument, scale and timeframe
 
@@ -148,8 +200,18 @@ The existing `Event` schema, already carrying everything the hypotheses need:
 `level_is_halfway`, `level_segment_start/end`, `price_scale`, `body_degree`,
 `body_square`, `breach_id`, `parent_breach_id`, plus bar index and timestamp.
 
-Plus one new column: `shadow_id` — null for the real corpus, `0..N-1` for
-shadow runs. This is what lets one code path compute a statistic on both.
+Plus two new columns:
+
+- `shadow_id` — null for the real corpus, `0..N-1` for shadow runs. This is what
+  lets one code path compute a statistic on both.
+- `slice` — `'explore'` or `'holdout'`, stamped at write time from the date
+  split. Recording it makes the split a property of the data rather than a
+  convention someone has to remember, and makes an accidental peek visible in
+  code review rather than invisible.
+
+The corpus loader defaults to `slice == 'explore'` and requires an explicit
+`slice='holdout'` argument to return the holdout. Getting at it should take a
+deliberate act, not a forgotten default.
 
 ### 3. `ladders` — new
 
@@ -222,8 +284,9 @@ Each gets its own spec.
 - Bodies beyond Sun and Moon (`level_source` is a free string; adding one needs
   no schema change).
 - Additional astrological features. Explicitly wanted later, deliberately not
-  now — they multiply the hypothesis count, and the shadow machinery must be
-  proven before that.
+  now. Not because they add hypotheses — hypotheses are welcome — but because
+  each new body is more ephemeris plumbing, and the corpus and shadow machinery
+  should be working before that surface grows.
 - US market data. Dhan exposes no historical bars for it.
 - Live trading of anything found.
 
