@@ -149,8 +149,20 @@ class Event:
     mae_20: Optional[float] = None
     mfe_50: Optional[float] = None
     mae_50: Optional[float] = None
+    # Raw forward excursions, not sorted into favourable/adverse.
+    #
+    # For an event with no direction - every LADDER_TOUCH - mfe/mae fall back
+    # to labelling whichever move was larger as favourable. That is decided
+    # after the fact and cannot be predicted, so it leaks as a training label.
+    # These keep the two directions separate.
+    exc_up_5: Optional[float] = None
+    exc_down_5: Optional[float] = None
     exc_up_10: Optional[float] = None
     exc_down_10: Optional[float] = None
+    exc_up_20: Optional[float] = None
+    exc_down_20: Optional[float] = None
+    exc_up_50: Optional[float] = None
+    exc_down_50: Optional[float] = None
     reversal_outcome: Optional[str] = None  # "WIN", "LOSS", or None for first-break detection
     body_break: Optional[bool] = None  # Next bar close broke test candle's body
 
@@ -229,8 +241,14 @@ class Event:
             "mae_20": self.mae_20,
             "mfe_50": self.mfe_50,
             "mae_50": self.mae_50,
+            "exc_up_5": self.exc_up_5,
+            "exc_down_5": self.exc_down_5,
             "exc_up_10": self.exc_up_10,
             "exc_down_10": self.exc_down_10,
+            "exc_up_20": self.exc_up_20,
+            "exc_down_20": self.exc_down_20,
+            "exc_up_50": self.exc_up_50,
+            "exc_down_50": self.exc_down_50,
             "reversal_outcome": self.reversal_outcome,
             "body_break": self.body_break,
             "details": self.details or {},
@@ -306,8 +324,14 @@ class Event:
         event.mae_20 = data.get("mae_20")
         event.mfe_50 = data.get("mfe_50")
         event.mae_50 = data.get("mae_50")
+        event.exc_up_5 = data.get("exc_up_5")
+        event.exc_down_5 = data.get("exc_down_5")
         event.exc_up_10 = data.get("exc_up_10")
         event.exc_down_10 = data.get("exc_down_10")
+        event.exc_up_20 = data.get("exc_up_20")
+        event.exc_down_20 = data.get("exc_down_20")
+        event.exc_up_50 = data.get("exc_up_50")
+        event.exc_down_50 = data.get("exc_down_50")
         event.reversal_outcome = data.get("reversal_outcome")
         event.body_break = data.get("body_break")
         event.details = data.get("details", {})
@@ -731,10 +755,10 @@ class EventLogger:
 
                 return mfe, mae, exc_up, exc_down
 
-            event.mfe_5, event.mae_5, _, _ = calc_excursions(5)
+            event.mfe_5, event.mae_5, event.exc_up_5, event.exc_down_5 = calc_excursions(5)
             event.mfe_10, event.mae_10, event.exc_up_10, event.exc_down_10 = calc_excursions(10)
-            event.mfe_20, event.mae_20, _, _ = calc_excursions(20)
-            event.mfe_50, event.mae_50, _, _ = calc_excursions(50)
+            event.mfe_20, event.mae_20, event.exc_up_20, event.exc_down_20 = calc_excursions(20)
+            event.mfe_50, event.mae_50, event.exc_up_50, event.exc_down_50 = calc_excursions(50)
 
             # First-break reversal detection: did price reverse at the line?
             # Applies to ALL angle division lines (not just 0.25)
