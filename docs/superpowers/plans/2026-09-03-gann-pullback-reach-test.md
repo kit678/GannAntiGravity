@@ -481,6 +481,31 @@ def test_non_breach_rows_stay_none_in_every_column():
         assert result.loc[1, name] is None
 
 
+def test_depth_zero_matches_the_original_strict_computation():
+    """
+    The hard regression guard. The confirmed 8/13 holdout result was measured
+    by racing with the stop on the breached level and the target from
+    next_level. Depth 0 must reproduce that call for call, not merely
+    resemble it.
+    """
+    events, bars = reach_events(), reach_bars()
+    cache = LadderCache(keys_frame(), 1)
+
+    result = add_reach_outcomes(events, bars, cache, meta(),
+                                stop_depths=(0.0,), windows=(50,))
+
+    row = events.loc[0]
+    target = cache.next_level(0, row["level_source"], row["level_price"],
+                              row["direction"], 0.0)
+    expected = race_to_next_level(
+        bars["high"].to_numpy(float), bars["low"].to_numpy(float),
+        bars["close"].to_numpy(float), start=0,
+        level_price=row["level_price"], target=target,
+        direction=row["direction"], window=50)
+
+    assert result.loc[0, "reach_d0_w50"] == expected
+
+
 def test_target_already_hit_is_recorded():
     """
     A breach confirms after two closes beyond the level, which can already
@@ -595,8 +620,13 @@ def add_reach_outcomes(events: pd.DataFrame, bars: pd.DataFrame,
         level_price = float(level_prices[position])
         offset = meta.offset_for(shadow_ids[position])
 
-        target = cache.level_steps_away(bar, source, level_price, direction,
-                                        offset, 1.0)
+        # next_level, not level_steps_away, deliberately. level_steps_away
+        # requires level_price to BE a ladder price within 1e-6 and returns
+        # None otherwise, while next_level brackets any price. Swapping it in
+        # here could silently drop rows the confirmed result raced, which
+        # would change what reach_outcome means. The target keeps its
+        # original lookup; only the stop uses the new step arithmetic.
+        target = cache.next_level(bar, source, level_price, direction, offset)
         if target is None:
             continue
 
@@ -604,8 +634,14 @@ def add_reach_outcomes(events: pd.DataFrame, bars: pd.DataFrame,
             highs[bar] >= target if direction == "up" else lows[bar] <= target)
 
         for depth in depths:
-            stop_price = cache.level_steps_away(
-                bar, source, level_price, direction, offset, -float(depth))
+            if depth == 0:
+                # The strict case: the stop is the breached level itself,
+                # taken directly rather than via a ladder lookup, so depth 0
+                # cannot drift from the confirmed definition.
+                stop_price = level_price
+            else:
+                stop_price = cache.level_steps_away(
+                    bar, source, level_price, direction, offset, -float(depth))
             if stop_price is None:
                 continue
             for window in windows:
@@ -629,7 +665,7 @@ Add `Sequence` to the `typing` import line.
 - [ ] **Step 4: Run to verify they pass**
 
 Run: `cd gann-visualizer/backend && python -m pytest tests/study_tool/mining/test_ladder_rebuild.py -q`
-Expected: `32 passed` (26 from Task 2 + 6 new).
+Expected: `33 passed` (26 from Task 2 + 7 new).
 
 - [ ] **Step 5: Run the whole mining suite for regressions**
 
