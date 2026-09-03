@@ -5,7 +5,12 @@ Usage:
     python scripts/mine_gann_corpus.py --corpus logs/corpus/reliance_5m_x1 \
         --out docs/superpowers/reports
 
-Reads the explore slice only. No script in this phase opens the holdout.
+Defaults to the explore slice. Pass --slice holdout for the one-time
+confirmation pass over the holdout slice, once a shortlist has been declared
+against explore. The boundary buffer-drop exists only to protect explore
+events from having their outcome decided by holdout price action, which sits
+chronologically after explore; holdout is the last slice, so that drop does
+not apply and does not run when mining it.
 """
 
 import argparse
@@ -57,13 +62,14 @@ def _check_ladder_tables(bars: pd.DataFrame, keys: pd.DataFrame) -> None:
         )
 
 
-def run(corpus_dir: Path) -> str:
+def run(corpus_dir: Path, slice_name: str = "explore") -> str:
     """Mine one corpus and return the report Markdown."""
     meta = load_corpus_meta(corpus_dir)
 
     # Only bar_index and slice are read from the full events table, to find
     # the boundary. That is structural bookkeeping, not price action, so it
-    # does not spend the holdout.
+    # does not spend the holdout. Computed unconditionally for context/display
+    # even when mining holdout, since it is cheap and useful either way.
     all_slices = pd.read_parquet(corpus_dir / "events.parquet",
                                  columns=["bar_index", "slice"])
     boundary = boundary_bar_index(all_slices)
@@ -71,13 +77,24 @@ def run(corpus_dir: Path) -> str:
 
     print(f"explore/holdout boundary at bar {boundary}")
 
-    events = load_events(corpus_dir)
-    buffered = drop_boundary_events(
-        events, boundary=boundary, buffer_bars=meta.resolution_window_bars)
-    print(f"dropped {buffered.dropped} events inside the "
-          f"{meta.resolution_window_bars}-bar buffer")
+    if slice_name == "explore":
+        events = load_events(corpus_dir, slice_name="explore")
+        buffered = drop_boundary_events(
+            events, boundary=boundary, buffer_bars=meta.resolution_window_bars)
+        print(f"dropped {buffered.dropped} events inside the "
+              f"{meta.resolution_window_bars}-bar buffer")
+        events = buffered.events
+        dropped_to_buffer = buffered.dropped
+    else:
+        # The buffer-drop exists only to protect explore events from having
+        # their outcome decided by holdout price action, which sits
+        # chronologically after explore. Holdout is the last slice - there is
+        # no data after it that could leak into it - so the buffer-drop does
+        # not apply here and must not run.
+        events = load_events(corpus_dir, slice_name="holdout")
+        dropped_to_buffer = 0
 
-    events = add_ring_bin(buffered.events)
+    events = add_ring_bin(events)
 
     bars = pd.read_parquet(corpus_dir / "bars.parquet")
     keys = pd.read_parquet(corpus_dir / "ladder_keys.parquet")
@@ -108,15 +125,16 @@ def run(corpus_dir: Path) -> str:
                     compare(rows, fn, shadow_count=meta.shadow_count)))
 
     context: Dict = {
+        "slice": slice_name,
         "corpus_dir": str(corpus_dir),
         "symbol": meta.symbol,
         "interval": meta.interval,
         "price_scale": meta.price_scale,
         "shadow_count": meta.shadow_count,
         "explore_events": len(events),
-        "dropped_to_buffer": buffered.dropped,
-        "boundary_bar_index": buffered.boundary,
-        "buffer_bars": buffered.buffer_bars,
+        "dropped_to_buffer": dropped_to_buffer,
+        "boundary_bar_index": boundary,
+        "buffer_bars": meta.resolution_window_bars,
         "touch_density": compare(events, statistics["touch_density"],
                                  shadow_count=meta.shadow_count),
     }
@@ -127,9 +145,11 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--corpus", required=True)
     parser.add_argument("--out", default="docs/superpowers/reports")
+    parser.add_argument("--slice", choices=["explore", "holdout"],
+                        default="explore")
     args = parser.parse_args()
 
-    text = run(Path(args.corpus))
+    text = run(Path(args.corpus), slice_name=args.slice)
 
     out_dir = Path(args.out)
     out_dir.mkdir(parents=True, exist_ok=True)

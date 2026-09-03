@@ -163,6 +163,24 @@ def test_non_numeric_labels_still_sort_alphabetically():
     assert positions == sorted(positions)
 
 
+def test_run_section_reports_the_slice_that_was_mined():
+    ctx = context()
+    ctx["slice"] = "holdout"
+
+    text = render_report(results(), ctx)
+    run_section = text.split("## Run")[1].split("## Fairness")[0]
+
+    assert "slice: holdout" in run_section
+
+
+def test_run_section_defaults_to_explore_when_context_omits_slice():
+    """Backward compatibility for any caller that predates the --slice flag."""
+    text = render_report(results(), context())
+    run_section = text.split("## Run")[1].split("## Fairness")[0]
+
+    assert "slice: explore" in run_section
+
+
 def test_the_entry_point_mines_a_tiny_corpus_end_to_end(tmp_path):
     """
     Everything wired together on a synthetic corpus: no network, no token,
@@ -250,6 +268,48 @@ def test_run_raises_on_duplicate_bar_index_in_ladder_keys(tmp_path):
 
     with pytest.raises(ValueError, match="bar_index"):
         run(tmp_path)
+
+
+def test_the_entry_point_mines_the_holdout_slice_without_the_buffer_drop(tmp_path):
+    """
+    Holdout is the last slice - there is no data after it that could leak
+    into it, so the explore-only buffer-drop must not run when mining
+    holdout. dropped_to_buffer must read 0 and the report must say which
+    slice was mined.
+    """
+    sys.path.append(os.path.abspath(
+        'C:/Dev/GannTesting/gann-visualizer/backend/scripts'))
+    import pandas as pd
+    from build_gann_corpus import build_corpus
+    from mine_gann_corpus import run
+    from study_tool.corpus_writer import assign_slices, write_corpus
+
+    epoch = 1787629500
+    rows = []
+    for i in range(400):
+        open_ = 1300.0 + (i % 40) * 0.6
+        close = open_ + 0.5
+        rows.append({"open": open_, "high": close + 0.4, "low": open_ - 0.4,
+                     "close": close, "volume": 1000.0,
+                     "timestamp": float(epoch + i * 300),
+                     "sun_degree": 155.0 + i * 0.0007,
+                     "moon_degree": (331.0 + i * 0.009) % 360})
+    bars = pd.DataFrame(rows)
+
+    result = build_corpus(bars=bars, instrument="RELIANCE", timeframe="5",
+                          price_scale=1, shadow_count=3, seed=7)
+    meta = dict(result["meta"])
+    meta["from_date"], meta["to_date"] = "2026-08-01", "2026-08-31"
+    write_corpus(tmp_path, events=assign_slices(result["events"]),
+                 bars=result["bars"], ladder_keys=result["ladder_keys"],
+                 meta=meta)
+
+    text = run(tmp_path, slice_name="holdout")
+
+    assert "## Shortlist" in text
+    run_section = text.split("## Run")[1].split("## Fairness")[0]
+    assert "slice: holdout" in run_section
+    assert "dropped to the boundary buffer: 0" in run_section
 
 
 def test_run_raises_when_bars_do_not_cover_every_ladder_key_bar_index(tmp_path):

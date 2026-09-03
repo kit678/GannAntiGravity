@@ -109,11 +109,13 @@ def _context_section(context: Dict) -> str:
     return "\n".join([
         "## Run",
         "",
+        f"- slice: {context.get('slice', 'explore')}",
         f"- corpus: `{context['corpus_dir']}`",
         f"- symbol: {context['symbol']}, interval {context['interval']}, "
         f"scale x{context['price_scale']}",
         f"- shadows: {context['shadow_count']}",
-        f"- explore events used: {context['explore_events']}",
+        f"- {context.get('slice', 'explore')} events used: "
+        f"{context['explore_events']}",
         f"- dropped to the boundary buffer: {context['dropped_to_buffer']} "
         f"(events within {context['buffer_bars']} bars of holdout boundary "
         f"bar {context['boundary_bar_index']}, whose outcomes would have been "
