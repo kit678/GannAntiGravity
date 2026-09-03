@@ -18,7 +18,7 @@ sys.path.append(os.path.abspath('C:/Dev/GannTesting/gann-visualizer/backend'))
 
 from study_tool.mining.corpus_meta import CorpusMeta
 from study_tool.mining.ladder_rebuild import (
-    LadderCache, add_reach_outcomes, race_to_next_level,
+    LadderCache, add_reach_outcomes, race_to_next_level, race_with_stop,
 )
 from study_tool.run_ladder_study import build_all_ladders, degree_to_square
 
@@ -280,3 +280,97 @@ def test_running_off_the_end_of_the_ladder_returns_none():
 
     assert cache.level_steps_away(0, "center", prices[0], "up", 0.0, -1.0) is None
     assert cache.level_steps_away(0, "center", prices[-1], "up", 0.0, 1.0) is None
+
+
+def test_a_positive_half_step_lands_between_the_level_and_the_one_above():
+    """The target side is fractional too, so it needs its own pin."""
+    cache = LadderCache(keys_frame(), price_scale=1)
+    prices = sorted(cache.prices(bar_index=0, source="center"))
+    index = len(prices) // 2
+    level, above = prices[index], prices[index + 1]
+
+    half = cache.level_steps_away(0, "center", level, "up", 0.0, 0.5)
+
+    assert half == pytest.approx(level + (above - level) / 2.0)
+    assert level < half < above
+
+
+def test_a_fractional_shadow_step_is_the_real_one_shifted_by_its_offset():
+    cache = LadderCache(keys_frame(), price_scale=1)
+    prices = sorted(cache.prices(bar_index=0, source="center"))
+    level = prices[len(prices) // 2]
+
+    real = cache.level_steps_away(0, "center", level, "up", 0.0, -0.5)
+    shadow = cache.level_steps_away(0, "center", level + 0.4, "up", 0.4, -0.5)
+
+    assert shadow == pytest.approx(real + 0.4)
+
+
+def test_race_with_stop_reproduces_the_strict_race_when_stop_is_the_level():
+    """Depth 0 must be the test we already ran, bit for bit."""
+    highs = np.array([100.0, 101.0, 101.0])
+    lows = np.array([99.0, 98.0, 97.0])
+    closes = np.array([100.0, 99.0, 98.0])
+
+    assert race_with_stop(highs, lows, closes, start=0, stop_price=99.5,
+                          target=104.5, direction="up", window=50) == \
+        race_to_next_level(highs, lows, closes, start=0, level_price=99.5,
+                           target=104.5, direction="up", window=50)
+
+
+def test_a_dip_below_the_level_survives_when_the_stop_sits_lower():
+    """
+    The whole point. Price closes back under the breached level at 99.5, then
+    recovers and reaches the target. Strict scores STOPPED, this scores REACHED.
+    """
+    highs = np.array([100.0, 100.0, 105.0])
+    lows = np.array([99.0, 98.6, 100.0])
+    closes = np.array([100.0, 98.8, 104.0])
+
+    strict = race_to_next_level(highs, lows, closes, start=0, level_price=99.5,
+                                target=104.5, direction="up", window=50)
+    lenient = race_with_stop(highs, lows, closes, start=0, stop_price=98.0,
+                             target=104.5, direction="up", window=50)
+
+    assert strict == "STOPPED"
+    assert lenient == "REACHED"
+
+
+def test_touching_the_stop_price_is_not_a_failure():
+    """Agreed rule: only a close strictly below the stop kills the race."""
+    highs = np.array([100.0, 100.0, 105.0])
+    lows = np.array([99.0, 97.5, 100.0])
+    closes = np.array([100.0, 98.0, 104.0])
+
+    assert race_with_stop(highs, lows, closes, start=0, stop_price=98.0,
+                          target=104.5, direction="up", window=50) == "REACHED"
+
+
+def test_closing_below_the_stop_still_fails():
+    highs = np.array([100.0, 100.0, 105.0])
+    lows = np.array([99.0, 97.0, 100.0])
+    closes = np.array([100.0, 97.9, 104.0])
+
+    assert race_with_stop(highs, lows, closes, start=0, stop_price=98.0,
+                          target=104.5, direction="up", window=50) == "STOPPED"
+
+
+def test_race_with_stop_runs_downward_too():
+    highs = np.array([100.0, 101.4, 100.0])
+    lows = np.array([99.0, 100.0, 94.0])
+    closes = np.array([100.0, 101.2, 95.0])
+
+    assert race_with_stop(highs, lows, closes, start=0, stop_price=102.0,
+                          target=94.5, direction="down", window=50) == "REACHED"
+
+
+def test_a_shorter_window_can_turn_a_win_into_a_timeout():
+    """Window length is a dial, so it must actually change the outcome."""
+    highs = np.array([100.0] * 6 + [105.0])
+    lows = np.array([99.0] * 7)
+    closes = np.array([100.0] * 7)
+
+    assert race_with_stop(highs, lows, closes, start=0, stop_price=98.0,
+                          target=104.5, direction="up", window=3) == "TIMEOUT"
+    assert race_with_stop(highs, lows, closes, start=0, stop_price=98.0,
+                          target=104.5, direction="up", window=50) == "REACHED"

@@ -30,6 +30,10 @@ from study_tool.run_ladder_study import build_all_ladders
 CONFIRMED = "LADDER_BREACH_CONFIRMED"
 REACHED, STOPPED, TIMEOUT = "REACHED", "STOPPED", "TIMEOUT"
 
+# A tolerance below one paise. Level prices round-trip through Parquet, so an
+# exact float match cannot be relied on.
+_PRICE_EPSILON = 1e-6
+
 
 class LadderCache:
     """
@@ -95,17 +99,14 @@ class LadderCache:
             return None
 
         unshifted = level_price - offset
-        # A tolerance below one paise: level_price came back through Parquet
-        # and an exact float match cannot be relied on.
-        epsilon = 1e-6
 
         if direction == "up":
-            index = bisect.bisect_right(prices, unshifted + epsilon)
+            index = bisect.bisect_right(prices, unshifted + _PRICE_EPSILON)
             if index >= len(prices):
                 return None
             return prices[index] + offset
 
-        index = bisect.bisect_left(prices, unshifted - epsilon) - 1
+        index = bisect.bisect_left(prices, unshifted - _PRICE_EPSILON) - 1
         if index < 0:
             return None
         return prices[index] + offset
@@ -113,12 +114,12 @@ class LadderCache:
     def _index_of(self, prices: List[float], unshifted: float) -> Optional[int]:
         """
         Position of `unshifted` in the sorted ladder, or None if it is not a
-        ladder price. A tolerance below one paise absorbs the Parquet float
-        round-trip, exactly as next_level does.
+        ladder price. `_PRICE_EPSILON` absorbs the Parquet float round-trip,
+        exactly as next_level does.
         """
-        epsilon = 1e-6
-        index = bisect.bisect_left(prices, unshifted - epsilon)
-        if index < len(prices) and abs(prices[index] - unshifted) <= epsilon:
+        index = bisect.bisect_left(prices, unshifted - _PRICE_EPSILON)
+        if index < len(prices) and \
+                abs(prices[index] - unshifted) <= _PRICE_EPSILON:
             return index
         return None
 
@@ -152,47 +153,65 @@ class LadderCache:
         lower = math.floor(signed)
         upper = math.ceil(signed)
 
-        if not (0 <= base + lower < len(prices)):
-            return None
-        if not (0 <= base + upper < len(prices)):
+        # lower <= upper always, so bounding the pair bounds both ends.
+        if not (0 <= base + lower and base + upper < len(prices)):
             return None
 
-        low_price = prices[base + int(lower)]
+        low_price = prices[base + lower]
         if lower == upper:
             return low_price + offset
 
-        high_price = prices[base + int(upper)]
+        high_price = prices[base + upper]
         fraction = signed - lower
         return low_price + (high_price - low_price) * fraction + offset
 
 
-def race_to_next_level(highs: np.ndarray, lows: np.ndarray,
-                       closes: np.ndarray, start: int, level_price: float,
-                       target: float, direction: str, window: int) -> str:
+def race_with_stop(highs: np.ndarray, lows: np.ndarray, closes: np.ndarray,
+                   start: int, stop_price: float, target: float,
+                   direction: str, window: int) -> str:
     """
-    Does price reach `target` before closing back through `level_price`?
+    Does price reach `target` before closing through `stop_price`?
 
     Returns REACHED, STOPPED or TIMEOUT. A race truncated by the end of the
     data is a TIMEOUT, not a loss.
 
+    The stop is a **strict** close beyond `stop_price`, so a bar that merely
+    touches it - or wicks through and closes back - keeps the race alive. That
+    is deliberate: the move being tested is 'breach, dip back, retest, then
+    carry on', and a retest that holds must not read as a failure.
+
     Within a single bar the target wins. The target is tested against the
     bar's high or low, which occur during the bar; the stop is tested against
     the close, which is the bar's last price. So if both conditions hold, the
-    target came first. This is a judgement call and it is pinned by a test.
+    target came first.
     """
     last = min(start + 1 + window, len(closes))
     for i in range(start + 1, last):
         if direction == "up":
             if highs[i] >= target:
                 return REACHED
-            if closes[i] < level_price:
+            if closes[i] < stop_price:
                 return STOPPED
         else:
             if lows[i] <= target:
                 return REACHED
-            if closes[i] > level_price:
+            if closes[i] > stop_price:
                 return STOPPED
     return TIMEOUT
+
+
+def race_to_next_level(highs: np.ndarray, lows: np.ndarray,
+                       closes: np.ndarray, start: int, level_price: float,
+                       target: float, direction: str, window: int) -> str:
+    """
+    The strict race: the stop sits on the breached level itself.
+
+    Kept as a named function because the confirmed holdout result was measured
+    with exactly this definition. It is the zero-depth case of race_with_stop.
+    """
+    return race_with_stop(highs, lows, closes, start=start,
+                          stop_price=level_price, target=target,
+                          direction=direction, window=window)
 
 
 def add_reach_outcomes(events: pd.DataFrame, bars: pd.DataFrame,
