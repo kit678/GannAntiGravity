@@ -124,6 +124,33 @@ def test_load_events_needs_an_explicit_argument_for_the_holdout(tmp_path):
     assert set(loaded["slice"]) == {"holdout"}
 
 
+def test_load_events_pushes_the_slice_filter_into_the_parquet_read(tmp_path, monkeypatch):
+    """
+    The filter must reach `pd.read_parquet` itself, not run as a mask
+    afterward - otherwise the holdout rows get deserialized into memory
+    before anything discards them, and the isolation guarantee rests on
+    nobody reading `frame` too early.
+    """
+    write_corpus(tmp_path, events=assign_slices(events_frame()),
+                 bars=bars_frame(), ladder_keys=keys_frame(), meta=meta_dict())
+
+    real_read_parquet = pd.read_parquet
+    captured = {}
+
+    def spy_read_parquet(path, *args, **kwargs):
+        captured["filters"] = kwargs.get("filters")
+        return real_read_parquet(path, *args, **kwargs)
+
+    monkeypatch.setattr(pd, "read_parquet", spy_read_parquet)
+
+    load_events(tmp_path, slice_name="holdout")
+
+    assert captured["filters"] == [("slice", "==", "holdout")], (
+        "the slice filter was not passed to pd.read_parquet; a post-hoc "
+        "mask would leave this None or absent"
+    )
+
+
 def test_an_unknown_slice_name_raises(tmp_path):
     write_corpus(tmp_path, events=assign_slices(events_frame()),
                  bars=bars_frame(), ladder_keys=keys_frame(), meta=meta_dict())

@@ -131,10 +131,18 @@ def load_events(corpus_dir: Union[str, Path],
     Getting the holdout requires naming it. The holdout is consumable - each
     look followed by a change turns it into training data - so it should not
     arrive by default.
+
+    The slice filter is pushed into the Parquet read itself (via `filters=`)
+    rather than applied afterward, so rows from the other slice are never
+    deserialized into memory at all - the guarantee is structural, not just
+    "nothing reads them before the mask runs."
     """
     if slice_name not in SLICES:
         raise ValueError(
             f"unknown slice {slice_name!r}; expected one of {SLICES}"
         )
-    frame = pd.read_parquet(Path(corpus_dir) / "events.parquet")
-    return frame[frame["slice"] == slice_name].reset_index(drop=True)
+    frame = pd.read_parquet(
+        Path(corpus_dir) / "events.parquet",
+        filters=[("slice", "==", slice_name)],
+    )
+    return frame.reset_index(drop=True)
