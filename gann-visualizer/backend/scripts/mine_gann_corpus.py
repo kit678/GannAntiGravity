@@ -18,7 +18,7 @@ import os
 import sys
 import time
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict, List, Optional, Sequence
 
 import pandas as pd
 
@@ -28,12 +28,14 @@ from study_tool.corpus_writer import load_events
 from study_tool.mining.boundary import boundary_bar_index, drop_boundary_events
 from study_tool.mining.corpus_meta import load_corpus_meta
 from study_tool.mining.groups import GROUPINGS, add_ring_bin, iter_groups
-from study_tool.mining.ladder_rebuild import LadderCache, add_reach_outcomes
+from study_tool.mining.ladder_rebuild import (
+    LadderCache, add_reach_outcomes, outcome_column,
+)
 from study_tool.mining.report import GroupResult, render_report
 from study_tool.mining.shadow_compare import compare
 from study_tool.mining.statistics import (
-    hold_rate, mean_retest_depth, reach_next_rate, rejection_rate,
-    timeout_share, touch_density_fn,
+    already_hit_share, hold_rate, mean_retest_depth, reach_rate_for,
+    rejection_rate, timeout_share_for, touch_density_fn,
 )
 
 
@@ -62,8 +64,17 @@ def _check_ladder_tables(bars: pd.DataFrame, keys: pd.DataFrame) -> None:
         )
 
 
-def run(corpus_dir: Path, slice_name: str = "explore") -> str:
-    """Mine one corpus and return the report Markdown."""
+def run(corpus_dir: Path, slice_name: str = "explore",
+        stop_depths: Sequence[float] = (0.0,),
+        windows: Optional[Sequence[int]] = None) -> str:
+    """
+    Mine one corpus and return the report Markdown.
+
+    `stop_depths` and `windows` sweep the reach race: every pair gets its own
+    outcome column and its own reach rate and timeout share. The defaults -
+    depth 0 at the corpus's own resolution window - reproduce the strict test
+    the confirmed result was measured with.
+    """
     meta = load_corpus_meta(corpus_dir)
 
     # Only bar_index and slice are read from the full events table, to find
@@ -102,19 +113,32 @@ def run(corpus_dir: Path, slice_name: str = "explore") -> str:
 
     started = time.time()
     cache = LadderCache(keys, meta.price_scale)
-    events = add_reach_outcomes(events, bars, cache, meta)
-    print(f"raced {int(events['reach_outcome'].notna().sum())} breaches "
-          f"in {time.time() - started:.0f}s")
+    events = add_reach_outcomes(events, bars, cache, meta,
+                                stop_depths=stop_depths, windows=windows)
+
+    resolved_windows = tuple(windows or (meta.resolution_window_bars,))
+    sweep_columns = [outcome_column(d, w)
+                     for d in stop_depths for w in resolved_windows]
+
+    # Per sweep column, not `reach_outcome`. That alias only exists when the
+    # sweep actually contains depth 0 at the corpus window, so subscripting it
+    # here would KeyError after the whole multi-minute race had already run.
+    elapsed = time.time() - started
+    raced = ", ".join(f"{c}={int(events[c].notna().sum())}"
+                      for c in sweep_columns if c in events.columns)
+    print(f"raced breaches in {elapsed:.0f}s: {raced or 'none'}")
 
     bar_count = int(events["bar_index"].nunique())
     statistics = {
         "hold_rate": hold_rate,
         "rejection_rate": rejection_rate,
-        "reach_next_rate": reach_next_rate,
-        "timeout_share": timeout_share,
         "mean_retest_depth": mean_retest_depth,
         "touch_density": touch_density_fn(bar_count),
+        "already_hit_share": already_hit_share,
     }
+    for column in sweep_columns:
+        statistics[f"reach_rate[{column}]"] = reach_rate_for(column)
+        statistics[f"timeout_share[{column}]"] = timeout_share_for(column)
 
     results: List[GroupResult] = []
     for grouping in GROUPINGS:
@@ -147,9 +171,21 @@ def main() -> None:
     parser.add_argument("--out", default="docs/superpowers/reports")
     parser.add_argument("--slice", choices=["explore", "holdout"],
                         default="explore")
+    parser.add_argument(
+        "--stop-depths", default="0",
+        help="comma-separated ladder steps behind the breached level to place "
+             "the stop; 0 is the strict test (stop on the level itself)")
+    parser.add_argument(
+        "--windows", default="",
+        help="comma-separated bar windows for the race; empty uses the "
+             "corpus's own resolution_window_bars")
     args = parser.parse_args()
 
-    text = run(Path(args.corpus), slice_name=args.slice)
+    depths = tuple(float(d) for d in args.stop_depths.split(",") if d.strip())
+    race_windows = tuple(int(w) for w in args.windows.split(",") if w.strip())
+    text = run(Path(args.corpus), slice_name=args.slice,
+               stop_depths=depths or (0.0,),
+               windows=race_windows or None)
 
     out_dir = Path(args.out)
     out_dir.mkdir(parents=True, exist_ok=True)

@@ -1,6 +1,12 @@
 """
-The five questions asked of the corpus, each a pure function of an events
-frame.
+The questions asked of the corpus, each a pure function of an events frame.
+
+Some are factories rather than plain functions: `reach_rate_for` and
+`timeout_share_for` bind to one outcome column, so a sweep over stop depths
+and race windows gets a statistic per column without duplicating any logic.
+`reach_next_rate` and `timeout_share` stay bound to `reach_outcome` - the
+confirmed holdout result was measured under those names on that column, and
+neither may quietly change meaning.
 
 Every one returns Stat(value, n), and returns None rather than 0.0 when its
 denominator is empty. A zero denominator means 'this group cannot answer', and
@@ -111,37 +117,65 @@ def touch_density_fn(bar_count: int) -> StatisticFn:
     return touch_density
 
 
-def reach_next_rate(events: pd.DataFrame) -> Stat:
+def reach_rate_for(column: str) -> StatisticFn:
     """
-    REACHED / (REACHED + STOPPED). The headline hypothesis.
+    REACHED / (REACHED + STOPPED) on one outcome column.
 
     Timeouts are excluded: a race that ran out of window is neither a win nor
     a loss, and folding it into either side would move the rate for a reason
-    that has nothing to do with the levels. `timeout_share` reports them.
-
-    Reads the `reach_outcome` column written by ladder_rebuild.
+    that has nothing to do with the levels. `timeout_share_for` reports them.
     """
-    if "reach_outcome" not in events.columns:
-        return Stat(None, 0)
-    decided = events[events["reach_outcome"].isin(("REACHED", "STOPPED"))]
-    if decided.empty:
-        return Stat(None, 0)
-    reached = int((decided["reach_outcome"] == "REACHED").sum())
-    return Stat(reached / len(decided), len(decided))
+    def reach_rate(events: pd.DataFrame) -> Stat:
+        if column not in events.columns:
+            return Stat(None, 0)
+        decided = events[events[column].isin(("REACHED", "STOPPED"))]
+        if decided.empty:
+            return Stat(None, 0)
+        reached = int((decided[column] == "REACHED").sum())
+        return Stat(reached / len(decided), len(decided))
+
+    return reach_rate
 
 
-def timeout_share(events: pd.DataFrame) -> Stat:
+def timeout_share_for(column: str) -> StatisticFn:
+    """TIMEOUT / all raced breaches, for one outcome column."""
+    def timeout_share_of(events: pd.DataFrame) -> Stat:
+        if column not in events.columns:
+            return Stat(None, 0)
+        raced = events[events[column].isin(("REACHED", "STOPPED", "TIMEOUT"))]
+        if raced.empty:
+            return Stat(None, 0)
+        timeouts = int((raced[column] == "TIMEOUT").sum())
+        return Stat(timeouts / len(raced), len(raced))
+
+    return timeout_share_of
+
+
+def already_hit_share(events: pd.DataFrame) -> Stat:
     """
-    TIMEOUT / all raced breaches.
+    Share of raced breaches whose target was already touched at confirmation.
 
-    Reported beside reach_next_rate so the excluded races are visible. A group
-    whose races nearly all time out has a reach rate built on very little.
+    A breach confirms after two closes beyond the level, which can carry price
+    past the target before the race even starts. This measures exactly that:
+    the confirmation bar's own high (or low) had already reached the target.
+
+    It does **not** mean those rows are free wins. The race starts at the bar
+    after confirmation, so a row flagged here can still end STOPPED or
+    TIMEOUT. Read it as 'the target was touched before the race began'.
+
+    If this share is large the headline reach rate is partly measuring
+    confirmation lag rather than progression, so it is reported rather than
+    left implicit.
     """
-    if "reach_outcome" not in events.columns:
+    if "target_already_hit" not in events.columns:
         return Stat(None, 0)
-    raced = events[events["reach_outcome"].isin(
-        ("REACHED", "STOPPED", "TIMEOUT"))]
-    if raced.empty:
+    flags = events["target_already_hit"].dropna()
+    if flags.empty:
         return Stat(None, 0)
-    timeouts = int((raced["reach_outcome"] == "TIMEOUT").sum())
-    return Stat(timeouts / len(raced), len(raced))
+    return Stat(float(flags.astype(bool).mean()), len(flags))
+
+
+# The original names, bound to the strict column, so existing callers and the
+# confirmed holdout definition are untouched.
+reach_next_rate = reach_rate_for("reach_outcome")
+timeout_share = timeout_share_for("reach_outcome")

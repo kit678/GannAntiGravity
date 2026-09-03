@@ -18,7 +18,8 @@ sys.path.append(os.path.abspath('C:/Dev/GannTesting/gann-visualizer/backend'))
 
 from study_tool.mining.corpus_meta import CorpusMeta
 from study_tool.mining.ladder_rebuild import (
-    LadderCache, add_reach_outcomes, race_to_next_level, race_with_stop,
+    LadderCache, add_reach_outcomes, depth_label, outcome_column,
+    race_to_next_level, race_with_stop,
 )
 from study_tool.run_ladder_study import build_all_ladders, degree_to_square
 
@@ -541,3 +542,37 @@ def test_the_legacy_alias_is_absent_when_the_strict_case_was_not_computed():
         stop_depths=(1.0,), windows=(50,))
 
     assert "reach_outcome" not in result.columns
+
+
+def test_negative_zero_depth_is_still_the_strict_column():
+    """
+    `float("-0")` is a real thing the CLI can produce, and it compares equal
+    to 0, so the strict computation genuinely runs. If it labelled `dm0` the
+    legacy alias would silently vanish for a sweep that did compute it.
+    """
+    assert depth_label(-0.0) == depth_label(0.0)
+
+    result = add_reach_outcomes(
+        reach_events(), reach_bars(), LadderCache(keys_frame(), 1), meta(),
+        stop_depths=(-0.0,), windows=(50,))
+
+    assert "reach_d0_w50" in result.columns
+    assert "reach_outcome" in result.columns
+
+
+def test_a_genuinely_negative_depth_still_labels_with_m():
+    """A stop in front of the level is coherent input, and keeps its sign."""
+    assert depth_label(-1.0) == "m1"
+    assert outcome_column(-1.0, 50) == "reach_dm1_w50"
+
+
+def test_depths_that_would_share_a_column_name_are_refused():
+    """
+    `%g` is six significant figures, so 1.0 and 1.0000001 both label "1" and
+    the second column would silently overwrite the first. Silent wrong data
+    is the worst outcome available here, so it fails loudly instead.
+    """
+    with pytest.raises(ValueError, match="column name"):
+        add_reach_outcomes(
+            reach_events(), reach_bars(), LadderCache(keys_frame(), 1), meta(),
+            stop_depths=(1.0, 1.0000001), windows=(50,))

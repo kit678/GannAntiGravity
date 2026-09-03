@@ -215,13 +215,54 @@ def race_to_next_level(highs: np.ndarray, lows: np.ndarray,
 
 
 def depth_label(depth: float) -> str:
-    """`0.5` -> `0p5`. Column names cannot carry a dot without pain."""
-    text = f"{depth:g}"
+    """
+    A stop depth as a column-name fragment.
+
+    `0.5` -> `0p5`: column names cannot carry a dot without pain. A negative
+    depth - a stop placed *in front of* the level rather than behind it - is
+    coherent input, and its minus becomes `m`, so `-1.0` -> `m1`.
+
+    `-0.0` is normalised to `0.0` first. It compares equal to zero, so the
+    strict computation genuinely runs for it, and labelling it `m0` would hide
+    that column from everything looking for the strict one.
+    """
+    text = f"{depth + 0.0:g}"
     return text.replace(".", "p").replace("-", "m")
 
 
 def outcome_column(depth: float, window: int) -> str:
+    """
+    The column name for one (stop depth, race window) pair.
+
+    `reach_d<depth>_w<window>`, e.g. `reach_d0_w50` for the strict test at the
+    corpus's own window, or `reach_d0p5_w100` for a half-step stop over 100
+    bars. This is the name every statistic in the sweep is bound to.
+    """
     return f"reach_d{depth_label(depth)}_w{window}"
+
+
+def _distinct_columns(depths: Sequence[float],
+                      windows: Sequence[int]) -> None:
+    """
+    Refuse a sweep whose pairs would share a column name.
+
+    `depth_label` formats to six significant figures, so 1.0 and 1.0000001
+    both label "1" and the second column would silently overwrite the first.
+    Silently returning one depth's numbers under another depth's name is the
+    worst failure available here, so it is made loud.
+    """
+    seen: Dict[str, Tuple[float, int]] = {}
+    for depth in depths:
+        for window in windows:
+            name = outcome_column(depth, window)
+            clash = seen.get(name)
+            if clash is not None:
+                raise ValueError(
+                    f"stop depth {depth} with window {window} and stop depth "
+                    f"{clash[0]} with window {clash[1]} share the column name "
+                    f"{name!r}; one would silently overwrite the other"
+                )
+            seen[name] = (depth, window)
 
 
 def add_reach_outcomes(events: pd.DataFrame, bars: pd.DataFrame,
@@ -257,6 +298,9 @@ def add_reach_outcomes(events: pd.DataFrame, bars: pd.DataFrame,
         windows = (meta.resolution_window_bars,)
     depths = tuple(stop_depths)
     windows = tuple(windows)
+    # Up front, before the multi-minute race: a name clash discovered after it
+    # would cost the whole run, and silently discovered not at all.
+    _distinct_columns(depths, windows)
 
     frame = events.reset_index(drop=True)
     columns = {(d, w): [None] * len(frame) for d in depths for w in windows}

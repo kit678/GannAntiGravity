@@ -16,8 +16,9 @@ import pytest
 sys.path.append(os.path.abspath('C:/Dev/GannTesting/gann-visualizer/backend'))
 
 from study_tool.mining.statistics import (
-    hold_rate, mean_retest_depth, reach_next_rate, rejection_rate,
-    timeout_share, touch_density_fn,
+    already_hit_share, hold_rate, mean_retest_depth, reach_next_rate,
+    reach_rate_for, rejection_rate, timeout_share, timeout_share_for,
+    touch_density_fn,
 )
 
 
@@ -145,3 +146,49 @@ def test_every_statistic_returns_none_on_an_empty_frame():
                reach_next_rate, timeout_share, touch_density_fn(100)):
         assert fn(empty).value is None, fn
         assert fn(empty).n == 0, fn
+
+
+def test_reach_rate_for_reads_the_column_it_was_given():
+    frame = pd.DataFrame({
+        "reach_d0_w50": ["REACHED", "STOPPED", "STOPPED", "TIMEOUT"],
+        "reach_d1_w50": ["REACHED", "REACHED", "STOPPED", "TIMEOUT"],
+    })
+
+    assert reach_rate_for("reach_d0_w50")(frame).value == pytest.approx(1 / 3)
+    assert reach_rate_for("reach_d1_w50")(frame).value == pytest.approx(2 / 3)
+
+
+def test_reach_rate_for_a_missing_column_is_none_not_zero():
+    frame = pd.DataFrame({"reach_d0_w50": ["REACHED"]})
+
+    stat = reach_rate_for("reach_d9_w50")(frame)
+
+    assert stat.value is None
+    assert stat.n == 0
+
+
+def test_timeout_share_for_reads_its_own_column():
+    frame = pd.DataFrame({
+        "reach_d1_w50": ["REACHED", "STOPPED", "TIMEOUT", "TIMEOUT"],
+    })
+
+    assert timeout_share_for("reach_d1_w50")(frame).value == 0.5
+
+
+def test_already_hit_share_measures_free_wins():
+    """
+    The share of raced breaches whose target was already reached when the
+    breach confirmed. A high number would hollow out the headline rate.
+    """
+    frame = pd.DataFrame({"target_already_hit": [True, True, False, None]})
+
+    stat = already_hit_share(frame)
+
+    assert stat.value == pytest.approx(2 / 3)
+    assert stat.n == 3
+
+
+def test_already_hit_share_is_none_when_nothing_was_raced():
+    frame = pd.DataFrame({"target_already_hit": [None, None]})
+
+    assert already_hit_share(frame).value is None

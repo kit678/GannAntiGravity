@@ -219,6 +219,54 @@ def test_the_entry_point_mines_a_tiny_corpus_end_to_end(tmp_path):
     assert "Fairness check" in text
 
 
+def test_the_entry_point_sweeps_depths_and_windows(tmp_path):
+    """
+    The sweep wiring, end to end. Two depths must produce two reach rates and
+    two timeout shares, each named after its own column.
+
+    stop_depths=(1.0,) would leave `reach_outcome` absent, so this also pins
+    that the run does not subscript that column blind - a KeyError there would
+    land after the whole multi-minute race had already run.
+    """
+    sys.path.append(os.path.abspath(
+        'C:/Dev/GannTesting/gann-visualizer/backend/scripts'))
+    import pandas as pd
+    from build_gann_corpus import build_corpus
+    from mine_gann_corpus import run
+    from study_tool.corpus_writer import assign_slices, write_corpus
+
+    epoch = 1787629500
+    rows = []
+    for i in range(400):
+        open_ = 1300.0 + (i % 40) * 0.6
+        close = open_ + 0.5
+        rows.append({"open": open_, "high": close + 0.4, "low": open_ - 0.4,
+                     "close": close, "volume": 1000.0,
+                     "timestamp": float(epoch + i * 300),
+                     "sun_degree": 155.0 + i * 0.0007,
+                     "moon_degree": (331.0 + i * 0.009) % 360})
+    bars = pd.DataFrame(rows)
+
+    result = build_corpus(bars=bars, instrument="RELIANCE", timeframe="5",
+                          price_scale=1, shadow_count=3, seed=7)
+    meta = dict(result["meta"])
+    meta["from_date"], meta["to_date"] = "2026-08-01", "2026-08-31"
+    write_corpus(tmp_path, events=assign_slices(result["events"]),
+                 bars=result["bars"], ladder_keys=result["ladder_keys"],
+                 meta=meta)
+
+    text = run(tmp_path, stop_depths=(0.0, 1.0), windows=(50,))
+
+    for name in ("reach_rate[reach_d0_w50]", "reach_rate[reach_d1_w50]",
+                 "timeout_share[reach_d0_w50]", "timeout_share[reach_d1_w50]",
+                 "already_hit_share"):
+        assert name in text, f"missing {name}"
+
+    # No strict column in this sweep at all: the run must still complete.
+    assert "reach_rate[reach_d1_w50]" in run(
+        tmp_path, stop_depths=(1.0,), windows=(50,))
+
+
 def test_the_entry_point_refuses_a_corpus_with_no_meta(tmp_path):
     """The gate, exercised through the real entry point rather than in unit."""
     sys.path.append(os.path.abspath(
