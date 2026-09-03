@@ -203,3 +203,80 @@ def test_add_reach_outcomes_labels_only_confirmed_breaches():
 
     assert result.loc[1, "reach_outcome"] is None
     assert result.loc[0, "reach_outcome"] in ("REACHED", "STOPPED", "TIMEOUT")
+
+
+def test_zero_steps_returns_the_level_itself():
+    cache = LadderCache(keys_frame(), price_scale=1)
+    prices = list(cache.prices(bar_index=0, source="center"))
+    level = prices[len(prices) // 2]
+
+    assert cache.level_steps_away(0, "center", level, "up", 0.0, 0.0) == \
+        pytest.approx(level)
+
+
+def test_one_step_along_direction_matches_next_level():
+    """The existing next_level is the +1 case of this, and must agree."""
+    cache = LadderCache(keys_frame(), price_scale=1)
+    prices = list(cache.prices(bar_index=0, source="center"))
+    level = prices[len(prices) // 2]
+
+    for direction in ("up", "down"):
+        assert cache.level_steps_away(0, "center", level, direction, 0.0, 1.0) == \
+            pytest.approx(cache.next_level(0, "center", level, direction, 0.0))
+
+
+def test_negative_steps_go_against_the_breach_direction():
+    """The stop sits behind the breached level, so it is a negative step."""
+    cache = LadderCache(keys_frame(), price_scale=1)
+    prices = sorted(cache.prices(bar_index=0, source="center"))
+    index = len(prices) // 2
+    level = prices[index]
+
+    assert cache.level_steps_away(0, "center", level, "up", 0.0, -1.0) == \
+        pytest.approx(prices[index - 1])
+    assert cache.level_steps_away(0, "center", level, "down", 0.0, -1.0) == \
+        pytest.approx(prices[index + 1])
+
+
+def test_two_steps_back_skips_a_level():
+    cache = LadderCache(keys_frame(), price_scale=1)
+    prices = sorted(cache.prices(bar_index=0, source="center"))
+    index = len(prices) // 2
+
+    assert cache.level_steps_away(0, "center", prices[index], "up", 0.0, -2.0) == \
+        pytest.approx(prices[index - 2])
+
+
+def test_a_half_step_lands_between_two_levels():
+    """
+    Uneven spacing on off-centre crosses means a half step is half of the
+    real local gap, not half of a global constant.
+    """
+    cache = LadderCache(keys_frame(), price_scale=1)
+    prices = sorted(cache.prices(bar_index=0, source="center"))
+    index = len(prices) // 2
+    level, below = prices[index], prices[index - 1]
+
+    half = cache.level_steps_away(0, "center", level, "up", 0.0, -0.5)
+
+    assert half == pytest.approx(level - (level - below) / 2.0)
+    assert below < half < level
+
+
+def test_a_shadow_step_is_the_real_step_shifted_by_its_offset():
+    cache = LadderCache(keys_frame(), price_scale=1)
+    prices = sorted(cache.prices(bar_index=0, source="center"))
+    level = prices[len(prices) // 2]
+
+    real = cache.level_steps_away(0, "center", level, "up", 0.0, -1.0)
+    shadow = cache.level_steps_away(0, "center", level + 0.4, "up", 0.4, -1.0)
+
+    assert shadow == pytest.approx(real + 0.4)
+
+
+def test_running_off_the_end_of_the_ladder_returns_none():
+    cache = LadderCache(keys_frame(), price_scale=1)
+    prices = sorted(cache.prices(bar_index=0, source="center"))
+
+    assert cache.level_steps_away(0, "center", prices[0], "up", 0.0, -1.0) is None
+    assert cache.level_steps_away(0, "center", prices[-1], "up", 0.0, 1.0) is None

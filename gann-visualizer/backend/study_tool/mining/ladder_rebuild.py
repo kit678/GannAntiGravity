@@ -18,6 +18,7 @@ Two things keep that affordable:
 """
 
 import bisect
+import math
 from typing import Dict, List, Optional, Tuple
 
 import numpy as np
@@ -108,6 +109,61 @@ class LadderCache:
         if index < 0:
             return None
         return prices[index] + offset
+
+    def _index_of(self, prices: List[float], unshifted: float) -> Optional[int]:
+        """
+        Position of `unshifted` in the sorted ladder, or None if it is not a
+        ladder price. A tolerance below one paise absorbs the Parquet float
+        round-trip, exactly as next_level does.
+        """
+        epsilon = 1e-6
+        index = bisect.bisect_left(prices, unshifted - epsilon)
+        if index < len(prices) and abs(prices[index] - unshifted) <= epsilon:
+            return index
+        return None
+
+    def level_steps_away(self, bar_index: int, source: str, level_price: float,
+                         direction: str, offset: float,
+                         steps: float) -> Optional[float]:
+        """
+        The price `steps` ladder positions from `level_price` along `direction`.
+
+        Positive steps go with the breach (the target side), negative steps go
+        against it (the stop side). `steps=1` is exactly `next_level`.
+
+        Fractional steps interpolate between the two bracketing levels, so a
+        half step is half of the *real local gap*. That matters: spacing is
+        uneven on off-centre crosses, so half of `median_sub_gap` would be the
+        wrong distance nearly everywhere.
+
+        Returns None when the walk runs off the end of the finite ladder.
+        """
+        prices = self.prices(bar_index, source)
+        if not prices:
+            return None
+
+        unshifted = level_price - offset
+        base = self._index_of(prices, unshifted)
+        if base is None:
+            return None
+
+        # Ladder prices ascend, so walking "down" means walking left.
+        signed = steps if direction == "up" else -steps
+        lower = math.floor(signed)
+        upper = math.ceil(signed)
+
+        if not (0 <= base + lower < len(prices)):
+            return None
+        if not (0 <= base + upper < len(prices)):
+            return None
+
+        low_price = prices[base + int(lower)]
+        if lower == upper:
+            return low_price + offset
+
+        high_price = prices[base + int(upper)]
+        fraction = signed - lower
+        return low_price + (high_price - low_price) * fraction + offset
 
 
 def race_to_next_level(highs: np.ndarray, lows: np.ndarray,
