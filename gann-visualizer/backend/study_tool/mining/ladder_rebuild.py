@@ -19,7 +19,7 @@ Two things keep that affordable:
 
 import bisect
 import math
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Sequence, Tuple
 
 import numpy as np
 import pandas as pd
@@ -214,50 +214,108 @@ def race_to_next_level(highs: np.ndarray, lows: np.ndarray,
                           direction=direction, window=window)
 
 
+def depth_label(depth: float) -> str:
+    """`0.5` -> `0p5`. Column names cannot carry a dot without pain."""
+    text = f"{depth:g}"
+    return text.replace(".", "p").replace("-", "m")
+
+
+def outcome_column(depth: float, window: int) -> str:
+    return f"reach_d{depth_label(depth)}_w{window}"
+
+
 def add_reach_outcomes(events: pd.DataFrame, bars: pd.DataFrame,
-                       cache: LadderCache, meta: CorpusMeta) -> pd.DataFrame:
+                       cache: LadderCache, meta: CorpusMeta,
+                       stop_depths: Sequence[float] = (0.0,),
+                       windows: Optional[Sequence[int]] = None) -> pd.DataFrame:
     """
-    Add a `reach_outcome` column: REACHED / STOPPED / TIMEOUT, or None.
+    Add one REACHED/STOPPED/TIMEOUT column per (stop depth, window) pair.
 
-    None means the row was not raced - it is not a confirmed breach, or its
-    cross had no next level beyond the breached one. None is not a loss and
-    the statistics treat it as absent.
+    `stop_depths` is in ladder steps behind the breached level. 0.0 is the
+    strict test: the stop sits on the level itself. 1.0 puts it one level
+    behind, so a dip back that retests the level and holds stays alive.
 
-    Run before compare(), so every statistic stays a pure frame -> Stat.
+    Also adds:
+      reach_outcome       - alias of the (0.0, corpus window) column, because
+                            the confirmed holdout result was measured on that
+                            name and must not change meaning.
+      target_already_hit  - True when the breach's own confirmation bar had
+                            already reached the target. Those wins cost no
+                            travel; their share must be visible.
+
+    None means the row was not raced: not a confirmed breach, no direction, or
+    the ladder ran out before the target or the stop. None is not a loss.
+
+    The ladder is queried once per row per distinct depth, then every window
+    reuses those prices - the lookup is the expensive half over ~560k rows.
     """
     highs = bars["high"].to_numpy(dtype=float)
     lows = bars["low"].to_numpy(dtype=float)
     closes = bars["close"].to_numpy(dtype=float)
-    window = meta.resolution_window_bars
+
+    if windows is None:
+        windows = (meta.resolution_window_bars,)
+    depths = tuple(stop_depths)
+    windows = tuple(windows)
 
     frame = events.reset_index(drop=True)
-    outcomes: List[Optional[str]] = [None] * len(frame)
+    columns = {(d, w): [None] * len(frame) for d in depths for w in windows}
+    already_hit: List[Optional[bool]] = [None] * len(frame)
 
-    # Positional rather than label-based: the frame arrives from a filtered
-    # slice, and iterating positions keeps the outcome list aligned with it.
     is_confirmed = (frame["event_type"] == CONFIRMED).to_numpy()
+    bar_indices = frame["bar_index"].to_numpy()
+    level_prices = frame["level_price"].to_numpy()
+    directions = frame["direction"].to_numpy()
+    sources = frame["level_source"].to_numpy()
+    shadow_ids = frame["shadow_id"].to_numpy()
 
     for position in range(len(frame)):
         if not is_confirmed[position]:
             continue
-
-        row = frame.iloc[position]
-        direction = row["direction"]
+        direction = directions[position]
         if direction not in ("up", "down"):
             continue
 
-        level_price = float(row["level_price"])
-        target = cache.next_level(
-            bar_index=int(row["bar_index"]), source=row["level_source"],
-            level_price=level_price, direction=direction,
-            offset=meta.offset_for(row["shadow_id"]))
+        bar = int(bar_indices[position])
+        source = sources[position]
+        level_price = float(level_prices[position])
+        offset = meta.offset_for(shadow_ids[position])
+
+        # next_level, not level_steps_away, deliberately. level_steps_away
+        # requires level_price to BE a ladder price within 1e-6 and returns
+        # None otherwise, while next_level brackets any price. Swapping it in
+        # here could silently drop rows the confirmed result raced, which
+        # would change what reach_outcome means. The target keeps its
+        # original lookup; only the stop uses the new step arithmetic.
+        target = cache.next_level(bar, source, level_price, direction, offset)
         if target is None:
             continue
 
-        outcomes[position] = race_to_next_level(
-            highs, lows, closes, start=int(row["bar_index"]),
-            level_price=level_price, target=target,
-            direction=direction, window=window)
+        already_hit[position] = bool(
+            highs[bar] >= target if direction == "up" else lows[bar] <= target)
 
-    frame["reach_outcome"] = outcomes
+        for depth in depths:
+            if depth == 0:
+                # The strict case: the stop is the breached level itself,
+                # taken directly rather than via a ladder lookup, so depth 0
+                # cannot drift from the confirmed definition.
+                stop_price = level_price
+            else:
+                stop_price = cache.level_steps_away(
+                    bar, source, level_price, direction, offset, -float(depth))
+            if stop_price is None:
+                continue
+            for window in windows:
+                columns[(depth, window)][position] = race_with_stop(
+                    highs, lows, closes, start=bar, stop_price=stop_price,
+                    target=target, direction=direction, window=window)
+
+    for (depth, window), values in columns.items():
+        frame[outcome_column(depth, window)] = values
+    frame["target_already_hit"] = already_hit
+
+    legacy = outcome_column(0.0, meta.resolution_window_bars)
+    if legacy in frame.columns:
+        frame["reach_outcome"] = frame[legacy]
+
     return frame

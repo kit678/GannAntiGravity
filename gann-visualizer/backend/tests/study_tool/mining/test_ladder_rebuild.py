@@ -374,3 +374,170 @@ def test_a_shorter_window_can_turn_a_win_into_a_timeout():
                           target=104.5, direction="up", window=3) == "TIMEOUT"
     assert race_with_stop(highs, lows, closes, start=0, stop_price=98.0,
                           target=104.5, direction="up", window=50) == "REACHED"
+
+
+# A genuine `center` ladder price for this key, not a round number near it.
+# The stop lookup walks the ladder by index, so it only resolves for prices
+# that really are levels - which is what the corpus records for a breach.
+BREACHED_LEVEL = 1306.0
+
+
+def reach_events():
+    return pd.DataFrame({
+        "event_type": ["LADDER_BREACH_CONFIRMED", "LADDER_TOUCH"],
+        "bar_index": [0, 0],
+        "shadow_id": [None, None],
+        "level_source": ["center", "center"],
+        "level_price": [BREACHED_LEVEL, BREACHED_LEVEL],
+        "direction": ["up", None],
+    })
+
+
+def reach_bars():
+    return pd.DataFrame({
+        "high": [1310.0, 1400.0], "low": [1300.0, 1305.0],
+        "close": [1308.0, 1390.0],
+    })
+
+
+def test_outcome_column_named_per_depth_and_window():
+    result = add_reach_outcomes(
+        reach_events(), reach_bars(), LadderCache(keys_frame(), 1), meta(),
+        stop_depths=(0.0, 0.5, 1.0), windows=(50,))
+
+    for name in ("reach_d0_w50", "reach_d0p5_w50", "reach_d1_w50"):
+        assert name in result.columns, f"missing {name}"
+
+
+def test_the_legacy_column_still_exists_and_is_the_strict_case():
+    """
+    The confirmed holdout result was measured on `reach_outcome`. It must
+    keep meaning exactly what it meant: depth 0, the corpus's own window.
+    """
+    result = add_reach_outcomes(
+        reach_events(), reach_bars(), LadderCache(keys_frame(), 1), meta(),
+        stop_depths=(0.0, 1.0), windows=(50,))
+
+    assert "reach_outcome" in result.columns
+    assert list(result["reach_outcome"]) == list(result["reach_d0_w50"])
+
+
+def test_a_deeper_stop_never_turns_a_win_into_a_loss():
+    """
+    Loosening the stop can only keep a race alive longer. A breach that
+    reached the target with a tight stop must still reach it with a wider one.
+    """
+    result = add_reach_outcomes(
+        reach_events(), reach_bars(), LadderCache(keys_frame(), 1), meta(),
+        stop_depths=(0.0, 2.0), windows=(50,))
+
+    tight, wide = result.loc[0, "reach_d0_w50"], result.loc[0, "reach_d2_w50"]
+    if tight == "REACHED":
+        assert wide == "REACHED"
+
+
+def test_non_breach_rows_stay_none_in_every_column():
+    result = add_reach_outcomes(
+        reach_events(), reach_bars(), LadderCache(keys_frame(), 1), meta(),
+        stop_depths=(0.0, 1.0), windows=(50, 100))
+
+    for name in ("reach_d0_w50", "reach_d1_w50", "reach_d0_w100",
+                 "reach_d1_w100"):
+        assert result.loc[1, name] is None
+
+
+def test_depth_zero_matches_the_original_strict_computation():
+    """
+    The hard regression guard. The confirmed 8/13 holdout result was measured
+    by racing with the stop on the breached level and the target from
+    next_level. Depth 0 must reproduce that call for call, not merely
+    resemble it.
+    """
+    events, bars = reach_events(), reach_bars()
+    cache = LadderCache(keys_frame(), 1)
+
+    result = add_reach_outcomes(events, bars, cache, meta(),
+                                stop_depths=(0.0,), windows=(50,))
+
+    row = events.loc[0]
+    target = cache.next_level(0, row["level_source"], row["level_price"],
+                              row["direction"], 0.0)
+    expected = race_to_next_level(
+        bars["high"].to_numpy(float), bars["low"].to_numpy(float),
+        bars["close"].to_numpy(float), start=0,
+        level_price=row["level_price"], target=target,
+        direction=row["direction"], window=50)
+
+    assert result.loc[0, "reach_d0_w50"] == expected
+
+
+def test_target_already_hit_is_recorded():
+    """
+    A breach confirms after two closes beyond the level, which can already
+    carry price past the target. Those wins cost no travel, so their share
+    has to be visible rather than buried in the rate.
+    """
+    result = add_reach_outcomes(
+        reach_events(), reach_bars(), LadderCache(keys_frame(), 1), meta(),
+        stop_depths=(0.0,), windows=(50,))
+
+    assert "target_already_hit" in result.columns
+    assert result.loc[0, "target_already_hit"] in (True, False)
+    assert result.loc[1, "target_already_hit"] is None
+
+
+def test_the_ladder_is_queried_once_per_row_not_once_per_column(monkeypatch):
+    """
+    Eight columns must not mean eight ladder lookups per breach - that is the
+    hot path over half a million rows.
+    """
+    cache = LadderCache(keys_frame(), 1)
+    calls = {"n": 0}
+    real = cache.level_steps_away
+
+    def counting(*args, **kwargs):
+        calls["n"] += 1
+        return real(*args, **kwargs)
+
+    monkeypatch.setattr(cache, "level_steps_away", counting)
+
+    add_reach_outcomes(reach_events(), reach_bars(), cache, meta(),
+                       stop_depths=(0.0, 0.5, 1.0, 2.0), windows=(50, 100))
+
+    # one target + one stop per distinct depth, for the single breach row
+    assert calls["n"] <= 5, f"{calls['n']} lookups for one breach"
+
+
+def test_a_level_price_off_the_ladder_still_races_at_depth_zero():
+    """
+    The asymmetry between target and stop, pinned so it cannot surprise later.
+
+    The target comes from next_level, which brackets any price, and depth 0
+    takes the level itself - so the strict column races whatever the corpus
+    recorded. A deeper stop has to address the ladder by index, so a price
+    that is not a level has nowhere to step from and stays None. None is not
+    a loss, and depth 0 - the confirmed definition - is never affected.
+    """
+    events = reach_events()
+    events["level_price"] = [1307.0, 1307.0]   # near a level, but not one
+
+    result = add_reach_outcomes(
+        events, reach_bars(), LadderCache(keys_frame(), 1), meta(),
+        stop_depths=(0.0, 1.0), windows=(50,))
+
+    assert result.loc[0, "reach_d0_w50"] in ("REACHED", "STOPPED", "TIMEOUT")
+    assert result.loc[0, "reach_d1_w50"] is None
+
+
+def test_the_legacy_alias_is_absent_when_the_strict_case_was_not_computed():
+    """
+    `reach_outcome` names one thing: depth 0 at the corpus window. If the
+    sweep did not compute that, the column must be missing rather than
+    aliased onto some other depth - a wrong number under that name is far
+    worse than no number.
+    """
+    result = add_reach_outcomes(
+        reach_events(), reach_bars(), LadderCache(keys_frame(), 1), meta(),
+        stop_depths=(1.0,), windows=(50,))
+
+    assert "reach_outcome" not in result.columns
