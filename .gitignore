@@ -58,3 +58,6 @@ Thumbs.db
 temp_img*.png
 screenshot_*.png
 nul
+
+# Gann corpus builds (hours to build, large Parquet files - never commit)
+gann-visualizer/backend/logs/corpus/
