@@ -134,3 +134,29 @@ def test_breach_outcome_is_lifted_into_its_own_column():
     resolved = events[events["event_type"] == "LADDER_BREACH_RESOLVED"]
     assert len(resolved) > 0, "no resolved breaches to check"
     assert resolved["outcome"].notna().any()
+
+
+def test_build_returns_one_offset_per_shadow():
+    """
+    Mining shifts each shadow's target by its own offset. A missing or
+    misaligned offset silently prices every shadow target wrongly.
+    """
+    result = build_corpus(
+        bars=synthetic_bars(), instrument="RELIANCE", timeframe="5",
+        price_scale=1, shadow_count=3, seed=7,
+    )
+    meta = result["meta"]
+
+    assert len(meta["shadow_offsets"]) == 3
+    assert meta["seed"] == 7
+    assert meta["price_scale"] == 1
+    assert meta["shadow_count"] == 3
+    assert meta["resolution_window_bars"] == 50
+    assert meta["bar_count"] == 60
+
+
+def test_meta_offsets_are_reproducible_from_the_seed():
+    kwargs = dict(bars=synthetic_bars(), instrument="RELIANCE", timeframe="5",
+                  price_scale=1, shadow_count=3, seed=7)
+    assert build_corpus(**kwargs)["meta"]["shadow_offsets"] == \
+        build_corpus(**kwargs)["meta"]["shadow_offsets"]

@@ -17,14 +17,23 @@ convention, and the loader defaults to explore, so reaching the holdout takes a
 deliberate argument and shows up in code review.
 """
 
+import json
 import math
 from pathlib import Path
-from typing import Union
+from typing import Dict, Union
 
 import pandas as pd
 
 SLICES = ("explore", "holdout")
 TABLES = ("events", "bars", "ladder_keys")
+META_FILENAME = "meta.json"
+
+# Everything the mining phase needs and cannot recover from the events.
+REQUIRED_META_FIELDS = (
+    "corpus_meta_version", "symbol", "from_date", "to_date", "interval",
+    "price_scale", "shadow_count", "seed", "median_sub_gap",
+    "shadow_offsets", "resolution_window_bars", "bar_count",
+)
 
 
 def assign_slices(events: pd.DataFrame, holdout_fraction: float = 0.25,
@@ -43,22 +52,45 @@ def assign_slices(events: pd.DataFrame, holdout_fraction: float = 0.25,
     return frame
 
 
+def _validate_meta(meta: Dict) -> None:
+    missing = [f for f in REQUIRED_META_FIELDS if f not in meta]
+    if missing:
+        raise ValueError(f"meta is missing {missing}")
+
+    if len(meta["shadow_offsets"]) != meta["shadow_count"]:
+        raise ValueError(
+            f"shadow_offsets has {len(meta['shadow_offsets'])} entries but "
+            f"shadow_count is {meta['shadow_count']}; a short list would "
+            "silently mis-target most shadows"
+        )
+
+
 def write_corpus(corpus_dir: Union[str, Path], events: pd.DataFrame,
                  bars: pd.DataFrame, ladder_keys: pd.DataFrame,
-                 overwrite: bool = False) -> None:
+                 meta: Dict, overwrite: bool = False) -> None:
     """
-    Write all three tables as Parquet.
+    Write the three tables as Parquet, plus meta.json.
 
-    Refuses to touch a directory that already holds any of the three files
-    unless overwrite=True. A corpus can take hours to build, and to_parquet
-    would otherwise replace it with no warning.
+    `meta` is required, not optional. The shadow offsets it carries are not
+    recoverable from the events - joining real to shadow on
+    (bar_index, source, degree, sub_index) yields 178-182 conflicting deltas
+    per shadow - so a corpus written without them cannot be mined at all. An
+    optional argument would let that gap reappear silently.
+
+    Refuses to touch a directory that already holds any corpus file unless
+    overwrite=True. A corpus can take hours to build, and to_parquet would
+    otherwise replace it with no warning.
     """
+    _validate_meta(meta)
+
     corpus_dir = Path(corpus_dir)
     corpus_dir.mkdir(parents=True, exist_ok=True)
 
     if not overwrite:
         existing = [name for name in TABLES
                     if (corpus_dir / f"{name}.parquet").exists()]
+        if (corpus_dir / META_FILENAME).exists():
+            existing.append(META_FILENAME)
         if existing:
             raise FileExistsError(
                 f"{corpus_dir} already has {existing}; pass overwrite=True to replace"
@@ -66,6 +98,29 @@ def write_corpus(corpus_dir: Union[str, Path], events: pd.DataFrame,
 
     for name, frame in zip(TABLES, (events, bars, ladder_keys)):
         frame.to_parquet(corpus_dir / f"{name}.parquet", index=False)
+
+    (corpus_dir / META_FILENAME).write_text(
+        json.dumps(meta, indent=2, sort_keys=True), encoding="utf-8")
+
+
+def load_meta(corpus_dir: Union[str, Path]) -> Dict:
+    """
+    The corpus build metadata.
+
+    Raises:
+        FileNotFoundError: if meta.json is absent. Guessing the offsets is
+            worse than stopping - a wrong offset puts every shadow's
+            next-level target on the wrong price and the report still prints.
+    """
+    path = Path(corpus_dir) / META_FILENAME
+    if not path.exists():
+        raise FileNotFoundError(
+            f"{path} not found; run scripts/backfill_corpus_meta.py for a "
+            "corpus built before meta.json existed"
+        )
+    meta = json.loads(path.read_text(encoding="utf-8"))
+    _validate_meta(meta)
+    return meta
 
 
 def load_events(corpus_dir: Union[str, Path],

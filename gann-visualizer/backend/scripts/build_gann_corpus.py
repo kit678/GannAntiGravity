@@ -106,12 +106,16 @@ def _events_to_frame(events: List, candles: List[Dict],
     return frame
 
 
+CORPUS_META_VERSION = 1
+
+
 def build_corpus(bars: pd.DataFrame, instrument: str, timeframe: str,
                  price_scale: int, shadow_count: int, seed: int) -> Dict:
     """
     Walk `bars` against the real ladder and `shadow_count` shifted ones.
 
-    Returns a dict with `events`, `bars` and `ladder_keys` frames.
+    Returns a dict with `events`, `bars`, `ladder_keys` and `meta`. The meta
+    carries the shadow offsets, which nothing downstream can recompute.
     """
     settings = _analyzer_settings(instrument, timeframe, price_scale)
 
@@ -161,6 +165,18 @@ def build_corpus(bars: pd.DataFrame, instrument: str, timeframe: str,
         "events": pd.concat(frames, ignore_index=True),
         "bars": bars.reset_index(drop=True),
         "ladder_keys": pd.DataFrame(keys),
+        "meta": {
+            "corpus_meta_version": CORPUS_META_VERSION,
+            "symbol": instrument,
+            "interval": timeframe,
+            "price_scale": price_scale,
+            "shadow_count": shadow_count,
+            "seed": seed,
+            "median_sub_gap": gap,
+            "shadow_offsets": list(offsets),
+            "resolution_window_bars": settings["resolution_window_bars"],
+            "bar_count": int(len(bars)),
+        },
     }
 
 
@@ -187,8 +203,12 @@ def main() -> None:
         price_scale=args.scale, shadow_count=args.shadows, seed=args.seed)
 
     events = assign_slices(result["events"], order_column="bar_index")
+    meta = dict(result["meta"])
+    meta["from_date"] = args.from_date
+    meta["to_date"] = args.to_date
     write_corpus(Path(args.out), events=events, bars=result["bars"],
-                 ladder_keys=result["ladder_keys"], overwrite=args.overwrite)
+                 ladder_keys=result["ladder_keys"], meta=meta,
+                 overwrite=args.overwrite)
 
     real = events[events["shadow_id"].isna()]
     print(f"\nwrote {args.out}")
