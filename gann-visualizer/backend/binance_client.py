@@ -334,7 +334,9 @@ class BinanceClient:
         """
         original_interval = interval  # Preserve before resolution mapping (e.g. "4" → "1m")
         resolution = interval if interval else "1h"
-        if resolution.isdigit():
+        # Map any TradingView resolution that is not already a native Binance
+        # interval — this covers "60" as well as "D"/"W"/"M".
+        if resolution not in self.SUPPORTED_INTERVALS:
             resolution = self.tv_resolution_to_interval(resolution)
 
         from_dt = datetime.fromisoformat(from_date_str.replace("Z", "")).replace(tzinfo=timezone.utc)
