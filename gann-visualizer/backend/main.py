@@ -11,6 +11,7 @@ import pandas as pd
 from dhan_client import DhanClient
 from yfinance_client import YFinanceClient
 from binance_client import BinanceClient
+from alpaca_client import AlpacaClient
 from gann_logic import GannStrategyEngine  # Keep for backward compatibility
 from strategies import get_strategy, STRATEGY_REGISTRY  # New strategy system
 from backtest_engine import BacktestEngine  # New backtesting engine
@@ -218,7 +219,7 @@ class BacktestRequest(BaseModel):
     to_date: str = None   # YYYY-MM-DD
     days: int = 5
     resolution: str = "1" # Default to 1-minute
-    data_source: str = "dhan"  # "dhan" or "yfinance"
+    data_source: str = "dhan"  # "dhan", "yfinance", "binance", or "alpaca"
     pivotSettings: Optional[Dict[str, Any]] = None  # Settings like leftBars, rightBars, showIntersectionLabels
 
 class FetchCandlesRequest(BaseModel):
@@ -227,7 +228,7 @@ class FetchCandlesRequest(BaseModel):
     to_date: str  
     resolution: str = "1"
     strategy: Optional[str] = None  # Optional: if provided, prefetch option data for option strategies
-    data_source: str = "dhan"  # "dhan" or "yfinance"
+    data_source: str = "dhan"  # "dhan", "yfinance", "binance", or "alpaca"
     lookback_bars: int = 50  # Number of bars to fetch before from_date for pivot context
     pivotSettings: Optional[Dict[str, Any]] = None  # Settings like leftBars, rightBars, showIntersectionLabels
 
@@ -237,7 +238,40 @@ def get_data_client(data_source: str = "dhan"):
         return YFinanceClient()
     if data_source == "binance":
         return BinanceClient(use_testnet=False)
+    if data_source == "alpaca":
+        return AlpacaClient()
     return DhanClient()
+
+# Suffix markers carried on TradingView tickers so /symbols and /history can route
+# even when the data_source query param is absent.
+SOURCE_SUFFIXES = {":YF": "yfinance", ":BN": "binance", ":ALP": "alpaca"}
+
+# Sources whose clients speak UTC. Dhan expects IST.
+UTC_SOURCES = ("yfinance", "binance", "alpaca")
+
+def resolve_symbol_source(symbol: str, data_source: str = "dhan"):
+    """Split a TradingView ticker into (clean_symbol, data_source).
+
+    Precedence: an explicit suffix wins, then an explicitly requested non-Dhan
+    source, then symbol-shape detection for the cases where TradingView strips
+    the suffix before calling back.
+    """
+    for suffix, source in SOURCE_SUFFIXES.items():
+        if symbol.endswith(suffix):
+            return symbol[:-len(suffix)], source
+
+    if data_source in UTC_SOURCES:
+        return symbol, data_source
+
+    # Yahoo indices (^NSEI), and Indian NSE/BSE tickers
+    if symbol.startswith("^") or symbol.endswith(".NS") or symbol.endswith(".BO"):
+        return symbol, "yfinance"
+
+    # Binance perpetual pairs (BTCUSDT)
+    if re.match(r'^[A-Z0-9]{2,12}USDT$', symbol):
+        return symbol, "binance"
+
+    return symbol, data_source
 
 class EvaluateStrategyRequest(BaseModel):
     strategy: str
@@ -370,6 +404,20 @@ def udf_search(query: str, type: str, exchange: str, limit: int, data_source: st
             })
         return results
 
+    # Route to Alpaca search if selected
+    if data_source == "alpaca":
+        alp_client = AlpacaClient()
+        for r in alp_client.search(query, limit=limit):
+            results.append({
+                "symbol": f"{r['symbol']}:ALP", # Add suffix for easier routing
+                "full_name": r["full_name"],
+                "description": r["description"],
+                "exchange": r["exchange"],
+                "ticker": f"{r['symbol']}:ALP",
+                "type": r["type"]
+            })
+        return results
+
     # Route to Binance search if selected
     if data_source == "binance":
         q = query.upper().strip()
@@ -489,22 +537,19 @@ def udf_search(query: str, type: str, exchange: str, limit: int, data_source: st
 
 @app.get("/symbols")
 def udf_symbols(symbol: str):
-    # Check for YFinance Suffix
-    is_yfinance = symbol.endswith(":YF")
-    clean_symbol = symbol.replace(":YF", "")
+    clean_symbol, source = resolve_symbol_source(symbol)
+    is_binance = source == "binance"
 
-    # Check for Binance Suffix
-    is_binance = symbol.endswith(":BN")
-    clean_symbol = clean_symbol.replace(":BN", "")
-
-    # Auto-detect Binance crypto pairs
-    if not is_yfinance and not is_binance:
-        if re.match(r'^[A-Z0-9]{2,12}USDT$', clean_symbol):
-            is_binance = True
-    
-    if is_yfinance:
+    if source == "yfinance":
         client = YFinanceClient()
         info = client.get_info(clean_symbol)
+        if info:
+            info['symbol'] = symbol
+            info['ticker'] = symbol
+            return info
+
+    if source == "alpaca":
+        info = AlpacaClient().get_info(clean_symbol)
         if info:
             info['symbol'] = symbol
             info['ticker'] = symbol
@@ -560,49 +605,18 @@ def udf_history(symbol: str, resolution: str, from_: int = Query(..., alias="fro
     print(f"[UDF_HISTORY] from_={from_}, to={to}, data_source={data_source}")
     print(f"{'='*60}")
     
-    # Detect Source via Suffix first (explicit :YF marker)
-    is_yfinance = symbol.endswith(":YF")
-    clean_symbol = symbol.replace(":YF", "")
-
-    # Detect explicit Binance marker
-    is_binance = symbol.endswith(":BN") or data_source == "binance"
-    clean_symbol = clean_symbol.replace(":BN", "")
-
-    # Auto-detect Yahoo Finance symbols by pattern if not explicitly marked
-    # This handles cases where TradingView strips the :YF suffix
-    if not is_yfinance and not is_binance:
-        # Check for Yahoo Finance symbol patterns:
-        # - Indices start with ^ (^NSEI, ^GSPC, ^DJI, etc.)
-        # - Indian NSE stocks end with .NS
-        # - Indian BSE stocks end with .BO
-        # - Common US stocks (no suffix, but not Dhan format)
-        if (clean_symbol.startswith("^") or 
-            clean_symbol.endswith(".NS") or 
-            clean_symbol.endswith(".BO")):
-            is_yfinance = True
-            print(f"[udf_history] Auto-detected Yahoo Finance symbol: {clean_symbol}")
-
-    # Auto-detect Binance crypto pairs (e.g. BTCUSDT, ETHUSDT)
-    if not is_yfinance and not is_binance:
-        if re.match(r'^[A-Z0-9]{2,12}USDT$', clean_symbol):
-            is_binance = True
-            print(f"[udf_history] Auto-detected Binance crypto symbol: {clean_symbol}")
-    
-    if is_yfinance:
-        client = get_data_client("yfinance")
-        symbol = clean_symbol
-        data_source = "yfinance"
-    elif is_binance:
-        client = get_data_client("binance")
-        symbol = clean_symbol
-        data_source = "binance"
-        print(f"[udf_history] Using Binance client for {symbol}")
+    # Resolve source from an explicit suffix, the query param, or symbol shape.
+    symbol, resolved_source = resolve_symbol_source(symbol, data_source)
+    if resolved_source != data_source:
+        print(f"[udf_history] Routed {symbol} to {resolved_source}")
+    data_source = resolved_source
+    client = get_data_client(data_source)
 
     df = pd.DataFrame()
-    
+
     # Convert timestamps to Date Strings.
-    # Binance & YFinance expect UTC; Dhan API expects local time (IST).
-    _tz = timezone.utc if data_source in ("binance", "yfinance") else None
+    # Binance, YFinance & Alpaca expect UTC; Dhan API expects local time (IST).
+    _tz = timezone.utc if data_source in UTC_SOURCES else None
     try:
         from_dt_safe = datetime.fromtimestamp(max(0, from_), tz=_tz)
         to_dt_safe = datetime.fromtimestamp(max(0, to), tz=_tz)
@@ -961,13 +975,10 @@ async def fetch_candles(req: FetchCandlesRequest):
         print(f"[Step-by-Step] Fetching candles: {req.symbol} [{req.data_source}] from {req.from_date} to {req.to_date}, resolution: {req.resolution}")
         print(f"[Step-by-Step] Lookback bars requested: {req.lookback_bars}")
         
-        client = get_data_client(req.data_source)
-        
-        # Prepare valid symbol for fetching (strip YF tag)
-        clean_symbol = req.symbol
-        if clean_symbol.endswith(":YF"):
-            clean_symbol = clean_symbol.replace(":YF", "")
-        
+        # Prepare valid symbol for fetching (strip source tag)
+        clean_symbol, resolved_source = resolve_symbol_source(req.symbol, req.data_source)
+        client = get_data_client(resolved_source)
+
         # Determine warmup window using from_date-anchored strategy.
         # The user's chosen from_date is always the reference point.
         # Treat the date string as UTC (not local) to match simulation & binance replay scripts.
@@ -1769,15 +1780,16 @@ def run_backtest(req: BacktestRequest):
                       start_d = end_d - timedelta(days=req.days)
                       df = client.fetch_data(req.symbol, start_d.strftime("%Y-%m-%d"), end_d.strftime("%Y-%m-%d"))
         
-        elif req.data_source == "yfinance":
-            # Simple direct fetch for Yahoo
-            # req.symbol needs to be the Yahoo Ticker (e.g. "RELIANCE.NS")
+        else:
+            # Direct fetch for the ticker-based sources (yfinance, binance, alpaca).
+            # req.symbol is the source's own ticker, e.g. "RELIANCE.NS", "BTCUSDT", "AAPL".
+            fetch_symbol, _ = resolve_symbol_source(req.symbol, req.data_source)
             if req.from_date and req.to_date:
-                df = client.fetch_data(req.symbol, req.from_date, req.to_date, interval=req.resolution)
+                df = client.fetch_data(fetch_symbol, req.from_date, req.to_date, interval=req.resolution)
             else:
                 end_d = datetime.now()
                 start_d = end_d - timedelta(days=req.days)
-                df = client.fetch_data(req.symbol, start_d.strftime("%Y-%m-%d"), end_d.strftime("%Y-%m-%d"), interval=req.resolution)
+                df = client.fetch_data(fetch_symbol, start_d.strftime("%Y-%m-%d"), end_d.strftime("%Y-%m-%d"), interval=req.resolution)
 
         
         if df is None or df.empty:

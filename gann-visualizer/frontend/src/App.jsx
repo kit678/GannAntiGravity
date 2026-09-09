@@ -237,6 +237,9 @@ function App() {
         } else if (newSource === 'binance') {
             setChartMountSymbol('BTCUSDT');
             activeSymbolRef.current = 'BTCUSDT';
+        } else if (newSource === 'alpaca') {
+            setChartMountSymbol('AAPL');
+            activeSymbolRef.current = 'AAPL';
         } else {
             setChartMountSymbol('NIFTY 50');
             activeSymbolRef.current = 'NIFTY 50';
@@ -580,6 +583,7 @@ function App() {
                     <select value={dataSource} onChange={(e) => handleDataSourceChange(e.target.value)} className="data-source-select">
                         <option value="dhan">Dhan API</option>
                         <option value="yfinance">Yahoo Finance (Free)</option>
+                        <option value="alpaca">Alpaca (US Stocks/Options/Crypto)</option>
                         <option value="binance">Binance (Crypto)</option>
                     </select>
                     

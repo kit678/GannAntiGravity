@@ -52,18 +52,28 @@ class ChartDatafeed {
         let finalSymbol = symbolName;
 
         // Track the clean symbol name (without :YF) for backend identify context
+        // Source routing suffixes the backend understands (see SOURCE_SUFFIXES in main.py)
+        const SOURCE_SUFFIXES = { yfinance: ':YF', binance: ':BN', alpaca: ':ALP' };
+        const allSuffixes = Object.values(SOURCE_SUFFIXES);
+
         let cleanSymbol = symbolName;
-        if (cleanSymbol.endsWith(':YF')) {
-            cleanSymbol = cleanSymbol.replace(':YF', '');
+        for (const suffix of allSuffixes) {
+            if (cleanSymbol.endsWith(suffix)) {
+                cleanSymbol = cleanSymbol.slice(0, -suffix.length);
+                break;
+            }
         }
         this.currentSymbol = cleanSymbol;
 
-        // Ensure Yahoo Finance symbols have the :YF suffix before asking the backend for /symbols
-        // This allows backend to set the correct timezone, session (e.g. 0930-1600 EST), and minmov
-        // IMPORTANT: Do NOT append :YF if the symbol already has a :BN (Binance) suffix
-        if (this.dataSource === 'yfinance' && !finalSymbol.endsWith(':YF') && !finalSymbol.includes(':BN')) {
-            finalSymbol = finalSymbol + ':YF';
-            console.log("[ChartDatafeed] Appended YFinance suffix:", finalSymbol);
+        // Ensure the symbol carries its source suffix before asking the backend for /symbols.
+        // This lets the backend set the correct timezone, session (e.g. 0930-1600 EST), and minmov.
+        // Never append a second suffix if one is already present.
+        // Binance is left alone: the backend auto-detects USDT pairs, and that path already works.
+        const APPEND_SUFFIX_FOR = { yfinance: ':YF', alpaca: ':ALP' };
+        const wantedSuffix = APPEND_SUFFIX_FOR[this.dataSource];
+        if (wantedSuffix && !allSuffixes.some(s => finalSymbol.includes(s))) {
+            finalSymbol = finalSymbol + wantedSuffix;
+            console.log(`[ChartDatafeed] Appended ${this.dataSource} suffix:`, finalSymbol);
         }
 
         this.originalDatafeed.resolveSymbol(finalSymbol, (symbolInfo) => {
@@ -86,13 +96,13 @@ class ChartDatafeed {
     searchSymbols(userInput, exchange, symbolType, onResult) {
         console.log(`[ChartDatafeed] searchSymbols called: "${userInput}" type=${symbolType} dataSource=${this.dataSource}`);
 
-        if (this.dataSource === 'yfinance') {
-            // Custom search logic for Yahoo Finance
-            console.log(`[ChartDatafeed] Yahoo Search: ${userInput}`);
+        if (this.dataSource === 'yfinance' || this.dataSource === 'alpaca') {
+            // Custom search logic for the ticker-based sources
+            console.log(`[ChartDatafeed] ${this.dataSource} Search: ${userInput}`);
 
             const baseUrl = "http://localhost:8005";
 
-            fetch(`${baseUrl}/search?query=${encodeURIComponent(userInput)}&type=${symbolType}&exchange=${exchange}&limit=30&data_source=yfinance`)
+            fetch(`${baseUrl}/search?query=${encodeURIComponent(userInput)}&type=${symbolType}&exchange=${exchange}&limit=30&data_source=${this.dataSource}`)
                 .then(response => response.json())
                 .then(data => {
                     console.log("[ChartDatafeed] Search results:", data);
