@@ -26,6 +26,8 @@ test_*.py
 
 # Data & Documentation
 docs/research/CommoditiesCourse/
+# Re-fetchable market data cached by research harnesses
+**/data_cache/
 *.log
 # Logs (new location)
 logs/
