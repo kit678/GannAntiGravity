@@ -20,7 +20,6 @@ exposure and every other comparison in the report is suspect. Read it first.
 import json
 from typing import Callable, Optional
 
-import numpy as np
 import pandas as pd
 
 from study_tool.mining.shadow_compare import Stat
@@ -186,8 +185,7 @@ def _is(flags: pd.Series, value: bool) -> pd.Series:
     None and NaN match neither True nor False: a row with no target has no
     lag-free answer, and must be neither kept nor counted as dropped.
     """
-    return flags.map(
-        lambda v: isinstance(v, (bool, np.bool_)) and bool(v) is value)
+    return flags.eq(value).fillna(False).astype(bool)
 
 
 def _has_lag_free_columns(events: pd.DataFrame) -> bool:

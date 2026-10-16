@@ -79,15 +79,16 @@ class ScoredCorpus:
     events: pd.DataFrame
     meta: CorpusMeta
     slice_name: str
-    boundary: int
+    boundary: Optional[int]   # None for --slice all: there is no split
     dropped_to_buffer: int
     sweep_columns: List[str]
 
 
-def _load_slice(corpus_dir: Path, slice_name: str, boundary: int,
+def _load_slice(corpus_dir: Path, slice_name: str, boundary: Optional[int],
                 buffer_bars: int) -> Tuple[pd.DataFrame, int]:
     """Events for the slice, and how many the boundary buffer dropped."""
     if slice_name == "explore":
+        assert boundary is not None, "explore needs the holdout boundary"
         events = load_events(corpus_dir, slice_name="explore")
         buffered = drop_boundary_events(
             events, boundary=boundary, buffer_bars=buffer_bars)
@@ -119,14 +120,17 @@ def load_scored_events(corpus_dir: Union[str, Path],
     corpus_dir = Path(corpus_dir)
     meta = load_corpus_meta(corpus_dir)
 
-    # Only bar_index and slice are read from the full events table, to find
-    # the boundary. That is structural bookkeeping, not price action, so it
-    # does not spend the holdout.
-    all_slices = pd.read_parquet(corpus_dir / "events.parquet",
-                                 columns=["bar_index", "slice"])
-    boundary = boundary_bar_index(all_slices)
-    del all_slices
-    print(f"explore/holdout boundary at bar {boundary}")
+    boundary: Optional[int] = None
+    if slice_name != ALL_SLICES:
+        # Only bar_index and slice are read from the full events table, to
+        # find the boundary. That is structural bookkeeping, not price
+        # action, so it does not spend the holdout. --slice all skips it: a
+        # corpus with no holdout rows has no boundary, and needs none.
+        all_slices = pd.read_parquet(corpus_dir / "events.parquet",
+                                     columns=["bar_index", "slice"])
+        boundary = boundary_bar_index(all_slices)
+        del all_slices
+        print(f"explore/holdout boundary at bar {boundary}")
 
     events, dropped_to_buffer = _load_slice(
         corpus_dir, slice_name, boundary, meta.resolution_window_bars)
@@ -167,10 +171,14 @@ def mining_statistics(scored: ScoredCorpus) -> Dict[str, StatisticFn]:
         "mean_retest_depth": mean_retest_depth,
         "touch_density": touch_density_fn(bar_count),
         "already_hit_share": already_hit_share,
-        "lag_free_reach_rate": lag_free_reach_rate,
         "dropped_share": dropped_share,
         "entry_dropped_share": entry_dropped_share,
     }
+    # lag_free_reach_rate reads reach_outcome, which only exists when the
+    # sweep contains depth 0 at the corpus window. Without it the statistic
+    # would report an all-None row for a reason that is not the data's.
+    if "reach_outcome" in scored.events.columns:
+        statistics["lag_free_reach_rate"] = lag_free_reach_rate
     for column in scored.sweep_columns:
         statistics[f"reach_rate[{column}]"] = reach_rate_for(column)
         statistics[f"timeout_share[{column}]"] = timeout_share_for(column)
@@ -199,7 +207,8 @@ def render_mining_report(scored: ScoredCorpus) -> str:
         "shadow_count": meta.shadow_count,
         "explore_events": len(events),
         "dropped_to_buffer": scored.dropped_to_buffer,
-        "boundary_bar_index": scored.boundary,
+        "boundary_bar_index": ("n/a (no split)" if scored.boundary is None
+                               else scored.boundary),
         "buffer_bars": meta.resolution_window_bars,
         "touch_density": compare(events, statistics["touch_density"],
                                  shadow_count=meta.shadow_count),

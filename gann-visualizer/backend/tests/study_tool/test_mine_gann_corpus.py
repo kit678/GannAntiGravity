@@ -16,7 +16,7 @@ from mine_gann_corpus import load_scored_events, run
 from study_tool.corpus_writer import assign_slices, write_corpus
 
 
-def tiny_corpus(corpus_dir):
+def tiny_corpus(corpus_dir, with_holdout=True):
     epoch = 1787629500
     rows = []
     for i in range(400):
@@ -31,7 +31,10 @@ def tiny_corpus(corpus_dir):
                           timeframe="5", price_scale=1, shadow_count=3, seed=7)
     meta = dict(result["meta"])
     meta["from_date"], meta["to_date"] = "2026-08-01", "2026-08-31"
-    write_corpus(corpus_dir, events=assign_slices(result["events"]),
+    events = assign_slices(result["events"])
+    if not with_holdout:
+        events["slice"] = "explore"
+    write_corpus(corpus_dir, events=events,
                  bars=result["bars"], ladder_keys=result["ladder_keys"],
                  meta=meta)
     return len(pd.read_parquet(corpus_dir / "events.parquet"))
@@ -48,6 +51,8 @@ def test_load_scored_events_all_returns_every_row_with_lag_free_columns(tmp_path
     for column in ("reach_outcome", "target_hit_before_entry",
                    "entry_beyond_level", "level_ring_bin"):
         assert column in scored.events.columns
+    # Not just present: a column of all None would pass the loop above.
+    assert scored.events["target_hit_before_entry"].notna().any()
 
 
 def test_slice_all_mines_every_row_without_the_buffer_drop(tmp_path):
@@ -88,3 +93,34 @@ def test_the_command_line_accepts_slice_all(tmp_path):
     reports = list(out.glob("gann-mining-report-*.md"))
     assert len(reports) == 1
     assert "slice: all" in reports[0].read_text(encoding="utf-8")
+
+
+def test_slice_all_needs_no_holdout_rows(tmp_path):
+    """A corpus with no holdout has no boundary; --slice all must not ask."""
+    total = tiny_corpus(tmp_path, with_holdout=False)
+
+    scored = load_scored_events(tmp_path, slice_name="all")
+
+    assert len(scored.events) == total
+    assert scored.boundary is None
+    text = run(tmp_path, slice_name="all")
+    assert "slice: all" in text
+
+
+def test_explore_still_refuses_a_corpus_with_no_holdout(tmp_path):
+    tiny_corpus(tmp_path, with_holdout=False)
+
+    with pytest.raises(ValueError, match="no holdout rows"):
+        load_scored_events(tmp_path, slice_name="explore")
+
+
+def test_lag_free_reach_rate_is_absent_without_the_strict_column(tmp_path):
+    tiny_corpus(tmp_path)
+
+    scored = load_scored_events(tmp_path, slice_name="all", stop_depths=(1.0,))
+
+    assert "reach_outcome" not in scored.events.columns
+    from mine_gann_corpus import mining_statistics
+    names = mining_statistics(scored)
+    assert "lag_free_reach_rate" not in names
+    assert "dropped_share" in names

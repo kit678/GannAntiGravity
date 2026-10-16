@@ -70,6 +70,13 @@ def confirmed(bar_index=CONFIRM_BAR, direction="up", level=LEVEL,
     })
 
 
+def flag(frame, row, column):
+    """A bool-or-fail read: bool(None) is False would hide a missing value."""
+    value = frame.loc[row, column]
+    assert value is not None, f"{column} is None on row {row}"
+    return bool(value)
+
+
 def outcomes(events, bars, closes):
     return add_reach_outcomes(events, bars, LadderCache(keys_frame(), 1),
                               meta(closes))
@@ -97,7 +104,7 @@ def test_target_hit_before_entry_reads_bars_from_cross_to_confirmation(
 
     result = outcomes(confirmed(), bars, closes)
 
-    assert bool(result.loc[0, "target_hit_before_entry"]) is expected
+    assert flag(result, 0, "target_hit_before_entry") is expected
 
 
 def test_the_filter_reads_no_bar_after_confirmation():
@@ -112,8 +119,8 @@ def test_the_filter_reads_no_bar_after_confirmation():
 
     for column in ("target_hit_before_entry", "entry_beyond_level"):
         assert bool(before.loc[0, column]) == bool(after.loc[0, column])
-    assert bool(after.loc[0, "target_hit_before_entry"]) is False
-    assert bool(after.loc[0, "entry_beyond_level"]) is True
+    assert flag(after, 0, "target_hit_before_entry") is False
+    assert flag(after, 0, "entry_beyond_level") is True
     # The race itself does read those bars.
     assert after.loc[0, "reach_outcome"] == "REACHED"
 
@@ -124,8 +131,8 @@ def test_target_hit_before_entry_runs_downward():
 
     result = outcomes(confirmed(direction="down"), bars, 2)
 
-    assert bool(result.loc[0, "target_hit_before_entry"]) is True
-    assert bool(result.loc[0, "entry_beyond_level"]) is True
+    assert flag(result, 0, "target_hit_before_entry") is True
+    assert flag(result, 0, "entry_beyond_level") is True
 
 
 def test_target_hit_before_entry_widens_target_already_hit():
@@ -135,8 +142,8 @@ def test_target_hit_before_entry_widens_target_already_hit():
 
     result = outcomes(confirmed(), bars, 2)
 
-    assert bool(result.loc[0, "target_hit_before_entry"]) is True
-    assert bool(result.loc[0, "target_already_hit"]) is False
+    assert flag(result, 0, "target_hit_before_entry") is True
+    assert flag(result, 0, "target_already_hit") is False
 
 
 def test_entry_beyond_level_is_false_when_the_confirmation_bar_closed_back():
@@ -145,7 +152,7 @@ def test_entry_beyond_level_is_false_when_the_confirmation_bar_closed_back():
 
     result = outcomes(confirmed(), bars, 1)
 
-    assert bool(result.loc[0, "entry_beyond_level"]) is False
+    assert flag(result, 0, "entry_beyond_level") is False
 
 
 def test_entry_beyond_level_down_needs_a_close_below():
@@ -154,7 +161,7 @@ def test_entry_beyond_level_down_needs_a_close_below():
 
     result = outcomes(confirmed(direction="down"), bars, 1)
 
-    assert bool(result.loc[0, "entry_beyond_level"]) is False
+    assert flag(result, 0, "entry_beyond_level") is False
 
 
 def test_a_shadow_row_tests_its_own_shifted_target():
@@ -166,8 +173,8 @@ def test_a_shadow_row_tests_its_own_shifted_target():
 
     result = outcomes(events, bars, 2)
 
-    assert bool(result.loc[0, "target_hit_before_entry"]) is True
-    assert bool(result.loc[1, "target_hit_before_entry"]) is False
+    assert flag(result, 0, "target_hit_before_entry") is True
+    assert flag(result, 1, "target_hit_before_entry") is False
 
 
 def test_non_breach_rows_stay_none():
@@ -182,3 +189,20 @@ def test_non_breach_rows_stay_none():
 
     assert result.loc[1, "target_hit_before_entry"] is None
     assert result.loc[1, "entry_beyond_level"] is None
+
+
+def test_a_confirmed_row_with_no_target_leaves_both_lag_free_columns_none():
+    """No next level, no lag-free answer: None, not a bool."""
+    top = LadderCache(keys_frame(), 1).prices(0, "center")[-1]
+    bars = quiet_bars("up")
+
+    result = outcomes(confirmed(level=top), bars, 2)
+
+    assert result.loc[0, "target_hit_before_entry"] is None
+    assert result.loc[0, "entry_beyond_level"] is None
+
+
+def test_a_confirmation_earlier_than_the_cross_lead_is_corrupt_data():
+    """Confirming on bar 0 with 3 closes needs a cross bar at -2."""
+    with pytest.raises(ValueError, match="confirmation_closes"):
+        outcomes(confirmed(bar_index=0), quiet_bars("up"), 3)

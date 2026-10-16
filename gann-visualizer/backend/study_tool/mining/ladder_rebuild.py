@@ -340,10 +340,6 @@ def add_reach_outcomes(events: pd.DataFrame, bars: pd.DataFrame,
         level_price = float(level_prices[position])
         offset = meta.offset_for(shadow_ids[position])
 
-        beyond_level[position] = bool(
-            closes[bar] > level_price if direction == "up"
-            else closes[bar] < level_price)
-
         # next_level, not level_steps_away, deliberately. level_steps_away
         # requires level_price to BE a ladder price within 1e-6 and returns
         # None otherwise, while next_level brackets any price. Swapping it in
@@ -354,12 +350,21 @@ def add_reach_outcomes(events: pd.DataFrame, bars: pd.DataFrame,
         if target is None:
             continue
 
+        beyond_level[position] = bool(
+            closes[bar] > level_price if direction == "up"
+            else closes[bar] < level_price)
+
         already_hit[position] = bool(
             highs[bar] >= target if direction == "up" else lows[bar] <= target)
 
         # Bars c..k inclusive and never later: what a trader acting at the
         # close of k had seen.
-        cross_bar = max(0, bar - lead_bars)
+        cross_bar = bar - lead_bars
+        if cross_bar < 0:
+            raise ValueError(
+                f"confirmed breach at bar {bar} needs {lead_bars} earlier "
+                f"bar(s) for confirmation_closes={meta.confirmation_closes}; "
+                f"corrupt event table or meta")
         if direction == "up":
             hit_before_entry[position] = bool(
                 highs[cross_bar:bar + 1].max() >= target)
