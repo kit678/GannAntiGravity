@@ -27,7 +27,16 @@ class GannLadderAnalyzer:
         if self.breach_mode not in BREACH_MODES:
             raise ValueError(
                 f"breach_mode {self.breach_mode!r} is not one of {BREACH_MODES}")
-        self.confirmation_closes = config.get("confirmation_closes", 2)
+        raw_closes = config.get("confirmation_closes", 2)
+        try:
+            self.confirmation_closes = int(raw_closes)
+            whole = self.confirmation_closes == raw_closes
+        except (TypeError, ValueError):
+            whole = False
+        if not whole or self.confirmation_closes < 1:
+            raise ValueError(
+                "confirmation_closes must be a whole number of at least 1, "
+                f"got {raw_closes!r}")
         self.touch_tolerance = config.get("touch_tolerance_sublevels", 0.1)
         self.resolution_window = config.get("resolution_window_bars", 50)
         self.retest_window = config.get("retest_window_bars", 50)

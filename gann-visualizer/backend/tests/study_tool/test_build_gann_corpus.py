@@ -305,3 +305,28 @@ def test_ensure_corpus_never_fetches(tmp_path):
 
     with pytest.raises(FileNotFoundError, match="fetching is disabled"):
         runner.ensure_corpus(**ensure_kwargs(tmp_path))
+
+
+def test_ensure_corpus_refuses_a_half_written_corpus_before_building(
+        tmp_path, monkeypatch):
+    import build_gann_corpus as runner
+    out = tmp_path / "corpus"
+    out.mkdir()
+    (out / "events.parquet").write_bytes(b"killed mid-write")
+
+    def boom(*args, **kwargs):
+        raise AssertionError("a rebuild was started over a half-written corpus")
+
+    monkeypatch.setattr(runner, "build_to_disk", boom)
+
+    with pytest.raises(FileExistsError, match="half-written"):
+        runner.ensure_corpus(**ensure_kwargs(tmp_path))
+
+
+def test_a_fractional_confirmation_closes_is_refused():
+    import build_gann_corpus as runner
+
+    with pytest.raises(ValueError, match="confirmation_closes"):
+        runner._analyzer_settings("RELIANCE", "5", 1, "close", 1.5)
+    assert runner._analyzer_settings(
+        "RELIANCE", "5", 1, "close", 3.0)["confirmation_closes"] == 3

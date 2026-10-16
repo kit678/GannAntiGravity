@@ -45,9 +45,10 @@ def _analyzer_settings(instrument: str, timeframe: str, price_scale: int,
     if breach_mode not in BREACH_MODES:
         raise ValueError(
             f"breach_mode {breach_mode!r} is not one of {BREACH_MODES}")
-    if int(confirmation_closes) < 1:
+    if int(confirmation_closes) != confirmation_closes or int(confirmation_closes) < 1:
         raise ValueError(
-            f"confirmation_closes must be at least 1, got {confirmation_closes}")
+            "confirmation_closes must be a whole number of at least 1, "
+            f"got {confirmation_closes}")
     return {
         "breach_mode": breach_mode,
         "confirmation_closes": int(confirmation_closes),
@@ -270,6 +271,13 @@ def ensure_corpus(symbol: str, from_date: str, to_date: str, interval: str,
                 f"settings (found, wanted): {mismatched}"
             )
         return "reused"
+
+    leftovers = sorted(Path(out_dir).glob("*.parquet")) if Path(out_dir).is_dir() else []
+    if leftovers:
+        raise FileExistsError(
+            f"{out_dir} holds {[p.name for p in leftovers]} but no "
+            f"{META_FILENAME}: a half-written corpus. Remove the directory "
+            "by hand; nothing was rebuilt.")
 
     build_to_disk(symbol=symbol, from_date=from_date, to_date=to_date,
                   interval=str(interval), price_scale=price_scale,

@@ -427,6 +427,19 @@ def test_wick_mode_a_clean_wick_up_from_below_is_an_up_cross():
     assert len(confirmed) == 1
 
 
+def test_wick_mode_a_gap_up_into_the_tolerance_band_from_below_is_an_up_cross():
+    # Spec-literal: previous close below the level, this bar's high above it.
+    # The low (105.1) sits above the level, inside the touch band, and that is
+    # still a cross. Deliberate, not a touch.
+    an = analyzer(breach_mode="wick", confirmation_closes=1)
+    events = run(an, [
+        bar(104.0, 104.5, 103.5, 104.2),   # below, not reached
+        bar(105.2, 106.0, 105.1, 105.5),   # gaps up, low inside tolerance
+    ])
+    crosses = [e for e in events if e.event_type == EventType.LADDER_CROSS]
+    assert [e.direction for e in crosses] == ["up"]
+
+
 def test_wick_mode_a_gap_wholly_past_the_tolerance_is_not_tested():
     an = analyzer(breach_mode="wick", confirmation_closes=1)
     events = run(an, [
@@ -453,3 +466,13 @@ def test_wick_mode_previous_close_survives_a_state_round_trip():
 def test_an_unknown_breach_mode_is_refused():
     with pytest.raises(ValueError, match="breach_mode"):
         analyzer(breach_mode="body")
+
+
+@pytest.mark.parametrize("bad", [0, -1, 1.5, "two", None])
+def test_confirmation_closes_must_be_a_whole_number_of_at_least_one(bad):
+    with pytest.raises(ValueError, match="confirmation_closes"):
+        analyzer(confirmation_closes=bad)
+
+
+def test_confirmation_closes_given_as_a_whole_float_is_coerced():
+    assert analyzer(confirmation_closes=3.0).confirmation_closes == 3
