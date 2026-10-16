@@ -10,10 +10,14 @@ import pytest
 
 sys.path.append(os.path.abspath('C:/Dev/GannTesting/gann-visualizer/backend'))
 
+import json
+
 from study_tool.mining.breach_sweep import (
     CONFIRMATION_GROUPS, RULE_ORDER, RULES, RULES_BY_NAME, BreachRule,
-    confirmation_groups, group_name, score_rule, select_rule,
+    RuleScore, aapl_verdict, choice_record, confirmation_groups, group_name,
+    read_choice, score_rule, select_rule, write_choice,
 )
+from study_tool.mining.regression_gate import GateResult
 from study_tool.mining.shadow_compare import Comparison
 
 
@@ -176,3 +180,108 @@ def test_an_eligible_rule_with_undefined_z_is_refused():
 
     with pytest.raises(ValueError, match="z is undefined"):
         select_rule({"close1": no_spread})
+
+
+def above():
+    return Comparison(real=0.9, n=100, shadows=[0.5, 0.6])
+
+
+def within():
+    return Comparison(real=0.55, n=100, shadows=[0.5, 0.6])
+
+
+def rule_score(lag_free, groups_above=0, dropped=None, touch=None,
+               rule="close1"):
+    names = [group_name(column, label) for column, label in CONFIRMATION_GROUPS]
+    groups = {name: (above() if i < groups_above else within())
+              for i, name in enumerate(names)}
+    return RuleScore(rule=rule, lag_free=lag_free,
+                     dropped=dropped or within(), entry_dropped=within(),
+                     reach_next=within(), already_hit=within(),
+                     touch_density=touch or within(), groups=groups)
+
+
+def test_verdict_fail_when_pooled_is_not_above_all_shadows():
+    verdict = aapl_verdict(rule_score(within(), groups_above=13))
+
+    assert verdict.label == "fail"
+    assert verdict.passed is False
+    assert verdict.groups_above == 13
+
+
+def test_verdict_pass_with_six_groups():
+    verdict = aapl_verdict(rule_score(above(), groups_above=6))
+
+    assert verdict.label == "pass"
+    assert verdict.strong is False
+
+
+def test_verdict_strong_pass_with_seven_groups():
+    verdict = aapl_verdict(rule_score(above(), groups_above=7))
+
+    assert verdict.label == "strong pass"
+    assert verdict.strong is True
+
+
+def test_a_dropped_share_outside_the_shadows_labels_the_pass():
+    assert aapl_verdict(rule_score(above(), dropped=above())).label == \
+        "pass, selection differs"
+    assert aapl_verdict(rule_score(above(), groups_above=7,
+                                   dropped=above())).label == \
+        "strong pass, selection differs"
+
+
+def test_a_fail_stays_a_fail_whatever_the_dropped_share():
+    verdict = aapl_verdict(rule_score(within(), dropped=above()))
+
+    assert verdict.label == "fail"
+    assert verdict.selection_differs is True
+
+
+def test_verdict_flags_touch_density_above_every_shadow():
+    assert aapl_verdict(rule_score(above(), touch=above())) \
+        .touch_busier_than_all_shadows is True
+    assert aapl_verdict(rule_score(above())) \
+        .touch_busier_than_all_shadows is False
+
+
+def gate():
+    return GateResult(True, "4 rows match on all 6 columns", 4)
+
+
+def test_the_choice_file_round_trips_the_chosen_rule(tmp_path):
+    scores = {name: rule_score(above(), rule=name) for name in RULE_ORDER}
+    selection = select_rule({name: s.lag_free for name, s in scores.items()})
+    path = tmp_path / "specs" / "choice.json"
+
+    write_choice(path, choice_record(selection, scores, gate()))
+
+    record = json.loads(path.read_text(encoding="utf-8"))
+    assert record["chosen"] == selection.chosen
+    assert record["regression_gate"]["passed"] is True
+    assert set(record["rules"]) == set(RULE_ORDER)
+    assert read_choice(path) == RULES_BY_NAME[selection.chosen]
+
+
+def test_a_missing_choice_file_is_refused(tmp_path):
+    with pytest.raises(FileNotFoundError, match="AAPL is not built"):
+        read_choice(tmp_path / "missing.json")
+
+
+def test_a_null_choice_is_refused(tmp_path):
+    scores = {name: rule_score(within(), rule=name) for name in RULE_ORDER}
+    selection = select_rule({name: s.lag_free for name, s in scores.items()})
+    path = tmp_path / "choice.json"
+    write_choice(path, choice_record(selection, scores, gate()))
+
+    assert json.loads(path.read_text(encoding="utf-8"))["chosen"] is None
+    with pytest.raises(ValueError, match="null"):
+        read_choice(path)
+
+
+def test_an_unknown_rule_in_the_choice_file_is_refused(tmp_path):
+    path = tmp_path / "choice.json"
+    path.write_text(json.dumps({"chosen": "close9"}), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="unknown"):
+        read_choice(path)

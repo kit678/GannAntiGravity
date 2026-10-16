@@ -9,12 +9,15 @@ pre-registered rules are tested on hand-made inputs before any real corpus
 is read.
 """
 
+import json
 from dataclasses import dataclass
-from typing import Dict, List, Mapping, NamedTuple, Optional, Tuple
+from pathlib import Path
+from typing import Dict, List, Mapping, NamedTuple, Optional, Tuple, Union
 
 import pandas as pd
 
 from study_tool.mining.groups import NULL_LABEL
+from study_tool.mining.regression_gate import GateResult
 from study_tool.mining.report import display_label
 from study_tool.mining.shadow_compare import Comparison, compare
 from study_tool.mining.statistics import (
@@ -177,3 +180,99 @@ def select_rule(pooled: Mapping[str, Comparison],
         reason=(f"{chosen} chosen: best z {best:.3f}; candidates within "
                 f"{tie_window} of it: {', '.join(candidates)}; the earliest "
                 f"in the order {', '.join(RULE_ORDER)} wins"))
+
+
+@dataclass(frozen=True)
+class Verdict:
+    label: str
+    passed: bool
+    strong: bool
+    groups_above: int
+    selection_differs: bool
+    touch_busier_than_all_shadows: bool
+
+
+def aapl_verdict(score: RuleScore) -> Verdict:
+    """
+    The pre-registered AAPL reading.
+
+    pass: pooled lag-free reach rate above all shadows. strong pass: pass
+    and at least STRONG_PASS_GROUPS of the 13 groups above all shadows. If
+    the real dropped share is outside the shadow range the filtered sets are
+    not like-for-like, and a pass says so in its label.
+    """
+    passed = score.lag_free.above_all_shadows
+    groups_above = sum(1 for c in score.groups.values() if c.above_all_shadows)
+    strong = passed and groups_above >= STRONG_PASS_GROUPS
+    selection_differs = score.dropped.outside_range
+
+    label = "fail"
+    if passed:
+        label = "strong pass" if strong else "pass"
+        if selection_differs:
+            label += ", selection differs"
+
+    return Verdict(label=label, passed=passed, strong=strong,
+                   groups_above=groups_above,
+                   selection_differs=selection_differs,
+                   touch_busier_than_all_shadows=(
+                       score.touch_density.above_all_shadows))
+
+
+def choice_record(selection: Selection, scores: Mapping[str, RuleScore],
+                  gate: GateResult) -> Dict:
+    """The choice file's contents: the decision and what it rested on."""
+    chosen = RULES_BY_NAME[selection.chosen] if selection.chosen else None
+    return {
+        "spec": SPEC_PATH,
+        "chosen": selection.chosen,
+        "breach_mode": chosen.breach_mode if chosen else None,
+        "confirmation_closes": chosen.confirmation_closes if chosen else None,
+        "reason": selection.reason,
+        "eligible": list(selection.eligible),
+        "candidates": list(selection.candidates),
+        "regression_gate": {"passed": gate.passed, "reason": gate.reason},
+        "rules": {
+            name: {
+                "lag_free_real": score.lag_free.real,
+                "lag_free_n": score.lag_free.n,
+                "shadow_max": score.lag_free.shadow_max,
+                "shadows_missing": score.lag_free.shadows_missing,
+                "above_all_shadows": score.lag_free.above_all_shadows,
+                "z": score.lag_free.z,
+            }
+            for name, score in scores.items()
+        },
+    }
+
+
+def write_choice(path: Union[str, Path], record: Dict) -> None:
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(record, indent=2, sort_keys=True) + "\n",
+                    encoding="utf-8")
+
+
+def read_choice(path: Union[str, Path]) -> BreachRule:
+    """
+    The breach rule the RELIANCE sweep chose.
+
+    Raises:
+        FileNotFoundError: no choice file - the sweep has not run.
+        ValueError: the choice is null (the stop rule keeps AAPL unbuilt) or
+            names a rule this code does not know.
+    """
+    path = Path(path)
+    if not path.exists():
+        raise FileNotFoundError(
+            f"{path} not found: the RELIANCE sweep has not chosen a breach "
+            "rule, so AAPL is not built")
+    record = json.loads(path.read_text(encoding="utf-8"))
+    chosen = record.get("chosen")
+    if chosen is None:
+        raise ValueError(
+            f"{path} records a null sweep: no breach rule beat every shadow, "
+            "and the pre-registered stop rule keeps AAPL unbuilt")
+    if chosen not in RULES_BY_NAME:
+        raise ValueError(f"{path} names unknown breach rule {chosen!r}")
+    return RULES_BY_NAME[chosen]
