@@ -200,3 +200,17 @@ def test_an_existing_meta_json_also_blocks_an_accidental_overwrite(tmp_path):
     with pytest.raises(FileExistsError, match="overwrite"):
         write_corpus(tmp_path, events=assign_slices(events_frame()),
                      bars=bars_frame(), ladder_keys=keys_frame(), meta=meta_dict())
+
+
+def test_load_events_reads_every_row_when_asked_for_all(tmp_path):
+    """
+    RELIANCE's holdout is spent and AAPL is read whole, once; both read every
+    row. It is still a named argument, never the default.
+    """
+    write_corpus(tmp_path, events=assign_slices(events_frame()),
+                 bars=bars_frame(), ladder_keys=keys_frame(), meta=meta_dict())
+
+    loaded = load_events(tmp_path, slice_name="all")
+
+    assert len(loaded) == 10
+    assert set(loaded["slice"]) == {"explore", "holdout"}

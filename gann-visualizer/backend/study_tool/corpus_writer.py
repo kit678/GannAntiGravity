@@ -25,6 +25,8 @@ from typing import Dict, Union
 import pandas as pd
 
 SLICES = ("explore", "holdout")
+# Not a slice label: the name load_events takes for every row at once.
+ALL_SLICES = "all"
 TABLES = ("events", "bars", "ladder_keys")
 META_FILENAME = "meta.json"
 
@@ -128,6 +130,8 @@ def load_events(corpus_dir: Union[str, Path],
     """
     Events for one slice. Defaults to `explore`.
 
+    `all` returns every row of both slices.
+
     Getting the holdout requires naming it. The holdout is consumable - each
     look followed by a change turns it into training data - so it should not
     arrive by default.
@@ -137,9 +141,16 @@ def load_events(corpus_dir: Union[str, Path],
     deserialized into memory at all - the guarantee is structural, not just
     "nothing reads them before the mask runs."
     """
+    if slice_name == ALL_SLICES:
+        # Every row, for a corpus whose split means nothing: RELIANCE after
+        # its holdout was spent (2026-09-03), or a fresh holdout read whole,
+        # once. Still a named argument, so it shows up in review.
+        frame = pd.read_parquet(Path(corpus_dir) / "events.parquet")
+        return frame.reset_index(drop=True)
     if slice_name not in SLICES:
         raise ValueError(
-            f"unknown slice {slice_name!r}; expected one of {SLICES}"
+            f"unknown slice {slice_name!r}; expected one of "
+            f"{SLICES + (ALL_SLICES,)}"
         )
     frame = pd.read_parquet(
         Path(corpus_dir) / "events.parquet",
