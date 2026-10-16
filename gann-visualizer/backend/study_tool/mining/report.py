@@ -33,6 +33,18 @@ _PLAIN_INT = re.compile(r'^-?\d+$')
 _RANGE = re.compile(r'^(-?\d+)-(-?\d+)$')
 
 
+def display_label(label: str) -> str:
+    """
+    A group label as a human should read it.
+
+    level_sub_index mixes ints and nulls, which pandas upcasts to float64,
+    so iter_groups yields "1.0" rather than "1". This strips that suffix.
+    The breach sweep matches its pre-declared groups through this too.
+    """
+    match = _DOTZERO.match(label)
+    return match.group(1) if match else label
+
+
 @dataclass(frozen=True)
 class GroupResult:
     grouping: str
@@ -49,8 +61,7 @@ class GroupResult:
         float64, so iter_groups yields "1.0" rather than "1". Strip that
         suffix here rather than in groups.py, which Task 7 already closed.
         """
-        match = _DOTZERO.match(self.label)
-        return match.group(1) if match else self.label
+        return display_label(self.label)
 
     @property
     def name(self) -> str:

@@ -393,3 +393,11 @@ def test_run_raises_when_bars_do_not_cover_every_ladder_key_bar_index(tmp_path):
 
     with pytest.raises(ValueError, match="bars"):
         run(tmp_path)
+
+
+def test_display_label_is_available_as_a_function():
+    from study_tool.mining.report import display_label
+
+    assert display_label("5.0") == "5"
+    assert display_label("10-19") == "10-19"
+    assert display_label("center") == "center"
