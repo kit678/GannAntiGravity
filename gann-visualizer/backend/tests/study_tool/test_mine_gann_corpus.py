@@ -124,3 +124,21 @@ def test_lag_free_reach_rate_is_absent_without_the_strict_column(tmp_path):
     names = mining_statistics(scored)
     assert "lag_free_reach_rate" not in names
     assert "dropped_share" in names
+
+
+def test_run_refuses_an_aapl_corpus(tmp_path):
+    import json
+    tiny_corpus(tmp_path)
+    meta_path = tmp_path / "meta.json"
+    meta = json.loads(meta_path.read_text(encoding="utf-8"))
+    meta["symbol"] = "AAPL"
+    meta_path.write_text(json.dumps(meta), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="run_aapl_holdout"):
+        run(tmp_path, slice_name="all")
+
+
+def test_run_still_mines_a_reliance_corpus(tmp_path):
+    tiny_corpus(tmp_path)
+
+    assert "slice: all" in run(tmp_path, slice_name="all")

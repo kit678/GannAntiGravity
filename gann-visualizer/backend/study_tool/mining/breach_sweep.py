@@ -335,10 +335,23 @@ def choice_record(selection: Selection, scores: Mapping[str, RuleScore],
 
 
 def write_choice(path: Union[str, Path], record: Dict) -> None:
+    """
+    Write the choice file once.
+
+    The pre-registered choice is not revisable: a file already there with
+    different contents is an error, and identical contents are a no-op, so a
+    rerun over reused corpora is harmless.
+    """
     path = Path(path)
+    text = json.dumps(record, indent=2, sort_keys=True) + "\n"
+    if path.exists():
+        if path.read_text(encoding="utf-8") == text:
+            return
+        raise FileExistsError(
+            f"{path} already holds a different choice; the pre-registered "
+            "choice is written once and never overwritten")
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(record, indent=2, sort_keys=True) + "\n",
-                    encoding="utf-8")
+    path.write_text(text, encoding="utf-8")
 
 
 def read_choice(path: Union[str, Path]) -> BreachRule:
@@ -382,4 +395,11 @@ def read_choice(path: Union[str, Path]) -> BreachRule:
             f"{path}: 'rules' must hold exactly {RULE_ORDER}, found {found}; "
             "a choice made on a subset of the rules is not the registered "
             "sweep")
-    return RULES_BY_NAME[chosen]
+    rule = RULES_BY_NAME[chosen]
+    for key, expected in (("breach_mode", rule.breach_mode),
+                          ("confirmation_closes", rule.confirmation_closes)):
+        if record.get(key) != expected:
+            raise ValueError(
+                f"{path}: {key} is {record.get(key)!r} but {chosen} means "
+                f"{expected!r}; the choice file disagrees with itself")
+    return rule

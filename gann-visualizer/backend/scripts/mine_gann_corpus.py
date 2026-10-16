@@ -219,7 +219,18 @@ def render_mining_report(scored: ScoredCorpus) -> str:
 def run(corpus_dir: Union[str, Path], slice_name: str = "explore",
         stop_depths: Sequence[float] = (0.0,),
         windows: Optional[Sequence[int]] = None) -> str:
-    """Mine one corpus and return the report Markdown."""
+    """
+    Mine one corpus and return the report Markdown.
+
+    Raises:
+        ValueError: the corpus is AAPL's. The AAPL holdout gets one look,
+            through run_aapl_holdout, which writes only the registered
+            statistics; the full report must never be rendered on it.
+    """
+    if load_corpus_meta(corpus_dir).symbol.upper() == "AAPL":
+        raise ValueError(
+            f"{corpus_dir} is an AAPL corpus: the AAPL holdout may only be "
+            "read through scripts/run_aapl_holdout.py")
     scored = load_scored_events(corpus_dir, slice_name=slice_name,
                                 stop_depths=stop_depths, windows=windows)
     return render_mining_report(scored)

@@ -528,3 +528,55 @@ def test_a_choice_without_a_rules_block_is_refused(tmp_path):
 
     with pytest.raises(ValueError, match="rules"):
         read_choice(write_record(tmp_path, record))
+
+
+def test_write_choice_is_a_no_op_for_identical_contents(tmp_path):
+    path = tmp_path / "choice.json"
+    record = valid_record()
+    write_choice(path, record)
+    before = path.stat().st_mtime_ns
+
+    write_choice(path, record)
+
+    assert path.stat().st_mtime_ns == before
+    assert json.loads(path.read_text(encoding="utf-8")) == record
+
+
+def test_write_choice_refuses_to_overwrite_a_different_choice(tmp_path):
+    path = tmp_path / "choice.json"
+    write_choice(path, valid_record())
+    original = path.read_text(encoding="utf-8")
+    other = valid_record()
+    other["chosen"] = "close3"
+
+    with pytest.raises(FileExistsError, match="choice.json"):
+        write_choice(path, other)
+
+    assert path.read_text(encoding="utf-8") == original
+
+
+def test_a_recorded_breach_mode_that_disagrees_with_the_rule_is_refused(
+        tmp_path):
+    record = valid_record()
+    record["breach_mode"] = "wick" if record["breach_mode"] == "close" \
+        else "close"
+
+    with pytest.raises(ValueError, match="breach_mode"):
+        read_choice(write_record(tmp_path, record))
+
+
+def test_recorded_confirmation_closes_that_disagree_are_refused(tmp_path):
+    record = valid_record()
+    record["confirmation_closes"] += 1
+
+    with pytest.raises(ValueError, match="confirmation_closes"):
+        read_choice(write_record(tmp_path, record))
+
+
+@pytest.mark.parametrize("key", ["breach_mode", "confirmation_closes"])
+def test_a_choice_that_omits_the_rule_settings_is_refused(tmp_path, key):
+    record = valid_record()
+    del record[key]
+
+    with pytest.raises(ValueError, match=key):
+        read_choice(write_record(tmp_path, record))

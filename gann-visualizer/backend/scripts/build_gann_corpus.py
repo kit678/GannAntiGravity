@@ -265,8 +265,13 @@ def ensure_corpus(symbol: str, from_date: str, to_date: str, interval: str,
     }
     if (Path(out_dir) / META_FILENAME).exists():
         found = dict(load_meta(out_dir))
-        found.setdefault("breach_mode", "close")
-        found.setdefault("confirmation_closes", 2)
+        unrecorded = [key for key in ("breach_mode", "confirmation_closes")
+                      if key not in found]
+        if unrecorded:
+            raise ValueError(
+                f"{out_dir} was built before the breach rule was recorded "
+                f"(meta.json lacks {unrecorded}); it is never reused, "
+                "because nothing says which rule produced it")
         mismatched = {key: (found.get(key), value)
                       for key, value in wanted.items()
                       if found.get(key) != value}

@@ -184,9 +184,9 @@ def run_sweep(out_root: PathLike, cache_dir: PathLike, reference: PathLike,
                for rule in RULE_ORDER}
 
     selection = select_rule({name: s.lag_free for name, s in scores.items()})
-    write_choice(choice_path, choice_record(
+    record = choice_record(
         selection, scores, gate, shadow_count=shadow_counts[RULE_ORDER[0]],
-        corpora=corpora))
+        corpora=corpora)
 
     context = {
         "generated": time.strftime("%Y-%m-%d %H:%M"),
@@ -199,6 +199,9 @@ def run_sweep(out_root: PathLike, cache_dir: PathLike, reference: PathLike,
     results_path.write_text(
         render_sweep_results(scores, selection, gate, context),
         encoding="utf-8")
+    # After the results document, so a choice file never exists without it;
+    # write_choice refuses to replace a different choice already on disk.
+    write_choice(choice_path, record)
 
     print(f"chosen: {selection.chosen or 'null - AAPL is not built'}")
     print(f"wrote {choice_path}\nwrote {results_path}")

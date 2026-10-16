@@ -44,7 +44,11 @@ def write_cache(tmp_path):
 
 def choice_record_dict(chosen):
     """A choice file as the sweep writes it: gate passed, all four rules."""
-    return {"chosen": chosen,
+    mode, closes = {"close1": ("close", 1), "wick1": ("wick", 1),
+                    "close2": ("close", 2), "close3": ("close", 3),
+                    None: (None, None)}[chosen]
+    return {"chosen": chosen, "breach_mode": mode,
+            "confirmation_closes": closes,
             "regression_gate": {"passed": True, "reason": "test"},
             "rules": {name: {} for name in ("close1", "wick1", "close2",
                                             "close3")}}

@@ -198,3 +198,22 @@ def test_an_unknown_rule_is_refused(tmp_path):
     with pytest.raises(ValueError, match="close9"):
         run(tmp_path, tmp_path / "bars", tmp_path / "unused.parquet",
             rules=("close9",), build_only=True)
+
+
+def test_the_results_document_is_written_before_the_choice_file(tmp_path):
+    """
+    A different choice file already on disk stops the run at write_choice.
+    The results document must exist by then: a choice file never appears
+    without the document that explains it.
+    """
+    cache = write_cache(tmp_path)
+    reference = write_reference(tmp_path, cache, shadows=0)
+    p = paths(tmp_path)
+    p["choice_path"].parent.mkdir(parents=True)
+    p["choice_path"].write_text('{"chosen": "close3"}', encoding="utf-8")
+
+    with pytest.raises(FileExistsError):
+        run(tmp_path, cache, reference, shadows=0)
+
+    assert p["results_path"].exists()
+    assert p["choice_path"].read_text(encoding="utf-8") == '{"chosen": "close3"}'

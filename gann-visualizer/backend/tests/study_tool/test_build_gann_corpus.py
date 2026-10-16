@@ -339,3 +339,24 @@ def test_a_confirmation_closes_that_is_not_a_whole_number_gets_the_friendly_erro
 
     with pytest.raises(ValueError, match="whole number of at least 1"):
         runner._analyzer_settings("RELIANCE", "5", 1, "close", bad)
+
+
+@pytest.mark.parametrize("key", ["breach_mode", "confirmation_closes"])
+def test_ensure_corpus_refuses_a_meta_that_does_not_record_the_rule(
+        tmp_path, monkeypatch, key):
+    import json
+    import build_gann_corpus as runner
+    write_cached_bars(tmp_path / "bars")
+    runner.ensure_corpus(**ensure_kwargs(tmp_path))
+    meta_path = tmp_path / "corpus" / "meta.json"
+    meta = json.loads(meta_path.read_text(encoding="utf-8"))
+    del meta[key]
+    meta_path.write_text(json.dumps(meta), encoding="utf-8")
+
+    def boom(*args, **kwargs):
+        raise AssertionError("a rebuild was started over an old corpus")
+
+    monkeypatch.setattr(runner, "build_to_disk", boom)
+
+    with pytest.raises(ValueError, match=key):
+        runner.ensure_corpus(**ensure_kwargs(tmp_path))
