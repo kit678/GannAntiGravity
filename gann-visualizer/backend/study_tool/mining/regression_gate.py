@@ -13,7 +13,9 @@ every column - every column equal value for value, nulls matching nulls.
 Row order is not compared; it is an artefact of the writer. Schema metadata
 is ignored. Float NaN is read as null on both sides.
 
-No column is excluded, and the failure reason lists every differing column.
+No column is excluded. When the row-sorted comparison fails, each column is
+also sorted on its own, and the failure reason names only the columns whose
+values differ; if every column's values match, the rows pair up differently.
 Two can differ for reasons other than the breach rule: `datetime` is
 rendered in the build machine's local timezone, and `slice` comes from
 assign_slices, whose unstable quicksort can label rows sharing a bar_index
@@ -55,6 +57,13 @@ def _sort_keys(schema: pa.Schema) -> List[Tuple[str, str]]:
             if not pa.types.is_null(field.type)]
 
 
+def _sorted_alone(column: pa.ChunkedArray) -> pa.ChunkedArray:
+    # A column of Arrow type null holds no values and cannot be sorted.
+    if pa.types.is_null(column.type):
+        return column
+    return column.take(pc.sort_indices(column))
+
+
 def compare_event_tables(reference: pa.Table, rebuilt: pa.Table) -> GateResult:
     """Apply the exact-match definition above to two in-memory tables."""
     rows = reference.num_rows
@@ -67,11 +76,14 @@ def compare_event_tables(reference: pa.Table, rebuilt: pa.Table) -> GateResult:
             False, f"columns differ: only in reference {only_ref}, "
                    f"only in rebuilt {only_new}{detail}", rows)
 
-    for ref_field, new_field in zip(reference.schema, rebuilt.schema):
-        if ref_field.type != new_field.type:
-            return GateResult(
-                False, f"column {ref_field.name!r} is {ref_field.type} in the "
-                       f"reference but {new_field.type} rebuilt", rows)
+    mismatched = [
+        f"column {ref_field.name!r} is {ref_field.type} in the reference "
+        f"but {new_field.type} rebuilt"
+        for ref_field, new_field in zip(reference.schema, rebuilt.schema)
+        if ref_field.type != new_field.type
+    ]
+    if mismatched:
+        return GateResult(False, "; ".join(mismatched), rows)
 
     if reference.num_rows != rebuilt.num_rows:
         return GateResult(
@@ -89,9 +101,20 @@ def compare_event_tables(reference: pa.Table, rebuilt: pa.Table) -> GateResult:
             rebuilt.column(name).take(new_order))
     ]
     if differing:
+        # Rows sorted by every column: one changed value in an early column
+        # reorders tied rows, so later columns look different too. Each
+        # column sorted on its own says which ones really changed.
+        changed = [
+            name for name in reference.column_names
+            if not _sorted_alone(reference.column(name)).equals(
+                _sorted_alone(rebuilt.column(name)))
+        ]
+        if changed:
+            return GateResult(
+                False, f"columns {changed} have different values", rows)
         return GateResult(
-            False, f"columns {differing} differ after sorting both tables "
-                   "by every column", rows)
+            False, "every column's values match, but the rows pair up "
+                   "differently", rows)
 
     return GateResult(
         True, f"{rows} rows match on all {len(reference.column_names)} columns",

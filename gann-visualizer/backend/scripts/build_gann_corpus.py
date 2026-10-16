@@ -45,10 +45,15 @@ def _analyzer_settings(instrument: str, timeframe: str, price_scale: int,
     if breach_mode not in BREACH_MODES:
         raise ValueError(
             f"breach_mode {breach_mode!r} is not one of {BREACH_MODES}")
-    if int(confirmation_closes) != confirmation_closes or int(confirmation_closes) < 1:
+    try:
+        whole = (not isinstance(confirmation_closes, bool)
+                 and int(confirmation_closes) == confirmation_closes)
+    except (TypeError, ValueError, OverflowError):  # None, "two", nan, inf
+        whole = False
+    if not whole or int(confirmation_closes) < 1:
         raise ValueError(
             "confirmation_closes must be a whole number of at least 1, "
-            f"got {confirmation_closes}")
+            f"got {confirmation_closes!r}")
     return {
         "breach_mode": breach_mode,
         "confirmation_closes": int(confirmation_closes),

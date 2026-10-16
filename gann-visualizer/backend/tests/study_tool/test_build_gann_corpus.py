@@ -330,3 +330,12 @@ def test_a_fractional_confirmation_closes_is_refused():
         runner._analyzer_settings("RELIANCE", "5", 1, "close", 1.5)
     assert runner._analyzer_settings(
         "RELIANCE", "5", 1, "close", 3.0)["confirmation_closes"] == 3
+
+
+@pytest.mark.parametrize("bad", ["two", None, float("inf"), float("nan"),
+                                 True, 0, 1.5])
+def test_a_confirmation_closes_that_is_not_a_whole_number_gets_the_friendly_error(bad):
+    import build_gann_corpus as runner
+
+    with pytest.raises(ValueError, match="whole number of at least 1"):
+        runner._analyzer_settings("RELIANCE", "5", 1, "close", bad)

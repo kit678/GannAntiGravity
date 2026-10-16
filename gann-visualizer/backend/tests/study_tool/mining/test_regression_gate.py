@@ -133,3 +133,39 @@ def test_nan_and_null_compare_equal():
     with_null = pa.table({"x": pa.array([1.0, None], pa.float64())})
 
     assert compare_event_tables(with_nan, with_null).passed is True
+
+
+def test_a_changed_mid_table_column_does_not_name_the_later_ones():
+    """Ties in an early column reorder rows; later columns must not look wrong."""
+    reference = pa.table({"a": [1, 1, 1], "price": [5.0, 6.0, 7.0],
+                          "later": ["x", "y", "z"]})
+    rebuilt = pa.table({"a": [1, 1, 1], "price": [8.0, 6.0, 7.0],
+                        "later": ["x", "y", "z"]})
+
+    result = compare_event_tables(reference, rebuilt)
+
+    assert result.passed is False
+    assert "['price']" in result.reason
+    assert "later" not in result.reason
+
+
+def test_same_values_paired_differently_is_reported_as_pairing():
+    reference = pa.table({"a": [1, 2], "b": ["x", "y"]})
+    rebuilt = pa.table({"a": [1, 2], "b": ["y", "x"]})
+
+    result = compare_event_tables(reference, rebuilt)
+
+    assert result.passed is False
+    assert "every column's values match" in result.reason
+    assert "pair up differently" in result.reason
+
+
+def test_every_mismatched_type_is_named():
+    reference = pa.table({"a": [1, 2], "b": [1, 2], "c": [1, 2]})
+    rebuilt = pa.table({"a": [1.0, 2.0], "b": [1, 2], "c": ["1", "2"]})
+
+    result = compare_event_tables(reference, rebuilt)
+
+    assert result.passed is False
+    assert "'a'" in result.reason and "'c'" in result.reason
+    assert "'b'" not in result.reason

@@ -19,9 +19,11 @@ dropped and counted.
 """
 
 import json
-from dataclasses import dataclass
+import os
+import shutil
+from dataclasses import dataclass, field
 from pathlib import Path
-from typing import FrozenSet, Tuple, Union
+from typing import Dict, FrozenSet, Tuple, Union
 
 import pandas as pd
 
@@ -47,6 +49,10 @@ class Resampled:
     bars: pd.DataFrame
     sessions: int
     early_close_minutes_dropped: int
+    # bars in a session -> how many sessions had that many (78 on a normal
+    # day, 42 on an early close). Missing minutes are acceptable, so this is
+    # reported, never enforced.
+    bars_per_session: Dict[int, int] = field(default_factory=dict)
 
 
 def read_minute_json(path: Union[str, Path]) -> pd.DataFrame:
@@ -81,17 +87,22 @@ def resample_to_5m(minutes: pd.DataFrame, from_date: str, to_date: str,
     close last, volume sum.
 
     Raises:
-        ValueError: on a minute not on a whole minute, or outside 09:30-16:00
-            New York. The source is meant to be regular hours only; a stray
+        ValueError: on two minutes with the same `time`, a minute not on a
+            whole minute, or one outside 09:30-16:00 New York. The source is meant to be regular hours only; a stray
             premarket print would open a bucket before 09:30.
     """
-    frame = minutes.sort_values("time").reset_index(drop=True)
+    frame = minutes.sort_values("time", kind="stable").reset_index(drop=True)
     dates, offsets = _new_york(frame)
 
     in_window = (dates >= from_date) & (dates <= to_date)
     frame, dates, offsets = frame[in_window], dates[in_window], offsets[in_window]
     if frame.empty:
         raise ValueError(f"no minutes between {from_date} and {to_date}")
+    repeated = frame["time"].duplicated()
+    if repeated.any():
+        raise ValueError(
+            f"{int(repeated.sum())} duplicate minute(s), the first at epoch "
+            f"{int(frame.loc[repeated, 'time'].iloc[0])}")
     if (frame["time"] % 60 != 0).any():
         raise ValueError("a minute timestamp is not on a whole minute")
 
@@ -114,17 +125,31 @@ def resample_to_5m(minutes: pd.DataFrame, from_date: str, to_date: str,
         "close": grouped["close"].last(),
         "volume": grouped["volume"].sum(),
     }).reset_index().rename(columns={"bucket": "timestamp"})
-    bars["timestamp"] = bars["timestamp"].astype(float)
+    bars = bars.astype(float)
+
+    bar_dates, _ = _new_york(bars.rename(columns={"timestamp": "time"}))
+    per_session = bar_dates.value_counts().value_counts()
+    histogram = {int(n): int(per_session[n])
+                 for n in sorted(per_session.index, reverse=True)}
 
     return Resampled(bars=bars.loc[:, BAR_COLUMNS].reset_index(drop=True),
                      sessions=int(dates.nunique()),
-                     early_close_minutes_dropped=dropped)
+                     early_close_minutes_dropped=dropped,
+                     bars_per_session=histogram)
 
 
-def session_close(minutes: pd.DataFrame, date: str) -> float:
-    """The last 1-minute close on one New York date."""
-    dates, _ = _new_york(minutes)
-    day = minutes[dates == date]
+def session_close(minutes: pd.DataFrame, date: str,
+                  early_closes: FrozenSet[str] = NYSE_EARLY_CLOSES) -> float:
+    """
+    The last 1-minute close on one New York date, regular session only: on a
+    listed early-close day the minutes from 13:00 on are extended-hours
+    prints and are ignored, as in resample_to_5m.
+    """
+    dates, offsets = _new_york(minutes)
+    on_day = dates == date
+    if date in early_closes:
+        on_day = on_day & (offsets < EARLY_CLOSE_MINUTES)
+    day = minutes[on_day]
     if day.empty:
         raise ValueError(f"no minutes on {date}")
     return float(day.sort_values("time")["close"].iloc[-1])
@@ -158,10 +183,21 @@ def write_bar_cache(bars: pd.DataFrame, symbol: str, from_date: str,
     atomically, and a later build is a plain cache hit that never calls Dhan.
     """
     path = cache_path(cache_dir, symbol, from_date, to_date, interval)
-    if path.exists():
-        if not overwrite:
-            raise FileExistsError(
-                f"{path} already exists; pass overwrite=True to replace it")
-        path.unlink()
-    return load_bars(symbol, from_date, to_date, interval,
-                     cache_dir=cache_dir, fetcher=lambda *_: bars)
+    if not path.exists():
+        return load_bars(symbol, from_date, to_date, interval,
+                         cache_dir=cache_dir, fetcher=lambda *_: bars)
+    if not overwrite:
+        raise FileExistsError(
+            f"{path} already exists; pass overwrite=True to replace it")
+
+    # Build beside the old file and swap it in only once the build worked, so
+    # a failure leaves the old cache untouched.
+    staging = Path(cache_dir) / f".staging.{os.getpid()}"
+    try:
+        built = load_bars(symbol, from_date, to_date, interval,
+                          cache_dir=staging, fetcher=lambda *_: bars)
+        os.replace(cache_path(staging, symbol, from_date, to_date, interval),
+                   path)
+    finally:
+        shutil.rmtree(staging, ignore_errors=True)
+    return built

@@ -29,9 +29,11 @@ class GannLadderAnalyzer:
                 f"breach_mode {self.breach_mode!r} is not one of {BREACH_MODES}")
         raw_closes = config.get("confirmation_closes", 2)
         try:
+            # A bool is an int to Python but never a count of closes.
             self.confirmation_closes = int(raw_closes)
-            whole = self.confirmation_closes == raw_closes
-        except (TypeError, ValueError):
+            whole = (not isinstance(raw_closes, bool)
+                     and self.confirmation_closes == raw_closes)
+        except (TypeError, ValueError, OverflowError):  # None, "two", nan, inf
             whole = False
         if not whole or self.confirmation_closes < 1:
             raise ValueError(

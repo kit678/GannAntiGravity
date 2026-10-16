@@ -468,7 +468,8 @@ def test_an_unknown_breach_mode_is_refused():
         analyzer(breach_mode="body")
 
 
-@pytest.mark.parametrize("bad", [0, -1, 1.5, "two", None])
+@pytest.mark.parametrize("bad", [0, -1, 1.5, "two", None, float("inf"),
+                                 float("nan"), True, False])
 def test_confirmation_closes_must_be_a_whole_number_of_at_least_one(bad):
     with pytest.raises(ValueError, match="confirmation_closes"):
         analyzer(confirmation_closes=bad)

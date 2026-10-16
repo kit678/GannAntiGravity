@@ -154,3 +154,70 @@ def test_write_bar_cache_refuses_to_replace_without_overwrite(tmp_path):
         write_bar_cache(bars, "AAPL", FROM, TO, "5", tmp_path)
 
     write_bar_cache(bars, "AAPL", FROM, TO, "5", tmp_path, overwrite=True)
+
+
+def test_a_duplicate_minute_is_refused():
+    rows = minutes("2025-03-07", "09:30", 3)
+    rows.append(dict(rows[1]))
+
+    with pytest.raises(ValueError, match="duplicate"):
+        resample_to_5m(frame(rows), FROM, TO)
+
+
+def test_integer_prices_and_volume_come_out_as_floats():
+    rows = [{"time": epoch("2025-03-07", "09:30") + 60 * i, "open": 100 + i,
+             "high": 101 + i, "low": 99 + i, "close": 100 + i, "volume": 5}
+            for i in range(5)]
+
+    bars = resample_to_5m(frame(rows), FROM, TO).bars
+
+    for column in ("open", "high", "low", "close", "volume", "timestamp"):
+        assert str(bars[column].dtype) == "float64", column
+
+
+def test_bars_per_session_counts_a_normal_day_and_an_early_close():
+    result = resample_to_5m(
+        frame(minutes("2025-03-07", "09:30", 390),
+              minutes("2024-12-24", "09:30", 390),
+              minutes("2025-03-10", "09:30", 12)), FROM, TO)
+
+    assert result.bars_per_session == {78: 1, 42: 1, 3: 1}
+    assert result.early_close_minutes_dropped == 180
+
+
+def test_session_close_on_an_early_close_day_ignores_late_prints():
+    rows = frame(minutes("2024-12-24", "09:30", 390))
+
+    # minute 209 is the last one before 13:00; its close is base + 209.25
+    assert session_close(rows, "2024-12-24") == 100.0 + 209 + 0.25
+
+
+def test_write_bar_cache_keeps_the_old_file_when_the_rebuild_fails(tmp_path):
+    bars = resample_to_5m(frame(minutes("2025-03-07", "09:30", 5)),
+                          FROM, TO).bars
+    write_bar_cache(bars, "AAPL", FROM, TO, "5", tmp_path)
+    before = sorted(p.name for p in tmp_path.iterdir())
+    old = (tmp_path / before[0]).read_bytes()
+
+    with pytest.raises(ValueError, match="no bars"):
+        write_bar_cache(bars.iloc[0:0], "AAPL", FROM, TO, "5", tmp_path,
+                        overwrite=True)
+
+    assert sorted(p.name for p in tmp_path.iterdir()) == before
+    assert (tmp_path / before[0]).read_bytes() == old
+
+
+def test_write_bar_cache_overwrite_replaces_the_file(tmp_path):
+    first = resample_to_5m(frame(minutes("2025-03-07", "09:30", 5)),
+                           FROM, TO).bars
+    second = resample_to_5m(frame(minutes("2025-03-07", "09:30", 10)),
+                            FROM, TO).bars
+    write_bar_cache(first, "AAPL", FROM, TO, "5", tmp_path)
+
+    write_bar_cache(second, "AAPL", FROM, TO, "5", tmp_path, overwrite=True)
+
+    cached = load_bars("AAPL", FROM, TO, "5", cache_dir=tmp_path,
+                       fetcher=no_fetch)
+    assert len(cached) == 2
+    assert [p.name for p in tmp_path.iterdir()] == [
+        "AAPL_5_2024-09-02_2026-09-01.parquet"]
