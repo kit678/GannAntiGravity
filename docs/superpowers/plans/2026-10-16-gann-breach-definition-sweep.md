@@ -19,6 +19,14 @@ Spec (source of truth): `docs/superpowers/specs/2026-10-16-gann-breach-definitio
 - Python is `C:/Users/kitsh/AppData/Local/miniconda3/python.exe`. Checked 2026-10-16: from the worktree backend dir, `python -m pytest` imports the worktree's `study_tool` (cwd is first on `sys.path`) and the suite is green at **470 passed**. No other environment is needed.
 - Tests never touch the network, the 113 MB reference corpus, or the 105 MB AAPL JSON. They use small synthetic frames and `tmp_path`.
 - Never commit anything under `gann-visualizer/backend/logs/corpus/` (gitignored).
+- **After every pytest run, before committing:** importing `main.py` (`main.py:40-48`) deletes the tracked `logs/backend/backend_session_20260507_163028.log` and writes a new untracked session log. Restore and clean up with:
+
+  ```bash
+  git -C C:/Dev/GannTesting/.worktrees/breach-sweep checkout -- logs/backend/backend_session_20260507_163028.log
+  git -C C:/Dev/GannTesting/.worktrees/breach-sweep ls-files --others --exclude-standard -- 'logs/backend/backend_session_*.log' | sed 's|^|C:/Dev/GannTesting/.worktrees/breach-sweep/|' | xargs -r rm --
+  ```
+
+  Every commit step uses explicit `git add <files>`, never `git add -A`, so a stray log cannot ride along.
 - Commit messages follow AGENTS.md (Conventional Commits, lower case, imperative, no trailing period) and end with a blank line and `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>` (the second `-m` supplies the blank line).
 
 ## File Structure
@@ -44,8 +52,7 @@ Spec (source of truth): `docs/superpowers/specs/2026-10-16-gann-breach-definitio
 | `scripts/mine_gann_corpus.py` | modify | `ScoredCorpus`, `load_scored_events`, `mining_statistics`, `render_mining_report`; `--slice all`; lag-free statistics in the report; `main(argv)` |
 | `tests/study_tool/test_mine_gann_corpus.py` | create | `--slice all` end to end |
 | `study_tool/aapl_bars.py` | create | AAPL 1m RTH JSON -> 5m bars -> bar cache parquet |
-| `scripts/load_aapl_bars.py` | create | CLI for the loader; prints bar count, early-close drops, 2024-08-30 close, last pre-window close |
-| `tests/study_tool/test_aapl_bars.py` | create | sessions, DST, half-day, volume sum, window, cache hit, CLI |
+| `tests/study_tool/test_aapl_bars.py` | create | sessions, DST, half-day, volume sum, window, cache hit |
 | `study_tool/mining/regression_gate.py` | create | `GateResult`, `compare_event_tables`, `check_regression` |
 | `tests/study_tool/mining/test_regression_gate.py` | create | exact-match definition on small tables |
 | `study_tool/mining/report.py` | modify | module-level `display_label` (used by the group matcher) |
@@ -53,10 +60,12 @@ Spec (source of truth): `docs/superpowers/specs/2026-10-16-gann-breach-definitio
 | `tests/study_tool/mining/test_breach_sweep.py` | create | selection rule, verdict, choice file, groups, scoring |
 | `study_tool/mining/sweep_report.py` | create | RELIANCE results markdown and AAPL verdict markdown |
 | `tests/study_tool/mining/test_sweep_report.py` | create | section order, null text, caveats |
-| `scripts/run_breach_sweep.py` | create | builds four RELIANCE corpora (no fetch), close2 gate, scores, selects, writes choice + results |
-| `tests/study_tool/test_run_breach_sweep.py` | create | end to end on a tiny cache; gate failure; build-only; reuse |
-| `scripts/run_aapl_holdout.py` | create | refuses without a non-null choice; builds AAPL x6 under the chosen rule; scores `--slice all`; writes verdict; one look only |
-| `tests/study_tool/test_run_aapl_holdout.py` | create | refusals, end to end, second look refused |
+| `scripts/run_breach_sweep.py` | create | builds four RELIANCE corpora (no fetch), close2 gate, prints peak memory per build, scores, selects, writes choice + results |
+| `tests/study_tool/test_run_breach_sweep.py` | create | pinned null (zero shadows); forced chosen rule end to end; gate failure; build-only; reuse; peak memory probe |
+| `scripts/load_aapl_bars.py` | create | CLI for the loader (Task 16); refuses without a non-null `--choice`; prints bar count, early-close drops, 2024-08-30 close, last pre-window close |
+| `tests/study_tool/test_load_aapl_bars.py` | create | loader CLI refuses a missing / null choice; writes the cache and prints the checks |
+| `scripts/run_aapl_holdout.py` | create | refuses without a non-null choice, if the AAPL corpus already exists, if a `.started` marker or the results exist; builds AAPL x6 under the chosen rule; scores `--slice all`; writes only the spec's statistics and the verdict - never the full mining report |
+| `tests/study_tool/test_run_aapl_holdout.py` | create | every refusal, the marker written before scoring, end to end |
 
 Outputs written by the RUN tasks (paths fixed here so later tasks can name them):
 
@@ -1912,7 +1921,7 @@ git commit -m "feat: load every slice of a corpus by name" -m "Co-Authored-By: C
 - Modify: `scripts/mine_gann_corpus.py` (whole file; full replacement below)
 - Create: `tests/study_tool/test_mine_gann_corpus.py`
 
-The run is split so the sweep and the AAPL command can reuse the expensive part (load + race) without re-racing: `load_scored_events` -> `ScoredCorpus`; `render_mining_report(scored)` renders the existing report. `run()` keeps its signature and output, so the existing tests in `tests/study_tool/mining/test_report.py` cover the refactor.
+The run is split so the sweep and the AAPL command can reuse the expensive part (load + race) and compute only their own statistics: `load_scored_events` -> `ScoredCorpus`; `render_mining_report(scored)` renders the existing full report and is used by `run()` only - never on AAPL (Task 16). `run()` keeps its signature and output, so the existing tests in `tests/study_tool/mining/test_report.py` cover the refactor.
 
 - [ ] **Step 1: Write the failing tests**
 
@@ -2295,8 +2304,9 @@ git commit -m "feat: mine a whole corpus with --slice all" -m "Co-Authored-By: C
 
 **Files:**
 - Create: `study_tool/aapl_bars.py`
-- Create: `scripts/load_aapl_bars.py`
 - Create: `tests/study_tool/test_aapl_bars.py`
+
+The command-line wrapper `scripts/load_aapl_bars.py` is built in Task 16, after `read_choice` exists (Task 13): it refuses to build AAPL bars until the RELIANCE choice file exists and names a rule.
 
 Facts about the real source, checked 2026-10-16 (tests do **not** read it): `C:/Dev/GannTesting/data_local/aapl_rth_1m.json` is `{"symbol", "source", "candles": [{"time", "open", "high", "low", "close", "volume"}, ...]}`, 1,050,923 minutes, `time` = UTC epoch of the minute start. In 2024-09-02..2026-09-01 it holds 195,019 minutes over 501 New York sessions, all between 09:30 and 15:59. On the five NYSE early-close days in the window (2024-11-29, 2024-12-24, 2025-07-03, 2025-11-28, 2025-12-24) it **also keeps 13:00-15:59 minutes** (529 in total) whose median volume is about 1,000 against about 50,000 before 13:00: extended-hours prints, not the session. The loader drops them and prints the count. 2026-07-02 traded a full day (median volume after 13:00 about 91,000) and is not an early close. The last minute before the window is 2024-08-30 15:59, close 228.86.
 
@@ -2461,24 +2471,6 @@ def test_write_bar_cache_refuses_to_replace_without_overwrite(tmp_path):
         write_bar_cache(bars, "AAPL", FROM, TO, "5", tmp_path)
 
     write_bar_cache(bars, "AAPL", FROM, TO, "5", tmp_path, overwrite=True)
-
-
-def test_the_command_line_writes_the_cache_and_prints_the_checks(tmp_path, capsys):
-    import load_aapl_bars
-    path = tmp_path / "aapl.json"
-    path.write_text(json.dumps({
-        "symbol": "AAPL", "source": "test",
-        "candles": (minutes("2024-08-30", "15:58", 2, base=228.0)
-                    + minutes("2024-09-03", "09:30", 10, base=230.0))}))
-    cache = tmp_path / "bars"
-
-    load_aapl_bars.main(["--json", str(path), "--cache", str(cache)])
-
-    out = capsys.readouterr().out
-    assert "2 bars over 1 sessions 2024-09-02..2026-09-01" in out
-    assert "2024-08-30 close: 229.25" in out
-    assert "last close before 2024-09-02: 229.25 on 2024-08-30" in out
-    assert (cache / "AAPL_5_2024-09-02_2026-09-01.parquet").exists()
 ```
 
 - [ ] **Step 2: Run the tests to verify they fail**
@@ -2661,86 +2653,16 @@ def write_bar_cache(bars: pd.DataFrame, symbol: str, from_date: str,
                      cache_dir=cache_dir, fetcher=lambda *_: bars)
 ```
 
-- [ ] **Step 4: Implement the command line**
-
-Create `scripts/load_aapl_bars.py`:
-
-```python
-"""
-Resample the AAPL 1-minute RTH JSON into the 5-minute bar cache.
-
-Usage (from gann-visualizer/backend/):
-    python scripts/load_aapl_bars.py \
-        --json C:/Dev/GannTesting/data_local/aapl_rth_1m.json \
-        --cache C:/Dev/GannTesting/gann-visualizer/backend/logs/corpus/bars
-
-Prints the bar and session count, the extended-hours minutes dropped on
-early-close days, the 2024-08-30 close (to check against the published
-close in the write-up) and the last close before the window (which fixes
-the x6 scale).
-"""
-
-import argparse
-import os
-import sys
-from typing import List, Optional
-
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-
-from study_tool.aapl_bars import (
-    last_close_before, read_minute_json, resample_to_5m, session_close,
-    write_bar_cache,
-)
-from study_tool.bar_cache import cache_path
-
-AAPL_SCALE = 6
-
-
-def main(argv: Optional[List[str]] = None) -> None:
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--json", required=True)
-    parser.add_argument("--cache", required=True)
-    parser.add_argument("--symbol", default="AAPL")
-    parser.add_argument("--from", dest="from_date", default="2024-09-02")
-    parser.add_argument("--to", dest="to_date", default="2026-09-01")
-    parser.add_argument("--interval", default="5")
-    parser.add_argument("--check-date", default="2024-08-30")
-    parser.add_argument("--overwrite", action="store_true")
-    args = parser.parse_args(argv)
-
-    minutes = read_minute_json(args.json)
-    resampled = resample_to_5m(minutes, args.from_date, args.to_date)
-    bars = write_bar_cache(resampled.bars, args.symbol, args.from_date,
-                           args.to_date, args.interval, args.cache,
-                           overwrite=args.overwrite)
-    check_close = session_close(minutes, args.check_date)
-    before_date, before_close = last_close_before(minutes, args.from_date)
-
-    print(f"{len(bars)} bars over {resampled.sessions} sessions "
-          f"{args.from_date}..{args.to_date}")
-    print(f"dropped {resampled.early_close_minutes_dropped} minutes after "
-          "13:00 on early-close days")
-    print(f"{args.check_date} close: {check_close} "
-          "(check against the published close)")
-    print(f"last close before {args.from_date}: {before_close} on "
-          f"{before_date}; x{AAPL_SCALE} = {before_close * AAPL_SCALE:.0f}")
-    print(f"wrote {cache_path(args.cache, args.symbol, args.from_date, args.to_date, args.interval)}")
-
-
-if __name__ == "__main__":
-    main()
-```
-
-- [ ] **Step 5: Run the tests to verify they pass**
+- [ ] **Step 4: Run the tests to verify they pass**
 
 Run: `C:/Users/kitsh/AppData/Local/miniconda3/python.exe -m pytest tests/study_tool/test_aapl_bars.py tests/study_tool/test_bar_cache.py -v`
 
 Expected: all PASS.
 
-- [ ] **Step 6: Commit**
+- [ ] **Step 5: Commit**
 
 ```bash
-git add study_tool/aapl_bars.py scripts/load_aapl_bars.py tests/study_tool/test_aapl_bars.py
+git add study_tool/aapl_bars.py tests/study_tool/test_aapl_bars.py
 git commit -m "feat: resample aapl 1m rth bars into the bar cache" -m "Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 ```
 
@@ -2758,7 +2680,7 @@ git commit -m "feat: resample aapl 1m rth bars into the bar cache" -m "Co-Author
 3. Same row count.
 4. After sorting each table by every column whose Arrow type is not `null`, every column is equal value for value, nulls matching nulls.
 
-Row order is not compared (it is a writer artefact). Parquet schema metadata (the pandas JSON blob) is ignored. Float NaN is read as null on both sides before sorting. **No column is excluded:** the reference `meta.json` differs (it was backfilled and lacks the new keys) but meta is not compared; every events column is a pure function of bars + settings, including `slice` (deterministic `assign_slices`) and `datetime` (rendered with the machine's local timezone by `event_logger`, so the gate must run on this same machine; if only `datetime` fails, the message names it and that is the diagnosis). Measured 2026-10-16 on the reference: 5,326,759 rows x 72 columns, 2.4 GB in Arrow, read 0.6 s, full sort 8 s; the gate holds both tables plus one column at a time, about 6 GB peak (machine has 63 GB).
+Row order is not compared (it is a writer artefact). Parquet schema metadata (the pandas JSON blob) is ignored. Float NaN is read as null on both sides before sorting. **No column is excluded:** the reference `meta.json` differs (it was backfilled and lacks the new keys) but meta is not compared; every events column is a pure function of bars + settings, including `datetime` and `slice`. Two columns can fail for a reason other than the breach rule, and the reason string lists **every** differing column so the diagnosis is immediate: `datetime` is rendered with the machine's local timezone by `event_logger` (the gate must run on this same machine); `slice` comes from `assign_slices`, which sorts with pandas' default quicksort (not stable), so rows sharing a `bar_index` at the 75% cutoff can be labelled differently if the rows arrived in a different order. If `slice` is the only differing column, the events are the same and only their order going into `assign_slices` changed - investigate that, do not wave it through. Measured 2026-10-16 on the reference: 5,326,759 rows x 72 columns, 2.4 GB in Arrow, read 0.6 s, full sort 8 s; the gate holds both tables plus one column at a time, about 6 GB peak (machine has 63 GB).
 
 - [ ] **Step 1: Write the failing tests**
 
@@ -2827,6 +2749,31 @@ def test_one_changed_value_fails_and_names_the_column(tmp_path):
 
     assert result.passed is False
     assert "'level_price'" in result.reason
+
+
+def test_every_differing_column_is_named(tmp_path):
+    changed = events()
+    changed.loc[2, "level_price"] = 1308.5
+    changed.loc[3, "outcome"] = "y"
+
+    result = check_regression(write(events(), tmp_path / "a.parquet"),
+                              write(changed, tmp_path / "b.parquet"))
+
+    assert result.passed is False
+    assert "['level_price', 'outcome']" in result.reason
+
+
+def test_a_slice_only_difference_still_fails_and_names_slice(tmp_path):
+    reference = events().assign(slice=["explore", "explore", "holdout",
+                                       "holdout"])
+    relabelled = reference.copy()
+    relabelled.loc[1, "slice"] = "holdout"
+
+    result = check_regression(write(reference, tmp_path / "a.parquet"),
+                              write(relabelled, tmp_path / "b.parquet"))
+
+    assert result.passed is False
+    assert "['slice']" in result.reason
 
 
 def test_an_extra_column_fails(tmp_path):
@@ -2903,9 +2850,12 @@ every column - every column equal value for value, nulls matching nulls.
 Row order is not compared; it is an artefact of the writer. Schema metadata
 is ignored. Float NaN is read as null on both sides.
 
-No column is excluded. `datetime` is rendered in the build machine's local
-timezone, so a rebuild on a machine set to another timezone fails on that
-column alone, and the message names it.
+No column is excluded, and the failure reason lists every differing column.
+Two can differ for reasons other than the breach rule: `datetime` is
+rendered in the build machine's local timezone, and `slice` comes from
+assign_slices, whose unstable quicksort can label rows sharing a bar_index
+at the cutoff differently if they arrived in another order. Either one
+alone is the diagnosis, not a pass.
 """
 
 from dataclasses import dataclass
@@ -2970,13 +2920,15 @@ def compare_event_tables(reference: pa.Table, rebuilt: pa.Table) -> GateResult:
     ref_order = pc.sort_indices(reference, sort_keys=keys)
     new_order = pc.sort_indices(rebuilt, sort_keys=keys)
 
-    for name in reference.column_names:
-        ref_column = reference.column(name).take(ref_order)
-        new_column = rebuilt.column(name).take(new_order)
-        if not ref_column.equals(new_column):
-            return GateResult(
-                False, f"column {name!r} differs after sorting both tables "
-                       "by every column", rows)
+    differing = [
+        name for name in reference.column_names
+        if not reference.column(name).take(ref_order).equals(
+            rebuilt.column(name).take(new_order))
+    ]
+    if differing:
+        return GateResult(
+            False, f"columns {differing} differ after sorting both tables "
+                   "by every column", rows)
 
     return GateResult(
         True, f"{rows} rows match on all {len(reference.column_names)} columns",
@@ -3844,7 +3796,7 @@ def test_sweep_results_render_the_same_twice():
 def aapl_context():
     return {"rule": "close1", "breach_mode": "close", "confirmation_closes": 1,
             "choice": "choice.json", "corpus": "out/aapl_5m_x6",
-            "report": "reports/r.md", "price_scale": 6, "shadow_count": 50,
+            "price_scale": 6, "shadow_count": 50,
             "rows": 1234, "generated": "2026-10-17 09:00"}
 
 
@@ -3861,6 +3813,7 @@ def test_aapl_results_read_touch_density_first():
     assert text.index("## Touch density") < text.index("## Verdict")
     assert "**pass**" in text
     assert "3 of 13" in text
+    assert "Full mining report" not in text
 
 
 def test_aapl_results_flag_a_busier_real_ladder():
@@ -4100,7 +4053,8 @@ def render_aapl_results(score: RuleScore, verdict: Verdict,
     lines += _groups_table(score)
     lines += [
         "",
-        f"Full mining report: `{context['report']}`",
+        "Nothing else was computed on AAPL: no other statistic or grouping "
+        "was read, so the holdout is spent on exactly the tests above.",
         f"Corpus: `{context['corpus']}`",
         f"Generated: {context['generated']}",
         "",
@@ -4154,7 +4108,9 @@ import build_gann_corpus
 import run_breach_sweep as sweep
 from build_gann_corpus import build_to_disk
 from study_tool.bar_cache import cache_path
-from study_tool.mining.breach_sweep import RULE_ORDER, RULES_BY_NAME
+from study_tool.mining.breach_sweep import (
+    RULE_ORDER, RULES_BY_NAME, Selection, read_choice,
+)
 
 FROM, TO = "2026-08-01", "2026-08-31"
 SHADOWS = 5
@@ -4178,10 +4134,10 @@ def write_cache(tmp_path):
     return cache
 
 
-def write_reference(tmp_path, cache, seed=7):
-    out = tmp_path / f"reference_seed{seed}"
+def write_reference(tmp_path, cache, seed=7, shadows=SHADOWS):
+    out = tmp_path / f"reference_seed{seed}_shadows{shadows}"
     build_to_disk(symbol="RELIANCE", from_date=FROM, to_date=TO, interval="5",
-                  price_scale=1, shadow_count=SHADOWS, seed=seed,
+                  price_scale=1, shadow_count=shadows, seed=seed,
                   cache_dir=cache, out_dir=out, allow_fetch=False)
     return out / "events.parquet"
 
@@ -4199,36 +4155,81 @@ def run(tmp_path, cache, reference, **overrides):
     return sweep.run_sweep(**kwargs)
 
 
-def test_the_sweep_builds_gates_scores_and_writes_the_choice(tmp_path,
-                                                             monkeypatch):
-    # If this fails with "z is undefined", the synthetic shadows tied
-    # exactly; change the bar step 0.6 above to 0.7 and rerun.
+def test_a_sweep_with_no_shadows_is_a_pinned_null(tmp_path):
+    """
+    The whole pipeline, with an outcome known in advance: with zero shadows
+    no rule can be above all shadows, so the pre-registered rule must return
+    a null and the choice file must say so.
+    """
     cache = write_cache(tmp_path)
-    reference = write_reference(tmp_path, cache)
+    reference = write_reference(tmp_path, cache, shadows=0)
     p = paths(tmp_path)
 
-    selection = run(tmp_path, cache, reference)
+    selection = run(tmp_path, cache, reference, shadows=0)
 
+    assert selection.chosen is None
+    assert selection.eligible == []
     record = json.loads(p["choice_path"].read_text(encoding="utf-8"))
-    assert record["chosen"] == selection.chosen
-    assert record["chosen"] in (None,) + RULE_ORDER
+    assert record["chosen"] is None
+    assert record["breach_mode"] is None
     assert record["regression_gate"]["passed"] is True
     assert set(record["rules"]) == set(RULE_ORDER)
     text = p["results_path"].read_text(encoding="utf-8")
     assert "**PASSED**" in text
+    assert "AAPL is not built" in text
+    with pytest.raises(ValueError, match="null"):
+        read_choice(p["choice_path"])
+
+
+def test_a_chosen_rule_reaches_the_choice_file_and_the_report(tmp_path,
+                                                              monkeypatch):
+    """
+    Real builds, real gate and real scoring on five shadows; only the
+    selection is forced, so the chosen-rule path is checked end to end.
+    """
+    cache = write_cache(tmp_path)
+    reference = write_reference(tmp_path, cache)
+    p = paths(tmp_path)
+    seen = {}
+
+    def forced(pooled, tie_window=0.1):
+        seen["rules"] = sorted(pooled)
+        return Selection(chosen="wick1", eligible=["wick1"],
+                         candidates=["wick1"],
+                         z={name: c.z for name, c in pooled.items()},
+                         reason="forced by the test")
+
+    monkeypatch.setattr(sweep, "select_rule", forced)
+
+    selection = run(tmp_path, cache, reference)
+
+    assert selection.chosen == "wick1"
+    assert seen["rules"] == sorted(RULE_ORDER)
+    record = json.loads(p["choice_path"].read_text(encoding="utf-8"))
+    assert (record["chosen"], record["breach_mode"],
+            record["confirmation_closes"]) == ("wick1", "wick", 1)
+    assert read_choice(p["choice_path"]) == RULES_BY_NAME["wick1"]
+    assert "Chosen rule: `wick1`" in         p["results_path"].read_text(encoding="utf-8")
     for name in RULE_ORDER:
         meta = json.loads(
             (sweep.corpus_dir_for(p["out_root"], name) / "meta.json").read_text())
         rule = RULES_BY_NAME[name]
-        assert (meta["breach_mode"], meta["confirmation_closes"]) == \
-            (rule.breach_mode, rule.confirmation_closes)
+        assert (meta["breach_mode"], meta["confirmation_closes"]) ==             (rule.breach_mode, rule.confirmation_closes)
 
     # A second run reuses every corpus instead of rebuilding.
     def boom(*args, **kwargs):
         raise AssertionError("a finished corpus was rebuilt")
 
     monkeypatch.setattr(build_gann_corpus, "build_corpus", boom)
-    assert run(tmp_path, cache, reference).chosen == selection.chosen
+    assert run(tmp_path, cache, reference).chosen == "wick1"
+
+
+def test_peak_memory_is_reported_on_windows():
+    peak = sweep.peak_memory_gb()
+    if sys.platform == "win32":
+        assert peak is not None and peak > 0
+    else:
+        assert peak is None
 
 
 def test_a_failing_gate_stops_before_any_other_build_or_score(tmp_path):
@@ -4355,6 +4356,53 @@ class RegressionGateError(RuntimeError):
     """The close2 rebuild does not reproduce the existing corpus."""
 
 
+def peak_memory_gb() -> Optional[float]:
+    """
+    This process's peak working set in GB, or None off Windows.
+
+    Printed after every build so the RUN task can decide whether the other
+    three builds fit in memory side by side. ctypes rather than psutil,
+    which is not installed.
+    """
+    if sys.platform != "win32":
+        return None
+    import ctypes
+    from ctypes import wintypes
+
+    class ProcessMemoryCounters(ctypes.Structure):
+        _fields_ = [
+            ("cb", wintypes.DWORD), ("PageFaultCount", wintypes.DWORD),
+            ("PeakWorkingSetSize", ctypes.c_size_t),
+            ("WorkingSetSize", ctypes.c_size_t),
+            ("QuotaPeakPagedPoolUsage", ctypes.c_size_t),
+            ("QuotaPagedPoolUsage", ctypes.c_size_t),
+            ("QuotaPeakNonPagedPoolUsage", ctypes.c_size_t),
+            ("QuotaNonPagedPoolUsage", ctypes.c_size_t),
+            ("PagefileUsage", ctypes.c_size_t),
+            ("PeakPagefileUsage", ctypes.c_size_t),
+        ]
+
+    kernel32 = ctypes.WinDLL("kernel32")
+    psapi = ctypes.WinDLL("psapi")
+    kernel32.GetCurrentProcess.restype = wintypes.HANDLE
+    psapi.GetProcessMemoryInfo.argtypes = [
+        wintypes.HANDLE, ctypes.POINTER(ProcessMemoryCounters), wintypes.DWORD]
+    psapi.GetProcessMemoryInfo.restype = wintypes.BOOL
+
+    counters = ProcessMemoryCounters()
+    counters.cb = ctypes.sizeof(counters)
+    if not psapi.GetProcessMemoryInfo(kernel32.GetCurrentProcess(),
+                                      ctypes.byref(counters), counters.cb):
+        return None
+    return counters.PeakWorkingSetSize / 1e9
+
+
+def _print_peak_memory() -> None:
+    peak = peak_memory_gb()
+    if peak is not None:
+        print(f"peak memory so far: {peak:.1f} GB")
+
+
 def corpus_dir_for(out_root: PathLike, rule: str) -> Path:
     return Path(out_root) / f"reliance_5m_x1_{rule}"
 
@@ -4410,6 +4458,7 @@ def run_sweep(out_root: PathLike, cache_dir: PathLike, reference: PathLike,
         status = build_rule(rule, out_root, cache_dir, from_date, to_date,
                             shadows)
         print(f"{rule}: {status} in {time.time() - started:.0f}s")
+        _print_peak_memory()
         if rule == GATE_RULE:
             gate = run_gate(out_root, reference)
 
@@ -4481,7 +4530,7 @@ if __name__ == "__main__":
 
 Run: `C:/Users/kitsh/AppData/Local/miniconda3/python.exe -m pytest tests/study_tool/test_run_breach_sweep.py -v`
 
-Expected: all PASS (about 20-40 s; it builds several tiny corpora).
+Expected: all PASS (about 20-40 s; it builds several tiny corpora). The ctypes probe in `peak_memory_gb` was checked on this machine on 2026-10-16 (returned the process's peak working set).
 
 - [ ] **Step 5: Commit**
 
@@ -4492,22 +4541,30 @@ git commit -m "feat: breach sweep runner with the close2 regression gate" -m "Co
 
 ---
 
-### Task 16: The AAPL holdout command
+### Task 16: The AAPL commands - bar loader and holdout, with one-look guards
 
 **Files:**
+- Create: `scripts/load_aapl_bars.py`
+- Create: `tests/study_tool/test_load_aapl_bars.py`
 - Create: `scripts/run_aapl_holdout.py`
 - Create: `tests/study_tool/test_run_aapl_holdout.py`
 
-One look: the command refuses if the results file already exists. The choice file must exist and name a rule; whether it is **committed** is checked by hand in the RUN task (Task 19), not here.
+Guards, all tested:
+- `load_aapl_bars.py` takes a required `--choice` and calls `read_choice` first: no AAPL bars are built until the RELIANCE choice exists and names a rule.
+- `run_aapl` refuses: a missing or null choice; an existing results file; an existing `<results>.started` marker; an existing AAPL corpus directory (`ensure_corpus` must return `"built"` - a hand-built corpus is never silently reused).
+- `run_aapl` writes `<results>.started` after the build and **before** `load_scored_events`, so a crash during scoring still counts as the look.
+- `run_aapl` computes and writes only what the spec names - touch density first, pooled lag-free reach rate, the 13 groups, dropped share (+ entry-only), the verdict. It never renders `render_mining_report` on AAPL: that would run about 66 other statistic x grouping comparisons on the holdout.
 
-- [ ] **Step 1: Write the failing tests**
+Whether the choice file is **committed** is checked by hand in Task 19.
 
-Create `tests/study_tool/test_run_aapl_holdout.py`:
+- [ ] **Step 1: Write the failing loader tests**
+
+Create `tests/study_tool/test_load_aapl_bars.py`:
 
 ```python
 """
-The AAPL command: refuses without a non-null choice, builds one corpus under
-the chosen rule, reads it whole once, writes the verdict.
+The AAPL bar loader command refuses to run before the RELIANCE sweep has
+chosen a breach rule.
 """
 import sys
 import os
@@ -4519,6 +4576,93 @@ import pytest
 sys.path.append(os.path.abspath('C:/Dev/GannTesting/gann-visualizer/backend'))
 sys.path.append(os.path.abspath('C:/Dev/GannTesting/gann-visualizer/backend/scripts'))
 
+import load_aapl_bars
+
+CACHE_NAME = "AAPL_5_2024-09-02_2026-09-01.parquet"
+
+
+def minutes(date, start_hm, count, base):
+    start = int(pd.Timestamp(f"{date} {start_hm}",
+                             tz="America/New_York").timestamp())
+    return [{"time": start + 60 * i, "open": base + i,
+             "high": base + i + 0.5, "low": base + i - 0.5,
+             "close": base + i + 0.25, "volume": 10.0 + i}
+            for i in range(count)]
+
+
+def write_json(tmp_path):
+    path = tmp_path / "aapl.json"
+    path.write_text(json.dumps({
+        "symbol": "AAPL", "source": "test",
+        "candles": (minutes("2024-08-30", "15:58", 2, 228.0)
+                    + minutes("2024-09-03", "09:30", 10, 230.0))}))
+    return path
+
+
+def write_choice(tmp_path, chosen):
+    path = tmp_path / "choice.json"
+    path.write_text(json.dumps({"chosen": chosen}), encoding="utf-8")
+    return path
+
+
+def test_refuses_without_a_choice_file(tmp_path):
+    cache = tmp_path / "bars"
+
+    with pytest.raises(FileNotFoundError, match="AAPL is not built"):
+        load_aapl_bars.main(["--choice", str(tmp_path / "missing.json"),
+                             "--json", str(write_json(tmp_path)),
+                             "--cache", str(cache)])
+
+    assert not (cache / CACHE_NAME).exists()
+
+
+def test_refuses_a_null_choice(tmp_path):
+    cache = tmp_path / "bars"
+
+    with pytest.raises(ValueError, match="null"):
+        load_aapl_bars.main(["--choice", str(write_choice(tmp_path, None)),
+                             "--json", str(write_json(tmp_path)),
+                             "--cache", str(cache)])
+
+    assert not (cache / CACHE_NAME).exists()
+
+
+def test_writes_the_cache_and_prints_the_checks(tmp_path, capsys):
+    cache = tmp_path / "bars"
+
+    load_aapl_bars.main(["--choice", str(write_choice(tmp_path, "close1")),
+                         "--json", str(write_json(tmp_path)),
+                         "--cache", str(cache)])
+
+    out = capsys.readouterr().out
+    assert "breach rule close1 is chosen" in out
+    assert "2 bars over 1 sessions 2024-09-02..2026-09-01" in out
+    assert "2024-08-30 close: 229.25" in out
+    assert "last close before 2024-09-02: 229.25 on 2024-08-30" in out
+    assert (cache / CACHE_NAME).exists()
+```
+
+- [ ] **Step 2: Write the failing holdout tests**
+
+Create `tests/study_tool/test_run_aapl_holdout.py`:
+
+```python
+"""
+The AAPL command: refuses without a non-null choice, refuses anything that
+looks like a second look, builds one corpus under the chosen rule, reads it
+whole once, and writes only the spec's statistics and the verdict.
+"""
+import sys
+import os
+import json
+
+import pandas as pd
+import pytest
+
+sys.path.append(os.path.abspath('C:/Dev/GannTesting/gann-visualizer/backend'))
+sys.path.append(os.path.abspath('C:/Dev/GannTesting/gann-visualizer/backend/scripts'))
+
+import mine_gann_corpus
 import run_aapl_holdout as holdout
 from study_tool.bar_cache import cache_path
 
@@ -4556,27 +4700,31 @@ def kwargs(tmp_path, choice, cache):
     return dict(choice_path=choice, cache_dir=cache,
                 out_dir=tmp_path / "aapl_5m_x6",
                 results_path=tmp_path / "docs" / "aapl.md",
-                report_dir=tmp_path / "reports",
                 from_date=FROM, to_date=TO, shadows=SHADOWS)
 
 
+def marker(args):
+    return holdout.started_marker(args["results_path"])
+
+
 def test_refuses_without_a_choice_file(tmp_path):
-    cache = write_cache(tmp_path)
+    args = kwargs(tmp_path, tmp_path / "missing.json", write_cache(tmp_path))
 
     with pytest.raises(FileNotFoundError, match="AAPL is not built"):
-        holdout.run_aapl(**kwargs(tmp_path, tmp_path / "missing.json", cache))
+        holdout.run_aapl(**args)
 
-    assert not (tmp_path / "aapl_5m_x6").exists()
+    assert not args["out_dir"].exists()
+    assert not marker(args).exists()
 
 
 def test_refuses_a_null_choice(tmp_path):
-    cache = write_cache(tmp_path)
+    args = kwargs(tmp_path, write_choice_file(tmp_path, None),
+                  write_cache(tmp_path))
 
     with pytest.raises(ValueError, match="null"):
-        holdout.run_aapl(**kwargs(tmp_path, write_choice_file(tmp_path, None),
-                                  cache))
+        holdout.run_aapl(**args)
 
-    assert not (tmp_path / "aapl_5m_x6").exists()
+    assert not args["out_dir"].exists()
 
 
 def test_main_returns_1_and_builds_nothing_without_a_choice(tmp_path):
@@ -4585,48 +4733,174 @@ def test_main_returns_1_and_builds_nothing_without_a_choice(tmp_path):
     code = holdout.main(["--choice", str(tmp_path / "missing.json"),
                          "--cache", str(cache),
                          "--out", str(tmp_path / "aapl_5m_x6"),
-                         "--results", str(tmp_path / "aapl.md"),
-                         "--report-dir", str(tmp_path / "reports")])
+                         "--results", str(tmp_path / "aapl.md")])
 
     assert code == 1
     assert not (tmp_path / "aapl_5m_x6").exists()
 
 
-def test_builds_under_the_chosen_rule_and_writes_the_verdict(tmp_path):
-    cache = write_cache(tmp_path)
-    args = kwargs(tmp_path, write_choice_file(tmp_path, "close1"), cache)
+def test_refuses_an_existing_aapl_corpus_directory(tmp_path):
+    args = kwargs(tmp_path, write_choice_file(tmp_path, "close1"),
+                  write_cache(tmp_path))
+    args["out_dir"].mkdir()
+
+    with pytest.raises(FileExistsError, match="already exists"):
+        holdout.run_aapl(**args)
+
+    assert not marker(args).exists()
+
+
+def test_refuses_when_ensure_corpus_did_not_build(tmp_path, monkeypatch):
+    args = kwargs(tmp_path, write_choice_file(tmp_path, "close1"),
+                  write_cache(tmp_path))
+    monkeypatch.setattr(holdout, "ensure_corpus", lambda **_: "reused")
+
+    with pytest.raises(RuntimeError, match="reused"):
+        holdout.run_aapl(**args)
+
+    assert not marker(args).exists()
+
+
+def test_the_marker_is_written_before_scoring_and_blocks_a_retry(tmp_path,
+                                                                  monkeypatch):
+    args = kwargs(tmp_path, write_choice_file(tmp_path, "close1"),
+                  write_cache(tmp_path))
+
+    def crash(*_, **__):
+        assert marker(args).exists(), "scoring started before the marker"
+        raise RuntimeError("scoring crashed")
+
+    monkeypatch.setattr(holdout, "load_scored_events", crash)
+    with pytest.raises(RuntimeError, match="scoring crashed"):
+        holdout.run_aapl(**args)
+
+    monkeypatch.undo()
+    with pytest.raises(FileExistsError, match="started"):
+        holdout.run_aapl(**args)
+
+
+def test_builds_under_the_chosen_rule_and_writes_only_the_spec_statistics(
+        tmp_path, monkeypatch):
+    def no_report(*_, **__):
+        raise AssertionError("the full mining report was rendered on AAPL")
+
+    monkeypatch.setattr(mine_gann_corpus, "render_mining_report", no_report)
+    args = kwargs(tmp_path, write_choice_file(tmp_path, "close1"),
+                  write_cache(tmp_path))
 
     verdict = holdout.run_aapl(**args)
 
     assert verdict.label in VALID_LABELS
+    assert not hasattr(holdout, "render_mining_report")
     meta = json.loads((args["out_dir"] / "meta.json").read_text())
     assert meta["symbol"] == "AAPL"
     assert meta["price_scale"] == 6
     assert meta["shadow_count"] == SHADOWS
     assert meta["seed"] == 7
     assert (meta["breach_mode"], meta["confirmation_closes"]) == ("close", 1)
+    assert marker(args).exists()
     text = args["results_path"].read_text(encoding="utf-8")
     assert text.index("## Touch density") < text.index("## Verdict")
     assert f"**{verdict.label}**" in text
-    assert len(list(args["report_dir"].glob("gann-mining-report-aapl-*.md"))) == 1
+    assert "hold_rate" not in text
+    assert list(tmp_path.rglob("gann-mining-report-*.md")) == []
 
 
 def test_a_second_look_is_refused(tmp_path):
-    cache = write_cache(tmp_path)
-    args = kwargs(tmp_path, write_choice_file(tmp_path, "close2"), cache)
+    args = kwargs(tmp_path, write_choice_file(tmp_path, "close2"),
+                  write_cache(tmp_path))
     holdout.run_aapl(**args)
 
     with pytest.raises(FileExistsError, match="one look"):
         holdout.run_aapl(**args)
 ```
 
-- [ ] **Step 2: Run the tests to verify they fail**
+- [ ] **Step 3: Run the tests to verify they fail**
 
-Run: `C:/Users/kitsh/AppData/Local/miniconda3/python.exe -m pytest tests/study_tool/test_run_aapl_holdout.py -v`
+Run: `C:/Users/kitsh/AppData/Local/miniconda3/python.exe -m pytest tests/study_tool/test_load_aapl_bars.py tests/study_tool/test_run_aapl_holdout.py -v`
 
-Expected: collection ERROR, `ModuleNotFoundError: No module named 'run_aapl_holdout'`.
+Expected: collection ERRORs, `ModuleNotFoundError: No module named 'load_aapl_bars'` and `No module named 'run_aapl_holdout'`.
 
-- [ ] **Step 3: Implement**
+- [ ] **Step 4: Implement the loader command**
+
+Create `scripts/load_aapl_bars.py`:
+
+```python
+"""
+Resample the AAPL 1-minute RTH JSON into the 5-minute bar cache.
+
+Refuses to run until the RELIANCE breach sweep has written a choice file
+that names a rule: AAPL bars are not built before the rule is fixed.
+
+Usage (from gann-visualizer/backend/):
+    python scripts/load_aapl_bars.py \
+        --choice <repo>/docs/superpowers/specs/2026-10-16-gann-breach-sweep-choice.json \
+        --json C:/Dev/GannTesting/data_local/aapl_rth_1m.json \
+        --cache C:/Dev/GannTesting/gann-visualizer/backend/logs/corpus/bars
+
+Prints the bar and session count, the extended-hours minutes dropped on
+early-close days, the 2024-08-30 close (to check against the published
+close in the write-up) and the last close before the window (which fixes
+the x6 scale).
+"""
+
+import argparse
+import os
+import sys
+from typing import List, Optional
+
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+from study_tool.aapl_bars import (
+    last_close_before, read_minute_json, resample_to_5m, session_close,
+    write_bar_cache,
+)
+from study_tool.bar_cache import cache_path
+from study_tool.mining.breach_sweep import read_choice
+
+AAPL_SCALE = 6
+
+
+def main(argv: Optional[List[str]] = None) -> None:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--choice", required=True)
+    parser.add_argument("--json", required=True)
+    parser.add_argument("--cache", required=True)
+    parser.add_argument("--symbol", default="AAPL")
+    parser.add_argument("--from", dest="from_date", default="2024-09-02")
+    parser.add_argument("--to", dest="to_date", default="2026-09-01")
+    parser.add_argument("--interval", default="5")
+    parser.add_argument("--check-date", default="2024-08-30")
+    parser.add_argument("--overwrite", action="store_true")
+    args = parser.parse_args(argv)
+
+    rule = read_choice(args.choice)   # raises before any AAPL data is read
+    print(f"breach rule {rule.name} is chosen; loading AAPL bars")
+
+    minutes = read_minute_json(args.json)
+    resampled = resample_to_5m(minutes, args.from_date, args.to_date)
+    bars = write_bar_cache(resampled.bars, args.symbol, args.from_date,
+                           args.to_date, args.interval, args.cache,
+                           overwrite=args.overwrite)
+    check_close = session_close(minutes, args.check_date)
+    before_date, before_close = last_close_before(minutes, args.from_date)
+
+    print(f"{len(bars)} bars over {resampled.sessions} sessions "
+          f"{args.from_date}..{args.to_date}")
+    print(f"dropped {resampled.early_close_minutes_dropped} minutes after "
+          "13:00 on early-close days")
+    print(f"{args.check_date} close: {check_close} "
+          "(check against the published close)")
+    print(f"last close before {args.from_date}: {before_close} on "
+          f"{before_date}; x{AAPL_SCALE} = {before_close * AAPL_SCALE:.0f}")
+    print(f"wrote {cache_path(args.cache, args.symbol, args.from_date, args.to_date, args.interval)}")
+
+
+if __name__ == "__main__":
+    main()
+```
+
+- [ ] **Step 5: Implement the holdout command**
 
 Create `scripts/run_aapl_holdout.py`:
 
@@ -4635,9 +4909,12 @@ Create `scripts/run_aapl_holdout.py`:
 The AAPL fresh holdout: one corpus under the breach rule the RELIANCE sweep
 chose, read whole, once.
 
-Refuses to run if the choice file is missing or records a null sweep, and
-refuses a second look if the results file already exists. The choice file
-must also be committed before this runs (checked by hand; see the plan).
+Refuses to run if the choice file is missing or null, if the results file or
+its `.started` marker exists, or if the AAPL corpus directory already
+exists. Writes the marker before any AAPL statistic is computed. Computes
+only what the spec names: touch density, the pooled lag-free reach rate,
+the 13 groups, the dropped shares and the verdict. The choice file must
+also be committed before this runs (checked by hand; see the plan).
 
 Spec: docs/superpowers/specs/2026-10-16-gann-breach-definition-sweep-design.md
 
@@ -4646,8 +4923,7 @@ Usage (from gann-visualizer/backend/), after scripts/load_aapl_bars.py:
         --choice <repo>/docs/superpowers/specs/2026-10-16-gann-breach-sweep-choice.json \
         --cache C:/Dev/GannTesting/gann-visualizer/backend/logs/corpus/bars \
         --out C:/Dev/GannTesting/gann-visualizer/backend/logs/corpus/aapl_5m_x6 \
-        --results <repo>/docs/superpowers/specs/2026-10-16-gann-aapl-holdout-results.md \
-        --report-dir <repo>/docs/superpowers/reports
+        --results <repo>/docs/superpowers/specs/2026-10-16-gann-aapl-holdout-results.md
 
 --from, --to and --shadows exist for tests; the holdout uses the defaults.
 """
@@ -4662,7 +4938,7 @@ from typing import List, Optional, Union
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from build_gann_corpus import ensure_corpus
-from mine_gann_corpus import load_scored_events, render_mining_report
+from mine_gann_corpus import load_scored_events
 from study_tool.corpus_writer import ALL_SLICES
 from study_tool.mining.breach_sweep import (
     Verdict, aapl_verdict, read_choice, score_rule,
@@ -4682,17 +4958,30 @@ SEED = 7
 PathLike = Union[str, Path]
 
 
+def started_marker(results_path: PathLike) -> Path:
+    """`<results>.started`: written once the look begins, never removed."""
+    return Path(f"{results_path}.started")
+
+
 def run_aapl(choice_path: PathLike, cache_dir: PathLike, out_dir: PathLike,
-             results_path: PathLike, report_dir: PathLike,
-             from_date: str = FROM_DATE, to_date: str = TO_DATE,
-             shadows: int = SHADOWS) -> Verdict:
+             results_path: PathLike, from_date: str = FROM_DATE,
+             to_date: str = TO_DATE, shadows: int = SHADOWS) -> Verdict:
     """Build, read once, write the verdict. Returns the Verdict."""
     rule = read_choice(choice_path)            # before anything touches AAPL
     results_path = Path(results_path)
+    marker = started_marker(results_path)
     if results_path.exists():
         raise FileExistsError(
             f"{results_path} exists: AAPL has been read already, and the "
             "holdout gets one look")
+    if marker.exists():
+        raise FileExistsError(
+            f"{marker} exists: a look at AAPL was started already, and the "
+            "holdout gets one look even if that run crashed")
+    if Path(out_dir).exists():
+        raise FileExistsError(
+            f"{out_dir} already exists: the AAPL corpus is built by this "
+            "command only, never reused")
 
     status = ensure_corpus(
         symbol=SYMBOL, from_date=from_date, to_date=to_date,
@@ -4700,33 +4989,35 @@ def run_aapl(choice_path: PathLike, cache_dir: PathLike, out_dir: PathLike,
         seed=SEED, cache_dir=cache_dir, out_dir=out_dir,
         breach_mode=rule.breach_mode,
         confirmation_closes=rule.confirmation_closes)
-    print(f"AAPL corpus {status} under {rule.name}")
+    if status != "built":
+        raise RuntimeError(
+            f"ensure_corpus returned {status!r} for {out_dir}; the AAPL "
+            "corpus must be built fresh by this command")
+    print(f"AAPL corpus built under {rule.name}")
+
+    marker.parent.mkdir(parents=True, exist_ok=True)
+    marker.write_text(
+        f"AAPL look started {time.strftime('%Y-%m-%d %H:%M')} under "
+        f"{rule.name}\n", encoding="utf-8")
 
     scored = load_scored_events(out_dir, slice_name=ALL_SLICES)
     score = score_rule(rule.name, scored.events, scored.meta.shadow_count)
     verdict = aapl_verdict(score)
 
-    report_dir = Path(report_dir)
-    report_dir.mkdir(parents=True, exist_ok=True)
-    stamp = time.strftime("%Y-%m-%d-%H%M")
-    report_path = report_dir / f"gann-mining-report-aapl-{stamp}.md"
-    report_path.write_text(render_mining_report(scored), encoding="utf-8")
-
     context = {
         "rule": rule.name, "breach_mode": rule.breach_mode,
         "confirmation_closes": rule.confirmation_closes,
         "choice": str(choice_path), "corpus": str(out_dir),
-        "report": str(report_path), "price_scale": SCALE,
+        "price_scale": SCALE,
         "shadow_count": scored.meta.shadow_count,
         "rows": len(scored.events),
         "generated": time.strftime("%Y-%m-%d %H:%M"),
     }
-    results_path.parent.mkdir(parents=True, exist_ok=True)
     results_path.write_text(render_aapl_results(score, verdict, context),
                             encoding="utf-8")
 
     print(f"verdict: {verdict.label}")
-    print(f"wrote {results_path}\nwrote {report_path}")
+    print(f"wrote {results_path}")
     return verdict
 
 
@@ -4736,7 +5027,6 @@ def main(argv: Optional[List[str]] = None) -> int:
     parser.add_argument("--cache", required=True)
     parser.add_argument("--out", required=True)
     parser.add_argument("--results", required=True)
-    parser.add_argument("--report-dir", required=True)
     parser.add_argument("--from", dest="from_date", default=FROM_DATE)
     parser.add_argument("--to", dest="to_date", default=TO_DATE)
     parser.add_argument("--shadows", type=int, default=SHADOWS)
@@ -4749,9 +5039,8 @@ def main(argv: Optional[List[str]] = None) -> int:
         return 1
 
     run_aapl(choice_path=args.choice, cache_dir=args.cache, out_dir=args.out,
-             results_path=args.results, report_dir=args.report_dir,
-             from_date=args.from_date, to_date=args.to_date,
-             shadows=args.shadows)
+             results_path=args.results, from_date=args.from_date,
+             to_date=args.to_date, shadows=args.shadows)
     return 0
 
 
@@ -4759,17 +5048,19 @@ if __name__ == "__main__":
     sys.exit(main())
 ```
 
-- [ ] **Step 4: Run the tests to verify they pass**
+- [ ] **Step 6: Run the tests to verify they pass**
 
-Run: `C:/Users/kitsh/AppData/Local/miniconda3/python.exe -m pytest tests/study_tool/test_run_aapl_holdout.py -v`
+Run: `C:/Users/kitsh/AppData/Local/miniconda3/python.exe -m pytest tests/study_tool/test_load_aapl_bars.py tests/study_tool/test_run_aapl_holdout.py -v`
 
 Expected: all PASS.
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 7: Commit**
+
+Restore the session log first (see Conventions), then:
 
 ```bash
-git add scripts/run_aapl_holdout.py tests/study_tool/test_run_aapl_holdout.py
-git commit -m "feat: aapl holdout command that reads once under the chosen rule" -m "Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
+git add scripts/load_aapl_bars.py scripts/run_aapl_holdout.py tests/study_tool/test_load_aapl_bars.py tests/study_tool/test_run_aapl_holdout.py
+git commit -m "feat: aapl loader and holdout commands with one-look guards" -m "Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 ```
 
 ---
@@ -4782,13 +5073,24 @@ git commit -m "feat: aapl holdout command that reads once under the chosen rule"
 
 Run: `C:/Users/kitsh/AppData/Local/miniconda3/python.exe -m pytest`
 
-Expected: 0 failed, 0 errors (baseline before this plan: 470 passed; this plan adds roughly 110). If anything fails, use superpowers:systematic-debugging, fix it in the task that owns the file, and commit the fix as `fix: ...` before moving on.
+Expected: 0 failed, 0 errors (baseline before this plan: 470 passed; this plan adds roughly 120). If anything fails, use superpowers:systematic-debugging, fix it in the task that owns the file, and commit the fix as `fix: ...` before moving on.
 
-- [ ] **Step 2: Confirm the tree is clean**
+- [ ] **Step 2: Restore the tracked session log and remove new ones**
 
-Run: `git status --short`
+The run imported `main.py`, which deletes `logs/backend/backend_session_20260507_163028.log` (tracked) and writes a new untracked session log (`main.py:40-48`). Run:
 
-Expected: no modified tracked files (the pre-existing untracked `.claude/` and `advanced_charts/` in the main checkout are not in this worktree).
+```bash
+git -C C:/Dev/GannTesting/.worktrees/breach-sweep checkout -- logs/backend/backend_session_20260507_163028.log
+git -C C:/Dev/GannTesting/.worktrees/breach-sweep ls-files --others --exclude-standard -- 'logs/backend/backend_session_*.log' | sed 's|^|C:/Dev/GannTesting/.worktrees/breach-sweep/|' | xargs -r rm --
+```
+
+The same applies after every pytest run in every task, before its commit; every commit uses explicit `git add <files>`.
+
+- [ ] **Step 3: Confirm the tree is clean**
+
+Run: `git -C C:/Dev/GannTesting/.worktrees/breach-sweep status --short`
+
+Expected: empty output.
 
 ---
 
@@ -4824,13 +5126,13 @@ Run (in the background):
 C:/Users/kitsh/AppData/Local/miniconda3/python.exe scripts/run_breach_sweep.py --cache C:/Dev/GannTesting/gann-visualizer/backend/logs/corpus/bars --reference C:/Dev/GannTesting/gann-visualizer/backend/logs/corpus/reliance_5m_x1/events.parquet --out-root C:/Dev/GannTesting/gann-visualizer/backend/logs/corpus/breach_sweep --choice C:/Dev/GannTesting/.worktrees/breach-sweep/docs/superpowers/specs/2026-10-16-gann-breach-sweep-choice.json --results C:/Dev/GannTesting/.worktrees/breach-sweep/docs/superpowers/specs/2026-10-16-gann-breach-sweep-results.md --rules close2 --build-only
 ```
 
-Expected (about 50 minutes): `37110 bars 2024-09-02..2026-09-01`, `close2: built in ...s`, then `regression gate: PASSED - 5326759 rows match on all 72 columns`, exit code 0.
+Expected (about 50 minutes): `37110 bars 2024-09-02..2026-09-01`, `close2: built in ...s`, `peak memory so far: <P> GB`, then `regression gate: PASSED - 5326759 rows match on all 72 columns`, exit code 0. **Write down P** (the build's peak working set); Step 4 depends on it.
 
 If it prints `STOPPED:` and exits 2: **stop the whole plan.** Do not build or score anything else. Use superpowers:systematic-debugging on the named column, report to the user, and do not proceed until the gate passes.
 
-- [ ] **Step 4: Build the other three rules in parallel (background)**
+- [ ] **Step 4: Build the other three rules - parallel only if they fit**
 
-Start three background processes (same command as Step 3, changing only `--rules`):
+Decide from P (Step 3): if `3 x P < 50` GB, start the three commands below as parallel background processes. Otherwise run them one at a time, each after the previous exits. `close1` and `wick1` produce more crosses than `close2`, so their peaks can exceed P; 50 GB leaves about 13 GB of the machine's 63 GB as margin. The commands are the same as Step 3, changing only `--rules`:
 
 ```bash
 C:/Users/kitsh/AppData/Local/miniconda3/python.exe scripts/run_breach_sweep.py --cache C:/Dev/GannTesting/gann-visualizer/backend/logs/corpus/bars --reference C:/Dev/GannTesting/gann-visualizer/backend/logs/corpus/reliance_5m_x1/events.parquet --out-root C:/Dev/GannTesting/gann-visualizer/backend/logs/corpus/breach_sweep --choice C:/Dev/GannTesting/.worktrees/breach-sweep/docs/superpowers/specs/2026-10-16-gann-breach-sweep-choice.json --results C:/Dev/GannTesting/.worktrees/breach-sweep/docs/superpowers/specs/2026-10-16-gann-breach-sweep-results.md --rules close1 --build-only
@@ -4844,7 +5146,7 @@ C:/Users/kitsh/AppData/Local/miniconda3/python.exe scripts/run_breach_sweep.py -
 C:/Users/kitsh/AppData/Local/miniconda3/python.exe scripts/run_breach_sweep.py --cache C:/Dev/GannTesting/gann-visualizer/backend/logs/corpus/bars --reference C:/Dev/GannTesting/gann-visualizer/backend/logs/corpus/reliance_5m_x1/events.parquet --out-root C:/Dev/GannTesting/gann-visualizer/backend/logs/corpus/breach_sweep --choice C:/Dev/GannTesting/.worktrees/breach-sweep/docs/superpowers/specs/2026-10-16-gann-breach-sweep-choice.json --results C:/Dev/GannTesting/.worktrees/breach-sweep/docs/superpowers/specs/2026-10-16-gann-breach-sweep-results.md --rules close3 --build-only
 ```
 
-Expected: each prints `<rule>: built in ...s` and exits 0 (about 50-90 minutes each, concurrently). If memory use passes about 50 GB (`powershell -NoProfile -Command "Get-Process python | Measure-Object WorkingSet64 -Sum"`), let the running ones finish and start the rest one at a time.
+Expected: each prints `<rule>: built in ...s` and `peak memory so far: ... GB`, and exits 0 (about 50-90 minutes each). While they run in parallel, check total use now and then with `powershell -NoProfile -Command "(Get-Process python | Measure-Object WorkingSet64 -Sum).Sum / 1GB"`; if it passes 55 GB, stop starting new builds and let the running ones finish.
 
 - [ ] **Step 5: Score and select**
 
@@ -4883,9 +5185,9 @@ If `"chosen": null`, the sweep is a null and AAPL is **not** built (spec stop ru
 
 **Files:**
 - Writes (gitignored): `C:/Dev/GannTesting/gann-visualizer/backend/logs/corpus/bars/AAPL_5_2024-09-02_2026-09-01.parquet`, `C:/Dev/GannTesting/gann-visualizer/backend/logs/corpus/aapl_5m_x6/`
-- Writes and commits: `C:/Dev/GannTesting/.worktrees/breach-sweep/docs/superpowers/specs/2026-10-16-gann-aapl-holdout-results.md`, `C:/Dev/GannTesting/.worktrees/breach-sweep/docs/superpowers/reports/gann-mining-report-aapl-<stamp>.md`
+- Writes and commits: `C:/Dev/GannTesting/.worktrees/breach-sweep/docs/superpowers/specs/2026-10-16-gann-aapl-holdout-results.md` and its marker `C:/Dev/GannTesting/.worktrees/breach-sweep/docs/superpowers/specs/2026-10-16-gann-aapl-holdout-results.md.started`
 
-**The RELIANCE choice must be committed before any step here runs.** Expected cost: loader about 1-2 minutes; AAPL build at x6 roughly 1-1.5 hours (grid builds dominate; more distinct keys than RELIANCE x1); scoring about 10 minutes.
+**The RELIANCE choice must be committed before any step here runs.** Both AAPL commands also refuse in code without a non-null choice file. Expected cost: loader about 1-2 minutes; AAPL build at x6 roughly 1-1.5 hours (grid builds dominate; more distinct keys than RELIANCE x1); scoring about 5 minutes (only the spec's statistics are computed).
 
 - [ ] **Step 1: Confirm the choice is committed and non-null**
 
@@ -4899,54 +5201,72 @@ grep '"chosen"' C:/Dev/GannTesting/.worktrees/breach-sweep/docs/superpowers/spec
 
 Expected: a commit hash; empty porcelain output; `"chosen": "<rule>"` (not `null`). If any check fails, stop.
 
-- [ ] **Step 2: Warn the user and wait for a yes**
-
-Tell the user: this is the one look at the fresh AAPL holdout under `<rule>`, about 1.5 hours in the background, and it cannot be repeated. Wait for an explicit yes.
-
-- [ ] **Step 3: Load the AAPL bars into the cache**
+- [ ] **Step 2: Confirm nothing from an earlier look exists**
 
 Run:
 
 ```bash
-C:/Users/kitsh/AppData/Local/miniconda3/python.exe scripts/load_aapl_bars.py --json C:/Dev/GannTesting/data_local/aapl_rth_1m.json --cache C:/Dev/GannTesting/gann-visualizer/backend/logs/corpus/bars
+ls C:/Dev/GannTesting/gann-visualizer/backend/logs/corpus/aapl_5m_x6 C:/Dev/GannTesting/.worktrees/breach-sweep/docs/superpowers/specs/2026-10-16-gann-aapl-holdout-results.md C:/Dev/GannTesting/.worktrees/breach-sweep/docs/superpowers/specs/2026-10-16-gann-aapl-holdout-results.md.started
 ```
 
-Expected: about `38898 bars over 501 sessions 2024-09-02..2026-09-01` (496 full sessions x 78 + 5 early closes x 42, fewer only if whole 5-minute buckets are missing), `dropped 529 minutes after 13:00 on early-close days`, `2024-08-30 close: 228.86 (check against the published close)`, `last close before 2024-09-02: 228.86 on 2024-08-30; x6 = 1373`. Save these four lines for Step 6.
+Expected: `No such file or directory` for all three. If any exists, stop and report: the holdout may already be spent.
+
+- [ ] **Step 3: Warn the user and wait for a yes**
+
+Tell the user: this is the one look at the fresh AAPL holdout under `<rule>`, about 1.5 hours in the background, and it cannot be repeated. Wait for an explicit yes.
+
+- [ ] **Step 4: Load the AAPL bars into the cache**
+
+Run:
+
+```bash
+C:/Users/kitsh/AppData/Local/miniconda3/python.exe scripts/load_aapl_bars.py --choice C:/Dev/GannTesting/.worktrees/breach-sweep/docs/superpowers/specs/2026-10-16-gann-breach-sweep-choice.json --json C:/Dev/GannTesting/data_local/aapl_rth_1m.json --cache C:/Dev/GannTesting/gann-visualizer/backend/logs/corpus/bars
+```
+
+Expected: `breach rule <rule> is chosen; loading AAPL bars`, about `38898 bars over 501 sessions 2024-09-02..2026-09-01` (496 full sessions x 78 + 5 early closes x 42, fewer only if whole 5-minute buckets are missing), `dropped 529 minutes after 13:00 on early-close days`, `2024-08-30 close: 228.86 (check against the published close)`, `last close before 2024-09-02: 228.86 on 2024-08-30; x6 = 1373`. Save these lines for Step 7.
 
 The 2024-08-30 value is the 15:59 bar's last trade, not the closing auction, so a gap of cents from the published close is expected; a gap of dollars means the source is adjusted differently than assumed - stop and report.
 
-- [ ] **Step 4: Run the holdout (background)**
+- [ ] **Step 5: Run the holdout (background)**
 
 Run (in the background):
 
 ```bash
-C:/Users/kitsh/AppData/Local/miniconda3/python.exe scripts/run_aapl_holdout.py --choice C:/Dev/GannTesting/.worktrees/breach-sweep/docs/superpowers/specs/2026-10-16-gann-breach-sweep-choice.json --cache C:/Dev/GannTesting/gann-visualizer/backend/logs/corpus/bars --out C:/Dev/GannTesting/gann-visualizer/backend/logs/corpus/aapl_5m_x6 --results C:/Dev/GannTesting/.worktrees/breach-sweep/docs/superpowers/specs/2026-10-16-gann-aapl-holdout-results.md --report-dir C:/Dev/GannTesting/.worktrees/breach-sweep/docs/superpowers/reports
+C:/Users/kitsh/AppData/Local/miniconda3/python.exe scripts/run_aapl_holdout.py --choice C:/Dev/GannTesting/.worktrees/breach-sweep/docs/superpowers/specs/2026-10-16-gann-breach-sweep-choice.json --cache C:/Dev/GannTesting/gann-visualizer/backend/logs/corpus/bars --out C:/Dev/GannTesting/gann-visualizer/backend/logs/corpus/aapl_5m_x6 --results C:/Dev/GannTesting/.worktrees/breach-sweep/docs/superpowers/specs/2026-10-16-gann-aapl-holdout-results.md
 ```
 
-Expected: `AAPL corpus built under <rule>`, then `verdict: <fail | pass | strong pass>[, selection differs]`, then the two `wrote` lines; exit code 0.
+Expected: `AAPL corpus built under <rule>`, then `verdict: <fail | pass | strong pass>[, selection differs]`, then `wrote ...results.md`; exit code 0. If it crashes after the marker is written, the look is spent: do not delete the marker to retry. Report to the user.
 
-- [ ] **Step 5: Read the result in the pre-registered order**
+- [ ] **Step 6: Read the result in the pre-registered order**
 
-Touch density first, then the verdict, then the dropped-share line. Do not re-run, re-scale or re-slice: the holdout is spent once read.
+Touch density first, then the verdict, then the dropped-share line. Do not re-run, re-scale, re-slice, or run `mine_gann_corpus.py` on the AAPL corpus: the holdout is spent on exactly the statistics in the results file, and any further statistic on it is an unplanned look.
 
-- [ ] **Step 6: Add the data check to the results document**
+- [ ] **Step 7: Add the data check to the results document**
 
-Append to `C:/Dev/GannTesting/.worktrees/breach-sweep/docs/superpowers/specs/2026-10-16-gann-aapl-holdout-results.md` a section:
+Append to `C:/Dev/GannTesting/.worktrees/breach-sweep/docs/superpowers/specs/2026-10-16-gann-aapl-holdout-results.md`:
 
-```markdown
+````markdown
 ## Data check
 
 Loader output (scripts/load_aapl_bars.py):
 
-<the four lines saved in Step 3, verbatim, in a code block>
-
-Published AAPL close on 2024-08-30: <value and source>.
+```
+<the lines saved in Step 4, verbatim>
 ```
 
-- [ ] **Step 7: Commit**
+Published AAPL close on 2024-08-30: <value and source>.
+
+What was seen of AAPL before this look: while writing the loader
+(2026-10-16), the minute counts per session, the session times (09:30-15:59)
+and the 1-minute volumes on early-close days inside the window were read, to
+find the extended-hours minutes after 13:00. No Gann ladder, level or reach
+statistic was computed on AAPL before this run.
+````
+
+- [ ] **Step 8: Commit**
 
 ```bash
-git add C:/Dev/GannTesting/.worktrees/breach-sweep/docs/superpowers/specs/2026-10-16-gann-aapl-holdout-results.md C:/Dev/GannTesting/.worktrees/breach-sweep/docs/superpowers/reports
+git add C:/Dev/GannTesting/.worktrees/breach-sweep/docs/superpowers/specs/2026-10-16-gann-aapl-holdout-results.md C:/Dev/GannTesting/.worktrees/breach-sweep/docs/superpowers/specs/2026-10-16-gann-aapl-holdout-results.md.started
 git commit -m "docs: aapl fresh holdout results" -m "Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 ```
 
@@ -4962,15 +5282,16 @@ git commit -m "docs: aapl fresh holdout results" -m "Co-Authored-By: Claude Opus
 | What gets built 4: `target_hit_before_entry` (via `meta.confirmation_closes`) and `entry_beyond_level` | 5 |
 | What gets built 5: `lag_free_reach_rate`, `dropped_share` (+ entry-only share); z and missing-shadow count from the comparison | 6, 7 |
 | What gets built 6: `--slice all` in `load_events` and `mine_gann_corpus.py` | 8, 9 |
-| What gets built 7: AAPL bars loader (NY-date sessions, 09:30 buckets, UTC bucket start, volume sum, inclusive window, 2024-08-30 close printed, cache hit with sun/moon) | 10 |
+| What gets built 7: AAPL bars loader (NY-date sessions, 09:30 buckets, UTC bucket start, volume sum, inclusive window, 2024-08-30 close printed, cache hit with sun/moon) | 10 (module), 16 (command, gated on the choice) |
 | What gets built 8: sweep runner (four corpora, close2 gate, scoring, selection, choice file) | 11, 12, 13, 14, 15, 18 |
 | What gets built 8: AAPL command refusing without a non-null choice | 13, 16, 19 |
 | Regression gate: close2 matches `reliance_5m_x1` exactly, stop if not | 11, 15, 18 |
 | No step may fetch (bar cache path risk) | 2, 3, 15, 16 |
 | Selection rule: gate, z, tie window 0.1, order, stop rule | 12 |
 | Also reported per rule: 13 groups, dropped share real vs shadow, plain `reach_next_rate`, raced counts, touch density | 12, 14 |
-| Choice committed before any AAPL step | 18 (Step 7), 19 (Step 1) |
+| Choice committed before any AAPL step | 18 (Step 7), 19 (Step 1); in code, both AAPL commands refuse without a non-null choice (16) |
 | AAPL: scale x6, one rule, 50 shadows, seed 7, one look, `--slice all` | 16, 19 |
+| AAPL one look enforced: no reuse of an existing corpus, `.started` marker before scoring, results file, no full mining report | 16 |
 | AAPL pass / strong pass, dropped-share reading, touch density first | 13, 14, 16 |
 | Test: cross-bar arithmetic for closes 1, 2, 3 (cross bar, middle bar, confirmation bar, never) | 5 (`test_target_hit_before_entry_reads_bars_from_cross_to_confirmation`), 3 (`test_a_confirmed_breach_crossed_exactly_closes_minus_one_bars_earlier`) |
 | Test: the filter uses no bar after `k` | 5 (`test_the_filter_reads_no_bar_after_confirmation`) |
@@ -4986,8 +5307,9 @@ git commit -m "docs: aapl fresh holdout results" -m "Co-Authored-By: Claude Opus
 2. **Missing shadows** means `Comparison.shadows_missing`: no rows in the group **or** an undefined statistic there. Either way that shadow has no value to beat.
 3. **Eligible rule with undefined z** (shadow sd 0): `select_rule` raises rather than guess. Not expected with 50 shadows.
 4. **Entry-only dropped share** = targeted rows with `entry_beyond_level` False / targeted rows, whether or not the target filter also drops them.
-5. **"Match exactly"** for the gate is defined in Task 11 (names, order, types, row count, sorted values; NaN = null; schema metadata ignored; no column excluded).
+5. **"Match exactly"** for the gate is defined in Task 11 (names, order, types, row count, sorted values; NaN = null; schema metadata ignored; no column excluded; every differing column named).
 6. **`entry_beyond_level`** is set for every confirmed breach; only targeted rows count toward the dropped shares.
 7. **Wick first cross** uses strict inequalities against the previous close; a previous close exactly on the level is no cross.
-8. **One look** is enforced by refusing when the AAPL results file exists; "committed" is a manual check in Task 19.
-9. The AAPL loader runs only after the choice is committed (Task 19), so no AAPL bars are built before the rule is fixed.
+8. **One look** is enforced in code by the choice check, refusing an existing AAPL corpus, the `.started` marker and the results file; "committed" is a manual check in Task 19.
+9. **What AAPL output is** - only the spec's statistics (touch density, pooled lag-free reach rate, 13 groups, dropped shares, verdict). The general mining report is never run on AAPL.
+10. **Before the look,** loader development read AAPL minute counts, session times and early-close volumes inside the window (not ladder statistics). This is recorded in the AAPL write-up (Task 19, Step 7).
