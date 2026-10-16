@@ -6,6 +6,10 @@ Usage:
         --from 2024-09-02 --to 2026-09-01 --interval 5 --scale 1 \
         --shadows 50 --out logs/corpus/reliance_5m_x1
 
+    --breach-mode close|wick and --confirmation-closes N set the breach rule
+    (defaults close / 2, the rule every corpus before 2026-10-16 used).
+    --no-fetch makes a bar-cache miss raise instead of calling Dhan.
+
 The ladder is built once per distinct (price square, sun square, moon square)
 and every shadow is derived from that build by adding a constant. Grid
 construction is 27 ms at scale 10 and dominates the run; rebuilding per shadow
@@ -17,27 +21,36 @@ import json
 import os
 import sys
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Union
 
 import pandas as pd
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from study_tool.bar_cache import load_bars
-from study_tool.corpus_writer import assign_slices, write_corpus
+from study_tool.bar_cache import load_bars, no_fetch
+from study_tool.corpus_writer import (
+    META_FILENAME, assign_slices, load_meta, write_corpus,
+)
 from study_tool.event_logger import EventLogger
-from study_tool.gann_ladder_analyzer import GannLadderAnalyzer
+from study_tool.gann_ladder_analyzer import BREACH_MODES, GannLadderAnalyzer
 from study_tool.run_ladder_study import build_all_ladders, degree_to_square
 from study_tool.shadow_ladder import shadow_offsets, shift_ladder
 
 HORIZON_CANDLE_KEY = "time"
 
 
-def _analyzer_settings(instrument: str, timeframe: str,
-                       price_scale: int) -> Dict:
+def _analyzer_settings(instrument: str, timeframe: str, price_scale: int,
+                       breach_mode: str = "close",
+                       confirmation_closes: int = 2) -> Dict:
+    if breach_mode not in BREACH_MODES:
+        raise ValueError(
+            f"breach_mode {breach_mode!r} is not one of {BREACH_MODES}")
+    if int(confirmation_closes) < 1:
+        raise ValueError(
+            f"confirmation_closes must be at least 1, got {confirmation_closes}")
     return {
-        "breach_mode": "close",
-        "confirmation_closes": 2,
+        "breach_mode": breach_mode,
+        "confirmation_closes": int(confirmation_closes),
         "touch_tolerance_sublevels": 0.1,
         "resolution_window_bars": 50,
         "retest_window_bars": 50,
@@ -110,14 +123,19 @@ CORPUS_META_VERSION = 1
 
 
 def build_corpus(bars: pd.DataFrame, instrument: str, timeframe: str,
-                 price_scale: int, shadow_count: int, seed: int) -> Dict:
+                 price_scale: int, shadow_count: int, seed: int,
+                 breach_mode: str = "close",
+                 confirmation_closes: int = 2) -> Dict:
     """
     Walk `bars` against the real ladder and `shadow_count` shifted ones.
 
     Returns a dict with `events`, `bars`, `ladder_keys` and `meta`. The meta
-    carries the shadow offsets, which nothing downstream can recompute.
+    carries the shadow offsets, which nothing downstream can recompute, and
+    the breach rule, which mining needs to find each breach's cross bar.
+    Shadows walk with the same settings, so they get the same breach rule.
     """
-    settings = _analyzer_settings(instrument, timeframe, price_scale)
+    settings = _analyzer_settings(instrument, timeframe, price_scale,
+                                  breach_mode, confirmation_closes)
 
     # One grid build per distinct key. Everything else reuses the result.
     cache: Dict = {}
@@ -176,11 +194,93 @@ def build_corpus(bars: pd.DataFrame, instrument: str, timeframe: str,
             "shadow_offsets": list(offsets),
             "resolution_window_bars": settings["resolution_window_bars"],
             "bar_count": int(len(bars)),
+            "breach_mode": settings["breach_mode"],
+            "confirmation_closes": settings["confirmation_closes"],
         },
     }
 
 
-def main() -> None:
+def build_to_disk(symbol: str, from_date: str, to_date: str, interval: str,
+                  price_scale: int, shadow_count: int, seed: int,
+                  cache_dir: Union[str, Path], out_dir: Union[str, Path],
+                  breach_mode: str = "close", confirmation_closes: int = 2,
+                  overwrite: bool = False,
+                  allow_fetch: bool = True) -> pd.DataFrame:
+    """
+    Load bars, build the corpus, write it. Returns the slice-stamped events.
+
+    allow_fetch=False passes bar_cache.no_fetch, so a cache miss raises
+    instead of calling Dhan. Every sweep and holdout build uses that.
+    """
+    bars = load_bars(symbol, from_date, to_date, interval,
+                     cache_dir=cache_dir,
+                     fetcher=None if allow_fetch else no_fetch)
+    print(f"{len(bars)} bars {from_date}..{to_date}")
+
+    result = build_corpus(
+        bars=bars, instrument=symbol, timeframe=interval,
+        price_scale=price_scale, shadow_count=shadow_count, seed=seed,
+        breach_mode=breach_mode, confirmation_closes=confirmation_closes)
+
+    events = assign_slices(result["events"], order_column="bar_index")
+    meta = dict(result["meta"])
+    meta["from_date"] = from_date
+    meta["to_date"] = to_date
+    write_corpus(Path(out_dir), events=events, bars=result["bars"],
+                 ladder_keys=result["ladder_keys"], meta=meta,
+                 overwrite=overwrite)
+    return events
+
+
+def ensure_corpus(symbol: str, from_date: str, to_date: str, interval: str,
+                  price_scale: int, shadow_count: int, seed: int,
+                  cache_dir: Union[str, Path], out_dir: Union[str, Path],
+                  breach_mode: str, confirmation_closes: int) -> str:
+    """
+    Build the corpus at `out_dir` unless the same build is already there.
+
+    Returns "built" or "reused". Never fetches.
+
+    write_corpus writes meta.json last, so a meta.json on disk means a
+    finished corpus. A build killed mid-write leaves tables without meta;
+    write_corpus then refuses to overwrite them, and the directory has to be
+    removed by hand.
+
+    A corpus already there with any different setting is an error, never
+    reused and never overwritten: a sweep that silently scored the wrong
+    breach rule would still print a choice.
+    """
+    wanted = {
+        "symbol": symbol, "from_date": from_date, "to_date": to_date,
+        "interval": str(interval), "price_scale": int(price_scale),
+        "shadow_count": int(shadow_count), "seed": int(seed),
+        "breach_mode": breach_mode,
+        "confirmation_closes": int(confirmation_closes),
+    }
+    if (Path(out_dir) / META_FILENAME).exists():
+        found = dict(load_meta(out_dir))
+        found.setdefault("breach_mode", "close")
+        found.setdefault("confirmation_closes", 2)
+        mismatched = {key: (found.get(key), value)
+                      for key, value in wanted.items()
+                      if found.get(key) != value}
+        if mismatched:
+            raise ValueError(
+                f"{out_dir} already holds a corpus built with different "
+                f"settings (found, wanted): {mismatched}"
+            )
+        return "reused"
+
+    build_to_disk(symbol=symbol, from_date=from_date, to_date=to_date,
+                  interval=str(interval), price_scale=price_scale,
+                  shadow_count=shadow_count, seed=seed, cache_dir=cache_dir,
+                  out_dir=out_dir, breach_mode=breach_mode,
+                  confirmation_closes=confirmation_closes,
+                  allow_fetch=False)
+    return "built"
+
+
+def main(argv: Optional[List[str]] = None) -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--symbol", default="RELIANCE")
     parser.add_argument("--from", dest="from_date", required=True)
@@ -192,23 +292,23 @@ def main() -> None:
     parser.add_argument("--cache", default="logs/corpus/bars")
     parser.add_argument("--out", required=True)
     parser.add_argument("--overwrite", action="store_true")
-    args = parser.parse_args()
+    parser.add_argument("--breach-mode", choices=list(BREACH_MODES),
+                        default="close",
+                        help="close: travel through the level; wick: the "
+                             "previous close on one side, the range past it")
+    parser.add_argument("--confirmation-closes", type=int, default=2,
+                        help="consecutive bars needed to confirm a breach")
+    parser.add_argument("--no-fetch", action="store_true",
+                        help="raise on a bar-cache miss instead of fetching")
+    args = parser.parse_args(argv)
 
-    bars = load_bars(args.symbol, args.from_date, args.to_date,
-                     args.interval, cache_dir=args.cache)
-    print(f"{len(bars)} bars {args.from_date}..{args.to_date}")
-
-    result = build_corpus(
-        bars=bars, instrument=args.symbol, timeframe=args.interval,
-        price_scale=args.scale, shadow_count=args.shadows, seed=args.seed)
-
-    events = assign_slices(result["events"], order_column="bar_index")
-    meta = dict(result["meta"])
-    meta["from_date"] = args.from_date
-    meta["to_date"] = args.to_date
-    write_corpus(Path(args.out), events=events, bars=result["bars"],
-                 ladder_keys=result["ladder_keys"], meta=meta,
-                 overwrite=args.overwrite)
+    events = build_to_disk(
+        symbol=args.symbol, from_date=args.from_date, to_date=args.to_date,
+        interval=args.interval, price_scale=args.scale,
+        shadow_count=args.shadows, seed=args.seed, cache_dir=args.cache,
+        out_dir=args.out, breach_mode=args.breach_mode,
+        confirmation_closes=args.confirmation_closes,
+        overwrite=args.overwrite, allow_fetch=not args.no_fetch)
 
     real = events[events["shadow_id"].isna()]
     print(f"\nwrote {args.out}")
