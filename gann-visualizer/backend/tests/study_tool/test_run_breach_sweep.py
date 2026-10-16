@@ -82,6 +82,12 @@ def test_a_sweep_with_no_shadows_is_a_pinned_null(tmp_path):
     assert record["breach_mode"] is None
     assert record["regression_gate"]["passed"] is True
     assert set(record["rules"]) == set(RULE_ORDER)
+    assert record["shadow_count"] == 0
+    assert record["tie_window"] == 0.1
+    assert record["rule_order"] == list(RULE_ORDER)
+    assert record["corpora"] == {
+        name: str(sweep.corpus_dir_for(p["out_root"], name))
+        for name in RULE_ORDER}
     text = p["results_path"].read_text(encoding="utf-8")
     assert "**PASSED**" in text
     assert "AAPL is not built" in text

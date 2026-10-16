@@ -165,7 +165,12 @@ def render_aapl_results(score: RuleScore, verdict: Verdict,
                      "A reach statistic can be lifted by that exposure rather "
                      "than by the levels; read the verdict beside it.")
     else:
-        lines.append("Real touch density is not above every shadow.")
+        lines.append("Real touch density is not above every shadow that has "
+                     "one.")
+    if verdict.touch_shadows_missing:
+        lines.append(f"{verdict.touch_shadows_missing} shadows have no touch "
+                     "density (no touches), so they are left out of that "
+                     "comparison rather than counted as beaten or unbeaten.")
 
     caveat = ("; outside the shadow range, so the filtered real and shadow "
               "sets are not like-for-like" if verdict.selection_differs
@@ -190,8 +195,6 @@ def render_aapl_results(score: RuleScore, verdict: Verdict,
     ]
     lines += _comparison_table("statistic", [
         ("lag_free_reach_rate", score.lag_free),
-        ("reach_next_rate", score.reach_next),
-        ("already_hit_share", score.already_hit),
         ("dropped_share", score.dropped),
         ("entry_dropped_share", score.entry_dropped),
     ])
@@ -208,8 +211,11 @@ def render_aapl_results(score: RuleScore, verdict: Verdict,
     lines += _groups_table(score)
     lines += [
         "",
-        "Nothing else was computed on AAPL: no other statistic or grouping "
-        "was read, so the holdout is spent on exactly the tests above.",
+        "Nothing else was computed on AAPL: only the touch density, the "
+        "pooled lag-free reach rate, the 13 groups, the dropped and "
+        "entry-only dropped shares and the verdict above. The scoring was "
+        "run in registered-only mode, which does not evaluate any other "
+        "statistic, so the holdout is spent on exactly these tests.",
         f"Corpus: `{context['corpus']}`",
         f"Generated: {context['generated']}",
         "",

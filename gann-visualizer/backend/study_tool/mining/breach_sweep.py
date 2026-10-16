@@ -10,6 +10,7 @@ is read.
 """
 
 import json
+import statistics as stats
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, List, Mapping, NamedTuple, Optional, Tuple, Union
@@ -95,23 +96,67 @@ def confirmation_groups(events: pd.DataFrame) -> List[Tuple[str, pd.DataFrame]]:
 
 @dataclass(frozen=True)
 class RuleScore:
+    """
+    reach_next and already_hit are None when the score was made with
+    registered_only=True: they are not among the statistics the spec
+    registers for AAPL, so that path never computes them.
+    """
     rule: str
     lag_free: Comparison
     dropped: Comparison
     entry_dropped: Comparison
-    reach_next: Comparison
-    already_hit: Comparison
     touch_density: Comparison
     groups: Dict[str, Comparison]
+    reach_next: Optional[Comparison] = None
+    already_hit: Optional[Comparison] = None
 
 
-def score_rule(rule: str, events: pd.DataFrame, shadow_count: int) -> RuleScore:
+SCORING_COLUMNS: Tuple[str, ...] = tuple(sorted({
+    "reach_outcome", "target_hit_before_entry", "entry_beyond_level",
+    "level_ring_bin", "shadow_id", "bar_index", "event_type",
+    *(column for column, _ in CONFIRMATION_GROUPS),
+}))
+
+
+def _check_scorable(rule: str, events: pd.DataFrame) -> None:
+    """
+    Refuse input that would score as a null for a reason that is not the data.
+
+    A missing column turns every statistic into Stat(None, 0), which reads as
+    a pre-registered null - no rule eligible, AAPL not built - when the real
+    cause is a wiring bug. So a miswired frame fails loudly instead.
+    """
+    missing = [column for column in SCORING_COLUMNS
+               if column not in events.columns]
+    if missing:
+        raise ValueError(
+            f"{rule}: events lack the columns {missing}; scoring them would "
+            "read as a null sweep. Check load_scored_events and the corpus.")
+    real = events[events["shadow_id"].isna()]
+    if real["reach_outcome"].notna().sum() == 0:
+        raise ValueError(
+            f"{rule}: no real row has a reach_outcome ({len(real)} real "
+            "rows); scoring them would read as a null sweep. The reach race "
+            "was not joined or the corpus holds no confirmed breaches.")
+
+
+def score_rule(rule: str, events: pd.DataFrame, shadow_count: int,
+               registered_only: bool = False) -> RuleScore:
     """
     Every number the sweep reads for one breach rule, pooled and per group.
 
     `events` must already carry the reach race and level_ring_bin -
-    mine_gann_corpus.load_scored_events supplies both.
+    mine_gann_corpus.load_scored_events supplies both. With
+    registered_only=True (the AAPL look) only the statistics the spec names
+    are computed: touch density, the lag-free reach rate pooled and by group,
+    and the two dropped shares. reach_next_rate and already_hit_share are
+    left None, so the holdout never reads them.
+
+    Raises:
+        ValueError: a needed column is missing, or no real row carries a
+            reach_outcome.
     """
+    _check_scorable(rule, events)
     bar_count = int(events["bar_index"].nunique())
 
     def pooled(statistic) -> Comparison:
@@ -122,8 +167,8 @@ def score_rule(rule: str, events: pd.DataFrame, shadow_count: int) -> RuleScore:
         lag_free=pooled(lag_free_reach_rate),
         dropped=pooled(dropped_share),
         entry_dropped=pooled(entry_dropped_share),
-        reach_next=pooled(reach_next_rate),
-        already_hit=pooled(already_hit_share),
+        reach_next=None if registered_only else pooled(reach_next_rate),
+        already_hit=None if registered_only else pooled(already_hit_share),
         touch_density=pooled(touch_density_fn(bar_count)),
         groups={name: compare(rows, lag_free_reach_rate,
                               shadow_count=shadow_count)
@@ -190,6 +235,7 @@ class Verdict:
     groups_above: int
     selection_differs: bool
     touch_busier_than_all_shadows: bool
+    touch_shadows_missing: int = 0
 
 
 def aapl_verdict(score: RuleScore) -> Verdict:
@@ -212,17 +258,65 @@ def aapl_verdict(score: RuleScore) -> Verdict:
         if selection_differs:
             label += ", selection differs"
 
+    # Busier than every shadow that has a touch density. Shadows with no
+    # touches have none, and are reported separately rather than read as
+    # "not above" - Comparison.above_all_shadows would do the latter.
+    touch = score.touch_density
+    busier = (touch.real is not None and bool(touch.shadows)
+              and touch.real > max(touch.shadows))
+
     return Verdict(label=label, passed=passed, strong=strong,
                    groups_above=groups_above,
                    selection_differs=selection_differs,
-                   touch_busier_than_all_shadows=(
-                       score.touch_density.above_all_shadows))
+                   touch_busier_than_all_shadows=busier,
+                   touch_shadows_missing=touch.shadows_missing)
+
+
+def _shadow_mean_sd(shadows: List[float]) -> Tuple[Optional[float],
+                                                    Optional[float]]:
+    mean = stats.mean(shadows) if shadows else None
+    sd = stats.stdev(shadows) if len(shadows) >= 2 else None
+    return mean, sd
 
 
 def choice_record(selection: Selection, scores: Mapping[str, RuleScore],
-                  gate: GateResult) -> Dict:
-    """The choice file's contents: the decision and what it rested on."""
+                  gate: GateResult, shadow_count: int,
+                  corpora: Mapping[str, str],
+                  tie_window: float = TIE_WINDOW) -> Dict:
+    """
+    The choice file's contents: the decision and what it rested on.
+
+    Raises:
+        ValueError: scores or the selection do not cover exactly the four
+            rules, or a rule is chosen although the regression gate did not
+            pass. Selection itself stays permissive about subsets; the file
+            that AAPL trusts does not.
+    """
+    expected = set(RULE_ORDER)
+    if set(scores) != expected or set(selection.z) != expected:
+        raise ValueError(
+            f"a choice record needs exactly {RULE_ORDER}; scores cover "
+            f"{sorted(scores)}, the selection covers {sorted(selection.z)}")
+    if selection.chosen is not None and not gate.passed:
+        raise ValueError(
+            f"{selection.chosen} was chosen but the regression gate did not "
+            f"pass ({gate.reason}); a choice must rest on a verified rebuild")
+
     chosen = RULES_BY_NAME[selection.chosen] if selection.chosen else None
+    rules = {}
+    for name in RULE_ORDER:
+        lag = scores[name].lag_free
+        mean, sd = _shadow_mean_sd(lag.shadows)
+        rules[name] = {
+            "lag_free_real": lag.real,
+            "lag_free_n": lag.n,
+            "shadow_max": lag.shadow_max,
+            "shadow_mean": mean,
+            "shadow_sd": sd,
+            "shadows_missing": lag.shadows_missing,
+            "above_all_shadows": lag.above_all_shadows,
+            "z": lag.z,
+        }
     return {
         "spec": SPEC_PATH,
         "chosen": selection.chosen,
@@ -231,18 +325,12 @@ def choice_record(selection: Selection, scores: Mapping[str, RuleScore],
         "reason": selection.reason,
         "eligible": list(selection.eligible),
         "candidates": list(selection.candidates),
+        "tie_window": tie_window,
+        "rule_order": list(RULE_ORDER),
+        "shadow_count": shadow_count,
+        "corpora": dict(corpora),
         "regression_gate": {"passed": gate.passed, "reason": gate.reason},
-        "rules": {
-            name: {
-                "lag_free_real": score.lag_free.real,
-                "lag_free_n": score.lag_free.n,
-                "shadow_max": score.lag_free.shadow_max,
-                "shadows_missing": score.lag_free.shadows_missing,
-                "above_all_shadows": score.lag_free.above_all_shadows,
-                "z": score.lag_free.z,
-            }
-            for name, score in scores.items()
-        },
+        "rules": rules,
     }
 
 
@@ -259,8 +347,10 @@ def read_choice(path: Union[str, Path]) -> BreachRule:
 
     Raises:
         FileNotFoundError: no choice file - the sweep has not run.
-        ValueError: the choice is null (the stop rule keeps AAPL unbuilt) or
-            names a rule this code does not know.
+        ValueError: the file is malformed (no `chosen` key), the choice is
+            null (the stop rule keeps AAPL unbuilt), it names a rule this
+            code does not know, the regression gate did not pass, or the
+            record does not hold all four rules' scores.
     """
     path = Path(path)
     if not path.exists():
@@ -268,11 +358,28 @@ def read_choice(path: Union[str, Path]) -> BreachRule:
             f"{path} not found: the RELIANCE sweep has not chosen a breach "
             "rule, so AAPL is not built")
     record = json.loads(path.read_text(encoding="utf-8"))
-    chosen = record.get("chosen")
+    if not isinstance(record, dict) or "chosen" not in record:
+        raise ValueError(
+            f"{path} is malformed: it has no 'chosen' key, so it is neither "
+            "a choice nor a recorded null")
+    chosen = record["chosen"]
     if chosen is None:
         raise ValueError(
             f"{path} records a null sweep: no breach rule beat every shadow, "
             "and the pre-registered stop rule keeps AAPL unbuilt")
     if chosen not in RULES_BY_NAME:
         raise ValueError(f"{path} names unknown breach rule {chosen!r}")
+
+    gate = record.get("regression_gate")
+    if not isinstance(gate, dict) or gate.get("passed") is not True:
+        raise ValueError(
+            f"{path}: the regression gate did not pass (or is not "
+            "recorded), so the choice does not rest on a verified rebuild")
+    rules = record.get("rules")
+    if not isinstance(rules, dict) or set(rules) != set(RULE_ORDER):
+        found = sorted(rules) if isinstance(rules, dict) else rules
+        raise ValueError(
+            f"{path}: 'rules' must hold exactly {RULE_ORDER}, found {found}; "
+            "a choice made on a subset of the rules is not the registered "
+            "sweep")
     return RULES_BY_NAME[chosen]

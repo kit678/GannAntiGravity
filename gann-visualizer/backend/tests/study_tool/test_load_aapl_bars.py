@@ -37,7 +37,11 @@ def write_json(tmp_path):
 
 def write_choice(tmp_path, chosen):
     path = tmp_path / "choice.json"
-    path.write_text(json.dumps({"chosen": chosen}), encoding="utf-8")
+    path.write_text(json.dumps({
+        "chosen": chosen,
+        "regression_gate": {"passed": True, "reason": "test"},
+        "rules": {name: {} for name in ("close1", "wick1", "close2",
+                                        "close3")}}), encoding="utf-8")
     return path
 
 

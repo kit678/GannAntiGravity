@@ -94,7 +94,8 @@ def run_aapl(choice_path: PathLike, cache_dir: PathLike, out_dir: PathLike,
         f"{rule.name}\n", encoding="utf-8")
 
     scored = load_scored_events(out_dir, slice_name=ALL_SLICES)
-    score = score_rule(rule.name, scored.events, scored.meta.shadow_count)
+    score = score_rule(rule.name, scored.events, scored.meta.shadow_count,
+                       registered_only=True)
     verdict = aapl_verdict(score)
 
     context = {

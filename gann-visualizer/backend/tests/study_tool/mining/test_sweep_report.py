@@ -126,3 +126,62 @@ def test_aapl_results_carry_the_dropped_share_caveat():
 
     assert "**pass, selection differs**" in text
     assert "not like-for-like" in text
+
+
+FORBIDDEN_ON_AAPL = ("reach_next_rate", "already_hit", "hold_rate")
+
+
+def registered_score(rule):
+    return RuleScore(rule=rule, lag_free=comparison(), dropped=comparison(0.3),
+                     entry_dropped=comparison(0.0),
+                     touch_density=comparison(),
+                     groups={group_name(c, l): comparison()
+                             for c, l in CONFIRMATION_GROUPS})
+
+
+def test_aapl_results_hold_none_of_the_unregistered_statistics():
+    text = render_aapl_results(registered_score("close1"), verdict(),
+                               aapl_context())
+
+    for forbidden in FORBIDDEN_ON_AAPL:
+        assert forbidden not in text
+
+
+def test_aapl_results_do_not_print_statistics_even_if_the_score_carries_them():
+    text = render_aapl_results(rule_score("close1"), verdict(), aapl_context())
+
+    for forbidden in FORBIDDEN_ON_AAPL:
+        assert forbidden not in text
+
+
+def test_aapl_results_name_exactly_the_registered_statistics():
+    text = render_aapl_results(registered_score("close1"), verdict(),
+                               aapl_context())
+
+    assert "touch_density" in text
+    assert "lag_free_reach_rate" in text
+    assert "dropped_share" in text
+    assert "entry_dropped_share" in text
+    assert text.index("touch_density") < text.index("lag_free_reach_rate")
+    assert "Nothing else was computed" in text
+
+
+def test_aapl_results_report_touch_shadows_with_no_value_separately():
+    v = Verdict(label="pass", passed=True, strong=False, groups_above=3,
+                selection_differs=False, touch_busier_than_all_shadows=True,
+                touch_shadows_missing=4)
+
+    text = render_aapl_results(registered_score("close1"), v, aapl_context())
+
+    assert "touched more than every shadow" in text
+    assert "4 shadows have no touch density" in text
+
+
+def test_aapl_results_do_not_call_a_missing_touch_shadow_a_non_exceedance():
+    v = Verdict(label="pass", passed=True, strong=False, groups_above=3,
+                selection_differs=False, touch_busier_than_all_shadows=False,
+                touch_shadows_missing=4)
+
+    text = render_aapl_results(registered_score("close1"), v, aapl_context())
+
+    assert "4 shadows have no touch density" in text

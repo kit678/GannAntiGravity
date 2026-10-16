@@ -167,23 +167,32 @@ def run_sweep(out_root: PathLike, cache_dir: PathLike, reference: PathLike,
         return None
 
     scores: Dict[str, RuleScore] = {}
+    shadow_counts: Dict[str, int] = {}
     for rule in RULE_ORDER:
         started = time.time()
         scored = load_scored_events(corpus_dir_for(out_root, rule),
                                     slice_name=ALL_SLICES)
         scores[rule] = score_rule(rule, scored.events, scored.meta.shadow_count)
+        shadow_counts[rule] = scored.meta.shadow_count
         del scored
         print(f"{rule}: scored in {time.time() - started:.0f}s")
 
+    if len(set(shadow_counts.values())) != 1:
+        raise ValueError(
+            f"the four corpora disagree on the shadow count: {shadow_counts}")
+    corpora = {rule: str(corpus_dir_for(out_root, rule))
+               for rule in RULE_ORDER}
+
     selection = select_rule({name: s.lag_free for name, s in scores.items()})
-    write_choice(choice_path, choice_record(selection, scores, gate))
+    write_choice(choice_path, choice_record(
+        selection, scores, gate, shadow_count=shadow_counts[RULE_ORDER[0]],
+        corpora=corpora))
 
     context = {
         "generated": time.strftime("%Y-%m-%d %H:%M"),
         "cache_dir": str(cache_dir),
         "reference": str(reference),
-        "corpora": {rule: str(corpus_dir_for(out_root, rule))
-                    for rule in RULE_ORDER},
+        "corpora": corpora,
     }
     results_path = Path(results_path)
     results_path.parent.mkdir(parents=True, exist_ok=True)

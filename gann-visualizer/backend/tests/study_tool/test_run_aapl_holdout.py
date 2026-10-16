@@ -15,6 +15,7 @@ sys.path.append(os.path.abspath('C:/Dev/GannTesting/gann-visualizer/backend/scri
 
 import mine_gann_corpus
 import run_aapl_holdout as holdout
+from study_tool.mining import breach_sweep
 from study_tool.bar_cache import cache_path
 
 FROM, TO = "2026-08-01", "2026-08-31"
@@ -41,9 +42,17 @@ def write_cache(tmp_path):
     return cache
 
 
+def choice_record_dict(chosen):
+    """A choice file as the sweep writes it: gate passed, all four rules."""
+    return {"chosen": chosen,
+            "regression_gate": {"passed": True, "reason": "test"},
+            "rules": {name: {} for name in ("close1", "wick1", "close2",
+                                            "close3")}}
+
+
 def write_choice_file(tmp_path, chosen):
     path = tmp_path / "choice.json"
-    path.write_text(json.dumps({"chosen": chosen}), encoding="utf-8")
+    path.write_text(json.dumps(choice_record_dict(chosen)), encoding="utf-8")
     return path
 
 
@@ -153,8 +162,38 @@ def test_builds_under_the_chosen_rule_and_writes_only_the_spec_statistics(
     text = args["results_path"].read_text(encoding="utf-8")
     assert text.index("## Touch density") < text.index("## Verdict")
     assert f"**{verdict.label}**" in text
-    assert "hold_rate" not in text
+    for forbidden in ("reach_next_rate", "already_hit", "hold_rate"):
+        assert forbidden not in text
+        assert forbidden not in verdict.label
     assert list(tmp_path.rglob("gann-mining-report-*.md")) == []
+
+
+def test_aapl_scoring_never_evaluates_the_unregistered_statistics(
+        tmp_path, monkeypatch):
+    def forbidden(*_, **__):
+        raise AssertionError("an unregistered statistic was computed on AAPL")
+
+    monkeypatch.setattr(breach_sweep, "reach_next_rate", forbidden)
+    monkeypatch.setattr(breach_sweep, "already_hit_share", forbidden)
+    args = kwargs(tmp_path, write_choice_file(tmp_path, "close1"),
+                  write_cache(tmp_path))
+
+    verdict = holdout.run_aapl(**args)
+
+    assert verdict.label in VALID_LABELS
+
+
+def test_a_choice_whose_gate_did_not_pass_is_refused(tmp_path):
+    record = choice_record_dict("close1")
+    record["regression_gate"]["passed"] = False
+    choice = tmp_path / "choice.json"
+    choice.write_text(json.dumps(record), encoding="utf-8")
+    args = kwargs(tmp_path, choice, write_cache(tmp_path))
+
+    with pytest.raises(ValueError, match="regression gate"):
+        holdout.run_aapl(**args)
+
+    assert not args["out_dir"].exists()
 
 
 def test_a_second_look_is_refused(tmp_path):
