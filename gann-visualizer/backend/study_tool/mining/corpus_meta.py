@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import List, Optional, Union
 
 from study_tool.corpus_writer import load_meta
+from study_tool.gann_ladder_analyzer import BREACH_MODES
 
 SUPPORTED_META_VERSION = 1
 
@@ -30,6 +31,12 @@ class CorpusMeta:
     shadow_offsets: List[float]
     resolution_window_bars: int
     bar_count: int
+    # The breach rule the corpus was built with. Optional keys in meta.json:
+    # corpora built before 2026-10-16 do not record it, and they were all
+    # close / 2. The meta version stays 1: an old reader ignores the new
+    # keys and this reader defaults them.
+    breach_mode: str = "close"
+    confirmation_closes: int = 2
 
     def offset_for(self, shadow_id: Optional[float]) -> float:
         """
@@ -74,6 +81,19 @@ def load_corpus_meta(corpus_dir: Union[str, Path]) -> CorpusMeta:
             f"{SUPPORTED_META_VERSION}"
         )
 
+    breach_mode = str(raw.get("breach_mode", "close"))
+    if breach_mode not in BREACH_MODES:
+        raise ValueError(
+            f"breach_mode {breach_mode!r} in meta.json is not one of "
+            f"{BREACH_MODES}"
+        )
+    confirmation_closes = int(raw.get("confirmation_closes", 2))
+    if confirmation_closes < 1:
+        raise ValueError(
+            f"confirmation_closes {confirmation_closes} in meta.json must be "
+            "at least 1"
+        )
+
     return CorpusMeta(
         symbol=raw["symbol"],
         from_date=raw["from_date"],
@@ -86,4 +106,6 @@ def load_corpus_meta(corpus_dir: Union[str, Path]) -> CorpusMeta:
         shadow_offsets=[float(o) for o in raw["shadow_offsets"]],
         resolution_window_bars=int(raw["resolution_window_bars"]),
         bar_count=int(raw["bar_count"]),
+        breach_mode=breach_mode,
+        confirmation_closes=confirmation_closes,
     )

@@ -80,6 +80,36 @@ class Comparison:
             return self.real - self.shadow_max
         return self.real - self.shadow_min
 
+    @property
+    def z(self) -> Optional[float]:
+        """
+        (real - mean of the shadows) / sample sd of the shadows.
+
+        None when real is None, fewer than two shadows have a value, or the
+        shadows have no spread. Rule selection uses z rather than margin
+        because the shadow spread narrows as row count grows, and breach
+        rules have very different row counts.
+        """
+        if self.real is None or len(self.shadows) < 2:
+            return None
+        spread = _stats.stdev(self.shadows)
+        if spread == 0:
+            return None
+        return (self.real - _stats.mean(self.shadows)) / spread
+
+    @property
+    def above_all_shadows(self) -> bool:
+        """
+        Real beats every shadow, and no shadow is missing.
+
+        shadows_missing counts shadows with no rows in the group and shadows
+        whose statistic was undefined there. Either way that shadow has no
+        value to beat, so real has not been shown to beat it.
+        """
+        if self.real is None or not self.shadows or self.shadows_missing:
+            return False
+        return self.real > max(self.shadows)
+
 
 def compare(events: pd.DataFrame, statistic_fn: StatisticFn,
             shadow_count: int) -> Comparison:

@@ -42,6 +42,8 @@ def meta(shadow_offsets=(0.4,)):
         price_scale=1, shadow_count=len(shadow_offsets), seed=7,
         median_sub_gap=2.25, shadow_offsets=list(shadow_offsets),
         resolution_window_bars=50, bar_count=2,
+        # These fixtures confirm on bar 0, so the cross bar is bar 0 itself.
+        confirmation_closes=1,
     )
 
 

@@ -85,3 +85,43 @@ def test_a_future_meta_version_raises(tmp_path):
 
     with pytest.raises(ValueError, match="corpus_meta_version"):
         load_corpus_meta(tmp_path)
+
+
+def test_old_meta_without_the_breach_rule_loads_as_close_two(tmp_path):
+    """Every corpus built before 2026-10-16 used close / 2 and says nothing."""
+    write_meta(tmp_path, good_meta())
+
+    meta = load_corpus_meta(tmp_path)
+
+    assert meta.breach_mode == "close"
+    assert meta.confirmation_closes == 2
+
+
+def test_the_breach_rule_is_read_when_present_and_the_version_stays_one(tmp_path):
+    raw = good_meta()
+    raw["breach_mode"] = "wick"
+    raw["confirmation_closes"] = 1
+    write_meta(tmp_path, raw)
+
+    meta = load_corpus_meta(tmp_path)
+
+    assert raw["corpus_meta_version"] == 1
+    assert (meta.breach_mode, meta.confirmation_closes) == ("wick", 1)
+
+
+def test_an_unknown_breach_mode_in_meta_raises(tmp_path):
+    raw = good_meta()
+    raw["breach_mode"] = "body"
+    write_meta(tmp_path, raw)
+
+    with pytest.raises(ValueError, match="breach_mode"):
+        load_corpus_meta(tmp_path)
+
+
+def test_zero_confirmation_closes_in_meta_raises(tmp_path):
+    raw = good_meta()
+    raw["confirmation_closes"] = 0
+    write_meta(tmp_path, raw)
+
+    with pytest.raises(ValueError, match="confirmation_closes"):
+        load_corpus_meta(tmp_path)

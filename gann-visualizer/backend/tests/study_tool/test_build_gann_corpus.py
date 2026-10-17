@@ -6,13 +6,16 @@ second, with no network and no live token.
 """
 import sys
 import os
+import json
 
 import pandas as pd
+import pytest
 
 sys.path.append(os.path.abspath('C:/Dev/GannTesting/gann-visualizer/backend'))
 sys.path.append(os.path.abspath('C:/Dev/GannTesting/gann-visualizer/backend/scripts'))
 
 from build_gann_corpus import build_corpus
+from study_tool.bar_cache import cache_path
 
 NSE_OPEN_EPOCH = 1787629500
 
@@ -160,3 +163,200 @@ def test_meta_offsets_are_reproducible_from_the_seed():
                   price_scale=1, shadow_count=3, seed=7)
     assert build_corpus(**kwargs)["meta"]["shadow_offsets"] == \
         build_corpus(**kwargs)["meta"]["shadow_offsets"]
+
+
+# -- Breach rule plumbing (2026-10-16 breach sweep) ----------------------------
+
+FROM, TO = "2026-08-01", "2026-08-31"
+
+
+def test_default_breach_rule_is_close_two():
+    meta = build_corpus(bars=synthetic_bars(), instrument="RELIANCE",
+                        timeframe="5", price_scale=1, shadow_count=1,
+                        seed=7)["meta"]
+    assert (meta["breach_mode"], meta["confirmation_closes"]) == ("close", 2)
+
+
+def test_breach_rule_reaches_the_meta():
+    meta = build_corpus(bars=synthetic_bars(), instrument="RELIANCE",
+                        timeframe="5", price_scale=1, shadow_count=1, seed=7,
+                        breach_mode="wick", confirmation_closes=1)["meta"]
+    assert (meta["breach_mode"], meta["confirmation_closes"]) == ("wick", 1)
+
+
+@pytest.mark.parametrize("breach_mode, closes", [
+    ("close", 1), ("close", 2), ("close", 3), ("wick", 1),
+])
+def test_a_confirmed_breach_crossed_exactly_closes_minus_one_bars_earlier(
+        breach_mode, closes):
+    """
+    The lag-free filter finds the cross bar as k - (closes - 1). Pin that
+    against the real analyzer: every confirmed real breach has a cross on the
+    same level exactly that many bars before it.
+    """
+    events = build_corpus(bars=synthetic_bars(), instrument="RELIANCE",
+                          timeframe="5", price_scale=1, shadow_count=1, seed=7,
+                          breach_mode=breach_mode,
+                          confirmation_closes=closes)["events"]
+    real = events[events["shadow_id"].isna()]
+    crosses = {
+        (row.level_source, row.level_square, int(row.bar_index))
+        for row in real[real["event_type"] == "LADDER_CROSS"].itertuples()
+    }
+    confirmed = real[real["event_type"] == "LADDER_BREACH_CONFIRMED"]
+
+    assert len(confirmed) > 0, "no confirmed breaches to check"
+    for row in confirmed.itertuples():
+        cross_bar = int(row.bar_index) - (closes - 1)
+        assert (row.level_source, row.level_square, cross_bar) in crosses
+
+
+def test_an_unknown_breach_mode_is_refused():
+    with pytest.raises(ValueError, match="breach_mode"):
+        build_corpus(bars=synthetic_bars(), instrument="RELIANCE",
+                     timeframe="5", price_scale=1, shadow_count=1, seed=7,
+                     breach_mode="body")
+
+
+def test_zero_confirmation_closes_is_refused():
+    with pytest.raises(ValueError, match="confirmation_closes"):
+        build_corpus(bars=synthetic_bars(), instrument="RELIANCE",
+                     timeframe="5", price_scale=1, shadow_count=1, seed=7,
+                     confirmation_closes=0)
+
+
+def write_cached_bars(cache_dir):
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    synthetic_bars().to_parquet(
+        cache_path(cache_dir, "RELIANCE", FROM, TO, "5"), index=False)
+
+
+def test_the_command_line_writes_the_breach_rule_into_meta_json(tmp_path):
+    import build_gann_corpus as runner
+    cache, out = tmp_path / "bars", tmp_path / "corpus"
+    write_cached_bars(cache)
+
+    runner.main(["--from", FROM, "--to", TO, "--cache", str(cache),
+                 "--out", str(out), "--shadows", "2",
+                 "--breach-mode", "wick", "--confirmation-closes", "1",
+                 "--no-fetch"])
+
+    meta = json.loads((out / "meta.json").read_text())
+    assert (meta["breach_mode"], meta["confirmation_closes"]) == ("wick", 1)
+
+
+def test_the_command_line_defaults_keep_the_old_rule(tmp_path):
+    import build_gann_corpus as runner
+    cache, out = tmp_path / "bars", tmp_path / "corpus"
+    write_cached_bars(cache)
+
+    runner.main(["--from", FROM, "--to", TO, "--cache", str(cache),
+                 "--out", str(out), "--shadows", "2", "--no-fetch"])
+
+    meta = json.loads((out / "meta.json").read_text())
+    assert (meta["breach_mode"], meta["confirmation_closes"]) == ("close", 2)
+
+
+def test_no_fetch_refuses_a_cache_miss(tmp_path):
+    import build_gann_corpus as runner
+    out = tmp_path / "corpus"
+
+    with pytest.raises(FileNotFoundError, match="fetching is disabled"):
+        runner.main(["--from", FROM, "--to", TO,
+                     "--cache", str(tmp_path / "empty"),
+                     "--out", str(out), "--no-fetch"])
+
+    assert not (out / "meta.json").exists()
+
+
+def ensure_kwargs(tmp_path, **overrides):
+    kwargs = dict(symbol="RELIANCE", from_date=FROM, to_date=TO, interval="5",
+                  price_scale=1, shadow_count=2, seed=7,
+                  cache_dir=tmp_path / "bars", out_dir=tmp_path / "corpus",
+                  breach_mode="close", confirmation_closes=2)
+    kwargs.update(overrides)
+    return kwargs
+
+
+def test_ensure_corpus_builds_then_reuses(tmp_path, monkeypatch):
+    import build_gann_corpus as runner
+    write_cached_bars(tmp_path / "bars")
+
+    assert runner.ensure_corpus(**ensure_kwargs(tmp_path)) == "built"
+
+    def boom(*args, **kwargs):
+        raise AssertionError("a matching corpus was rebuilt")
+
+    monkeypatch.setattr(runner, "build_corpus", boom)
+    assert runner.ensure_corpus(**ensure_kwargs(tmp_path)) == "reused"
+
+
+def test_ensure_corpus_refuses_a_corpus_built_with_another_rule(tmp_path):
+    import build_gann_corpus as runner
+    write_cached_bars(tmp_path / "bars")
+    runner.ensure_corpus(**ensure_kwargs(tmp_path))
+
+    with pytest.raises(ValueError, match="confirmation_closes"):
+        runner.ensure_corpus(**ensure_kwargs(tmp_path, confirmation_closes=3))
+
+
+def test_ensure_corpus_never_fetches(tmp_path):
+    import build_gann_corpus as runner
+
+    with pytest.raises(FileNotFoundError, match="fetching is disabled"):
+        runner.ensure_corpus(**ensure_kwargs(tmp_path))
+
+
+def test_ensure_corpus_refuses_a_half_written_corpus_before_building(
+        tmp_path, monkeypatch):
+    import build_gann_corpus as runner
+    out = tmp_path / "corpus"
+    out.mkdir()
+    (out / "events.parquet").write_bytes(b"killed mid-write")
+
+    def boom(*args, **kwargs):
+        raise AssertionError("a rebuild was started over a half-written corpus")
+
+    monkeypatch.setattr(runner, "build_to_disk", boom)
+
+    with pytest.raises(FileExistsError, match="half-written"):
+        runner.ensure_corpus(**ensure_kwargs(tmp_path))
+
+
+def test_a_fractional_confirmation_closes_is_refused():
+    import build_gann_corpus as runner
+
+    with pytest.raises(ValueError, match="confirmation_closes"):
+        runner._analyzer_settings("RELIANCE", "5", 1, "close", 1.5)
+    assert runner._analyzer_settings(
+        "RELIANCE", "5", 1, "close", 3.0)["confirmation_closes"] == 3
+
+
+@pytest.mark.parametrize("bad", ["two", None, float("inf"), float("nan"),
+                                 True, 0, 1.5])
+def test_a_confirmation_closes_that_is_not_a_whole_number_gets_the_friendly_error(bad):
+    import build_gann_corpus as runner
+
+    with pytest.raises(ValueError, match="whole number of at least 1"):
+        runner._analyzer_settings("RELIANCE", "5", 1, "close", bad)
+
+
+@pytest.mark.parametrize("key", ["breach_mode", "confirmation_closes"])
+def test_ensure_corpus_refuses_a_meta_that_does_not_record_the_rule(
+        tmp_path, monkeypatch, key):
+    import json
+    import build_gann_corpus as runner
+    write_cached_bars(tmp_path / "bars")
+    runner.ensure_corpus(**ensure_kwargs(tmp_path))
+    meta_path = tmp_path / "corpus" / "meta.json"
+    meta = json.loads(meta_path.read_text(encoding="utf-8"))
+    del meta[key]
+    meta_path.write_text(json.dumps(meta), encoding="utf-8")
+
+    def boom(*args, **kwargs):
+        raise AssertionError("a rebuild was started over an old corpus")
+
+    monkeypatch.setattr(runner, "build_to_disk", boom)
+
+    with pytest.raises(ValueError, match=key):
+        runner.ensure_corpus(**ensure_kwargs(tmp_path))

@@ -175,7 +175,87 @@ def already_hit_share(events: pd.DataFrame) -> Stat:
     return Stat(float(flags.astype(bool).mean()), len(flags))
 
 
+LAG_FREE_COLUMNS = ("target_hit_before_entry", "entry_beyond_level")
+
+
+def _is(flags: pd.Series, value: bool) -> pd.Series:
+    """
+    Rows whose flag is exactly `value`.
+
+    None and NaN match neither True nor False: a row with no target has no
+    lag-free answer, and must be neither kept nor counted as dropped.
+    """
+    return flags.eq(value).fillna(False).astype(bool)
+
+
+def _has_lag_free_columns(events: pd.DataFrame) -> bool:
+    return all(column in events.columns for column in LAG_FREE_COLUMNS)
+
+
+def lag_free_reach_rate_for(column: str) -> StatisticFn:
+    """
+    REACHED / (REACHED + STOPPED) over the breaches a trader could take.
+
+    Kept: the target was not touched on any bar from the cross to the
+    confirmation (target_hit_before_entry False) and the confirmation bar
+    closed beyond the level (entry_beyond_level True). Only bars up to the
+    confirmation decide inclusion, so the filter adds no lookahead.
+    """
+    rate = reach_rate_for(column)
+
+    def lag_free_reach_rate(events: pd.DataFrame) -> Stat:
+        if not _has_lag_free_columns(events):
+            return Stat(None, 0)
+        kept = (_is(events["target_hit_before_entry"], False)
+                & _is(events["entry_beyond_level"], True))
+        return rate(events[kept])
+
+    return lag_free_reach_rate
+
+
+def dropped_share(events: pd.DataFrame) -> Stat:
+    """
+    Rows removed by either lag-free filter / targeted rows.
+
+    Targeted rows are confirmed breaches that had a target
+    (target_hit_before_entry not null), whatever their race outcome,
+    timeouts included. Compared real against shadow: if the filter removes
+    a different share of real rows than of shadow rows, the filtered sets
+    are not like-for-like.
+    """
+    if not _has_lag_free_columns(events):
+        return Stat(None, 0)
+    hit = events["target_hit_before_entry"]
+    targeted = _is(hit, True) | _is(hit, False)
+    n = int(targeted.sum())
+    if n == 0:
+        return Stat(None, 0)
+    dropped = targeted & (_is(hit, True)
+                          | _is(events["entry_beyond_level"], False))
+    return Stat(int(dropped.sum()) / n, n)
+
+
+def entry_dropped_share(events: pd.DataFrame) -> Stat:
+    """
+    Targeted rows whose confirmation bar closed back (entry_beyond_level
+    False) / targeted rows, whether or not the target filter also drops
+    them. Zero for every close rule; only a wick rule can be non-zero.
+    """
+    if not _has_lag_free_columns(events):
+        return Stat(None, 0)
+    hit = events["target_hit_before_entry"]
+    targeted = _is(hit, True) | _is(hit, False)
+    n = int(targeted.sum())
+    if n == 0:
+        return Stat(None, 0)
+    dropped = targeted & _is(events["entry_beyond_level"], False)
+    return Stat(int(dropped.sum()) / n, n)
+
+
 # The original names, bound to the strict column, so existing callers and the
 # confirmed holdout definition are untouched.
 reach_next_rate = reach_rate_for("reach_outcome")
 timeout_share = timeout_share_for("reach_outcome")
+
+# The lag-free statistic of the 2026-10-16 breach sweep, on the strict column.
+lag_free_reach_rate = lag_free_reach_rate_for("reach_outcome")

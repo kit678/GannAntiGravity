@@ -13,6 +13,10 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from study_tool.event_logger import Event, EventType
 
+# The breach rules the analyzer knows. The build script and corpus meta
+# validate against this one tuple.
+BREACH_MODES = ("close", "wick")
+
 
 class GannLadderAnalyzer:
     """Turns bars plus a level ladder into a stream of interaction events."""
@@ -20,7 +24,21 @@ class GannLadderAnalyzer:
     def __init__(self, config: Dict[str, Any]):
         self.config = config
         self.breach_mode = config.get("breach_mode", "close")
-        self.confirmation_closes = config.get("confirmation_closes", 2)
+        if self.breach_mode not in BREACH_MODES:
+            raise ValueError(
+                f"breach_mode {self.breach_mode!r} is not one of {BREACH_MODES}")
+        raw_closes = config.get("confirmation_closes", 2)
+        try:
+            # A bool is an int to Python but never a count of closes.
+            self.confirmation_closes = int(raw_closes)
+            whole = (not isinstance(raw_closes, bool)
+                     and self.confirmation_closes == raw_closes)
+        except (TypeError, ValueError, OverflowError):  # None, "two", nan, inf
+            whole = False
+        if not whole or self.confirmation_closes < 1:
+            raise ValueError(
+                "confirmation_closes must be a whole number of at least 1, "
+                f"got {raw_closes!r}")
         self.touch_tolerance = config.get("touch_tolerance_sublevels", 0.1)
         self.resolution_window = config.get("resolution_window_bars", 50)
         self.retest_window = config.get("retest_window_bars", 50)
@@ -115,41 +133,41 @@ class GannLadderAnalyzer:
 
     def _crossed(self, price: float, open_price: Optional[float],
                  high: float, low: float, close: float,
-                 direction_hint: Optional[str] = None) -> Tuple[bool, Optional[str]]:
+                 direction_hint: Optional[str] = None,
+                 prev_close: Optional[float] = None) -> Tuple[bool, Optional[str]]:
         """
         Whether this bar counts as crossing the level, and in which direction.
 
-        In 'close' mode a cross requires the bar to have travelled through the
-        level - opened on one side, closed on the other - not merely rested
-        on one side, or wicked it without closing past it.
+        A pending cross (direction_hint given) stays alive only on a close
+        beyond the level in that direction, in both modes. A bar that wicks
+        the right way but closes back rejects the breach.
 
-        In 'wick' mode any bar whose range clears the level counts, even if
-        it closes back on the side it came from.
+        First cross, 'close' mode: the bar travelled through the level -
+        opened on it or on one side, closed on the other.
 
-        direction_hint, when given, checks only whether the bar still counts
-        as crossed in that specific direction - used once a cross is already
-        pending, so a bar wicking or resting the wrong way doesn't reset or
-        confuse the count.
+        First cross, 'wick' mode: the previous bar closed strictly on one
+        side and this bar's range reaches strictly past the level on the
+        other. It may close back. The first bar of the data has no previous
+        close and cannot cross. Before 2026-10-16 wick mode booked any bar
+        with high > level as an up cross from either side; no caller relied
+        on that.
         """
+        if direction_hint == "up":
+            return close > price, "up"
+        if direction_hint == "down":
+            return close < price, "down"
+
         if self.breach_mode == "wick":
-            wicked_up = high > price
-            wicked_down = low < price
-            if direction_hint == "up":
-                return wicked_up, "up"
-            if direction_hint == "down":
-                return wicked_down, "down"
-            if wicked_up:
+            if prev_close is None:
+                return False, None
+            if prev_close < price and high > price:
                 return True, "up"
-            if wicked_down:
+            if prev_close > price and low < price:
                 return True, "down"
             return False, None
 
         beyond_up = close > price
         beyond_down = close < price
-        if direction_hint == "up":
-            return beyond_up, "up"
-        if direction_hint == "down":
-            return beyond_down, "down"
         straddled_up = open_price is not None and open_price <= price and beyond_up
         straddled_down = open_price is not None and open_price >= price and beyond_down
         if straddled_up:
@@ -178,6 +196,10 @@ class GannLadderAnalyzer:
                 "Bars must be fed in strictly increasing order."
             )
         self._last_bar_index = bar_index
+        # Read before overwriting: wick mode crosses against the previous
+        # bar's close. One global previous bar - every level shares the path.
+        # get_state / restore_state already carry _last_bar across chunks.
+        prev_close = self._last_bar.get("close") if self._last_bar else None
         self._last_bar = bar
 
         events: List[Event] = []
@@ -208,7 +230,8 @@ class GannLadderAnalyzer:
             if state is None:
                 if not reached:
                     continue
-                crossed_now, direction = self._crossed(price, open_price, high, low, close)
+                crossed_now, direction = self._crossed(
+                    price, open_price, high, low, close, prev_close=prev_close)
                 if not crossed_now:
                     events.append(self._make_event(
                         EventType.LADDER_TOUCH, bar, bar_index, level,

@@ -13,7 +13,7 @@ import pytest
 
 sys.path.append(os.path.abspath('C:/Dev/GannTesting/gann-visualizer/backend'))
 
-from study_tool.bar_cache import load_bars
+from study_tool.bar_cache import cache_path, load_bars, no_fetch
 
 NSE_OPEN_EPOCH = 1787629500
 
@@ -103,3 +103,28 @@ def test_successful_write_leaves_only_the_final_cache_file(tmp_path):
     written = list(tmp_path.iterdir())
     assert len(written) == 1
     assert written[0].suffix == ".parquet"
+
+
+def test_no_fetch_turns_a_cache_miss_into_an_error(tmp_path):
+    """A sweep rebuild must read the cached bars, never refetch from Dhan."""
+    with pytest.raises(FileNotFoundError, match="fetching is disabled"):
+        load_bars("RELIANCE", "2026-08-25", "2026-08-26", "5",
+                  cache_dir=tmp_path, fetcher=no_fetch)
+    assert list(tmp_path.glob("*.parquet")) == []
+
+
+def test_no_fetch_still_reads_a_cache_hit(tmp_path):
+    load_bars("RELIANCE", "2026-08-25", "2026-08-26", "5",
+              cache_dir=tmp_path, fetcher=CountingFetcher())
+
+    bars = load_bars("RELIANCE", "2026-08-25", "2026-08-26", "5",
+                     cache_dir=tmp_path, fetcher=no_fetch)
+
+    assert len(bars) == 5
+
+
+def test_cache_path_names_the_file_load_bars_writes(tmp_path):
+    load_bars("RELIANCE", "2026-08-25", "2026-08-26", "5",
+              cache_dir=tmp_path, fetcher=CountingFetcher())
+
+    assert cache_path(tmp_path, "RELIANCE", "2026-08-25", "2026-08-26", "5").exists()

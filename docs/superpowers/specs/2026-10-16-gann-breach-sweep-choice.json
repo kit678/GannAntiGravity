@@ -1,0 +1,76 @@
+{
+  "breach_mode": "close",
+  "candidates": [
+    "close2"
+  ],
+  "chosen": "close2",
+  "confirmation_closes": 2,
+  "corpora": {
+    "close1": "C:\\Dev\\GannTesting\\gann-visualizer\\backend\\logs\\corpus\\breach_sweep\\reliance_5m_x1_close1",
+    "close2": "C:\\Dev\\GannTesting\\gann-visualizer\\backend\\logs\\corpus\\breach_sweep\\reliance_5m_x1_close2",
+    "close3": "C:\\Dev\\GannTesting\\gann-visualizer\\backend\\logs\\corpus\\breach_sweep\\reliance_5m_x1_close3",
+    "wick1": "C:\\Dev\\GannTesting\\gann-visualizer\\backend\\logs\\corpus\\breach_sweep\\reliance_5m_x1_wick1"
+  },
+  "eligible": [
+    "close1",
+    "wick1",
+    "close2",
+    "close3"
+  ],
+  "reason": "close2 chosen: best z 4.357; candidates within 0.1 of it: close2; the earliest in the order close1, wick1, close2, close3 wins",
+  "regression_gate": {
+    "passed": true,
+    "reason": "5326759 rows match on all 72 columns"
+  },
+  "rule_order": [
+    "close1",
+    "wick1",
+    "close2",
+    "close3"
+  ],
+  "rules": {
+    "close1": {
+      "above_all_shadows": true,
+      "lag_free_n": 10054,
+      "lag_free_real": 0.5218818380743983,
+      "shadow_max": 0.5165165165165165,
+      "shadow_mean": 0.50640065151075,
+      "shadow_sd": 0.004474934680379599,
+      "shadows_missing": 0,
+      "z": 3.4595335282827056
+    },
+    "close2": {
+      "above_all_shadows": true,
+      "lag_free_n": 4555,
+      "lag_free_real": 0.5352360043907793,
+      "shadow_max": 0.5249260667511618,
+      "shadow_mean": 0.5121669157953811,
+      "shadow_sd": 0.005294327319829998,
+      "shadows_missing": 0,
+      "z": 4.3573219413526925
+    },
+    "close3": {
+      "above_all_shadows": true,
+      "lag_free_n": 2446,
+      "lag_free_real": 0.5511038430089943,
+      "shadow_max": 0.5439905734485467,
+      "shadow_mean": 0.5201655700004972,
+      "shadow_sd": 0.010852026789037843,
+      "shadows_missing": 0,
+      "z": 2.850921179051023
+    },
+    "wick1": {
+      "above_all_shadows": true,
+      "lag_free_n": 5344,
+      "lag_free_real": 0.5297529940119761,
+      "shadow_max": 0.5243302351011482,
+      "shadow_mean": 0.5115118054772988,
+      "shadow_sd": 0.005050475038316876,
+      "shadows_missing": 0,
+      "z": 3.6117767925363973
+    }
+  },
+  "shadow_count": 50,
+  "spec": "docs/superpowers/specs/2026-10-16-gann-breach-definition-sweep-design.md",
+  "tie_window": 0.1
+}

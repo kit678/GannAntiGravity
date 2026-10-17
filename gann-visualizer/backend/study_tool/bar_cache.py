@@ -24,10 +24,24 @@ def _default_fetcher(symbol: str, from_date: str, to_date: str,
     return DhanClient().fetch_data(symbol, from_date, to_date, interval=interval)
 
 
-def _cache_path(cache_dir: Path, symbol: str, from_date: str,
-                to_date: str, interval: str) -> Path:
+def cache_path(cache_dir: Union[str, Path], symbol: str, from_date: str,
+               to_date: str, interval: str) -> Path:
+    """Where load_bars keeps one symbol and window."""
     name = f"{symbol}_{interval}_{from_date}_{to_date}.parquet"
     return Path(cache_dir) / name
+
+
+def no_fetch(symbol: str, from_date: str, to_date: str,
+             interval: str) -> pd.DataFrame:
+    """
+    A fetcher that refuses. Pass it to load_bars when a cache miss must stop
+    the run instead of calling Dhan: a rebuild that silently refetched would
+    no longer be a rebuild of the same bars.
+    """
+    raise FileNotFoundError(
+        f"no cached bars for {symbol} {interval} {from_date}..{to_date} "
+        "and fetching is disabled"
+    )
 
 
 def load_bars(
@@ -51,7 +65,7 @@ def load_bars(
     """
     cache_dir = Path(cache_dir)
     cache_dir.mkdir(parents=True, exist_ok=True)
-    path = _cache_path(cache_dir, symbol, from_date, to_date, interval)
+    path = cache_path(cache_dir, symbol, from_date, to_date, interval)
 
     if path.exists():
         return pd.read_parquet(path)

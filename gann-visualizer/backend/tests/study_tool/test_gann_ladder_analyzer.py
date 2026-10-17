@@ -4,6 +4,8 @@ Tests for GannLadderAnalyzer, on synthetic bars so every case is unambiguous.
 import sys
 import os
 
+import pytest
+
 sys.path.append(os.path.abspath('C:/Dev/GannTesting/gann-visualizer/backend'))
 
 from study_tool.gann_ladder_analyzer import GannLadderAnalyzer
@@ -178,9 +180,23 @@ def test_a_breach_still_open_at_the_end_resolves_with_none():
 
 
 def test_wick_mode_confirms_on_range_rather_than_close():
+    # Rewritten 2026-10-16: the old version fed a single bar, which now has
+    # no previous close and so cannot cross. A lead-in bar closing below the
+    # level gives the wick bar a side to come from.
+    an = analyzer(breach_mode="wick", confirmation_closes=1)
+    events = run(an, [
+        bar(104.0, 104.5, 103.5, 104.2),   # closes below 105, not reached
+        bar(104.2, 106.0, 103.5, 104.2),   # wicks up through 105, closes back
+    ])
+    confirmed = [e for e in events if e.event_type == EventType.LADDER_BREACH_CONFIRMED]
+    assert len(confirmed) == 1
+    assert confirmed[0].direction == "up"
+
+
+def test_wick_mode_first_bar_has_no_previous_close_and_cannot_cross():
     an = analyzer(breach_mode="wick", confirmation_closes=1)
     events = run(an, [bar(104.0, 106.0, 103.5, 104.2)])
-    assert EventType.LADDER_BREACH_CONFIRMED in types_of(events)
+    assert types_of(events) == [EventType.LADDER_TOUCH]
 
 
 def test_events_carry_level_identity_and_scale():
@@ -267,14 +283,32 @@ def test_process_bar_rejects_a_replayed_or_out_of_order_bar_index():
         pass
 
 
-def test_wick_mode_accumulates_closes_across_bars():
+def test_wick_mode_pending_cross_needs_a_close_beyond_to_confirm():
+    # Rewritten 2026-10-16: a pending wick cross is confirmed by a close
+    # beyond the level, the same as close mode. A second wick alone no
+    # longer counts.
     an = analyzer(breach_mode="wick", confirmation_closes=2)
     events = run(an, [
-        bar(104.0, 106.0, 103.5, 104.2),   # wicks through 105 once
-        bar(104.2, 106.0, 103.5, 104.3),   # wicks through again, same direction
+        bar(104.0, 104.5, 103.5, 104.2),   # lead-in, closes below
+        bar(104.2, 106.0, 103.5, 104.2),   # wicks up through 105: cross, pending
+        bar(104.2, 106.0, 104.1, 105.5),   # closes above 105: confirmed
     ])
     confirmed = [e for e in events if e.event_type == EventType.LADDER_BREACH_CONFIRMED]
     assert len(confirmed) == 1
+    assert confirmed[0].direction == "up"
+    assert confirmed[0].bar_index == 2
+
+
+def test_wick_mode_a_second_wick_that_closes_back_rejects_the_pending_cross():
+    an = analyzer(breach_mode="wick", confirmation_closes=2)
+    events = run(an, [
+        bar(104.0, 104.5, 103.5, 104.2),
+        bar(104.2, 106.0, 103.5, 104.2),   # cross, pending
+        bar(104.2, 106.0, 103.5, 104.3),   # wicks again but closes below
+    ])
+    kinds = types_of(events)
+    assert EventType.LADDER_BREACH_CONFIRMED not in kinds
+    assert EventType.LADDER_BREACH_REJECTED in kinds
 
 
 def test_pending_cross_expires_when_level_leaves_the_ladder():
@@ -344,3 +378,102 @@ def test_finalize_carries_full_level_identity():
     assert resolved.level_segment_end == LEVELS[0]["segment_end"]
     assert resolved.level_sub_index == LEVELS[0]["sub_index"]
     assert resolved.level_is_halfway == LEVELS[0]["is_halfway"]
+
+
+# -- Wick mode as a breach rule (2026-10-16 breach sweep) ---------------------
+#
+# Wick up: previous close below the level, this bar's high above it.
+# Wick down: previous close above the level, this bar's low below it.
+# The "reached" gate still runs first.
+
+
+def test_wick_mode_a_wick_down_from_above_that_closes_back_above_is_a_down_cross():
+    an = analyzer(breach_mode="wick", confirmation_closes=1)
+    events = run(an, [
+        bar(106.5, 107.0, 106.0, 106.5),   # above 105, not reached
+        bar(106.5, 106.6, 104.5, 105.8),   # wicks down through 105, closes above
+    ])
+    crosses = [e for e in events if e.event_type == EventType.LADDER_CROSS]
+    assert [e.direction for e in crosses] == ["down"]
+
+
+def test_wick_mode_a_bar_within_tolerance_that_never_goes_through_is_a_touch():
+    an = analyzer(breach_mode="wick", confirmation_closes=1)
+    events = run(an, [
+        bar(104.0, 104.5, 103.5, 104.2),   # below, not reached
+        bar(104.2, 104.9, 104.0, 104.5),   # high within 0.125 of 105, not through
+    ])
+    assert types_of(events) == [EventType.LADDER_TOUCH]
+
+
+def test_wick_mode_a_bar_wholly_above_with_its_low_inside_tolerance_is_a_touch():
+    an = analyzer(breach_mode="wick", confirmation_closes=1)
+    events = run(an, [
+        bar(105.6, 106.0, 105.4, 105.5),   # above, not reached
+        bar(105.5, 106.0, 105.1, 105.5),   # low 105.1 within tolerance, never below
+    ])
+    assert types_of(events) == [EventType.LADDER_TOUCH]
+
+
+def test_wick_mode_a_clean_wick_up_from_below_is_an_up_cross():
+    an = analyzer(breach_mode="wick", confirmation_closes=1)
+    events = run(an, [
+        bar(104.0, 104.5, 103.5, 104.2),
+        bar(104.2, 105.6, 104.0, 105.4),
+    ])
+    crosses = [e for e in events if e.event_type == EventType.LADDER_CROSS]
+    confirmed = [e for e in events if e.event_type == EventType.LADDER_BREACH_CONFIRMED]
+    assert [e.direction for e in crosses] == ["up"]
+    assert len(confirmed) == 1
+
+
+def test_wick_mode_a_gap_up_into_the_tolerance_band_from_below_is_an_up_cross():
+    # Spec-literal: previous close below the level, this bar's high above it.
+    # The low (105.1) sits above the level, inside the touch band, and that is
+    # still a cross. Deliberate, not a touch.
+    an = analyzer(breach_mode="wick", confirmation_closes=1)
+    events = run(an, [
+        bar(104.0, 104.5, 103.5, 104.2),   # below, not reached
+        bar(105.2, 106.0, 105.1, 105.5),   # gaps up, low inside tolerance
+    ])
+    crosses = [e for e in events if e.event_type == EventType.LADDER_CROSS]
+    assert [e.direction for e in crosses] == ["up"]
+
+
+def test_wick_mode_a_gap_wholly_past_the_tolerance_is_not_tested():
+    an = analyzer(breach_mode="wick", confirmation_closes=1)
+    events = run(an, [
+        bar(104.0, 104.5, 103.5, 104.2),
+        bar(106.0, 107.0, 105.9, 106.5),   # gaps over 105 by more than 0.125
+    ])
+    assert events == []
+
+
+def test_wick_mode_previous_close_survives_a_state_round_trip():
+    bars = [bar(104.0, 104.5, 103.5, 104.2), bar(104.2, 105.6, 104.0, 105.4)]
+    straight = run(analyzer(breach_mode="wick", confirmation_closes=1), bars)
+
+    split = analyzer(breach_mode="wick", confirmation_closes=1)
+    out = list(split.process_bar(bars[0], 0, LEVELS))
+    resumed = analyzer(breach_mode="wick", confirmation_closes=1)
+    resumed.restore_state(split.get_state())
+    out.extend(resumed.process_bar(bars[1], 1, LEVELS))
+
+    assert types_of(out) == types_of(straight)
+    assert EventType.LADDER_CROSS in types_of(out)
+
+
+def test_an_unknown_breach_mode_is_refused():
+    with pytest.raises(ValueError, match="breach_mode"):
+        analyzer(breach_mode="body")
+
+
+@pytest.mark.parametrize("bad", [0, -1, 1.5, "two", None, float("inf"),
+                                 float("nan"), True, False])
+def test_confirmation_closes_must_be_a_whole_number_of_at_least_one(bad):
+    with pytest.raises(ValueError, match="confirmation_closes"):
+        analyzer(confirmation_closes=bad)
+
+
+def test_confirmation_closes_given_as_a_whole_float_is_coerced():
+    assert analyzer(confirmation_closes=3.0).confirmation_closes == 3

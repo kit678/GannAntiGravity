@@ -109,3 +109,48 @@ def test_sample_size_travels_with_the_result():
     ])
 
     assert compare(events, mean_v, shadow_count=1).n == 2
+
+
+# -- z and above_all_shadows (2026-10-16 breach sweep) ------------------------
+
+
+def test_z_is_distance_from_the_shadow_mean_in_sample_sds():
+    result = Comparison(real=5.0, n=10, shadows=[1.0, 2.0, 3.0])
+
+    assert result.z == pytest.approx(3.0)
+
+
+def test_z_is_none_with_fewer_than_two_shadows():
+    assert Comparison(real=5.0, n=1, shadows=[1.0]).z is None
+
+
+def test_z_is_none_when_the_shadows_have_no_spread():
+    assert Comparison(real=5.0, n=1, shadows=[2.0, 2.0, 2.0]).z is None
+
+
+def test_z_is_none_when_real_is_undefined():
+    assert Comparison(real=None, n=0, shadows=[1.0, 2.0]).z is None
+
+
+def test_z_uses_only_shadows_that_have_a_value():
+    result = compare(frame(9.0, [1.0, 2.0, 3.0]), mean_v, shadow_count=4)
+
+    assert result.shadows_missing == 1
+    assert result.z == pytest.approx(7.0)
+
+
+def test_above_all_shadows_needs_real_strictly_above_the_max():
+    assert Comparison(real=5.0, n=1, shadows=[1.0, 2.0, 3.0]).above_all_shadows
+    assert not Comparison(real=3.0, n=1, shadows=[1.0, 2.0, 3.0]).above_all_shadows
+
+
+def test_above_all_shadows_is_false_when_any_shadow_is_missing():
+    result = compare(frame(9.0, [1.0, 2.0]), mean_v, shadow_count=3)
+
+    assert result.shadows_missing == 1
+    assert result.above_all_shadows is False
+    assert result.outside_range is True, "the old flag ignores missing shadows"
+
+
+def test_above_all_shadows_is_false_when_real_is_undefined():
+    assert Comparison(real=None, n=0, shadows=[1.0]).above_all_shadows is False

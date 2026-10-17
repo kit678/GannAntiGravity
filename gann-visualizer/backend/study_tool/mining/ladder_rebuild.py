@@ -283,6 +283,15 @@ def add_reach_outcomes(events: pd.DataFrame, bars: pd.DataFrame,
       target_already_hit  - True when the breach's own confirmation bar had
                             already reached the target. Those wins cost no
                             travel; their share must be visible.
+      target_hit_before_entry
+                          - True when any bar from the cross bar c to the
+                            confirmation bar k inclusive touched the target,
+                            c = k - (meta.confirmation_closes - 1). Widens
+                            target_already_hit. Reads no bar after k.
+      entry_beyond_level  - True when bar k closed beyond the breached level.
+                            Always True for close rules; a wick rule can
+                            confirm on a bar that closed back, and a trader
+                            at that close would be past their own stop.
 
     None means the row was not raced: not a confirmed breach, no direction, or
     the ladder ran out before the target or the stop. None is not a loss.
@@ -305,6 +314,12 @@ def add_reach_outcomes(events: pd.DataFrame, bars: pd.DataFrame,
     frame = events.reset_index(drop=True)
     columns = {(d, w): [None] * len(frame) for d in depths for w in windows}
     already_hit: List[Optional[bool]] = [None] * len(frame)
+    hit_before_entry: List[Optional[bool]] = [None] * len(frame)
+    beyond_level: List[Optional[bool]] = [None] * len(frame)
+    # Confirmation closes are consecutive - a bar that fails to close beyond
+    # rejects the breach (gann_ladder_analyzer.process_bar) - so the cross
+    # bar sits exactly confirmation_closes - 1 bars before confirmation.
+    lead_bars = meta.confirmation_closes - 1
 
     is_confirmed = (frame["event_type"] == CONFIRMED).to_numpy()
     bar_indices = frame["bar_index"].to_numpy()
@@ -335,8 +350,27 @@ def add_reach_outcomes(events: pd.DataFrame, bars: pd.DataFrame,
         if target is None:
             continue
 
+        beyond_level[position] = bool(
+            closes[bar] > level_price if direction == "up"
+            else closes[bar] < level_price)
+
         already_hit[position] = bool(
             highs[bar] >= target if direction == "up" else lows[bar] <= target)
+
+        # Bars c..k inclusive and never later: what a trader acting at the
+        # close of k had seen.
+        cross_bar = bar - lead_bars
+        if cross_bar < 0:
+            raise ValueError(
+                f"confirmed breach at bar {bar} needs {lead_bars} earlier "
+                f"bar(s) for confirmation_closes={meta.confirmation_closes}; "
+                f"corrupt event table or meta")
+        if direction == "up":
+            hit_before_entry[position] = bool(
+                highs[cross_bar:bar + 1].max() >= target)
+        else:
+            hit_before_entry[position] = bool(
+                lows[cross_bar:bar + 1].min() <= target)
 
         for depth in depths:
             if depth == 0:
@@ -357,6 +391,8 @@ def add_reach_outcomes(events: pd.DataFrame, bars: pd.DataFrame,
     for (depth, window), values in columns.items():
         frame[outcome_column(depth, window)] = values
     frame["target_already_hit"] = already_hit
+    frame["target_hit_before_entry"] = hit_before_entry
+    frame["entry_beyond_level"] = beyond_level
 
     legacy = outcome_column(0.0, meta.resolution_window_bars)
     if legacy in frame.columns:

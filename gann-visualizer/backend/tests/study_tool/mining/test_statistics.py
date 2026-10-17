@@ -16,9 +16,10 @@ import pytest
 sys.path.append(os.path.abspath('C:/Dev/GannTesting/gann-visualizer/backend'))
 
 from study_tool.mining.statistics import (
-    already_hit_share, hold_rate, mean_retest_depth, reach_next_rate,
-    reach_rate_for, rejection_rate, timeout_share, timeout_share_for,
-    touch_density_fn,
+    already_hit_share, dropped_share, entry_dropped_share, hold_rate,
+    lag_free_reach_rate, lag_free_reach_rate_for, mean_retest_depth,
+    reach_next_rate, reach_rate_for, rejection_rate, timeout_share,
+    timeout_share_for, touch_density_fn,
 )
 
 
@@ -192,3 +193,73 @@ def test_already_hit_share_is_none_when_nothing_was_raced():
     frame = pd.DataFrame({"target_already_hit": [None, None]})
 
     assert already_hit_share(frame).value is None
+
+
+def lag_free_frame():
+    """
+    Row 0 kept REACHED, row 1 kept STOPPED, row 2 dropped (target hit),
+    row 3 dropped (closed back), row 4 kept TIMEOUT, row 5 not targeted,
+    row 6 dropped by both filters.
+    """
+    return pd.DataFrame({
+        "reach_outcome": ["REACHED", "STOPPED", "REACHED", "REACHED",
+                          "TIMEOUT", None, "STOPPED"],
+        "target_hit_before_entry": [False, False, True, False, False, None,
+                                    True],
+        "entry_beyond_level": [True, True, True, False, True, None, False],
+    })
+
+
+def test_lag_free_reach_rate_keeps_only_tradeable_breaches():
+    stat = lag_free_reach_rate(lag_free_frame())
+
+    assert stat.value == 0.5
+    assert stat.n == 2, "timeouts and dropped rows are not decided rows"
+
+
+def test_lag_free_reach_rate_binds_to_a_named_column():
+    frame = lag_free_frame().rename(columns={"reach_outcome": "reach_d0_w100"})
+
+    assert lag_free_reach_rate_for("reach_d0_w100")(frame).value == 0.5
+    assert lag_free_reach_rate(frame).value is None
+
+
+def test_lag_free_reach_rate_is_none_without_the_flag_columns():
+    frame = pd.DataFrame({"reach_outcome": ["REACHED"]})
+
+    assert lag_free_reach_rate(frame) == (None, 0)
+
+
+def test_lag_free_flags_work_as_a_plain_bool_column():
+    frame = pd.DataFrame({"reach_outcome": ["REACHED", "STOPPED"],
+                          "target_hit_before_entry": [False, True],
+                          "entry_beyond_level": [True, True]})
+    assert frame["target_hit_before_entry"].dtype == bool
+
+    stat = lag_free_reach_rate(frame)
+
+    assert stat.value == 1.0
+    assert stat.n == 1
+
+
+def test_dropped_share_is_rows_removed_by_either_filter_over_targeted_rows():
+    stat = dropped_share(lag_free_frame())
+
+    assert stat.value == 0.5     # rows 2, 3, 6 of 6 targeted
+    assert stat.n == 6, "targeted rows include timeouts, exclude untargeted"
+
+
+def test_entry_dropped_share_counts_only_the_entry_filter():
+    stat = entry_dropped_share(lag_free_frame())
+
+    assert stat.value == pytest.approx(2 / 6)   # rows 3 and 6
+    assert stat.n == 6
+
+
+def test_dropped_shares_are_none_with_no_targeted_rows():
+    frame = pd.DataFrame({"reach_outcome": [None],
+                          "target_hit_before_entry": [None],
+                          "entry_beyond_level": [None]})
+
+    assert dropped_share(frame) == (None, 0)
+    assert entry_dropped_share(frame) == (None, 0)
