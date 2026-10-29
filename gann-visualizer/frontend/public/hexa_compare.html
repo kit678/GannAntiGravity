@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Hexatrade compare: past week vs study day</title>
+  <script src="/charting_library/charting_library.js"></script>
+  <script src="/datafeeds/udf/dist/bundle.js"></script>
+  <style>
+    html, body { margin: 0; height: 100%; background: #131722; color: #d1d4dc; font-family: sans-serif; }
+    #bar { height: 28px; line-height: 28px; padding: 0 10px; font-size: 13px; }
+    #wrap { display: flex; height: calc(100% - 28px); }
+    .pane { flex: 1; display: flex; flex-direction: column; border-right: 1px solid #2a2e39; }
+    .title { height: 22px; line-height: 22px; padding: 0 8px; font-size: 12px; background: #1e222d; }
+    .chart { flex: 1; }
+  </style>
+</head>
+<body>
+  <div id="bar">Hexatrade manual test &middot; EURUSDT (Binance spot) 5-minute &middot; chart clock UTC+3 (course server time) &middot; dashed lines = window edges</div>
+  <div id="wrap">
+    <div class="pane"><div class="title" id="tL"></div><div class="chart" id="left"></div></div>
+    <div class="pane"><div class="title" id="tR"></div><div class="chart" id="right"></div></div>
+  </div>
+<script>
+// Settings come from the URL so other days can reuse the page, e.g.
+// ?sym=EURUSDT:BN&res=5&pastStart=1789333200&pastEnd=1789765200&dayStart=1792098000&dayEnd=1792184400
+const q = new URLSearchParams(location.search);
+const SYM = q.get('sym') || 'EURUSDT:BN';
+const RES = q.get('res') || '5';
+const TZ = q.get('tz') || 'Europe/Istanbul';            // UTC+3 all year = course server clock in US summer time
+const PAST = [+(q.get('pastStart') || 1789333200), +(q.get('pastEnd') || 1789765200)];   // Mon 14 Sep 00:00 - Sat 19 Sep 00:00 server
+const DAY = [+(q.get('dayStart') || 1792098000), +(q.get('dayEnd') || 1792184400)];      // Fri 16 Oct 00:00 - Sat 17 Oct 00:00 server
+const CUT = +(q.get('cut') || 1792170000);                 // Fri 16 Oct 20:00 server: end of the 240-bar test window
+const PAD = 6 * 3600;
+
+document.getElementById('tL').textContent = q.get('tl') || 'PAST WEEK (cycle 7): Mon 14 Sep - Fri 18 Sep 2026';
+document.getElementById('tR').textContent = q.get('tr') || 'STUDY DAY: Fri 16 Oct 2026 (dotted = 20:00, end of the 240-bar day)';
+document.getElementById('bar').textContent = q.get('bar') || document.getElementById('bar').textContent;
+
+function makeChart(containerId, range, marks, after) {
+  const w = new TradingView.widget({
+    symbol: SYM, interval: RES, timezone: TZ, container: containerId, autosize: true,
+    datafeed: new Datafeeds.UDFCompatibleDatafeed('http://localhost:8005'),
+    library_path: '/charting_library/', locale: 'en', theme: 'Dark',
+    time_scale: { min_bar_spacing: 0.1 },   // lets a whole week of 5-minute bars fit in one pane
+    disabled_features: ['use_localstorage_for_settings', 'header_compare', 'create_volume_indicator_by_default'],
+  });
+  w.onChartReady(() => {
+    const ch = w.activeChart();
+    ch.setVisibleRange({ from: range[0] - PAD, to: range[1] + PAD }).then(async () => {
+      // Draw only once the window's bars are loaded; otherwise TradingView snaps lines to the last bar it has.
+      for (let k = 0; k < 20; k++) {
+        const ex = await ch.exportData({ includeTime: true, includeSeries: true });
+        const ts = ex.data.map(x => x[0]);
+        if (ts.some(t => t >= range[0] && t < range[0] + 3600) && ts.some(t => t >= range[1] - 4 * 3600 && t < range[1])) break;
+        await ch.setVisibleRange({ from: range[0] - PAD, to: range[1] + PAD });
+        await new Promise(r => setTimeout(r, 1500));
+      }
+      if (after) setTimeout(() => after(w), 500);
+      for (const m of marks) {
+        ch.createShape({ time: m.t }, {
+          shape: 'vertical_line', lock: true, disableSelection: false,
+          overrides: { linecolor: m.color, linewidth: 2, linestyle: m.style, showTime: true },
+        });
+      }
+    });
+  });
+  return w;
+}
+// ---- optional swing labels: zz=<threshold in price units>, numL=<from>,<to> numR=<from>,<to> (unix s),
+// note=<text> placed at noteT,noteP on the right chart; lines=<price>:<label>|... horizontal lines on the right chart.
+function zigzag(bars, th) {           // same rule as tools/gann/hexa_backtest.py: reverse by `th` from the running extreme
+  const piv = []; let d = 0, hiP = bars[0].h, hiI = 0, loP = bars[0].l, loI = 0, eP = 0, eI = 0;
+  for (let i = 1; i < bars.length; i++) {
+    const b = bars[i];
+    if (d === 0) {
+      if (b.h > hiP) { hiP = b.h; hiI = i; } if (b.l < loP) { loP = b.l; loI = i; }
+      if (hiP - loP >= th) { if (hiI > loI) { piv.push([loI, loP, -1]); d = 1; eP = hiP; eI = hiI; } else { piv.push([hiI, hiP, 1]); d = -1; eP = loP; eI = loI; } }
+    } else if (d === 1) {
+      if (b.h >= eP) { eP = b.h; eI = i; } else if (eP - b.l >= th) { piv.push([eI, eP, 1]); d = -1; eP = b.l; eI = i; }
+    } else {
+      if (b.l <= eP) { eP = b.l; eI = i; } else if (b.h - eP >= th) { piv.push([eI, eP, -1]); d = 1; eP = b.h; eI = i; }
+    }
+  }
+  return piv;
+}
+async function drawSwings(w, range, numSpan, color) {
+  const th = +q.get('zz'); if (!th) return;
+  const ch = w.activeChart();
+  // Bars arrive asynchronously (slower in some browsers): wait until the labelled span is loaded.
+  let bars = [];
+  for (let attempt = 0; attempt < 20; attempt++) {
+    const ex = await ch.exportData({ includeTime: true, includeSeries: true });
+    bars = ex.data.filter(x => x[0] >= range[0] && x[0] < range[1]).map(x => ({ t: x[0], o: x[1], h: x[2], l: x[3], c: x[4] }));
+    const need = numSpan ? bars.filter(b => b.t >= numSpan[0] && b.t < numSpan[1]).length >= 20 : bars.length >= 20;
+    if (need && bars[0].t - range[0] < 4 * 3600) break;
+    await ch.setVisibleRange({ from: range[0] - 3600, to: range[1] + 3600 });
+    await new Promise(r => setTimeout(r, 1500));
+  }
+  if (bars.length < 3) { console.warn('drawSwings: no bars loaded'); return; }
+  const piv = zigzag(bars, th);
+  for (let k = 1; k < piv.length; k++) {
+    const a = piv[k - 1], b = piv[k];
+    ch.createMultipointShape([{ time: bars[a[0]].t, price: a[1] }, { time: bars[b[0]].t, price: b[1] }],
+      { shape: 'trend_line', lock: true, disableSelection: true, overrides: { linecolor: color, linewidth: 2 } });
+  }
+  let n = 0;
+  for (const p of piv) {
+    const t = bars[p[0]].t;
+    if (numSpan && (t < numSpan[0] || t >= numSpan[1])) continue;
+    n += 1;
+    ch.createShape({ time: t, price: p[1] }, { shape: 'text', lock: true, disableSelection: true, text: String(n),
+      overrides: { color: p[2] === 1 ? '#ff9800' : '#4fc3f7', fontsize: 14, bold: true } });
+  }
+}
+const span = k => (q.get(k) ? q.get(k).split(',').map(Number) : null);
+
+// linestyle: 0 solid, 1 dotted, 2 dashed
+window.leftChart = makeChart('left', PAST, [
+  { t: PAST[0], color: '#f5c518', style: 2 }, { t: PAST[1], color: '#f5c518', style: 2 },
+], w => drawSwings(w, PAST, span('numL'), '#ff5252').then(() => {
+  const f = span('focusL');                       // optional: open the left chart zoomed on this span
+  if (f) w.activeChart().setVisibleRange({ from: f[0], to: f[1] });
+}));
+window.rightChart = makeChart('right', DAY, [
+  { t: DAY[0], color: '#26c6da', style: 2 }, { t: DAY[1], color: '#26c6da', style: 2 },
+  { t: CUT, color: '#888888', style: 1 },
+], w => drawSwings(w, DAY, span('numR'), '#ff5252').then(() => {
+  const ch = w.activeChart();
+  for (const item of (q.get('lines') || '').split('|').filter(Boolean)) {
+    const [p, label] = item.split(':');
+    ch.createShape({ price: +p }, { shape: 'horizontal_line', lock: true, disableSelection: true,
+      overrides: { linecolor: '#ab47bc', linestyle: 2, linewidth: 1, showLabel: true, text: label || '', textcolor: '#ab47bc', horzLabelsAlign: 'right' } });
+  }
+  if (q.get('note')) ch.createShape({ time: +q.get('noteT'), price: +q.get('noteP') }, { shape: 'text', lock: true, text: q.get('note'),
+      overrides: { color: '#ab47bc', fontsize: 12, bold: true } });
+}));
+</script>
+</body>
+</html>

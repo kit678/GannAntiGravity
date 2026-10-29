@@ -72,6 +72,10 @@ class RSITrendlineBreakHypothesis(Hypothesis):
             fee_rate=0.0004,
             maker_fee_rate=0.0002,
             slippage_per_side=0.0,
+            # Fractional, because this corpus spans a 60,000-dollar BTC and a
+            # 0.50-dollar XRP. An absolute per-side amount stresses the cheap
+            # symbols and leaves the expensive ones effectively untested.
+            slippage_rate=0.0,
             # R must be declared in advance. Left None, the headline becomes
             # whichever R won in hindsight -- a choice unavailable live.
             selected_r=3.0,
@@ -186,6 +190,7 @@ class RSITrendlineBreakHypothesis(Hypothesis):
             fee_rate=float(self.parameters["fee_rate"]),
             maker_fee_rate=float(self.parameters["maker_fee_rate"]),
             slippage_per_side=float(self.parameters["slippage_per_side"]),
+            slippage_rate=float(self.parameters["slippage_rate"]),
             select_r=None if selected_r is None else float(selected_r),
         )
         best = exit_optimization.get("best") or {}

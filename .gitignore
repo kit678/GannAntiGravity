@@ -63,3 +63,4 @@ nul
 
 # Gann corpus builds (hours to build, large Parquet files - never commit)
 gann-visualizer/backend/logs/corpus/
+docs/media/recordings/

@@ -34,6 +34,7 @@ def simulate_trade_grid(
     slippage_per_side: float = 0.0,
     maker_fee_rate: Optional[float] = None,
     select_r: Optional[float] = None,
+    slippage_rate: float = 0.0,
 ) -> Dict[str, Any]:
     """Run every R in the grid; report one of them as the headline.
 
@@ -52,6 +53,7 @@ def simulate_trade_grid(
     slippage_per_side = _validate_execution_cost_input(
         "slippage_per_side", slippage_per_side
     )
+    slippage_rate = _validate_execution_cost_input("slippage_rate", slippage_rate)
     if maker_fee_rate is None:
         maker_fee_rate = fee_rate
     else:
@@ -76,6 +78,7 @@ def simulate_trade_grid(
             max_hold_bars=max_hold_bars,
             fee_rate=fee_rate,
             slippage_per_side=slippage_per_side,
+            slippage_rate=slippage_rate,
             maker_fee_rate=maker_fee_rate,
         )
         for r_value in r_grid
@@ -233,6 +236,7 @@ def _simulate_for_r(
     max_hold_bars: int,
     fee_rate: float,
     slippage_per_side: float,
+    slippage_rate: float,
     maker_fee_rate: float,
 ) -> Dict[str, Any]:
     trades = [
@@ -244,6 +248,7 @@ def _simulate_for_r(
             max_hold_bars=max_hold_bars,
             fee_rate=fee_rate,
             slippage_per_side=slippage_per_side,
+            slippage_rate=slippage_rate,
             maker_fee_rate=maker_fee_rate,
         )
         for signal_index, signal in enumerate(signals)
@@ -313,6 +318,7 @@ def _simulate_single_trade(
     max_hold_bars: int,
     fee_rate: float,
     slippage_per_side: float,
+    slippage_rate: float,
     maker_fee_rate: float,
 ) -> Dict[str, Any]:
     side = _normalize_side(signal.side)
@@ -382,6 +388,7 @@ def _simulate_single_trade(
         exit_price=exit_price,
         fee_rate=fee_rate,
         slippage_per_side=slippage_per_side,
+        slippage_rate=slippage_rate,
         exit_fee_rate=maker_fee_rate if exit_is_maker else fee_rate,
     )
     net_pnl = round(gross_pnl - cost, 6)
@@ -665,11 +672,21 @@ def _trade_cost(
     fee_rate: float,
     slippage_per_side: float,
     exit_fee_rate: Optional[float] = None,
+    slippage_rate: float = 0.0,
 ) -> float:
+    """Round-trip cost in price units.
+
+    Slippage comes in two units because two kinds of study need different ones.
+    ``slippage_per_side`` is absolute — the natural unit for a single instrument,
+    where a tick or an index point is the thing you actually lose. ``slippage_rate``
+    is fractional, and is the only usable unit across a corpus: a fixed absolute
+    amount is a rounding error on a 60,000-dollar BTC and a real cost on a
+    0.50-dollar XRP, so sweeping it stresses the cheap symbols and nothing else.
+    """
     if exit_fee_rate is None:
         exit_fee_rate = fee_rate
     notional_fees = (entry_price * fee_rate) + (exit_price * exit_fee_rate)
-    slippage = slippage_per_side * 2.0
+    slippage = (slippage_per_side * 2.0) + ((entry_price + exit_price) * slippage_rate)
     return notional_fees + slippage
 
 

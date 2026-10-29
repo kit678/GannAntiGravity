@@ -1,0 +1,8 @@
+[  0.0-  4.2] At the bottom of a market, if the price spikes up, you should see the volume rising.
+[  4.2-  5.7] That's accumulation.
+[  5.7- 11.5] In the distribution stage, as the price falls, the volume should rise.
+[ 11.5- 14.6] And as the price spikes up, the volume should fall.
+[ 14.6- 18.3] So in the bullish market, as price rises, the volume rises.
+[ 18.3- 20.2] As price falls, the volume falls.
+[ 20.2- 24.0] In the bearish market, as the price falls, the volume rises.
+[ 24.0- 25.8] As the price rallies, the volume falls.

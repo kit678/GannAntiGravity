@@ -37,6 +37,8 @@ class BinanceClient:
 
     MAINNET_REST = "https://fapi.binance.com"
     MAINNET_WS_PUBLIC = "wss://fstream.binance.com"
+    SPOT_REST = "https://api.binance.com"   # public spot klines, used when a symbol has no futures market
+    _spot_only: set = set()
 
     SUPPORTED_INTERVALS = [
         "1m", "3m", "5m", "15m", "30m",
@@ -170,11 +172,38 @@ class BinanceClient:
             params["endTime"] = end_time_ms
 
         url = f"{self.base_url}/fapi/v1/klines"
+        if params["symbol"] in self._spot_only:
+            url = f"{self.SPOT_REST}/api/v3/klines"
         resp = self.session.get(url, params=params)
+        if resp.status_code == 400 and not self.use_testnet and '"code":-1121' in resp.text.replace(" ", ""):
+            # Not a futures symbol (e.g. EURUSDT): fall back to the public spot market.
+            self._spot_only.add(params["symbol"])
+            resp = self.session.get(f"{self.SPOT_REST}/api/v3/klines", params=params)
         resp.raise_for_status()
         raw = resp.json()
 
         return self._parse_klines(raw)
+
+    def get_price_scale(self, symbol: str, default: int = 100) -> int:
+        """TradingView pricescale (10**decimals) from the symbol's tick size, futures first, then spot."""
+        symbol = symbol.upper()
+        for url in (f"{self.MAINNET_REST}/fapi/v1/exchangeInfo", f"{self.SPOT_REST}/api/v3/exchangeInfo"):
+            try:
+                params = {"symbol": symbol} if "api/v3" in url else None
+                resp = self.session.get(url, params=params, timeout=10)
+                if resp.status_code != 200:
+                    continue
+                for s in resp.json().get("symbols", []):
+                    if s.get("symbol") != symbol:
+                        continue
+                    for f in s.get("filters", []):
+                        if f.get("filterType") == "PRICE_FILTER":
+                            tick = float(f["tickSize"])
+                            if tick > 0:
+                                return int(round(1 / tick))
+            except Exception:
+                continue
+        return default
 
     def fetch_klines_range(
         self,

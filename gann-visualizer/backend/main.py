@@ -244,7 +244,7 @@ def get_data_client(data_source: str = "dhan"):
 
 # Suffix markers carried on TradingView tickers so /symbols and /history can route
 # even when the data_source query param is absent.
-SOURCE_SUFFIXES = {":YF": "yfinance", ":BN": "binance", ":ALP": "alpaca"}
+SOURCE_SUFFIXES = {":YF": "yfinance", ":BN": "binance", ":ALP": "alpaca", ":ALPX": "alpaca"}  # :ALPX = Alpaca incl. pre/after-hours
 
 # Sources whose clients speak UTC. Dhan expects IST.
 UTC_SOURCES = ("yfinance", "binance", "alpaca")
@@ -553,6 +553,8 @@ def udf_symbols(symbol: str):
         if info:
             info['symbol'] = symbol
             info['ticker'] = symbol
+            if symbol.endswith(":ALPX") and info.get("session") != "24x7":
+                info['session'] = "0400-2000"   # show pre-market and after-hours bars
             return info
 
     if is_binance:
@@ -572,10 +574,10 @@ def udf_symbols(symbol: str):
             "description": clean_symbol,
             "type": "crypto",
             "supported_resolutions": ["1", "4", "5", "15", "30", "60", "240", "D", "W", "M"],
-            "pricescale": 100,
+            "pricescale": BinanceClient(use_testnet=False).get_price_scale(clean_symbol),
             "ticker": symbol,
         }
-            
+
     # Return info based on requested symbol (Default Dhan)
     return {
         "name": symbol,

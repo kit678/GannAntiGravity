@@ -26,7 +26,7 @@ this one never aggregates 1m bars to build 4m candles.
 
 import os
 import re
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import List, Dict, Optional, Any
 
 import requests
@@ -161,6 +161,20 @@ class AlpacaClient:
         except requests.HTTPError as e:
             unentitled = e.response is not None and e.response.status_code in (401, 403)
             if unentitled and params.get("feed") == "sip":
+                # Free plans may read SIP history but not its newest 15 minutes. A chart asking for
+                # bars up to "now" hits that limit, so retry SIP with the end moved back before giving
+                # up on SIP (IEX has almost no pre-market / after-hours prints).
+                end = params.get("end")
+                if end:
+                    try:
+                        end_dt = datetime.fromisoformat(str(end).replace("Z", "+00:00"))
+                        cutoff = datetime.now(timezone.utc) - timedelta(minutes=16)
+                        if end_dt.tzinfo is None:
+                            end_dt = end_dt.replace(tzinfo=timezone.utc)
+                        if end_dt > cutoff:
+                            return self._get(url, {**params, "end": cutoff.strftime("%Y-%m-%dT%H:%M:%SZ")})
+                    except Exception:
+                        pass
                 print("[Alpaca] SIP feed not entitled, falling back to iex")
                 self.feed = "iex"
                 return self._get(url, {**params, "feed": "iex"})

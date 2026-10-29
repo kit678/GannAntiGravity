@@ -4,17 +4,50 @@
     {
       "name": "backend",
       "runtimeExecutable": "python",
-      "runtimeArgs": ["-m", "uvicorn", "main:app", "--host", "127.0.0.1", "--port", "8005"],
+      "runtimeArgs": [
+        "-m",
+        "uvicorn",
+        "main:app",
+        "--host",
+        "127.0.0.1",
+        "--port",
+        "8005"
+      ],
       "cwd": "gann-visualizer/backend",
       "port": 8005
     },
     {
       "name": "frontend",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev"],
+      "runtimeArgs": [
+        "run",
+        "dev"
+      ],
       "cwd": "gann-visualizer/frontend",
       "port": 5173,
       "autoPort": true
+    },
+    {
+      "name": "casebook",
+      "runtimeExecutable": "python",
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "8765",
+        "--bind",
+        "127.0.0.1"
+      ],
+      "cwd": "data_local",
+      "port": 8765
+    },
+    {
+      "name": "steele-casebook",
+      "runtimeExecutable": "python",
+      "runtimeArgs": [
+        "C:\\Dev\\GannTesting\\.worktrees\\steele-intraday\\research\\steele_intraday\\casebook_tv\\serve.py",
+        "8766"
+      ],
+      "port": 8766
     }
   ]
 }

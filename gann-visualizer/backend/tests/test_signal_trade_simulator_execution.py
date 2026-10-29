@@ -14,6 +14,7 @@ import os
 import sys
 
 import pandas as pd
+import pytest
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
@@ -223,3 +224,73 @@ def test_r_summary_reports_expectancy_and_profit_factor():
     assert best["profit_factor"] == 1.0
     assert best["avg_win_r"] == 1.0
     assert best["avg_loss_r"] == 1.0
+
+
+# --------------------------------------------------------------------- #
+# slippage units
+# --------------------------------------------------------------------- #
+
+def _target_trade(price_scale, **costs):
+    """One LONG that reaches its 1R target, at an arbitrary price level."""
+    p = price_scale
+    candles = _candles([
+        [0, p, p, p, p],
+        [1, p, p, p, p],
+        [2, p, p * 1.02, p * 0.995, p * 1.02],
+        [3, p * 1.02, p * 1.02, p * 1.02, p * 1.02],
+    ])
+    signal = CandleSignal(
+        bar_index=1, side="LONG", entry_price=p, stop_price=p * 0.99,
+        signal_time="t1", entry_bar_index=2,
+    )
+    result = simulate_trade_grid(candles, [signal], [1.0], max_hold_bars=5, **costs)
+    return result["per_signal"]["1:0"]
+
+
+def test_absolute_slippage_punishes_cheap_instruments_far_harder():
+    """Why slippage_per_side alone cannot stress a multi-symbol corpus.
+
+    The same absolute amount is a rounding error on a 60,000-dollar BTC and a
+    real cost on a 0.50-dollar XRP, so a sweep over it tests almost nothing on
+    the expensive symbols.
+    """
+    cheap = _target_trade(0.5, slippage_per_side=0.0002)
+    dear = _target_trade(60000.0, slippage_per_side=0.0002)
+
+    cheap_drag = (_target_trade(0.5)["net_r"] - cheap["net_r"])
+    dear_drag = (_target_trade(60000.0)["net_r"] - dear["net_r"])
+
+    assert cheap_drag > dear_drag * 1000
+
+
+def test_fractional_slippage_costs_the_same_in_r_at_any_price():
+    """slippage_rate is the unit a corpus sweep needs: scale-free."""
+    cheap = _target_trade(0.5, slippage_rate=0.0005)
+    dear = _target_trade(60000.0, slippage_rate=0.0005)
+
+    # Tolerance is 1e-3, not tighter: net_pnl is rounded to 6dp, which on a
+    # 0.005-wide R is a 2e-4 R quantum. Compare against the absolute-slippage
+    # test above, where the two differ by a factor of a thousand.
+    assert cheap["net_r"] == pytest.approx(dear["net_r"], abs=1e-3)
+
+
+def test_fractional_slippage_is_charged_on_both_sides():
+    free = _target_trade(100.0)
+    charged = _target_trade(100.0, slippage_rate=0.001)
+
+    # Entry 100, stop 99, so the 1R target exit is 101.
+    expected = (100.0 + 101.0) * 0.001
+    assert (free["net_pnl"] - charged["net_pnl"]) == pytest.approx(expected, abs=1e-6)
+
+
+def test_absolute_and_fractional_slippage_both_apply():
+    both = _target_trade(100.0, slippage_per_side=0.5, slippage_rate=0.001)
+    absolute_only = _target_trade(100.0, slippage_per_side=0.5)
+    fractional_only = _target_trade(100.0, slippage_rate=0.001)
+    free = _target_trade(100.0)
+
+    absolute_drag = free["net_pnl"] - absolute_only["net_pnl"]
+    fractional_drag = free["net_pnl"] - fractional_only["net_pnl"]
+    assert (free["net_pnl"] - both["net_pnl"]) == pytest.approx(
+        absolute_drag + fractional_drag, abs=1e-6
+    )

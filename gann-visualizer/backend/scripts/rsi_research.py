@@ -100,16 +100,25 @@ def sequential_only(trades: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """Drop trades that would have opened while another was still running.
 
     With a 40-bar hold and a signal every few bars, the raw list double-counts
-    the same market move many times over. One position at a time is both what
-    you would actually trade and what makes the sample closer to independent.
+    the same market move many times over. One position at a time per market is
+    what makes the sample closer to independent.
+
+    The filter runs PER MARKET. ``entry_bar`` is an index into one market's own
+    candles, so a single counter across a pooled corpus compares BTC's bar 5000
+    with ADA's bar 4999 — different assets on different timeframes, and not a
+    timeline at all. Doing that kept ~270 of 2,451 trades and reported an
+    expectancy five times the pooled figure, which was an artefact of the
+    arbitrary subsample rather than a property of the strategy.
     """
     kept: List[Dict[str, Any]] = []
-    free_from = -1
-    for trade in sorted(trades, key=lambda t: t["entry_bar"]):
-        if trade["entry_bar"] < free_from:
-            continue
-        kept.append(trade)
-        free_from = trade["exit_bar"]
+    for market in {trade["market"] for trade in trades}:
+        free_from = -1
+        in_market = [t for t in trades if t["market"] == market]
+        for trade in sorted(in_market, key=lambda t: t["entry_bar"]):
+            if trade["entry_bar"] < free_from:
+                continue
+            kept.append(trade)
+            free_from = trade["exit_bar"]
     return kept
 
 
@@ -222,7 +231,9 @@ GRIDS: Dict[str, Dict[str, List[Any]]] = {
         # Costs are a stress axis, not something to optimise. Best case is a
         # VIP maker-both-sides fill; worst is taker plus a tick of slippage.
         "fee_rate": [0.0002, 0.0004, 0.0005],
-        "slippage_per_side": [0.0, 0.0002],
+        # Fractional per side. Absolute amounts are unusable across a corpus
+        # spanning a 60,000-dollar BTC and a 0.50-dollar XRP.
+        "slippage_rate": [0.0, 0.0001, 0.00025, 0.0005, 0.001],
     },
 }
 
@@ -351,6 +362,7 @@ def run_break_list(hypothesis, prepared, bars_sides) -> List[Dict[str, Any]]:
         fee_rate=float(parameters["fee_rate"]),
         maker_fee_rate=float(parameters["maker_fee_rate"]),
         slippage_per_side=float(parameters["slippage_per_side"]),
+        slippage_rate=float(parameters.get("slippage_rate", 0.0)),
         select_r=None if parameters.get("selected_r") is None
         else float(parameters["selected_r"]),
     )
